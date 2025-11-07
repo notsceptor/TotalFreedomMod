@@ -305,6 +305,24 @@ noadmin_ips:
 petprotect:
   enabled: true
 
+# LibsDisguises integration
+disguises:
+  # List of forbidden disguise types (case-insensitive)
+  # These disguises will be blocked from being used
+  forbidden_types:
+    - FISHING_HOOK
+    - ITEM_FRAME
+    - ENDER_DRAGON
+    - PLAYER
+    - GIANT
+    - GHAST
+    - MAGMA_CUBE
+    - SLIME
+    - DROPPED_ITEM
+    - ENDER_CRYSTAL
+    - AREA_EFFECT_CLOUD
+    - WITHER
+
 # Logviewer
 logs:
   url: ''

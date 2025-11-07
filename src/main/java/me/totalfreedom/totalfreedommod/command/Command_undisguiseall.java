@@ -1,6 +1,5 @@
 package me.totalfreedom.totalfreedommod.command;
 
-//import me.libraryaddict.disguise.DisallowedDisguises;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import org.bukkit.command.Command;
@@ -14,14 +13,14 @@ public class Command_undisguiseall extends FreedomCommand
 
     @Override
     public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
-    { /*
+    {
         if (!plugin.ldb.isPluginEnabled())
         {
             msg("LibsDisguises is not enabled.");
             return true;
         }
 
-        if (DisallowedDisguises.disabled)
+        if (!plugin.ldb.isDisguisesEnabled())
         {
             msg("Disguises are not enabled.");
             return true;
@@ -31,11 +30,6 @@ public class Command_undisguiseall extends FreedomCommand
 
         plugin.ldb.undisguiseAll(false);
 
-        return true;
-
-*/
-        
-        msg("This command has been disabled for technical reasons. Contact a developer for additional information.");
         return true;
     }
 }

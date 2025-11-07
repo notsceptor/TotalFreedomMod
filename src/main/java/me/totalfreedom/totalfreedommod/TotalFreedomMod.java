@@ -172,6 +172,7 @@ public class TotalFreedomMod extends AeroPlugin<TotalFreedomMod>
         pm = services.registerService(PermbanList.class);
         pa = services.registerService(ProtectArea.class);
         gr = services.registerService(GameRuleHandler.class);
+        services.registerService(me.totalfreedom.totalfreedommod.disguise.DisallowedDisguises.class);
 
         // Single admin utils
         rb = services.registerService(RollbackManager.class);
