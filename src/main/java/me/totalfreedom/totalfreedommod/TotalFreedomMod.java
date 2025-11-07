@@ -97,6 +97,7 @@ public class TotalFreedomMod extends AeroPlugin<TotalFreedomMod>
     public Jumppads jp;
     public Trailer tr;
     public HTTPDaemon hd;
+    public ServiceChecker sc;
     //
     // Bridges
     public ServiceManager<TotalFreedomMod> bridges;
@@ -197,6 +198,7 @@ public class TotalFreedomMod extends AeroPlugin<TotalFreedomMod>
 
         // HTTPD
         hd = services.registerService(HTTPDaemon.class);
+        sc = services.registerService(ServiceChecker.class);
         services.start();
 
         // Start bridges
