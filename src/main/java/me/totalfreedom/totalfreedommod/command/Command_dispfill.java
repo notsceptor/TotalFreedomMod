@@ -43,7 +43,7 @@ public class Command_dispfill extends FreedomCommand
             final String[] itemsRaw = StringUtils.split(args[1], ",");
             for (final String searchItem : itemsRaw)
             {
-                Material material = Material.matchMaterial(searchItem);
+                Material material = me.totalfreedom.totalfreedommod.util.MaterialHelper.getMaterial(searchItem);
                 if (material == null)
                 {
                     try

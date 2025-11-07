@@ -69,11 +69,12 @@ public final class AdminWorld extends CustomWorld
 
         final Block welcomeSignBlock = world.getBlockAt(0, 50, 0);
         welcomeSignBlock.setType(Material.OAK_SIGN);
+        // Use BlockData API instead of deprecated MaterialData
+        org.bukkit.block.data.type.Sign signData = (org.bukkit.block.data.type.Sign) Material.OAK_SIGN.createBlockData();
+        signData.setRotation(BlockFace.NORTH);
+        welcomeSignBlock.setBlockData(signData);
+        
         org.bukkit.block.Sign welcomeSign = (org.bukkit.block.Sign) welcomeSignBlock.getState();
-
-        org.bukkit.material.Sign signData = (org.bukkit.material.Sign) welcomeSign.getData();
-        signData.setFacingDirection(BlockFace.NORTH);
-
         welcomeSign.setLine(0, ChatColor.GREEN + "AdminWorld");
         welcomeSign.setLine(1, ChatColor.DARK_GRAY + "---");
         welcomeSign.setLine(2, ChatColor.YELLOW + "Spawn Point");

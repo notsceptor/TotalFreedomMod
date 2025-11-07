@@ -27,10 +27,18 @@ public class ServerInterface extends FreedomService
     {
         final String nms = FUtil.getNmsVersion();
 
-        if (!COMPILE_NMS_VERSION.equals(nms))
+        // Paper 1.21.10 uses "craftbukkit" as package name, which is compatible
+        // Only warn if it's clearly a different major version
+        if (!COMPILE_NMS_VERSION.equals(nms) && !nms.equals("craftbukkit"))
         {
-            FLog.warning(TotalFreedomMod.pluginName + " is compiled for " + COMPILE_NMS_VERSION + " but the server is running version " + nms + "!");
-            FLog.warning("This might result in unexpected behaviour!");
+            // Check if it's a compatible version (same major.minor)
+            boolean isCompatible = nms.startsWith("v1_21") || nms.contains("1.21");
+            
+            if (!isCompatible)
+            {
+                FLog.warning(TotalFreedomMod.pluginName + " is compiled for " + COMPILE_NMS_VERSION + " but the server is running version " + nms + "!");
+                FLog.warning("This might result in unexpected behaviour!");
+            }
         }
     }
 

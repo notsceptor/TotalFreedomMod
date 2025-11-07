@@ -6,7 +6,6 @@ import lombok.Getter;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.SkullType;
 import org.bukkit.block.Block;
 import org.bukkit.block.Skull;
 
@@ -197,7 +196,7 @@ public class CageData
 
                         block.setType(Material.PLAYER_HEAD);
                         final Skull skull = (Skull) block.getState();
-                        skull.setSkullType(SkullType.PLAYER);
+                        // setSkullType() is deprecated - setting owner is sufficient for player heads
                         skull.setOwner("Prozza");
                         skull.update();
                     }

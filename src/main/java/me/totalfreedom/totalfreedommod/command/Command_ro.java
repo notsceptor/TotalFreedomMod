@@ -32,7 +32,7 @@ public class Command_ro extends FreedomCommand
 
         for (String materialName : StringUtils.split(args[0], ","))
         {
-            Material fromMaterial = Material.matchMaterial(materialName);
+            Material fromMaterial = me.totalfreedom.totalfreedommod.util.MaterialHelper.getMaterial(materialName);
             if (fromMaterial == null)
             {
                 try

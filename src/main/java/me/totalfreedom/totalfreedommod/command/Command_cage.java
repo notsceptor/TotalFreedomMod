@@ -72,9 +72,9 @@ public class Command_cage extends FreedomCommand
                 {
                     outerMaterial = Material.PLAYER_HEAD;
                 }
-                else if (Material.matchMaterial(args[1]) != null)
+                else if (me.totalfreedom.totalfreedommod.util.MaterialHelper.getMaterial(args[1]) != null)
                 {
-                    outerMaterial = Material.matchMaterial(args[1]);
+                    outerMaterial = me.totalfreedom.totalfreedommod.util.MaterialHelper.getMaterial(args[1]);
                 }
             }
         }

@@ -27,7 +27,7 @@ public class Command_whohas extends FreedomCommand
         final boolean doClear = args.length >= 2 && "clear".equalsIgnoreCase(args[1]);
 
         final String materialName = args[0];
-        Material material = Material.matchMaterial(materialName);
+        Material material = me.totalfreedom.totalfreedommod.util.MaterialHelper.getMaterial(materialName);
         if (material == null)
         {
             try

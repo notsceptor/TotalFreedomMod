@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.logging.Logger;
+import me.totalfreedom.totalfreedommod.util.MaterialHelper;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -97,7 +98,8 @@ public class CleanroomChunkGenerator extends ChunkGenerator
                                 dataValue = 0;
                             }
                         }
-                        Material mat = Material.matchMaterial(materialTokens[0]);
+                        // Use MaterialHelper to avoid triggering legacy material support
+                        Material mat = MaterialHelper.getMaterial(materialTokens[0]);
                         if (mat == null)
                         {
                             // Numeric IDs no longer exist in 1.13+, try legacy name mapping

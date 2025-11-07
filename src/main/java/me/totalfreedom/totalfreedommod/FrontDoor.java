@@ -464,11 +464,12 @@ public class FrontDoor extends FreedomService
                             }
 
                             block.setType(Material.OAK_SIGN);
+                            // Use BlockData API instead of deprecated MaterialData
+                            org.bukkit.block.data.type.Sign signData = (org.bukkit.block.data.type.Sign) Material.OAK_SIGN.createBlockData();
+                            signData.setRotation(org.bukkit.block.BlockFace.NORTH);
+                            block.setBlockData(signData);
+                            
                             org.bukkit.block.Sign sign = (org.bukkit.block.Sign) block.getState();
-
-                            org.bukkit.material.Sign signData = (org.bukkit.material.Sign) sign.getData();
-                            signData.setFacingDirection(BlockFace.NORTH);
-
                             sign.setLine(0, ChatColor.BLUE + "TotalFreedom");
                             sign.setLine(1, ChatColor.DARK_GREEN + "is");
                             sign.setLine(2, ChatColor.YELLOW + "Awesome!");
