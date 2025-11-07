@@ -329,7 +329,9 @@ public class ProtectArea extends FreedomService
         {
             for (World world : Bukkit.getWorlds())
             {
-                addProtectedArea("spawn_" + world.getName(), world.getSpawnLocation(), ConfigEntry.PROTECTAREA_RADIUS.getDouble());
+                String spawnLabel = "spawn_" + world.getName();
+                removeProtectedArea(spawnLabel);
+                addProtectedArea(spawnLabel, world.getSpawnLocation(), ConfigEntry.PROTECTAREA_RADIUS.getDouble());
             }
         }
     }

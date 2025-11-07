@@ -23,7 +23,9 @@ public class Command_setspawnworld extends FreedomCommand
 
         if (ConfigEntry.PROTECTAREA_ENABLED.getBoolean() && ConfigEntry.PROTECTAREA_SPAWNPOINTS.getBoolean())
         {
-            plugin.pa.addProtectedArea("spawn_" + playerSender.getWorld().getName(), pos, ConfigEntry.PROTECTAREA_RADIUS.getDouble());
+            String spawnLabel = "spawn_" + playerSender.getWorld().getName();
+            plugin.pa.removeProtectedArea(spawnLabel);
+            plugin.pa.addProtectedArea(spawnLabel, pos, ConfigEntry.PROTECTAREA_RADIUS.getDouble());
         }
 
         return true;
