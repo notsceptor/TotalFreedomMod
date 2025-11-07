@@ -5,9 +5,12 @@ import org.bukkit.plugin.Plugin;
 import com.sk89q.worldedit.LocalSession;
 
 // Stub class for compilation - WorldEdit is a soft dependency
+// WorldEdit 7 API: Uses BukkitAdapter for conversions
 public class WorldEditPlugin implements Plugin {
-    public LocalSession getSession(Player player) { return null; }
-    public BukkitPlayer wrapPlayer(Player player) { return null; }
+    // WorldEdit 7: getSession still exists but may use Actor internally
+    public LocalSession getSession(org.bukkit.entity.Player player) { return null; }
+    // WorldEdit 7: wrapPlayer may be deprecated in favor of BukkitAdapter.adapt()
+    public BukkitPlayer wrapPlayer(org.bukkit.entity.Player player) { return null; }
     public void onEnable() {}
     public void onDisable() {}
     public boolean isEnabled() { return false; }

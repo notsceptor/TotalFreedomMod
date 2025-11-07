@@ -63,6 +63,11 @@
             <url>https://jitpack.io</url>
         </repository>
 
+        <repository>
+            <id>enginehub</id>
+            <url>https://maven.enginehub.org/repo/</url>
+        </repository>
+
     </repositories>
 
     <dependencies>
@@ -93,9 +98,9 @@
         </dependency>
 
         <dependency>
-            <groupId>com.github.Pravian</groupId>
+            <groupId>com.github.tfreedomorg</groupId>
             <artifactId>Aero</artifactId>
-            <version>a0e1dc5</version>
+            <version>master-SNAPSHOT</version>
         </dependency>
 
         <dependency>
@@ -115,21 +120,13 @@
         </dependency>
         -->
  
-        <!-- The following have been changed to Telesphoreo's personal repo as it is the most stable current TF-WorldEdit build. These will be changed to a TotalFreedom build in the future -->
         <!-- WorldEdit is a soft dependency - removed from build dependencies as it's only needed at runtime -->
+        <!-- Official WorldEdit 7 API from EngineHub - compatible with Minecraft 1.13+ -->
         <!-- Uncomment these if you need WorldEdit classes for compilation:
         <dependency>
-            <groupId>com.github.Telesphoreo.TF-WorldEdit</groupId>
+            <groupId>com.sk89q.worldedit</groupId>
             <artifactId>worldedit-bukkit</artifactId>
-            <version>7.0.0-TF-SNAPSHOT-R0.2</version>
-            <scope>provided</scope>
-            <optional>true</optional>
-        </dependency>
-
-        <dependency>
-            <groupId>com.github.Telesphoreo.TF-WorldEdit</groupId>
-            <artifactId>worldedit-core</artifactId>
-            <version>7.0.0-TF-SNAPSHOT-R0.2</version>
+            <version>7.3.0</version>
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>

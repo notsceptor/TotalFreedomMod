@@ -25,13 +25,22 @@ public class WorldEditBridge extends FreedomService
     @Override
     protected void onStart()
     {
-        listener.register();
+        // Only register listener if TF-WorldEdit extension is installed
+        // TF-WorldEdit provides SelectionChangedEvent and LimitChangedEvent
+        if (server.getPluginManager().getPlugin("TF-WorldEdit") != null)
+        {
+            listener.register();
+        }
     }
 
     @Override
     protected void onStop()
     {
-        listener.unregister();
+        // Only unregister if listener was registered
+        if (server.getPluginManager().getPlugin("TF-WorldEdit") != null)
+        {
+            listener.unregister();
+        }
     }
 
     public void undo(Player player, int count)
