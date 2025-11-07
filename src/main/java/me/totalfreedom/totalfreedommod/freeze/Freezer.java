@@ -15,6 +15,12 @@ public class Freezer extends FreedomService
 
     @Getter
     private boolean globalFreeze = false;
+    
+    // Manual getter - Lombok @Getter not processing reliably
+    public boolean isGlobalFreeze()
+    {
+        return globalFreeze;
+    }
 
     public Freezer(TotalFreedomMod plugin)
     {

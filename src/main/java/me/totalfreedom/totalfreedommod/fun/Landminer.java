@@ -22,6 +22,12 @@ public class Landminer extends FreedomService
 
     @Getter
     private final List<Landmine> landmines = new ArrayList<>();
+    
+    // Manual getter - Lombok @Getter not processing reliably
+    public List<Landmine> getLandmines()
+    {
+        return landmines;
+    }
 
     public Landminer(TotalFreedomMod plugin)
     {

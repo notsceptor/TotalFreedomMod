@@ -70,7 +70,7 @@ public class Command_cage extends FreedomCommand
             {
                 if ("darth".equalsIgnoreCase(args[1]))
                 {
-                    outerMaterial = Material.SKULL;
+                    outerMaterial = Material.PLAYER_HEAD;
                 }
                 else if (Material.matchMaterial(args[1]) != null)
                 {
@@ -83,11 +83,11 @@ public class Command_cage extends FreedomCommand
         {
             if (args[2].equalsIgnoreCase("water"))
             {
-                innerMaterial = Material.STATIONARY_WATER;
+                innerMaterial = Material.WATER;
             }
             else if (args[2].equalsIgnoreCase("lava"))
             {
-                innerMaterial = Material.STATIONARY_LAVA;
+                innerMaterial = Material.LAVA;
             }
         }
 
@@ -96,7 +96,7 @@ public class Command_cage extends FreedomCommand
 
         player.setGameMode(GameMode.SURVIVAL);
 
-        if (outerMaterial != Material.SKULL)
+        if (outerMaterial != Material.PLAYER_HEAD)
         {
             FUtil.adminAction(sender.getName(), "Caging " + player.getName(), true);
         }

@@ -20,6 +20,22 @@ public class CommandBlockerEntry
     private final String subCommand;
     @Getter
     private final String message;
+    
+    // Manual getters - Lombok @Getter not processing
+    public CommandBlockerRank getRank()
+    {
+        return rank;
+    }
+    
+    public String getCommand()
+    {
+        return command;
+    }
+    
+    public String getSubCommand()
+    {
+        return subCommand;
+    }
 
     public CommandBlockerEntry(CommandBlockerRank rank, CommandBlockerAction action, String command, String message)
     {

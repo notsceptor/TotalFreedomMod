@@ -16,7 +16,7 @@ import org.bukkit.util.Vector;
 public class Jumppads extends FreedomService
 {
 
-    public static final Material BLOCK_ID = Material.WOOL;
+    public static final Material BLOCK_ID = Material.WHITE_WOOL; // Changed from Material.WOOL (removed in 1.13+)
     public static final double DAMPING_COEFFICIENT = 0.8;
     //
     private final Map<Player, Boolean> pushMap = Maps.newHashMap();
@@ -27,6 +27,27 @@ public class Jumppads extends FreedomService
     @Getter
     @Setter
     private double strength = 0.4;
+    
+    // Manual getters/setters - Lombok @Getter/@Setter not processing reliably
+    public JumpPadMode getMode()
+    {
+        return mode;
+    }
+    
+    public void setMode(JumpPadMode mode)
+    {
+        this.mode = mode;
+    }
+    
+    public double getStrength()
+    {
+        return strength;
+    }
+    
+    public void setStrength(double strength)
+    {
+        this.strength = strength;
+    }
 
     public Jumppads(TotalFreedomMod plugin)
     {

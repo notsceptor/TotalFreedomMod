@@ -27,6 +27,17 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
     private final CommandParameters params;
     @Getter
     private final CommandPermissions perms;
+    
+    // Manual getters - Lombok @Getter not processing reliably
+    public CommandParameters getParams()
+    {
+        return params;
+    }
+    
+    public CommandPermissions getPerms()
+    {
+        return perms;
+    }
 
     public FreedomCommand()
     {

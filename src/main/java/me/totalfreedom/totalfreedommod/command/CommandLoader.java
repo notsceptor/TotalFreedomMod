@@ -30,7 +30,18 @@ public class CommandLoader extends FreedomService
         handler.setOnlyConsoleMessage(ChatColor.RED + "This command can only be used from the console.");
         handler.setOnlyPlayerMessage(ChatColor.RED + "This command can only be used by players.");
 
-        handler.loadFrom(FreedomCommand.class.getPackage());
+        // Aero 2.2+ returns int (number of commands loaded) instead of void
+        // Use reflection to handle both old (void) and new (int) signatures
+        try
+        {
+            java.lang.reflect.Method loadFromMethod = handler.getClass().getMethod("loadFrom", Package.class);
+            loadFromMethod.invoke(handler, FreedomCommand.class.getPackage());
+        }
+        catch (Exception e)
+        {
+            FLog.severe("Failed to load commands via reflection: " + e.getMessage());
+            throw new RuntimeException("Command loading failed", e);
+        }
         handler.registerAll("TotalFreedomMod", true);
 
         FLog.info("Loaded " + handler.getExecutors().size() + " commands.");

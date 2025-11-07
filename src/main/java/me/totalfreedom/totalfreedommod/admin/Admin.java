@@ -139,6 +139,62 @@ public class Admin implements ConfigLoadable, ConfigSavable, Validatable
         ips.clear();
     }
 
+    // Manual getters - Lombok @Getter not processing
+    public Rank getRank()
+    {
+        return rank;
+    }
+    
+    public String getName()
+    {
+        return name;
+    }
+    
+    public List<String> getIps()
+    {
+        return ips;
+    }
+    
+    public String getConfigKey()
+    {
+        return configKey;
+    }
+    
+    public boolean isActive()
+    {
+        return active;
+    }
+    
+    public void setName(String name)
+    {
+        this.name = name;
+    }
+    
+    public Date getLastLogin()
+    {
+        return lastLogin;
+    }
+    
+    public void setLastLogin(Date lastLogin)
+    {
+        this.lastLogin = lastLogin;
+    }
+    
+    public String getLoginMessage()
+    {
+        return loginMessage;
+    }
+    
+    public void setRank(Rank rank)
+    {
+        this.rank = rank;
+    }
+    
+    public void setLoginMessage(String loginMessage)
+    {
+        this.loginMessage = loginMessage;
+    }
+    
     public void setActive(boolean active)
     {
         this.active = active;

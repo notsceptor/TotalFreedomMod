@@ -235,9 +235,15 @@ public class TotalFreedomMod extends AeroPlugin<TotalFreedomMod>
     @Override
     public void disable()
     {
-        // Stop services and bridges
-        bridges.stop();
-        services.stop();
+        // Stop services and bridges (check for null in case initialization failed)
+        if (bridges != null)
+        {
+            bridges.stop();
+        }
+        if (services != null)
+        {
+            services.stop();
+        }
 
         server.getScheduler().cancelTasks(plugin);
 

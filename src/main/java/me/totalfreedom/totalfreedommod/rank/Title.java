@@ -39,5 +39,26 @@ public enum Title implements Displayable
     {
         return determiner + " " + color + ChatColor.ITALIC + name;
     }
+    
+    // Manual getters - Lombok @Getter not processing on enum fields
+    public String getName()
+    {
+        return name;
+    }
+    
+    public String getTag()
+    {
+        return tag;
+    }
+    
+    public String getColoredTag()
+    {
+        return coloredTag;
+    }
+    
+    public ChatColor getColor()
+    {
+        return color;
+    }
 
 }

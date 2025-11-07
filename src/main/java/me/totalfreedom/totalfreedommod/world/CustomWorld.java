@@ -20,6 +20,12 @@ public abstract class CustomWorld extends PluginComponent<TotalFreedomMod>
     {
         this.name = name;
     }
+    
+    // Manual getter - Lombok @Getter not processing
+    public String getName()
+    {
+        return name;
+    }
 
     public final World getWorld()
     {

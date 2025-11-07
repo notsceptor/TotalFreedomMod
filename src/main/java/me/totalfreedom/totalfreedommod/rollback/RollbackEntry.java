@@ -1,11 +1,11 @@
 package me.totalfreedom.totalfreedommod.rollback;
 
-import me.totalfreedom.totalfreedommod.util.DepreciationAggregator;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.block.data.BlockData;
 
 public class RollbackEntry
 {
@@ -16,8 +16,9 @@ public class RollbackEntry
     public final int x;
     public final short y;
     public final int z;
-    public final byte data;
+    public final byte data; // Kept for compatibility, always 0 in 1.13+
     public final Material blockMaterial;
+    public final String blockDataString; // Store BlockData as string for proper restoration
     private final boolean isBreak;
 
     public RollbackEntry(String author, Block block, EntryType entryType)
@@ -33,13 +34,15 @@ public class RollbackEntry
         if (entryType == EntryType.BLOCK_BREAK)
         {
             this.blockMaterial = block.getType();
-            this.data = DepreciationAggregator.getData_Block(block);
+            this.blockDataString = block.getBlockData().getAsString();
+            this.data = 0; // Block data no longer exists in 1.13+
             this.isBreak = true;
         }
         else
         {
             this.blockMaterial = block.getType();
-            this.data = DepreciationAggregator.getData_Block(block);
+            this.blockDataString = block.getBlockData().getAsString();
+            this.data = 0; // Block data no longer exists in 1.13+
             this.isBreak = false;
         }
     }
@@ -72,8 +75,17 @@ public class RollbackEntry
         final Block block = Bukkit.getWorld(worldName).getBlockAt(x, y, z);
         if (isBreak)
         {
+            // Restore block with proper BlockData
+            try
+            {
+                BlockData blockData = Bukkit.createBlockData(blockDataString);
+                block.setBlockData(blockData);
+            }
+            catch (IllegalArgumentException e)
+            {
+                // Fallback to just setting the material if BlockData parsing fails
             block.setType(getMaterial());
-            DepreciationAggregator.setData_Block(block, data);
+            }
         }
         else
         {
@@ -91,8 +103,17 @@ public class RollbackEntry
         }
         else
         {
+            // Restore block with proper BlockData
+            try
+            {
+                BlockData blockData = Bukkit.createBlockData(blockDataString);
+                block.setBlockData(blockData);
+            }
+            catch (IllegalArgumentException e)
+            {
+                // Fallback to just setting the material if BlockData parsing fails
             block.setType(getMaterial());
-            DepreciationAggregator.setData_Block(block, data);
+            }
         }
     }
 }

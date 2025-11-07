@@ -83,7 +83,7 @@ public class InteractBlocker extends FreedomService
                 break;
             }
 
-            case EXPLOSIVE_MINECART:
+            case TNT_MINECART:
             {
                 if (ConfigEntry.ALLOW_TNT_MINECARTS.getBoolean())
                 {
@@ -96,9 +96,8 @@ public class InteractBlocker extends FreedomService
                 break;
             }
 
-            case SIGN:
-            case SIGN_POST:
-            case WALL_SIGN:
+            case OAK_SIGN:
+            case OAK_WALL_SIGN:
             {
                 player.sendMessage(ChatColor.GRAY + "Sign interaction is currently disabled.");
                 break;

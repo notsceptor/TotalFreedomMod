@@ -34,6 +34,27 @@ public class Ban implements ConfigLoadable, ConfigSavable, Validatable
     @Getter
     @Setter
     private String by = null;
+    
+    // Manual getters - Lombok @Getter not processing reliably
+    public List<String> getIps()
+    {
+        return ips;
+    }
+    
+    public String getUsername()
+    {
+        return username;
+    }
+    
+    public long getExpiryUnix()
+    {
+        return expiryUnix;
+    }
+    
+    public void setReason(String reason)
+    {
+        this.reason = reason;
+    }
     @Getter
     @Setter
     private String reason = null; // Unformatted, &[0-9,a-f] instead of ChatColor

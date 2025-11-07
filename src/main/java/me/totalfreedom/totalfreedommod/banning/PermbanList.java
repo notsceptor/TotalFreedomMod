@@ -24,6 +24,17 @@ public class PermbanList extends FreedomService
     private final Set<String> permbannedNames = Sets.newHashSet();
     @Getter
     private final Set<String> permbannedIps = Sets.newHashSet();
+    
+    // Manual getters - Lombok @Getter not processing reliably
+    public Set<String> getPermbannedIps()
+    {
+        return permbannedIps;
+    }
+    
+    public Set<String> getPermbannedNames()
+    {
+        return permbannedNames;
+    }
 
     public PermbanList(TotalFreedomMod plugin)
     {

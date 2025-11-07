@@ -32,6 +32,17 @@ public class AdminList extends FreedomService
     // Only active admins below
     @Getter
     private final Set<Admin> activeAdmins = Sets.newHashSet();
+    
+    // Manual getters - Lombok @Getter not processing reliably
+    public Map<String, Admin> getAllAdmins()
+    {
+        return allAdmins;
+    }
+    
+    public Set<Admin> getActiveAdmins()
+    {
+        return activeAdmins;
+    }
     private final Map<String, Admin> nameTable = Maps.newHashMap();
     private final Map<String, Admin> ipTable = Maps.newHashMap();
     //

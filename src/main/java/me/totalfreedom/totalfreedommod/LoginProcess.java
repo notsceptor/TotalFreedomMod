@@ -26,6 +26,17 @@ public class LoginProcess extends FreedomService
     @Getter
     @Setter
     private boolean lockdownEnabled = false;
+    
+    // Manual getter/setter - Lombok @Getter/@Setter not processing reliably
+    public boolean isLockdownEnabled()
+    {
+        return lockdownEnabled;
+    }
+    
+    public void setLockdownEnabled(boolean lockdownEnabled)
+    {
+        this.lockdownEnabled = lockdownEnabled;
+    }
 
     public LoginProcess(TotalFreedomMod plugin)
     {

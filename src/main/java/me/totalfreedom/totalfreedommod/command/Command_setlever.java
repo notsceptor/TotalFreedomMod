@@ -63,9 +63,10 @@ public class Command_setlever extends FreedomCommand
 
         if (targetBlock.getType() == Material.LEVER)
         {
-            org.bukkit.material.Lever lever = DepreciationAggregator.makeLeverWithData(DepreciationAggregator.getData_Block(targetBlock));
-            lever.setPowered(leverOn);
-            DepreciationAggregator.setData_Block(targetBlock, DepreciationAggregator.getData_MaterialData(lever));
+            // Use BlockData API instead of MaterialData (removed in 1.13+)
+            org.bukkit.block.data.Powerable leverData = (org.bukkit.block.data.Powerable) targetBlock.getBlockData();
+            leverData.setPowered(leverOn);
+            targetBlock.setBlockData(leverData);
             targetBlock.getState().update();
         }
         else

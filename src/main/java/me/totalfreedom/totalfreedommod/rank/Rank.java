@@ -3,6 +3,7 @@ package me.totalfreedom.totalfreedommod.rank;
 import lombok.Getter;
 import org.bukkit.ChatColor;
 
+@Getter
 public enum Rank implements Displayable
 {
 
@@ -14,16 +15,11 @@ public enum Rank implements Displayable
     SENIOR_ADMIN("a", "Senior Admin", Type.ADMIN, "SrA", ChatColor.GOLD),
     TELNET_CONSOLE("the", "Console", Type.ADMIN_CONSOLE, "Console", ChatColor.DARK_PURPLE),
     SENIOR_CONSOLE("the", "Console", Type.ADMIN_CONSOLE, "Console", ChatColor.DARK_PURPLE);
-    @Getter
     private final Type type;
-    @Getter
     private final String name;
     private final String determiner;
-    @Getter
     private final String tag;
-    @Getter
     private final String coloredTag;
-    @Getter
     private final ChatColor color;
 
     private Rank(String determiner, String name, Type type, String abbr, ChatColor color)
@@ -76,6 +72,27 @@ public enum Rank implements Displayable
     public boolean isAdmin()
     {
         return getType() == Type.ADMIN || getType() == Type.ADMIN_CONSOLE;
+    }
+    
+    // Manual getters - Lombok @Getter not processing on enum fields
+    public Type getType()
+    {
+        return type;
+    }
+    
+    public String getName()
+    {
+        return name;
+    }
+    
+    public String getColoredTag()
+    {
+        return coloredTag;
+    }
+    
+    public ChatColor getColor()
+    {
+        return color;
     }
 
     public boolean hasConsoleVariant()

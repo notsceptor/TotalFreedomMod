@@ -20,6 +20,12 @@ public class FreezeData
     @Getter
     private Location location = null;
     private BukkitTask unfreeze = null;
+    
+    // Manual getter - Lombok @Getter not processing reliably
+    public Location getLocation()
+    {
+        return location;
+    }
 
     public FreezeData(FPlayer fPlayer)
     {

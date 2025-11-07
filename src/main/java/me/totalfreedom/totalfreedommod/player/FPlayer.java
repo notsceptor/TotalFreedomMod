@@ -30,6 +30,17 @@ public class FPlayer
     private final String name;
     @Getter
     private final String ip;
+    
+    // Manual getters - Lombok @Getter not processing reliably
+    public String getName()
+    {
+        return name;
+    }
+    
+    public TotalFreedomMod getPlugin()
+    {
+        return plugin;
+    }
     //
     @Setter
     private Player player;
@@ -37,8 +48,20 @@ public class FPlayer
     private BukkitTask unmuteTask;
     @Getter
     private final FreezeData freezeData = new FreezeData(this);
+    
+    // Manual getters - Lombok @Getter not processing reliably
+    public FreezeData getFreezeData()
+    {
+        return freezeData;
+    }
     @Getter
     private double fuckoffRadius = 0;
+    
+    // Manual getter - Lombok @Getter not processing reliably
+    public double getFuckoffRadius()
+    {
+        return fuckoffRadius;
+    }
     private int messageCount = 0;
     private int totalBlockDestroy = 0;
     private int totalBlockPlace = 0;
@@ -46,6 +69,12 @@ public class FPlayer
     private int freecamPlaceCount = 0;
     @Getter
     private final CageData cageData = new CageData(this);
+    
+    // Manual getter - Lombok @Getter not processing reliably
+    public CageData getCageData()
+    {
+        return cageData;
+    }
     private boolean isOrbiting = false;
     private double orbitStrength = 10.0;
     private boolean mobThrowerEnabled = false;
@@ -62,6 +91,12 @@ public class FPlayer
     @Getter
     @Setter
     private boolean superadminIdVerified = false;
+    
+    // Manual setter - Lombok @Setter not processing
+    public void setSuperadminIdVerified(boolean verified)
+    {
+        this.superadminIdVerified = verified;
+    }
     private String lastCommand = "";
     private boolean cmdspyEnabled = false;
     private String tag = null;

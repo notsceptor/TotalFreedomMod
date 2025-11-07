@@ -25,6 +25,17 @@ public class CageData
     private Material outerMaterial = Material.GLASS;
     @Getter
     private Material innerMaterial = Material.AIR;
+    
+    // Manual getters - Lombok @Getter not processing reliably
+    public boolean isCaged()
+    {
+        return caged;
+    }
+    
+    public Location getLocation()
+    {
+        return location;
+    }
 
     public CageData(FPlayer player)
     {
@@ -165,7 +176,7 @@ public class CageData
 
                     final Block block = center.getRelative(xOffset, yOffset, zOffset);
 
-                    if (material != Material.SKULL)
+                    if (material != Material.PLAYER_HEAD)
                     {
                         // Glowstone light
                         if (material != Material.GLASS && xOffset == 0 && yOffset == 2 && zOffset == 0)
@@ -184,7 +195,7 @@ public class CageData
                             continue;
                         }
 
-                        block.setType(Material.SKULL);
+                        block.setType(Material.PLAYER_HEAD);
                         final Skull skull = (Skull) block.getState();
                         skull.setSkullType(SkullType.PLAYER);
                         skull.setOwner("Prozza");

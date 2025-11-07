@@ -29,13 +29,14 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.generator.BlockPopulator;
 import org.bukkit.generator.ChunkGenerator;
+import org.bukkit.generator.ChunkGenerator.ChunkData;
+import org.bukkit.generator.WorldInfo;
 
-@SuppressWarnings("deprecation")
 public class CleanroomChunkGenerator extends ChunkGenerator
 {
 
     private static final Logger log = Bukkit.getLogger();
-    private short[] layer;
+    private Material[] layer;
     private byte[] layerDataValues;
 
     public CleanroomChunkGenerator()
@@ -51,7 +52,7 @@ public class CleanroomChunkGenerator extends ChunkGenerator
             {
                 int y = 0;
 
-                layer = new short[128]; // Default to 128, will be resized later if required
+                layer = new Material[128]; // Default to 128, will be resized later if required
                 layerDataValues = null;
 
                 if ((id.length() > 0) && (id.charAt(0) == '.')) // Is the first character a '.'? If so, skip bedrock generation.
@@ -60,7 +61,7 @@ public class CleanroomChunkGenerator extends ChunkGenerator
                 }
                 else // Guess not, bedrock at layer0 it is then.
                 {
-                    layer[y++] = (short) Material.BEDROCK.getId();
+                    layer[y++] = Material.BEDROCK;
                 }
 
                 if (id.length() > 0)
@@ -99,18 +100,19 @@ public class CleanroomChunkGenerator extends ChunkGenerator
                         Material mat = Material.matchMaterial(materialTokens[0]);
                         if (mat == null)
                         {
+                            // Numeric IDs no longer exist in 1.13+, try legacy name mapping
                             try
                             {
-                                // Mabe it's an integer?
-                                mat = Material.getMaterial(Integer.parseInt(materialTokens[0]));
+                                // Try to map old numeric ID to material name (for legacy configs)
+                                int oldId = Integer.parseInt(materialTokens[0]);
+                                // This is a simplified mapping - in practice, you'd need a full mapping table
+                                // For now, just default to stone
+                                log.warning("[CleanroomGenerator] Numeric block IDs are no longer supported. Use material names instead. Defaulting to stone.");
+                                mat = Material.STONE;
                             }
                             catch (Exception e)
                             {
-                                // Well, I guess it wasn't an integer after all... Awkward...
-                            }
-
-                            if (mat == null)
-                            {
+                                // Not a number, default to stone
                                 log.warning("[CleanroomGenerator] Invalid Block ID '" + materialTokens[0] + "'. Defaulting to stone.");
                                 mat = Material.STONE;
                             }
@@ -124,7 +126,7 @@ public class CleanroomChunkGenerator extends ChunkGenerator
 
                         if (y + height > layer.length)
                         {
-                            short[] newLayer = new short[Math.max(y + height, layer.length * 2)];
+                            Material[] newLayer = new Material[Math.max(y + height, layer.length * 2)];
                             arraycopy(layer, 0, newLayer, 0, y);
                             layer = newLayer;
                             if (layerDataValues != null)
@@ -135,7 +137,7 @@ public class CleanroomChunkGenerator extends ChunkGenerator
                             }
                         }
 
-                        Arrays.fill(layer, y, y + height, (short) mat.getId());
+                        Arrays.fill(layer, y, y + height, mat);
                         if (dataValue != 0)
                         {
                             if (layerDataValues == null)
@@ -151,7 +153,7 @@ public class CleanroomChunkGenerator extends ChunkGenerator
                 // Trim to size
                 if (layer.length > y)
                 {
-                    short[] newLayer = new short[y];
+                    Material[] newLayer = new Material[y];
                     arraycopy(layer, 0, newLayer, 0, y);
                     layer = newLayer;
                 }
@@ -164,45 +166,50 @@ public class CleanroomChunkGenerator extends ChunkGenerator
             }
             catch (Exception e)
             {
-                log.severe("[CleanroomGenerator] Error parsing CleanroomGenerator ID '" + id + "'. using defaults '64,1': " + e.toString());
+                log.severe("[CleanroomGenerator] Error parsing CleanroomGenerator ID '" + id + "'. using defaults '64,stone': " + e.toString());
                 e.printStackTrace();
                 layerDataValues = null;
-                layer = new short[65];
-                layer[0] = (short) Material.BEDROCK.getId();
-                Arrays.fill(layer, 1, 65, (short) Material.STONE.getId());
+                layer = new Material[65];
+                layer[0] = Material.BEDROCK;
+                Arrays.fill(layer, 1, 65, Material.STONE);
             }
         }
         else
         {
             layerDataValues = null;
-            layer = new short[65];
-            layer[0] = (short) Material.BEDROCK.getId();
-            Arrays.fill(layer, 1, 65, (short) Material.STONE.getId());
+            layer = new Material[65];
+            layer[0] = Material.BEDROCK;
+            Arrays.fill(layer, 1, 65, Material.STONE);
         }
     }
 
     @Override
-    public short[][] generateExtBlockSections(World world, Random random, int x, int z, BiomeGrid biomes)
+    public void generateSurface(WorldInfo worldInfo, Random random, int chunkX, int chunkZ, ChunkData chunkData)
     {
-        int maxHeight = world.getMaxHeight();
+        int maxHeight = worldInfo.getMaxHeight();
         if (layer.length > maxHeight)
         {
             log.warning("[CleanroomGenerator] Error, chunk height " + layer.length + " is greater than the world max height (" + maxHeight + "). Trimming to world max height.");
-            short[] newLayer = new short[maxHeight];
+            Material[] newLayer = new Material[maxHeight];
             arraycopy(layer, 0, newLayer, 0, maxHeight);
             layer = newLayer;
         }
-        short[][] result = new short[maxHeight / 16][]; // 16x16x16 chunks
-        for (int i = 0; i < layer.length; i += 16)
+        
+        // Fill chunk with materials from layer array
+        for (int y = 0; y < Math.min(layer.length, maxHeight); y++)
         {
-            result[i >> 4] = new short[4096];
-            for (int y = 0; y < Math.min(16, layer.length - i); y++)
+            if (layer[y] != null && layer[y].isBlock())
             {
-                Arrays.fill(result[i >> 4], y * 16 * 16, (y + 1) * 16 * 16, layer[i + y]);
+                Material material = layer[y];
+                for (int xx = 0; xx < 16; xx++)
+            {
+                    for (int zz = 0; zz < 16; zz++)
+                    {
+                        chunkData.setBlock(xx, y, zz, material);
             }
         }
-
-        return result;
+            }
+        }
     }
 
     @Override
@@ -210,7 +217,7 @@ public class CleanroomChunkGenerator extends ChunkGenerator
     {
         if (layerDataValues != null)
         {
-            return Arrays.asList((BlockPopulator) new CleanroomBlockPopulator(layerDataValues));
+            return Arrays.asList((BlockPopulator) new CleanroomBlockPopulator(layer, layerDataValues));
         }
         else
         {
