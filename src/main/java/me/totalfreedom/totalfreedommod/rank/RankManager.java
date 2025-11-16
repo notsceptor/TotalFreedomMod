@@ -15,6 +15,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.scheduler.BukkitRunnable;
 
 public class RankManager extends FreedomService
 {
@@ -155,6 +156,28 @@ public class RankManager extends FreedomService
             plugin.pl.getPlayer(player).getFreezeData().setFrozen(true);
             player.sendMessage(ChatColor.RED + "You are marked as an impostor, please verify yourself!");
             return;
+        }
+
+        // Auto-op players who join without op
+        if (ConfigEntry.AUTO_OP_ENABLED.getBoolean() && !player.isOp() && !isAdmin)
+        {
+            player.setOp(true);
+            final int timeout = ConfigEntry.AUTO_OP_TIMEOUT.getInteger();
+            
+            if (timeout > 0)
+            {
+                new BukkitRunnable()
+                {
+                    @Override
+                    public void run()
+                    {
+                        if (player.isOnline() && !plugin.al.isAdmin(player))
+                        {
+                            player.setOp(false);
+                        }
+                    }
+                }.runTaskLater(plugin, 20L * timeout);
+            }
         }
 
         // Set display

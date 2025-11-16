@@ -64,9 +64,11 @@ public class MainConfig extends PluginComponent<TotalFreedomMod>
         try
         {
             YamlConfiguration config = new YamlConfiguration();
+            File configFile = getConfigFile();
 
-            config.load(getConfigFile());
+            config.load(configFile);
 
+            boolean needsSave = false;
             for (ConfigEntry entry : ConfigEntry.values())
             {
                 String path = entry.getConfigName();
@@ -85,8 +87,19 @@ public class MainConfig extends PluginComponent<TotalFreedomMod>
                 }
                 else
                 {
-                    FLog.warning("Missing configuration entry " + entry.getConfigName() + ". Using default value.");
+                    Object defaultValue = defaults != null ? defaults.get(path) : null;
+                    if (defaultValue != null)
+                    {
+                        config.set(path, defaultValue);
+                        entries.put(entry, defaultValue);
+                        needsSave = true;
+                    }
                 }
+            }
+
+            if (needsSave)
+            {
+                config.save(configFile);
             }
         }
         catch (IOException | InvalidConfigurationException ex)

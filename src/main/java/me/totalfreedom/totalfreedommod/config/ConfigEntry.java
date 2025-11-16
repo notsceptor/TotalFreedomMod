@@ -64,6 +64,9 @@ public enum ConfigEntry
     AUTOKICK_THRESHOLD(Double.class, "autokick.threshold"),
     AUTOKICK_TIME(Integer.class, "autokick.time"),
     //
+    AUTO_OP_ENABLED(Boolean.class, "auto_op.enabled"),
+    AUTO_OP_TIMEOUT(Integer.class, "auto_op.timeout"),
+    //
     LOGS_SECRET(String.class, "logs.secret"),
     LOGS_URL(String.class, "logs.url"),
     //

@@ -347,6 +347,13 @@ autokick:
   # Time, in seconds, after which a player should be kicked when inactive
   time: 120
 
+# Auto-Op - Automatically op players who join without op
+auto_op:
+  enabled: false
+
+  # Time, in seconds, after which a player will be deopped. Set to 0 for no timeout (permanent op).
+  timeout: 300
+
 # Players with access to the overlord command
 overlord_ips:
   - 176.56.237.227
