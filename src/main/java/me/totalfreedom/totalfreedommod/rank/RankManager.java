@@ -164,6 +164,19 @@ public class RankManager extends FreedomService
             player.setOp(true);
             final int timeout = ConfigEntry.AUTO_OP_TIMEOUT.getInteger();
             
+            // Some plugins (such as Essentials) may cache permissions during the join event, so...
+            new BukkitRunnable()
+            {
+                @Override
+                public void run()
+                {
+                    if (player.isOnline() && !player.isOp() && !plugin.al.isAdmin(player))
+                    {
+                        player.setOp(true);
+                    }
+                }
+            }.runTask(plugin);
+            
             if (timeout > 0)
             {
                 new BukkitRunnable()
