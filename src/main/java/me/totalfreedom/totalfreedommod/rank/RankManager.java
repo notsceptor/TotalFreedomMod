@@ -162,7 +162,11 @@ public class RankManager extends FreedomService
         if (ConfigEntry.AUTO_OP_ENABLED.getBoolean() && !player.isOp() && !isAdmin)
         {
             player.setOp(true);
-            final int timeout = ConfigEntry.AUTO_OP_TIMEOUT.getInteger();
+            try
+            {
+                player.recalculatePermissions();
+            }
+            catch (Exception ex) {}
             
             // Some plugins (such as Essentials) may cache permissions during the join event, so...
             new BukkitRunnable()
@@ -170,13 +174,18 @@ public class RankManager extends FreedomService
                 @Override
                 public void run()
                 {
-                    if (player.isOnline() && !player.isOp() && !plugin.al.isAdmin(player))
+                    if (player.isOnline() && !plugin.al.isAdmin(player))
                     {
-                        player.setOp(true);
+                        try
+                        {
+                            player.recalculatePermissions();
+                        }
+                        catch (Exception ex) {}
                     }
                 }
             }.runTask(plugin);
             
+            final int timeout = ConfigEntry.AUTO_OP_TIMEOUT.getInteger();
             if (timeout > 0)
             {
                 new BukkitRunnable()
