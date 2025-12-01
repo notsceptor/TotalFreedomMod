@@ -55,25 +55,8 @@ public class Command_birthday extends FreedomCommand
                     }
                 }
             }
-            catch (Exception e)
+            catch (Exception ignored)
             {
-                // Fallback: Try deprecated awardAchievement method (pre-1.12)
-                // This is included for compatibility if someone backports to older versions
-                try
-                {
-                    // Use reflection to call deprecated method if available
-                    java.lang.reflect.Method awardMethod = onlinePlayer.getClass().getMethod("awardAchievement", org.bukkit.Achievement.class);
-                    // Note: Achievement enum was removed in 1.12+, so this will likely fail
-                    // But we include it as a fallback for older versions if someone backports
-                }
-                catch (NoSuchMethodException ignored)
-                {
-                    // Deprecated method not available - that's expected for 1.21.10
-                }
-                catch (Exception ignored)
-                {
-                    // Any other exception (e.g., ClassNotFoundException) - ignore
-                }
             }
         }
 

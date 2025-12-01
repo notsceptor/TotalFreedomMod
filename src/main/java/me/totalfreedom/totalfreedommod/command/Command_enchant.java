@@ -2,6 +2,8 @@ package me.totalfreedom.totalfreedommod.command;
 
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
+import org.bukkit.Registry;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.enchantments.Enchantment;
@@ -39,7 +41,7 @@ public class Command_enchant extends FreedomCommand
                 if (ench.canEnchantItem(item))
                 {
                     has_enchantments = true;
-                    possible_ench.append(ench.getName()).append(", ");
+                    possible_ench.append(ench.getKey().getKey()).append(", ");
                 }
             }
 
@@ -65,7 +67,7 @@ public class Command_enchant extends FreedomCommand
                 }
                 catch (Exception ex)
                 {
-                    msg("Could not add enchantment: " + ench.getName());
+                    msg("Could not add enchantment: " + ench.getKey().getKey());
                 }
             }
 
@@ -91,7 +93,7 @@ public class Command_enchant extends FreedomCommand
 
             try
             {
-                ench = Enchantment.getByName(args[1]);
+                ench = Registry.ENCHANTMENT.get(NamespacedKey.minecraft(args[1].toLowerCase()));
             }
             catch (Exception ex)
             {
@@ -109,7 +111,7 @@ public class Command_enchant extends FreedomCommand
                 {
                     item.addEnchantment(ench, ench.getMaxLevel());
 
-                    msg("Added enchantment: " + ench.getName());
+                    msg("Added enchantment: " + ench.getKey().getKey());
                 }
                 else
                 {
@@ -120,7 +122,7 @@ public class Command_enchant extends FreedomCommand
             {
                 item.removeEnchantment(ench);
 
-                msg("Removed enchantment: " + ench.getName());
+                msg("Removed enchantment: " + ench.getKey().getKey());
             }
         }
 
