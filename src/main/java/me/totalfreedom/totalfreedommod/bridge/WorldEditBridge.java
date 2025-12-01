@@ -1,8 +1,5 @@
 package me.totalfreedom.totalfreedommod.bridge;
 
-import com.sk89q.worldedit.LocalSession;
-import com.sk89q.worldedit.bukkit.BukkitPlayer;
-import com.sk89q.worldedit.bukkit.WorldEditPlugin;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.util.FLog;
@@ -14,7 +11,7 @@ public class WorldEditBridge extends FreedomService
 
     private final WorldEditListener listener;
     //
-    private WorldEditPlugin worldedit = null;
+    private Plugin worldedit = null;
 
     public WorldEditBridge(TotalFreedomMod plugin)
     {
@@ -25,16 +22,14 @@ public class WorldEditBridge extends FreedomService
     @Override
     protected void onStart()
     {
-        // Register listener - it's safe to register even if TF-WorldEdit isn't loaded yet
-        // The events just won't fire if TF-WorldEdit isn't installed
-        // TF-WorldEdit provides SelectionChangedEvent, LimitChangedEvent, and WorldEditOperationEvent
-        listener.register();
+        // Register TF-WorldEdit event handlers using reflection
+        listener.registerTFWorldEditEvents();
         
         Plugin tfWorldEdit = server.getPluginManager().getPlugin("TF-WorldEdit");
         if (tfWorldEdit != null)
         {
             FLog.info("TF-WorldEdit detected. WorldEdit protection enabled.");
-            // Try to manually register the event handler using the real event class
+            // Try to manually register the WorldEditOperationEvent handler
             registerWorldEditOperationHandler(tfWorldEdit);
         }
         else
@@ -130,22 +125,40 @@ public class WorldEditBridge extends FreedomService
     @Override
     protected void onStop()
     {
-        listener.unregister();
+        // Listener uses dynamic registration, unregistration is handled by Bukkit
     }
 
     public void undo(Player player, int count)
     {
         try
         {
-            LocalSession session = getPlayerSession(player);
+            Object session = getPlayerSession(player);
             if (session != null)
             {
-                final BukkitPlayer bukkitPlayer = getBukkitPlayer(player);
+                final Object bukkitPlayer = getBukkitPlayer(player);
                 if (bukkitPlayer != null)
                 {
-                    for (int i = 0; i < count; i++)
+                    // Get getBlockBag method via reflection
+                    java.lang.reflect.Method getBlockBagMethod = session.getClass().getMethod("getBlockBag", bukkitPlayer.getClass().getSuperclass());
+                    Object blockBag = getBlockBagMethod.invoke(session, bukkitPlayer);
+                    
+                    // Get undo method via reflection
+                    java.lang.reflect.Method undoMethod = null;
+                    for (java.lang.reflect.Method m : session.getClass().getMethods())
                     {
-                        session.undo(session.getBlockBag(bukkitPlayer), bukkitPlayer);
+                        if (m.getName().equals("undo") && m.getParameterCount() == 2)
+                        {
+                            undoMethod = m;
+                            break;
+                        }
+                    }
+                    
+                    if (undoMethod != null)
+                    {
+                        for (int i = 0; i < count; i++)
+                        {
+                            undoMethod.invoke(session, blockBag, bukkitPlayer);
+                        }
                     }
                 }
             }
@@ -156,19 +169,16 @@ public class WorldEditBridge extends FreedomService
         }
     }
 
-    private WorldEditPlugin getWorldEditPlugin()
+    private Plugin getWorldEditPlugin()
     {
         if (worldedit == null)
         {
             try
             {
                 Plugin we = server.getPluginManager().getPlugin("WorldEdit");
-                if (we != null)
+                if (we != null && we.isEnabled())
                 {
-                    if (we instanceof WorldEditPlugin)
-                    {
-                        worldedit = (WorldEditPlugin) we;
-                    }
+                    worldedit = we;
                 }
             }
             catch (Exception ex)
@@ -184,10 +194,12 @@ public class WorldEditBridge extends FreedomService
     {
         try
         {
-            final LocalSession session = getPlayerSession(player);
+            final Object session = getPlayerSession(player);
             if (session != null)
             {
-                session.setBlockChangeLimit(limit);
+                // Call setBlockChangeLimit(int) via reflection
+                java.lang.reflect.Method setLimitMethod = session.getClass().getMethod("setBlockChangeLimit", int.class);
+                setLimitMethod.invoke(session, limit);
             }
         }
         catch (Exception ex)
@@ -197,9 +209,9 @@ public class WorldEditBridge extends FreedomService
 
     }
 
-    private LocalSession getPlayerSession(Player player)
+    private Object getPlayerSession(Player player)
     {
-        final WorldEditPlugin wep = getWorldEditPlugin();
+        final Plugin wep = getWorldEditPlugin();
         if (wep == null)
         {
             return null;
@@ -207,7 +219,9 @@ public class WorldEditBridge extends FreedomService
 
         try
         {
-            return wep.getSession(player);
+            // Call getSession(Player) via reflection
+            java.lang.reflect.Method getSessionMethod = wep.getClass().getMethod("getSession", Player.class);
+            return getSessionMethod.invoke(wep, player);
         }
         catch (Exception ex)
         {
@@ -216,9 +230,9 @@ public class WorldEditBridge extends FreedomService
         }
     }
 
-    private BukkitPlayer getBukkitPlayer(Player player)
+    private Object getBukkitPlayer(Player player)
     {
-        final WorldEditPlugin wep = getWorldEditPlugin();
+        final Plugin wep = getWorldEditPlugin();
         if (wep == null)
         {
             return null;
@@ -226,7 +240,9 @@ public class WorldEditBridge extends FreedomService
 
         try
         {
-            return wep.wrapPlayer(player);
+            // Call wrapPlayer(Player) via reflection
+            java.lang.reflect.Method wrapPlayerMethod = wep.getClass().getMethod("wrapPlayer", Player.class);
+            return wrapPlayerMethod.invoke(wep, player);
         }
         catch (Exception ex)
         {

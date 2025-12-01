@@ -1,18 +1,15 @@
 package me.totalfreedom.totalfreedommod.bridge;
 
-import com.earth2me.essentials.Essentials;
-import com.earth2me.essentials.User;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.util.FLog;
-import me.totalfreedom.totalfreedommod.util.FUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
 public class EssentialsBridge extends FreedomService
 {
 
-    private Essentials essentialsPlugin = null;
+    private Plugin essentialsPlugin = null;
 
     public EssentialsBridge(TotalFreedomMod plugin)
     {
@@ -29,19 +26,16 @@ public class EssentialsBridge extends FreedomService
     {
     }
 
-    public Essentials getEssentialsPlugin()
+    public Plugin getEssentialsPlugin()
     {
         if (essentialsPlugin == null)
         {
             try
             {
                 final Plugin essentials = Bukkit.getServer().getPluginManager().getPlugin("Essentials");
-                if (essentials != null)
+                if (essentials != null && essentials.isEnabled())
                 {
-                    if (essentials instanceof Essentials)
-                    {
-                        essentialsPlugin = (Essentials) essentials;
-                    }
+                    essentialsPlugin = essentials;
                 }
             }
             catch (Exception ex)
@@ -52,14 +46,18 @@ public class EssentialsBridge extends FreedomService
         return essentialsPlugin;
     }
 
-    public User getEssentialsUser(String username)
+    private Object getEssentialsUser(String username)
     {
         try
         {
-            final Essentials essentials = getEssentialsPlugin();
+            final Plugin essentials = getEssentialsPlugin();
             if (essentials != null)
             {
-                return essentials.getUserMap().getUser(username);
+                Object userMap = essentials.getClass().getMethod("getUserMap").invoke(essentials);
+                if (userMap != null)
+                {
+                    return userMap.getClass().getMethod("getUser", String.class).invoke(userMap, username);
+                }
             }
         }
         catch (Exception ex)
@@ -73,11 +71,11 @@ public class EssentialsBridge extends FreedomService
     {
         try
         {
-            final User user = getEssentialsUser(username);
+            final Object user = getEssentialsUser(username);
             if (user != null)
             {
-                user.setNickname(nickname);
-                user.setDisplayNick();
+                user.getClass().getMethod("setNickname", String.class).invoke(user, nickname);
+                user.getClass().getMethod("setDisplayNick").invoke(user);
             }
         }
         catch (Exception ex)
@@ -90,10 +88,14 @@ public class EssentialsBridge extends FreedomService
     {
         try
         {
-            final User user = getEssentialsUser(username);
+            final Object user = getEssentialsUser(username);
             if (user != null)
             {
-                return user.getNickname();
+                Object result = user.getClass().getMethod("getNickname").invoke(user);
+                if (result instanceof String)
+                {
+                    return (String) result;
+                }
             }
         }
         catch (Exception ex)
@@ -107,10 +109,16 @@ public class EssentialsBridge extends FreedomService
     {
         try
         {
-            final User user = getEssentialsUser(username);
+            final Object user = getEssentialsUser(username);
             if (user != null)
             {
-                return FUtil.<Long>getField(user, "lastActivity"); // This is weird
+                java.lang.reflect.Field field = user.getClass().getDeclaredField("lastActivity");
+                field.setAccessible(true);
+                Object value = field.get(user);
+                if (value instanceof Long)
+                {
+                    return (Long) value;
+                }
             }
         }
         catch (Exception ex)
@@ -124,7 +132,7 @@ public class EssentialsBridge extends FreedomService
     {
         try
         {
-            final Essentials essentials = getEssentialsPlugin();
+            final Plugin essentials = getEssentialsPlugin();
             if (essentials != null)
             {
                 return essentials.isEnabled();

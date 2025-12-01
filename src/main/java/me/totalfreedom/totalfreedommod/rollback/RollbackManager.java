@@ -9,7 +9,6 @@ import java.util.ListIterator;
 import java.util.Map;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
-import me.totalfreedom.totalfreedommod.util.DepreciationAggregator;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.ChatColor;
@@ -231,7 +230,7 @@ public class RollbackManager extends FreedomService
 
         event.setCancelled(true);
 
-        final Location location = DepreciationAggregator.getTargetBlock(player, null, 5).getLocation();
+        final Location location = player.getTargetBlock(null, 5).getLocation();
         final List<RollbackEntry> entries = plugin.rb.getEntriesAtLocation(location);
 
         if (entries.isEmpty())

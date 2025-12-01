@@ -1,7 +1,6 @@
 package me.totalfreedom.totalfreedommod.command;
 
 import me.totalfreedom.totalfreedommod.rank.Rank;
-import me.totalfreedom.totalfreedommod.util.DepreciationAggregator;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
@@ -42,7 +41,7 @@ public class Command_op extends FreedomCommand
         {
             if (plugin.al.isAdmin(sender) || senderIsConsole)
             {
-                player = DepreciationAggregator.getOfflinePlayer(server, args[0]);
+                player = server.getOfflinePlayer(args[0]);
             }
             else
             {

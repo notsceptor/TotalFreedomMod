@@ -3,7 +3,6 @@ package me.totalfreedom.totalfreedommod.command;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.rank.Rank;
-import me.totalfreedom.totalfreedommod.util.DepreciationAggregator;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.ChatColor;
@@ -48,7 +47,7 @@ public class Command_tossmob extends FreedomCommand
                 {
                     if (loop.isAlive())
                     {
-                        sb.append(" ").append(DepreciationAggregator.getName_EntityType(loop));
+                        sb.append(" ").append(loop.name());
                     }
                 }
                 msg("Supported mobs: " + sb.toString().trim(), ChatColor.GREEN);
@@ -57,7 +56,7 @@ public class Command_tossmob extends FreedomCommand
 
             for (EntityType loopType : EntityType.values())
             {
-                if (DepreciationAggregator.getName_EntityType(loopType).toLowerCase().equalsIgnoreCase(args[0]))
+                if (loopType.name().equalsIgnoreCase(args[0]))
                 {
                     type = loopType;
                     break;

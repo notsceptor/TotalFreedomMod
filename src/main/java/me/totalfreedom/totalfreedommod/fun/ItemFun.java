@@ -7,7 +7,6 @@ import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
-import me.totalfreedom.totalfreedommod.util.DepreciationAggregator;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -147,7 +146,7 @@ public class ItemFun extends FreedomService
                 Vector playerDirection = location.getDirection().normalize();
 
                 double distance = 150.0;
-                Block targetBlock = DepreciationAggregator.getTargetBlock(player, null, Math.round((float) distance));
+                Block targetBlock = player.getTargetBlock(null, Math.round((float) distance));
                 if (targetBlock != null)
                 {
                     distance = location.distance(targetBlock.getLocation());
@@ -249,7 +248,7 @@ public class ItemFun extends FreedomService
 
                 if (event.getAction().equals(Action.LEFT_CLICK_AIR))
                 {
-                    targetBlock = DepreciationAggregator.getTargetBlock(player, null, 120);
+                    targetBlock = player.getTargetBlock(null, 120);
                 }
                 else
                 {

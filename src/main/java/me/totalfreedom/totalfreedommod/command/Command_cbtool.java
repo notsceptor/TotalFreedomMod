@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import me.totalfreedom.totalfreedommod.rank.Rank;
-import me.totalfreedom.totalfreedommod.util.DepreciationAggregator;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -31,7 +30,7 @@ public class Command_cbtool extends FreedomCommand
 
         if ("targetblock".equalsIgnoreCase(args[0]) && sender instanceof Player)
         {
-            Block targetBlock = DepreciationAggregator.getTargetBlock(playerSender, null, 100);
+            Block targetBlock = playerSender.getTargetBlock(null, 100);
             msg("Your target block: " + targetBlock.getLocation().toString());
             return true;
         }

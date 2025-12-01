@@ -3,14 +3,16 @@ package me.totalfreedom.totalfreedommod.bridge;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import me.totalfreedom.worldedit.LimitChangedEvent;
-import me.totalfreedom.worldedit.SelectionChangedEvent;
-import me.totalfreedom.worldedit.WorldEditOperationEvent;
 
 import net.pravian.aero.component.PluginListener;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
+import org.bukkit.event.Event;
+import org.bukkit.event.HandlerList;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.RegisteredListener;
+import org.bukkit.plugin.EventExecutor;
+import org.bukkit.event.EventPriority;
 import org.bukkit.util.Vector;
 
 public class WorldEditListener extends PluginListener<TotalFreedomMod>
@@ -21,63 +23,156 @@ public class WorldEditListener extends PluginListener<TotalFreedomMod>
         super(plugin);
     }
 
-    @EventHandler
-    public void onSelectionChange(final SelectionChangedEvent event)
+    public void registerTFWorldEditEvents()
     {
-        final Player player = event.getPlayer();
-
-        if (plugin.al.isAdmin(player))
+        // Try to register for TF-WorldEdit events
+        Plugin tfWorldEdit = plugin.getServer().getPluginManager().getPlugin("TF-WorldEdit");
+        if (tfWorldEdit != null && tfWorldEdit.isEnabled())
         {
-            return;
+            doRegisterTFWorldEditEvents(tfWorldEdit);
         }
-
-        if (plugin.pa.isInProtectedArea(
-                event.getMinVector(),
-                event.getMaxVector(),
-                event.getWorld().getName()))
+        else
         {
-
-            player.sendMessage(ChatColor.RED + "The region that you selected contained a protected area. Selection cleared.");
-            event.setCancelled(true);
+            // Schedule a delayed check
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                Plugin tfwe = plugin.getServer().getPluginManager().getPlugin("TF-WorldEdit");
+                if (tfwe != null && tfwe.isEnabled())
+                {
+                    doRegisterTFWorldEditEvents(tfwe);
+                }
+            }, 40L);
         }
     }
 
-    @EventHandler
-    public void onLimitChanged(LimitChangedEvent event)
+    private void doRegisterTFWorldEditEvents(Plugin tfWorldEdit)
     {
-        final Player player = event.getPlayer();
+        ClassLoader loader = tfWorldEdit.getClass().getClassLoader();
+        
+        // Register SelectionChangedEvent handler
+        registerEventHandler(loader, "me.totalfreedom.worldedit.SelectionChangedEvent", this::handleSelectionChange);
+        
+        // Register LimitChangedEvent handler
+        registerEventHandler(loader, "me.totalfreedom.worldedit.LimitChangedEvent", this::handleLimitChanged);
+    }
 
-        if (plugin.al.isAdmin(player))
+    private void registerEventHandler(ClassLoader loader, String eventClassName, java.util.function.Consumer<Event> handler)
+    {
+        try
         {
-            return;
+            Class<?> eventClass = Class.forName(eventClassName, true, loader);
+            
+            if (!Event.class.isAssignableFrom(eventClass))
+            {
+                FLog.warning(eventClassName + " is not a valid Event class.");
+                return;
+            }
+            
+            java.lang.reflect.Method getHandlerListMethod = eventClass.getMethod("getHandlerList");
+            HandlerList handlerList = (HandlerList) getHandlerListMethod.invoke(null);
+            
+            EventExecutor executor = (listener, event) -> {
+                if (eventClass.isInstance(event))
+                {
+                    handler.accept(event);
+                }
+            };
+            
+            RegisteredListener registeredListener = new RegisteredListener(
+                this, executor, EventPriority.NORMAL, plugin, false);
+            
+            handlerList.register(registeredListener);
+            FLog.info("Registered handler for " + eventClassName);
         }
-
-        if (!event.getPlayer().equals(event.getTarget()))
+        catch (ClassNotFoundException ex)
         {
-            player.sendMessage(ChatColor.RED + "Only admins can change the limit for other players!");
-            event.setCancelled(true);
+            // Event class not available - expected if TF-WorldEdit is not installed
         }
-
-        if (event.getLimit() < 0 || event.getLimit() > 10000)
+        catch (Exception ex)
         {
-            player.setOp(false);
-            FUtil.bcastMsg(event.getPlayer().getName() + " tried to set their WorldEdit limit to " + event.getLimit() + " and has been de-opped", ChatColor.RED);
-            event.setCancelled(true);
-            player.sendMessage(ChatColor.RED + "You cannot set your limit higher than 10000 or to -1!");
+            FLog.warning("Failed to register handler for " + eventClassName + ": " + ex.getMessage());
         }
     }
 
-    @EventHandler
-    public void onWorldEditOperation(final WorldEditOperationEvent event)
+    private void handleSelectionChange(Event event)
     {
-        handleWorldEditOperation(event);
+        try
+        {
+            java.lang.reflect.Method getPlayerMethod = event.getClass().getMethod("getPlayer");
+            Player player = (Player) getPlayerMethod.invoke(event);
+
+            if (plugin.al.isAdmin(player))
+            {
+                return;
+            }
+
+            java.lang.reflect.Method getMinVectorMethod = event.getClass().getMethod("getMinVector");
+            java.lang.reflect.Method getMaxVectorMethod = event.getClass().getMethod("getMaxVector");
+            java.lang.reflect.Method getWorldMethod = event.getClass().getMethod("getWorld");
+
+            Vector min = (Vector) getMinVectorMethod.invoke(event);
+            Vector max = (Vector) getMaxVectorMethod.invoke(event);
+            org.bukkit.World world = (org.bukkit.World) getWorldMethod.invoke(event);
+
+            if (plugin.pa.isInProtectedArea(min, max, world.getName()))
+            {
+                player.sendMessage(ChatColor.RED + "The region that you selected contained a protected area. Selection cleared.");
+                java.lang.reflect.Method setCancelledMethod = event.getClass().getMethod("setCancelled", boolean.class);
+                setCancelledMethod.invoke(event, true);
+            }
+        }
+        catch (Exception ex)
+        {
+            FLog.severe("Error handling SelectionChangedEvent: " + ex.getMessage());
+            FLog.severe(ex);
+        }
+    }
+
+    private void handleLimitChanged(Event event)
+    {
+        try
+        {
+            java.lang.reflect.Method getPlayerMethod = event.getClass().getMethod("getPlayer");
+            java.lang.reflect.Method getTargetMethod = event.getClass().getMethod("getTarget");
+            java.lang.reflect.Method getLimitMethod = event.getClass().getMethod("getLimit");
+
+            Player player = (Player) getPlayerMethod.invoke(event);
+            Player target = (Player) getTargetMethod.invoke(event);
+            int limit = (int) getLimitMethod.invoke(event);
+
+            if (plugin.al.isAdmin(player))
+            {
+                return;
+            }
+
+            if (!player.equals(target))
+            {
+                player.sendMessage(ChatColor.RED + "Only admins can change the limit for other players!");
+                java.lang.reflect.Method setCancelledMethod = event.getClass().getMethod("setCancelled", boolean.class);
+                setCancelledMethod.invoke(event, true);
+                return;
+            }
+
+            if (limit < 0 || limit > 10000)
+            {
+                player.setOp(false);
+                FUtil.bcastMsg(player.getName() + " tried to set their WorldEdit limit to " + limit + " and has been de-opped", ChatColor.RED);
+                java.lang.reflect.Method setCancelledMethod = event.getClass().getMethod("setCancelled", boolean.class);
+                setCancelledMethod.invoke(event, true);
+                player.sendMessage(ChatColor.RED + "You cannot set your limit higher than 10000 or to -1!");
+            }
+        }
+        catch (Exception ex)
+        {
+            FLog.severe("Error handling LimitChangedEvent: " + ex.getMessage());
+            FLog.severe(ex);
+        }
     }
 
     /**
      * Handles WorldEditOperationEvent using reflection to work with the real event class from TF-WorldEdit.
-     * This method can be called with either the stub class or the real event class.
+     * This method can be called with the real event class.
      */
-    public void handleWorldEditOperation(org.bukkit.event.Event event)
+    public void handleWorldEditOperation(Event event)
     {
         try
         {
