@@ -10,7 +10,6 @@ import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.pravian.aero.config.YamlConfig;
-import net.pravian.aero.util.Ips;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
@@ -84,7 +83,7 @@ public class PlayerList extends FreedomService
     {
         if (player.isOnline())
         {
-            return Ips.getIp(player.getPlayer());
+            return player.getPlayer().getAddress().getAddress().getHostAddress();
         }
 
         final PlayerData entry = getData(player.getName());
@@ -95,14 +94,14 @@ public class PlayerList extends FreedomService
     // May not return null
     public FPlayer getPlayer(Player player)
     {
-        FPlayer tPlayer = playerMap.get(Ips.getIp(player));
+        FPlayer tPlayer = playerMap.get(player.getAddress().getAddress().getHostAddress());
         if (tPlayer != null)
         {
             return tPlayer;
         }
 
         tPlayer = new FPlayer(plugin, player);
-        playerMap.put(Ips.getIp(player), tPlayer);
+        playerMap.put(player.getAddress().getAddress().getHostAddress(), tPlayer);
 
         return tPlayer;
     }
@@ -111,7 +110,7 @@ public class PlayerList extends FreedomService
     public PlayerData getData(Player player)
     {
         // Check already loaded
-        PlayerData data = dataMap.get(Ips.getIp(player));
+        PlayerData data = dataMap.get(player.getAddress().getAddress().getHostAddress());
         if (data != null)
         {
             return data;
@@ -130,7 +129,7 @@ public class PlayerList extends FreedomService
             data = new PlayerData(player);
             data.setFirstJoinUnix(unix);
             data.setLastJoinUnix(unix);
-            data.addIp(Ips.getIp(player));
+            data.addIp(player.getAddress().getAddress().getHostAddress());
 
             // Store player
             dataMap.put(player.getName().toLowerCase(), data);
@@ -172,7 +171,7 @@ public class PlayerList extends FreedomService
         {
             for (Player onlinePlayer : Bukkit.getOnlinePlayers())
             {
-                if (Ips.getIp(onlinePlayer).equals(ip))
+                if (onlinePlayer.getAddress().getAddress().getHostAddress().equals(ip))
                 {
                     dataMap.put(ip, data);
                     return data;
@@ -186,7 +185,7 @@ public class PlayerList extends FreedomService
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPlayerQuit(PlayerQuitEvent event)
     {
-        final String ip = Ips.getIp(event.getPlayer());
+        final String ip = event.getPlayer().getAddress().getAddress().getHostAddress();
         playerMap.remove(ip);
         dataMap.remove(ip);
     }

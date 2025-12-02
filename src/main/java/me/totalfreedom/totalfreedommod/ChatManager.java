@@ -7,6 +7,7 @@ import me.totalfreedom.totalfreedommod.util.FSync;
 import static me.totalfreedom.totalfreedommod.util.FUtil.playerMsg;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.serializer.ansi.ANSIComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -116,13 +117,14 @@ public class ChatManager extends FreedomService
                 .append(Component.text(": ").color(NamedTextColor.DARK_RED))
                 .append(Component.text(message).color(NamedTextColor.GOLD));
 
-        // Send Component directly to console - Paper's console sender handles colors properly
+        // Serialize console message to ANSI for terminal colors
         Component consoleMsg = Component.text("[ADMIN] ")
                 .color(NamedTextColor.AQUA)
                 .append(nameComponent)
                 .append(Component.text(": ").color(NamedTextColor.WHITE))
                 .append(Component.text(message).color(NamedTextColor.GOLD));
-        Bukkit.getConsoleSender().sendMessage(consoleMsg);
+        String ansiMessage = ANSIComponentSerializer.ansi().serialize(consoleMsg);
+        Bukkit.getConsoleSender().sendMessage(ansiMessage);
 
         for (Player player : server.getOnlinePlayers())
         {

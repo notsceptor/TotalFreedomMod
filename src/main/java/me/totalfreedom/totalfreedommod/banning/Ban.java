@@ -11,11 +11,10 @@ import java.util.Set;
 import lombok.Getter;
 import lombok.Setter;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
+import me.totalfreedom.totalfreedommod.util.ConfigInterfaces.ConfigLoadable;
+import me.totalfreedom.totalfreedommod.util.ConfigInterfaces.ConfigSavable;
+import me.totalfreedom.totalfreedommod.util.ConfigInterfaces.Validatable;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import net.pravian.aero.base.ConfigLoadable;
-import net.pravian.aero.base.ConfigSavable;
-import net.pravian.aero.base.Validatable;
-import net.pravian.aero.util.Ips;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
@@ -102,7 +101,7 @@ public class Ban implements ConfigLoadable, ConfigSavable, Validatable
     {
         return new Ban(null, new String[]
         {
-            Ips.getIp(player)
+            player.getAddress().getAddress().getHostAddress()
         }, by.getName(), expiry, reason);
     }
 
@@ -137,7 +136,7 @@ public class Ban implements ConfigLoadable, ConfigSavable, Validatable
     public static Ban forPlayer(Player player, CommandSender by, Date expiry, String reason)
     {
         return new Ban(player.getName(),
-                Ips.getIp(player),
+                player.getAddress().getAddress().getHostAddress(),
                 by.getName(),
                 expiry,
                 reason);
@@ -146,7 +145,7 @@ public class Ban implements ConfigLoadable, ConfigSavable, Validatable
     public static Ban forPlayerFuzzy(Player player, CommandSender by, Date expiry, String reason)
     {
         return new Ban(player.getName(),
-                FUtil.getFuzzyIp(Ips.getIp(player)),
+                FUtil.getFuzzyIp(player.getAddress().getAddress().getHostAddress()),
                 by.getName(),
                 expiry,
                 reason);

@@ -37,7 +37,6 @@ import net.pravian.aero.component.service.ServiceManager;
 import net.pravian.aero.plugin.AeroPlugin;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.scheduler.BukkitRunnable;
 
 public class TotalFreedomMod extends AeroPlugin<TotalFreedomMod>
 {
@@ -53,55 +52,55 @@ public class TotalFreedomMod extends AeroPlugin<TotalFreedomMod>
     //
     // Services
     public ServiceManager<TotalFreedomMod> services;
-    public ServerInterface si;
-    public SavedFlags sf;
-    public WorldManager wm;
-    public LogViewer lv;
-    public AdminList al;
-    public RankManager rm;
-    public CommandLoader cl;
-    public CommandBlocker cb;
-    public EventBlocker eb;
-    public BlockBlocker bb;
-    public MobBlocker mb;
-    public InteractBlocker ib;
-    public PotionBlocker pb;
-    public LoginProcess lp;
-    public AntiNuke nu;
-    public AntiSpam as;
-    public PlayerList pl;
-    public Announcer an;
-    public ChatManager cm;
-    public BanManager bm;
-    public PermbanList pm;
-    public ProtectArea pa;
-    public GameRuleHandler gr;
-    public RollbackManager rb;
-    public CommandSpy cs;
-    public Cager ca;
-    public Freezer fm;
-    public Orbiter or;
-    public Muter mu;
-    public Fuckoff fo;
-    public AutoKick ak;
-    public AutoEject ae;
-    public MovementValidator mv;
-    public EntityWiper ew;
-    public ServerPing sp;
-    public ItemFun it;
-    public Landminer lm;
-    public MP44 mp;
-    public Jumppads jp;
-    public Trailer tr;
-    public HTTPDaemon hd;
-    public ServiceChecker sc;
+    public ServerInterface si; // ServerInterface - Core server interface and version checking
+    public SavedFlags sf; // SavedFlags - Stores saved flag states
+    public WorldManager wm; // WorldManager - Manages world operations
+    public LogViewer lv; // LogViewer - HTTP-based log viewing interface
+    public AdminList al; // AdminList - Manages admin list and permissions
+    public RankManager rm; // RankManager - Handles player ranks and display
+    public CommandLoader cl; // CommandLoader - Loads and registers commands
+    public CommandBlocker cb; // CommandBlocker - Blocks specific commands
+    public EventBlocker eb; // EventBlocker - Blocks various game events
+    public BlockBlocker bb; // BlockBlocker - Blocks block placement/breaking
+    public MobBlocker mb; // MobBlocker - Blocks mob spawning
+    public InteractBlocker ib; // InteractBlocker - Blocks block interactions
+    public PotionBlocker pb; // PotionBlocker - Blocks potion effects
+    public LoginProcess lp; // LoginProcess - Handles player login processing
+    public AntiNuke nu; // AntiNuke - Prevents rapid command execution (nuking)
+    public AntiSpam as; // AntiSpam - Prevents chat spam
+    public PlayerList pl; // PlayerList - Manages player data and lists
+    public Announcer an; // Announcer - Handles server announcements
+    public ChatManager cm; // ChatManager - Manages chat formatting and admin chat
+    public BanManager bm; // BanManager - Manages player bans
+    public PermbanList pm; // PermbanList - Manages permanent ban list
+    public ProtectArea pa; // ProtectArea - Manages protected areas and spawnpoints
+    public GameRuleHandler gr; // GameRuleHandler - Manages game rules
+    public RollbackManager rb; // RollbackManager - Handles rollback operations
+    public CommandSpy cs; // CommandSpy - Logs and monitors command usage
+    public Cager ca; // Cager - Creates cages around players
+    public Freezer fm; // Freezer - Freezes players in place
+    public Orbiter or; // Orbiter - Makes players orbit around a point
+    public Muter mu; // Muter - Mutes players
+    public Fuckoff fo; // Fuckoff - Kicks players with a message
+    public AutoKick ak; // AutoKick - Automatically kicks players based on conditions
+    public AutoEject ae; // AutoEject - Automatically ejects players from vehicles
+    public MovementValidator mv; // MovementValidator - Validates player movement
+    public EntityWiper ew; // EntityWiper - Wipes entities from the world
+    public ServerPing sp; // ServerPing - Customizes server ping response
+    public ItemFun it; // ItemFun - Fun item-related features
+    public Landminer lm; // Landminer - Landmine functionality
+    public MP44 mp; // MP44 - MP44 weapon functionality
+    public Jumppads jp; // Jumppads - Jump pad functionality
+    public Trailer tr; // Trailer - Trailer functionality
+    public HTTPDaemon hd; // HTTPDaemon - HTTP server for web interface
+    public ServiceChecker sc; // ServiceChecker - Checks Mojang service status
     //
     // Bridges
     public ServiceManager<TotalFreedomMod> bridges;
-    public BukkitTelnetBridge btb;
-    public EssentialsBridge esb;
-    public LibsDisguisesBridge ldb;
-    public WorldEditBridge web;
+    public BukkitTelnetBridge btb; // BukkitTelnetBridge - Bridge to BukkitTelnet plugin
+    public EssentialsBridge esb; // EssentialsBridge - Bridge to Essentials plugin
+    public LibsDisguisesBridge ldb; // LibsDisguisesBridge - Bridge to LibsDisguises plugin
+    public WorldEditBridge web; // WorldEditBridge - Bridge to WorldEdit plugin
 
     @Override
     public void load()
@@ -210,14 +209,7 @@ public class TotalFreedomMod extends AeroPlugin<TotalFreedomMod>
         FLog.info("Version " + pluginVersion + " for " + ServerInterface.COMPILE_NMS_VERSION + " enabled in " + timer.getTotal() + "ms");
 
         // Add spawnpoints later - https://github.com/TotalFreedom/TotalFreedomMod/issues/438
-        new BukkitRunnable()
-        {
-            @Override
-            public void run()
-            {
-                plugin.pa.autoAddSpawnpoints();
-            }
-        }.runTaskLater(plugin, 60L);
+        Bukkit.getScheduler().runTaskLater(plugin, () -> pa.autoAddSpawnpoints(), 60L);
     }
 
     @Override

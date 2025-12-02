@@ -1,5 +1,8 @@
 package me.totalfreedom.totalfreedommod.util;
 
+import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.Map;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -13,6 +16,46 @@ public class AdventureUtil
     private static final LegacyComponentSerializer LEGACY_AMPERSAND = LegacyComponentSerializer.legacyAmpersand();
     private static final LegacyComponentSerializer LEGACY_SECTION = LegacyComponentSerializer.legacySection();
     private static final PlainTextComponentSerializer PLAIN_TEXT = PlainTextComponentSerializer.plainText();
+
+    private static final Map<ChatColor, NamedTextColor> CHAT_COLOR_TO_NAMED_TEXT_COLOR = new EnumMap<ChatColor, NamedTextColor>(ChatColor.class);
+    private static final Map<NamedTextColor, ChatColor> NAMED_TEXT_COLOR_TO_CHAT_COLOR = new HashMap<NamedTextColor, ChatColor>();
+
+    static
+    {
+        CHAT_COLOR_TO_NAMED_TEXT_COLOR.put(ChatColor.BLACK, NamedTextColor.BLACK);
+        CHAT_COLOR_TO_NAMED_TEXT_COLOR.put(ChatColor.DARK_BLUE, NamedTextColor.DARK_BLUE);
+        CHAT_COLOR_TO_NAMED_TEXT_COLOR.put(ChatColor.DARK_GREEN, NamedTextColor.DARK_GREEN);
+        CHAT_COLOR_TO_NAMED_TEXT_COLOR.put(ChatColor.DARK_AQUA, NamedTextColor.DARK_AQUA);
+        CHAT_COLOR_TO_NAMED_TEXT_COLOR.put(ChatColor.DARK_RED, NamedTextColor.DARK_RED);
+        CHAT_COLOR_TO_NAMED_TEXT_COLOR.put(ChatColor.DARK_PURPLE, NamedTextColor.DARK_PURPLE);
+        CHAT_COLOR_TO_NAMED_TEXT_COLOR.put(ChatColor.GOLD, NamedTextColor.GOLD);
+        CHAT_COLOR_TO_NAMED_TEXT_COLOR.put(ChatColor.GRAY, NamedTextColor.GRAY);
+        CHAT_COLOR_TO_NAMED_TEXT_COLOR.put(ChatColor.DARK_GRAY, NamedTextColor.DARK_GRAY);
+        CHAT_COLOR_TO_NAMED_TEXT_COLOR.put(ChatColor.BLUE, NamedTextColor.BLUE);
+        CHAT_COLOR_TO_NAMED_TEXT_COLOR.put(ChatColor.GREEN, NamedTextColor.GREEN);
+        CHAT_COLOR_TO_NAMED_TEXT_COLOR.put(ChatColor.AQUA, NamedTextColor.AQUA);
+        CHAT_COLOR_TO_NAMED_TEXT_COLOR.put(ChatColor.RED, NamedTextColor.RED);
+        CHAT_COLOR_TO_NAMED_TEXT_COLOR.put(ChatColor.LIGHT_PURPLE, NamedTextColor.LIGHT_PURPLE);
+        CHAT_COLOR_TO_NAMED_TEXT_COLOR.put(ChatColor.YELLOW, NamedTextColor.YELLOW);
+        CHAT_COLOR_TO_NAMED_TEXT_COLOR.put(ChatColor.WHITE, NamedTextColor.WHITE);
+
+        NAMED_TEXT_COLOR_TO_CHAT_COLOR.put(NamedTextColor.BLACK, ChatColor.BLACK);
+        NAMED_TEXT_COLOR_TO_CHAT_COLOR.put(NamedTextColor.DARK_BLUE, ChatColor.DARK_BLUE);
+        NAMED_TEXT_COLOR_TO_CHAT_COLOR.put(NamedTextColor.DARK_GREEN, ChatColor.DARK_GREEN);
+        NAMED_TEXT_COLOR_TO_CHAT_COLOR.put(NamedTextColor.DARK_AQUA, ChatColor.DARK_AQUA);
+        NAMED_TEXT_COLOR_TO_CHAT_COLOR.put(NamedTextColor.DARK_RED, ChatColor.DARK_RED);
+        NAMED_TEXT_COLOR_TO_CHAT_COLOR.put(NamedTextColor.DARK_PURPLE, ChatColor.DARK_PURPLE);
+        NAMED_TEXT_COLOR_TO_CHAT_COLOR.put(NamedTextColor.GOLD, ChatColor.GOLD);
+        NAMED_TEXT_COLOR_TO_CHAT_COLOR.put(NamedTextColor.GRAY, ChatColor.GRAY);
+        NAMED_TEXT_COLOR_TO_CHAT_COLOR.put(NamedTextColor.DARK_GRAY, ChatColor.DARK_GRAY);
+        NAMED_TEXT_COLOR_TO_CHAT_COLOR.put(NamedTextColor.BLUE, ChatColor.BLUE);
+        NAMED_TEXT_COLOR_TO_CHAT_COLOR.put(NamedTextColor.GREEN, ChatColor.GREEN);
+        NAMED_TEXT_COLOR_TO_CHAT_COLOR.put(NamedTextColor.AQUA, ChatColor.AQUA);
+        NAMED_TEXT_COLOR_TO_CHAT_COLOR.put(NamedTextColor.RED, ChatColor.RED);
+        NAMED_TEXT_COLOR_TO_CHAT_COLOR.put(NamedTextColor.LIGHT_PURPLE, ChatColor.LIGHT_PURPLE);
+        NAMED_TEXT_COLOR_TO_CHAT_COLOR.put(NamedTextColor.YELLOW, ChatColor.YELLOW);
+        NAMED_TEXT_COLOR_TO_CHAT_COLOR.put(NamedTextColor.WHITE, ChatColor.WHITE);
+    }
 
     private AdventureUtil()
     {
@@ -144,25 +187,7 @@ public class AdventureUtil
         {
             return null;
         }
-
-        // Map ChatColor to NamedTextColor
-        if (chatColor == ChatColor.BLACK) return NamedTextColor.BLACK;
-        if (chatColor == ChatColor.DARK_BLUE) return NamedTextColor.DARK_BLUE;
-        if (chatColor == ChatColor.DARK_GREEN) return NamedTextColor.DARK_GREEN;
-        if (chatColor == ChatColor.DARK_AQUA) return NamedTextColor.DARK_AQUA;
-        if (chatColor == ChatColor.DARK_RED) return NamedTextColor.DARK_RED;
-        if (chatColor == ChatColor.DARK_PURPLE) return NamedTextColor.DARK_PURPLE;
-        if (chatColor == ChatColor.GOLD) return NamedTextColor.GOLD;
-        if (chatColor == ChatColor.GRAY) return NamedTextColor.GRAY;
-        if (chatColor == ChatColor.DARK_GRAY) return NamedTextColor.DARK_GRAY;
-        if (chatColor == ChatColor.BLUE) return NamedTextColor.BLUE;
-        if (chatColor == ChatColor.GREEN) return NamedTextColor.GREEN;
-        if (chatColor == ChatColor.AQUA) return NamedTextColor.AQUA;
-        if (chatColor == ChatColor.RED) return NamedTextColor.RED;
-        if (chatColor == ChatColor.LIGHT_PURPLE) return NamedTextColor.LIGHT_PURPLE;
-        if (chatColor == ChatColor.YELLOW) return NamedTextColor.YELLOW;
-        if (chatColor == ChatColor.WHITE) return NamedTextColor.WHITE;
-        return null;
+        return CHAT_COLOR_TO_NAMED_TEXT_COLOR.get(chatColor);
     }
 
     /**
@@ -177,25 +202,7 @@ public class AdventureUtil
         {
             return null;
         }
-
-        // Map NamedTextColor to ChatColor
-        if (namedTextColor == NamedTextColor.BLACK) return ChatColor.BLACK;
-        if (namedTextColor == NamedTextColor.DARK_BLUE) return ChatColor.DARK_BLUE;
-        if (namedTextColor == NamedTextColor.DARK_GREEN) return ChatColor.DARK_GREEN;
-        if (namedTextColor == NamedTextColor.DARK_AQUA) return ChatColor.DARK_AQUA;
-        if (namedTextColor == NamedTextColor.DARK_RED) return ChatColor.DARK_RED;
-        if (namedTextColor == NamedTextColor.DARK_PURPLE) return ChatColor.DARK_PURPLE;
-        if (namedTextColor == NamedTextColor.GOLD) return ChatColor.GOLD;
-        if (namedTextColor == NamedTextColor.GRAY) return ChatColor.GRAY;
-        if (namedTextColor == NamedTextColor.DARK_GRAY) return ChatColor.DARK_GRAY;
-        if (namedTextColor == NamedTextColor.BLUE) return ChatColor.BLUE;
-        if (namedTextColor == NamedTextColor.GREEN) return ChatColor.GREEN;
-        if (namedTextColor == NamedTextColor.AQUA) return ChatColor.AQUA;
-        if (namedTextColor == NamedTextColor.RED) return ChatColor.RED;
-        if (namedTextColor == NamedTextColor.LIGHT_PURPLE) return ChatColor.LIGHT_PURPLE;
-        if (namedTextColor == NamedTextColor.YELLOW) return ChatColor.YELLOW;
-        if (namedTextColor == NamedTextColor.WHITE) return ChatColor.WHITE;
-        return null;
+        return NAMED_TEXT_COLOR_TO_CHAT_COLOR.get(namedTextColor);
     }
 
     /**

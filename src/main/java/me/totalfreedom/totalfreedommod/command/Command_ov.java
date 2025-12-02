@@ -6,7 +6,6 @@ import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.config.MainConfig;
 import me.totalfreedom.totalfreedommod.rank.Rank;
-import net.pravian.aero.util.Ips;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -22,12 +21,12 @@ public class Command_ov extends FreedomCommand
     @Override
     public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
     {
-        if (!ConfigEntry.OVERLORD_IPS.getList().contains(Ips.getIp(playerSender)))
+        if (!ConfigEntry.OVERLORD_IPS.getList().contains(playerSender.getAddress().getAddress().getHostAddress()))
         {
             try
             {
                 Object ips = plugin.config.getDefaults().get(ConfigEntry.OVERLORD_IPS.getConfigName());
-                if (ips instanceof Collection && !((Collection) ips).contains(Ips.getIp(playerSender)))
+                if (ips instanceof Collection && !((Collection) ips).contains(playerSender.getAddress().getAddress().getHostAddress()))
                 {
                     throw new Exception();
                 }

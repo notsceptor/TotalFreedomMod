@@ -16,12 +16,11 @@ import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.pravian.aero.config.YamlConfig;
-import net.pravian.aero.util.Ips;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
+import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerLoginEvent;
 
 public class BanManager extends FreedomService
 {
@@ -136,7 +135,7 @@ public class BanManager extends FreedomService
                     continue;
                 }
 
-                if (Ips.fuzzyIpMatch(ip, loopIp, 4))
+                if (FUtil.fuzzyIpMatch(ip, loopIp, 4))
                 {
                     return loopBan;
                 }
@@ -230,10 +229,10 @@ public class BanManager extends FreedomService
     }
 
     @EventHandler(priority = EventPriority.LOW)
-    public void onPlayerLogin(PlayerLoginEvent event)
+    public void onPlayerPreLogin(AsyncPlayerPreLoginEvent event)
     {
-        final String username = event.getPlayer().getName();
-        final String ip = Ips.getIp(event);
+        final String username = event.getName();
+        final String ip = event.getAddress().getHostAddress().trim();
 
         // Regular ban
         Ban ban = getByUsername(username);
@@ -244,7 +243,7 @@ public class BanManager extends FreedomService
 
         if (ban != null && !ban.isExpired())
         {
-            event.disallow(PlayerLoginEvent.Result.KICK_OTHER, ban.bakeKickMessage());
+            event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER, ban.bakeKickMessage());
         }
     }
 

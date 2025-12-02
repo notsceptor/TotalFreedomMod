@@ -8,7 +8,6 @@ import java.util.Map;
 import me.totalfreedom.totalfreedommod.banning.Ban;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import net.pravian.aero.util.Ips;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
@@ -37,7 +36,7 @@ public class AutoEject extends FreedomService
     public void autoEject(Player player, String kickMessage)
     {
         EjectMethod method = EjectMethod.STRIKE_ONE;
-        final String ip = Ips.getIp(player);
+        final String ip = player.getAddress().getAddress().getHostAddress();
 
         if (!ejects.containsKey(ip))
         {

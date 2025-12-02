@@ -9,11 +9,10 @@ import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.pravian.aero.config.YamlConfig;
-import net.pravian.aero.util.Ips;
 import org.bukkit.ChatColor;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
-import org.bukkit.event.player.PlayerLoginEvent;
+import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
 
 public class PermbanList extends FreedomService
 {
@@ -65,17 +64,17 @@ public class PermbanList extends FreedomService
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
-    public void onPlayerLogin(PlayerLoginEvent event)
+    public void onPlayerPreLogin(AsyncPlayerPreLoginEvent event)
     {
-        final String username = event.getPlayer().getName();
-        final String ip = Ips.getIp(event);
+        final String username = event.getName();
+        final String ip = event.getAddress().getHostAddress().trim();
 
         // Permbanned IPs
         for (String testIp : getPermbannedIps())
         {
             if (FUtil.fuzzyIpMatch(testIp, ip, 4))
             {
-                event.disallow(PlayerLoginEvent.Result.KICK_OTHER,
+                event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER,
                         ChatColor.RED + "Your IP address is permanently banned from this server.\n"
                         + "Release procedures are available at\n"
                         + ChatColor.GOLD + ConfigEntry.SERVER_PERMBAN_URL.getString());
@@ -88,7 +87,7 @@ public class PermbanList extends FreedomService
         {
             if (testPlayer.equalsIgnoreCase(username))
             {
-                event.disallow(PlayerLoginEvent.Result.KICK_OTHER,
+                event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER,
                         ChatColor.RED + "Your username is permanently banned from this server.\n"
                         + "Release procedures are available at\n"
                         + ChatColor.GOLD + ConfigEntry.SERVER_PERMBAN_URL.getString());

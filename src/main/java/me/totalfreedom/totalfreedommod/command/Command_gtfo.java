@@ -3,7 +3,6 @@ package me.totalfreedom.totalfreedommod.command;
 import me.totalfreedom.totalfreedommod.banning.Ban;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import net.pravian.aero.util.Ips;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.ChatColor;
@@ -75,7 +74,7 @@ public class Command_gtfo extends FreedomCommand
             }
         }
 
-        String ip = FUtil.getFuzzyIp(Ips.getIp(player));
+        String ip = FUtil.getFuzzyIp(player.getAddress().getAddress().getHostAddress());
 
         // Broadcast
         final StringBuilder bcast = new StringBuilder()

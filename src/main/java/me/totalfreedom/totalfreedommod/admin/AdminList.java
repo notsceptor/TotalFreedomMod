@@ -15,7 +15,6 @@ import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.pravian.aero.config.YamlConfig;
-import net.pravian.aero.util.Ips;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
@@ -165,7 +164,7 @@ public class AdminList extends FreedomService
     public Admin getAdmin(Player player)
     {
         // Find admin
-        String ip = Ips.getIp(player);
+        String ip = player.getAddress().getAddress().getHostAddress();
         Admin admin = getEntryByName(player.getName());
 
         // Admin by name

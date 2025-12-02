@@ -5,9 +5,12 @@ import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.rank.Rank;
+import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.serializer.ansi.ANSIComponentSerializer;
 import net.pravian.aero.command.AbstractCommandBase;
 import net.pravian.aero.util.Players;
 import org.bukkit.ChatColor;
@@ -28,17 +31,6 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
     private final CommandParameters params;
     @Getter
     private final CommandPermissions perms;
-    
-    // Manual getters - Lombok @Getter not processing reliably
-    public CommandParameters getParams()
-    {
-        return params;
-    }
-    
-    public CommandPermissions getPerms()
-    {
-        return perms;
-    }
 
     public FreedomCommand()
     {
@@ -127,18 +119,85 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
         return Players.getPlayer(name);
     }
 
+    /**
+     * Builds a Component from a message string, handling embedded color codes and color parameter.
+     * 
+     * @param message The message string (may contain embedded color codes)
+     * @param color The color parameter to apply (prepended if message has embedded colors)
+     * @return Component with all colors applied
+     */
+    private Component buildComponent(String message, NamedTextColor color)
+    {
+        // Process message: prepend color parameter if message has embedded colors
+        String processedMessage = message;
+        if (message.contains("§") || message.contains("&"))
+        {
+            if (color != null)
+            {
+                // Prepend the color parameter code to the message so it applies to the beginning
+                ChatColor chatColor = AdventureUtil.namedTextColorToChatColor(color);
+                if (chatColor != null)
+                {
+                    processedMessage = chatColor + message;
+                }
+            }
+        }
+        
+        // Build Component from processed message
+        if (processedMessage.contains("§") || processedMessage.contains("&"))
+        {
+            // Message has embedded color codes, convert them to Component
+            return AdventureUtil.legacyToComponent(processedMessage);
+        }
+        else if (color != null)
+        {
+            // No embedded colors, apply the color parameter
+            return Component.text(message).color(color);
+        }
+        else
+        {
+            // No colors at all
+            return Component.text(message);
+        }
+    }
+
+    protected void msg(final CommandSender sender, final String message, final NamedTextColor color)
+    {
+        if (sender == null || message == null)
+        {
+            return;
+        }
+        
+        // Build Component the same way for both console and players
+        Component component = buildComponent(message, color);
+        
+        if (!(sender instanceof Player))
+        {
+            String ansiMessage = ANSIComponentSerializer.ansi().serialize(component);
+            sender.sendMessage(ansiMessage);
+            return;
+        }
+        
+        sender.sendMessage(component);
+    }
+
+    protected void msg(final String message, final NamedTextColor color)
+    {
+        msg(sender, message, color);
+    }
+
+    @Deprecated
     protected void msg(final CommandSender sender, final String message, final ChatColor color)
     {
         if (sender == null || message == null)
         {
             return;
         }
-        String coloredMessage = (color != null ? color : "") + message;
-        String ampersandMessage = coloredMessage.replace('§', '&');
-        Component component = me.totalfreedom.totalfreedommod.util.AdventureUtil.legacyToComponent(ampersandMessage);
-        sender.sendMessage(component);
+        NamedTextColor namedColor = color != null ? AdventureUtil.chatColorToNamedTextColor(color) : null;
+        msg(sender, message, namedColor);
     }
 
+    @Deprecated
     protected void msg(final String message, final ChatColor color)
     {
         msg(sender, message, color);
@@ -146,7 +205,7 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
 
     protected void msg(final CommandSender sender, final String message)
     {
-        msg(sender, message, ChatColor.GRAY);
+        msg(sender, message, NamedTextColor.GRAY);
     }
 
     protected void msg(final String message)
@@ -162,12 +221,26 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
         }
     }
     
+    protected void msg(final Player target, final String message, final NamedTextColor color)
+    {
+        if (target != null && message != null)
+        {
+            Component component = Component.text(message);
+            if (color != null)
+            {
+                component = component.color(color);
+            }
+            target.sendMessage(component);
+        }
+    }
+
+    @Deprecated
     protected void msg(final Player target, final String message, final ChatColor color)
     {
         if (target != null && message != null)
         {
-            String coloredMessage = (color != null ? color : "") + message;
-            target.sendMessage(me.totalfreedom.totalfreedommod.util.AdventureUtil.legacyToComponent(coloredMessage));
+            NamedTextColor namedColor = color != null ? me.totalfreedom.totalfreedommod.util.AdventureUtil.chatColorToNamedTextColor(color) : null;
+            msg(target, message, namedColor);
         }
     }
     
@@ -177,6 +250,14 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
         {
             return;
         }
+        
+        if (!(sender instanceof Player))
+        {
+            String ansiMessage = ANSIComponentSerializer.ansi().serialize(component);
+            sender.sendMessage(ansiMessage);
+            return;
+        }
+        
         sender.sendMessage(component);
     }
 

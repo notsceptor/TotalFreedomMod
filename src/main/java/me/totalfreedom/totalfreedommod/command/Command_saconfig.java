@@ -5,7 +5,6 @@ import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import net.pravian.aero.util.Ips;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
@@ -182,7 +181,7 @@ public class Command_saconfig extends FreedomCommand
                     if (player != null)
                     {
                         admin.setName(player.getName());
-                        admin.addIp(Ips.getIp(player));
+                        admin.addIp(player.getAddress().getAddress().getHostAddress());
                     }
 
                     admin.setActive(true);

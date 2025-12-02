@@ -8,11 +8,10 @@ import lombok.Setter;
 import me.totalfreedom.totalfreedommod.LogViewer.LogsRegistrationMode;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.rank.Rank;
+import me.totalfreedom.totalfreedommod.util.ConfigInterfaces.ConfigLoadable;
+import me.totalfreedom.totalfreedommod.util.ConfigInterfaces.ConfigSavable;
+import me.totalfreedom.totalfreedommod.util.ConfigInterfaces.Validatable;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import net.pravian.aero.base.ConfigLoadable;
-import net.pravian.aero.base.ConfigSavable;
-import net.pravian.aero.base.Validatable;
-import net.pravian.aero.util.Ips;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 import org.bukkit.configuration.ConfigurationSection;
@@ -44,7 +43,7 @@ public class Admin implements ConfigLoadable, ConfigSavable, Validatable
     {
         this.configKey = player.getName().toLowerCase();
         this.name = player.getName();
-        this.ips.add(Ips.getIp(player));
+        this.ips.add(player.getAddress().getAddress().getHostAddress());
     }
 
     public Admin(String configKey)
@@ -72,7 +71,7 @@ public class Admin implements ConfigLoadable, ConfigSavable, Validatable
         configKey = player.getName().toLowerCase();
         name = player.getName();
         ips.clear();
-        ips.add(Ips.getIp(player));
+        ips.add(player.getAddress().getAddress().getHostAddress());
     }
 
     @Override

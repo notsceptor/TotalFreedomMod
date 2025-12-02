@@ -1,7 +1,6 @@
 package me.totalfreedom.totalfreedommod.util;
 
 import java.io.File;
-import java.io.FileFilter;
 import java.lang.reflect.Field;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -21,6 +20,7 @@ import java.util.regex.Pattern;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.serializer.ansi.ANSIComponentSerializer;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
@@ -107,7 +107,9 @@ public class FUtil
 
     public static void bcastMsg(Component component)
     {
-        Bukkit.getConsoleSender().sendMessage(component);
+        // Serialize to ANSI for console, Component for players
+        String ansiMessage = ANSIComponentSerializer.ansi().serialize(component);
+        Bukkit.getConsoleSender().sendMessage(ansiMessage);
 
         for (Player player : Bukkit.getOnlinePlayers())
         {
@@ -199,14 +201,7 @@ public class FUtil
 
     public static void deleteCoreDumps()
     {
-        final File[] coreDumps = new File(".").listFiles(new FileFilter()
-        {
-            @Override
-            public boolean accept(File file)
-            {
-                return file.getName().startsWith("java.core");
-            }
-        });
+        final File[] coreDumps = new File(".").listFiles(file -> file.getName().startsWith("java.core"));
 
         for (File dump : coreDumps)
         {
@@ -215,17 +210,18 @@ public class FUtil
         }
     }
 
+    private static final Pattern TIME_PATTERN = Pattern.compile(
+            "(?:([0-9]+)\\s*y[a-z]*[,\\s]*)?"
+            + "(?:([0-9]+)\\s*mo[a-z]*[,\\s]*)?"
+            + "(?:([0-9]+)\\s*w[a-z]*[,\\s]*)?"
+            + "(?:([0-9]+)\\s*d[a-z]*[,\\s]*)?"
+            + "(?:([0-9]+)\\s*h[a-z]*[,\\s]*)?"
+            + "(?:([0-9]+)\\s*m[a-z]*[,\\s]*)?"
+            + "(?:([0-9]+)\\s*(?:s[a-z]*)?)?", Pattern.CASE_INSENSITIVE);
+
     public static Date parseDateOffset(String time)
     {
-        Pattern timePattern = Pattern.compile(
-                "(?:([0-9]+)\\s*y[a-z]*[,\\s]*)?"
-                + "(?:([0-9]+)\\s*mo[a-z]*[,\\s]*)?"
-                + "(?:([0-9]+)\\s*w[a-z]*[,\\s]*)?"
-                + "(?:([0-9]+)\\s*d[a-z]*[,\\s]*)?"
-                + "(?:([0-9]+)\\s*h[a-z]*[,\\s]*)?"
-                + "(?:([0-9]+)\\s*m[a-z]*[,\\s]*)?"
-                + "(?:([0-9]+)\\s*(?:s[a-z]*)?)?", Pattern.CASE_INSENSITIVE);
-        Matcher m = timePattern.matcher(time);
+        Matcher m = TIME_PATTERN.matcher(time);
         int years = 0;
         int months = 0;
         int weeks = 0;
@@ -250,34 +246,13 @@ public class FUtil
             }
             if (found)
             {
-                if (m.group(1) != null && !m.group(1).isEmpty())
-                {
-                    years = Integer.parseInt(m.group(1));
-                }
-                if (m.group(2) != null && !m.group(2).isEmpty())
-                {
-                    months = Integer.parseInt(m.group(2));
-                }
-                if (m.group(3) != null && !m.group(3).isEmpty())
-                {
-                    weeks = Integer.parseInt(m.group(3));
-                }
-                if (m.group(4) != null && !m.group(4).isEmpty())
-                {
-                    days = Integer.parseInt(m.group(4));
-                }
-                if (m.group(5) != null && !m.group(5).isEmpty())
-                {
-                    hours = Integer.parseInt(m.group(5));
-                }
-                if (m.group(6) != null && !m.group(6).isEmpty())
-                {
-                    minutes = Integer.parseInt(m.group(6));
-                }
-                if (m.group(7) != null && !m.group(7).isEmpty())
-                {
-                    seconds = Integer.parseInt(m.group(7));
-                }
+                years = parseGroup(m, 1);
+                months = parseGroup(m, 2);
+                weeks = parseGroup(m, 3);
+                days = parseGroup(m, 4);
+                hours = parseGroup(m, 5);
+                minutes = parseGroup(m, 6);
+                seconds = parseGroup(m, 7);
                 break;
             }
         }
@@ -318,6 +293,16 @@ public class FUtil
         }
 
         return c.getTime();
+    }
+
+    private static int parseGroup(Matcher m, int group)
+    {
+        String value = m.group(group);
+        if (value != null && !value.isEmpty())
+        {
+            return Integer.parseInt(value);
+        }
+        return 0;
     }
 
     public static String playerListToNames(Set<OfflinePlayer> players)
