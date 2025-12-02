@@ -1,47 +1,66 @@
 package me.totalfreedom.totalfreedommod.rank;
 
 import lombok.Getter;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.ChatColor;
 
 @Getter
 public enum Rank implements Displayable
 {
 
-    IMPOSTOR("an", "Impostor", Type.PLAYER, "Imp", ChatColor.YELLOW),
-    NON_OP("a", "Non-Op", Type.PLAYER, "", ChatColor.GREEN),
-    OP("an", "Op", Type.PLAYER, "OP", ChatColor.RED),
-    SUPER_ADMIN("a", "Super Admin", Type.ADMIN, "SA", ChatColor.AQUA),
-    TELNET_ADMIN("a", "Telnet Admin", Type.ADMIN, "STA", ChatColor.DARK_GREEN),
-    SENIOR_ADMIN("a", "Senior Admin", Type.ADMIN, "SrA", ChatColor.GOLD),
-    TELNET_CONSOLE("the", "Console", Type.ADMIN_CONSOLE, "Console", ChatColor.DARK_PURPLE),
-    SENIOR_CONSOLE("the", "Console", Type.ADMIN_CONSOLE, "Console", ChatColor.DARK_PURPLE);
+    IMPOSTOR("an", "Impostor", Type.PLAYER, "Imp", NamedTextColor.YELLOW),
+    NON_OP("a", "Non-Op", Type.PLAYER, "", NamedTextColor.GREEN),
+    OP("an", "Op", Type.PLAYER, "OP", NamedTextColor.RED),
+    SUPER_ADMIN("a", "Super Admin", Type.ADMIN, "SA", NamedTextColor.AQUA),
+    TELNET_ADMIN("a", "Telnet Admin", Type.ADMIN, "STA", NamedTextColor.DARK_GREEN),
+    SENIOR_ADMIN("a", "Senior Admin", Type.ADMIN, "SrA", NamedTextColor.GOLD),
+    TELNET_CONSOLE("the", "Console", Type.ADMIN_CONSOLE, "Console", NamedTextColor.DARK_PURPLE),
+    SENIOR_CONSOLE("the", "Console", Type.ADMIN_CONSOLE, "Console", NamedTextColor.DARK_PURPLE);
     private final Type type;
     private final String name;
     private final String determiner;
     private final String tag;
-    private final String coloredTag;
-    private final ChatColor color;
+    private final Component coloredTag;
+    private final NamedTextColor color;
+    private final ChatColor colorLegacy; // For backward compatibility
 
-    private Rank(String determiner, String name, Type type, String abbr, ChatColor color)
+    private Rank(String determiner, String name, Type type, String abbr, NamedTextColor color)
     {
         this.type = type;
         this.name = name;
         this.determiner = determiner;
         this.tag = abbr.isEmpty() ? "" : "[" + abbr + "]";
-        this.coloredTag = abbr.isEmpty() ? "" : ChatColor.DARK_GRAY + "[" + color + abbr + ChatColor.DARK_GRAY + "]" + color;
         this.color = color;
+        this.colorLegacy = me.totalfreedom.totalfreedommod.util.AdventureUtil.namedTextColorToChatColor(color);
+        
+        // Build colored tag as Component
+        if (abbr.isEmpty())
+        {
+            this.coloredTag = Component.empty();
+        }
+        else
+        {
+            this.coloredTag = Component.text("[")
+                    .color(NamedTextColor.DARK_GRAY)
+                    .append(Component.text(abbr).color(color))
+                    .append(Component.text("]").color(NamedTextColor.DARK_GRAY))
+                    .append(Component.text("").color(color));
+        }
     }
 
     @Override
-    public String getColoredName()
+    public Component getColoredName()
     {
-        return color + name;
+        return Component.text(name).color(color);
     }
 
     @Override
-    public String getColoredLoginMessage()
+    public Component getColoredLoginMessage()
     {
-        return determiner + " " + color + ChatColor.ITALIC + name;
+        return Component.text(determiner + " ")
+                .append(Component.text(name).color(color).decorate(TextDecoration.ITALIC));
     }
 
     public boolean isConsole()
@@ -85,14 +104,23 @@ public enum Rank implements Displayable
         return name;
     }
     
-    public String getColoredTag()
+    @Override
+    public Component getColoredTag()
     {
         return coloredTag;
     }
     
-    public ChatColor getColor()
+    @Override
+    public NamedTextColor getColor()
     {
         return color;
+    }
+    
+    @Override
+    @Deprecated
+    public ChatColor getColorLegacy()
+    {
+        return colorLegacy;
     }
 
     public boolean hasConsoleVariant()

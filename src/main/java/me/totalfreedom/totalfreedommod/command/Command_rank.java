@@ -2,6 +2,7 @@ package me.totalfreedom.totalfreedommod.command;
 
 import me.totalfreedom.totalfreedommod.rank.Displayable;
 import me.totalfreedom.totalfreedommod.rank.Rank;
+import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -39,7 +40,7 @@ public class Command_rank extends FreedomCommand
 
         if (player == null)
         {
-            sender.sendMessage(FreedomCommand.PLAYER_NOT_FOUND);
+            msg(FreedomCommand.PLAYER_NOT_FOUND);
             return true;
         }
 
@@ -58,14 +59,14 @@ public class Command_rank extends FreedomCommand
                 .append(ChatColor.AQUA)
                 .append(player.getName())
                 .append(" is ")
-                .append(display.getColoredLoginMessage());
+                .append(AdventureUtil.componentToLegacySection(display.getColoredLoginMessage()));
 
         if (rank != display)
         {
             sb
                     .append(ChatColor.AQUA)
                     .append(" (")
-                    .append(rank.getColoredName())
+                    .append(AdventureUtil.componentToLegacySection(rank.getColoredName()))
                     .append(ChatColor.AQUA)
                     .append(')');
         }

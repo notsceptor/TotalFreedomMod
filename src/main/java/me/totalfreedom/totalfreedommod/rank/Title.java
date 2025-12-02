@@ -1,13 +1,16 @@
 package me.totalfreedom.totalfreedommod.rank;
 
 import lombok.Getter;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.ChatColor;
 
 public enum Title implements Displayable
 {
 
-    DEVELOPER("a", "Developer", ChatColor.DARK_PURPLE, "Dev"),
-    OWNER("the", "Owner", ChatColor.BLUE, "Owner");
+    DEVELOPER("a", "Developer", NamedTextColor.DARK_PURPLE, "Dev"),
+    OWNER("the", "Owner", NamedTextColor.BLUE, "Owner");
 
     private final String determiner;
     @Getter
@@ -15,29 +18,37 @@ public enum Title implements Displayable
     @Getter
     private final String tag;
     @Getter
-    private final String coloredTag;
-    @Getter
-    private final ChatColor color;
+    private final Component coloredTag;
+    private final NamedTextColor color;
+    private final ChatColor colorLegacy; // For backward compatibility
 
-    private Title(String determiner, String name, ChatColor color, String tag)
+    private Title(String determiner, String name, NamedTextColor color, String tag)
     {
         this.determiner = determiner;
         this.name = name;
         this.tag = "[" + tag + "]";
-        this.coloredTag = ChatColor.DARK_GRAY + "[" + color + tag + ChatColor.DARK_GRAY + "]" + color;
         this.color = color;
+        this.colorLegacy = me.totalfreedom.totalfreedommod.util.AdventureUtil.namedTextColorToChatColor(color);
+        
+        // Build colored tag as Component
+        this.coloredTag = Component.text("[")
+                .color(NamedTextColor.DARK_GRAY)
+                .append(Component.text(tag).color(color))
+                .append(Component.text("]").color(NamedTextColor.DARK_GRAY))
+                .append(Component.text("").color(color));
     }
 
     @Override
-    public String getColoredName()
+    public Component getColoredName()
     {
-        return color + name;
+        return Component.text(name).color(color);
     }
 
     @Override
-    public String getColoredLoginMessage()
+    public Component getColoredLoginMessage()
     {
-        return determiner + " " + color + ChatColor.ITALIC + name;
+        return Component.text(determiner + " ")
+                .append(Component.text(name).color(color).decorate(TextDecoration.ITALIC));
     }
     
     // Manual getters - Lombok @Getter not processing on enum fields
@@ -51,14 +62,23 @@ public enum Title implements Displayable
         return tag;
     }
     
-    public String getColoredTag()
+    @Override
+    public Component getColoredTag()
     {
         return coloredTag;
     }
     
-    public ChatColor getColor()
+    @Override
+    public NamedTextColor getColor()
     {
         return color;
+    }
+    
+    @Override
+    @Deprecated
+    public ChatColor getColorLegacy()
+    {
+        return colorLegacy;
     }
 
 }

@@ -65,6 +65,15 @@ public class FLog
     // Utility
     private static void log(Level level, String message, boolean raw)
     {
+        if (message != null && !raw)
+        {
+            // Convert & codes to § codes for console (console expects § codes)
+            // Only convert if message contains & codes but not § codes (to avoid double conversion)
+            if (message.contains("&") && !message.contains("§"))
+            {
+                message = message.replace('&', '§');
+            }
+        }
         getLogger(raw).log(level, message);
     }
 

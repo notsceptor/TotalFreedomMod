@@ -52,7 +52,7 @@ public class Command_lockup extends FreedomCommand
 
                 if (player == null)
                 {
-                    sender.sendMessage(FreedomCommand.PLAYER_NOT_FOUND);
+                    msg(FreedomCommand.PLAYER_NOT_FOUND);
                     return true;
                 }
 
@@ -66,7 +66,7 @@ public class Command_lockup extends FreedomCommand
 
                 if (player == null)
                 {
-                    sender.sendMessage(FreedomCommand.PLAYER_NOT_FOUND);
+                    msg(FreedomCommand.PLAYER_NOT_FOUND);
                     return true;
                 }
 

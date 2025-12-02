@@ -23,7 +23,7 @@ public class Command_cartsit extends FreedomCommand
 
             if (targetPlayer == null)
             {
-                sender.sendMessage(FreedomCommand.PLAYER_NOT_FOUND);
+                msg(FreedomCommand.PLAYER_NOT_FOUND);
                 return true;
             }
         }

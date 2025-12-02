@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.rank;
 
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.ChatColor;
 
 public interface Displayable
@@ -9,12 +11,33 @@ public interface Displayable
 
     public String getTag();
 
-    public ChatColor getColor();
+    public NamedTextColor getColor();
 
-    public String getColoredName();
+    @Deprecated
+    public ChatColor getColorLegacy();
 
-    public String getColoredTag();
+    public Component getColoredName();
 
-    public String getColoredLoginMessage();
+    public Component getColoredTag();
+
+    public Component getColoredLoginMessage();
+
+    @Deprecated
+    public default String getColoredNameLegacy()
+    {
+        return me.totalfreedom.totalfreedommod.util.AdventureUtil.componentToLegacy(getColoredName());
+    }
+
+    @Deprecated
+    public default String getColoredTagLegacy()
+    {
+        return me.totalfreedom.totalfreedommod.util.AdventureUtil.componentToLegacy(getColoredTag());
+    }
+
+    @Deprecated
+    public default String getColoredLoginMessageLegacy()
+    {
+        return me.totalfreedom.totalfreedommod.util.AdventureUtil.componentToLegacy(getColoredLoginMessage());
+    }
 
 }

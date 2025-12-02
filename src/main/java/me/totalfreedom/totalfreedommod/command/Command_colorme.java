@@ -3,7 +3,10 @@ package me.totalfreedom.totalfreedommod.command;
 import java.util.Iterator;
 import java.util.Map;
 import me.totalfreedom.totalfreedommod.rank.Rank;
+import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FUtil;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
@@ -30,11 +33,11 @@ public class Command_colorme extends FreedomCommand
         }
 
         final String needle = args[0].trim().toLowerCase();
-        ChatColor color = null;
-        final Iterator<Map.Entry<String, ChatColor>> it = FUtil.CHAT_COLOR_NAMES.entrySet().iterator();
+        NamedTextColor color = null;
+        final Iterator<Map.Entry<String, NamedTextColor>> it = FUtil.CHAT_COLOR_NAMES.entrySet().iterator();
         while (it.hasNext())
         {
-            final Map.Entry<String, ChatColor> entry = it.next();
+            final Map.Entry<String, NamedTextColor> entry = it.next();
             if (entry.getKey().contains(needle))
             {
                 color = entry.getValue();
@@ -48,7 +51,12 @@ public class Command_colorme extends FreedomCommand
             return true;
         }
 
-        final String newNick = color + ChatColor.stripColor(playerSender.getDisplayName()).trim() + ChatColor.WHITE;
+        // Build nickname with color - convert to legacy string for Essentials
+        String displayNamePlain = AdventureUtil.stripColor(playerSender.getDisplayName()).trim();
+        String newNick = AdventureUtil.componentToLegacy(
+                Component.text(displayNamePlain)
+                        .color(color)
+                        .append(Component.text("").color(NamedTextColor.WHITE)));
 
         plugin.esb.setNickname(sender.getName(), newNick);
 

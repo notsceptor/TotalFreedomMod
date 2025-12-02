@@ -98,7 +98,7 @@ public class Command_stfu extends FreedomCommand
         final Player player = getPlayer(args[0]);
         if (player == null)
         {
-            sender.sendMessage(FreedomCommand.PLAYER_NOT_FOUND);
+            msg(FreedomCommand.PLAYER_NOT_FOUND);
             return true;
         }
 
@@ -115,7 +115,7 @@ public class Command_stfu extends FreedomCommand
             playerdata.setMuted(false);
             msg("Unmuted " + player.getName());
 
-            msg(player, "You have been unmuted.", ChatColor.RED);
+            msg(player, ChatColor.RED + "You have been unmuted.");
         }
         else
         {
@@ -135,11 +135,11 @@ public class Command_stfu extends FreedomCommand
 
             if (reason != null)
             {
-                msg(player, "You have been muted. Reason: " + reason, ChatColor.RED);
+                msg(player, ChatColor.RED + "You have been muted. Reason: " + reason);
             }
             else
             {
-                msg(player, "You have been muted.", ChatColor.RED);
+                msg(player, ChatColor.RED + "You have been muted.");
             }
 
             msg("Muted " + player.getName());

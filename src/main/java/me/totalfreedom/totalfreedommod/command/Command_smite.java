@@ -1,6 +1,7 @@
 package me.totalfreedom.totalfreedommod.command;
 
 import me.totalfreedom.totalfreedommod.rank.Rank;
+import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.ChatColor;
@@ -82,7 +83,8 @@ public class Command_smite extends FreedomCommand
 
         if (reason != null)
         {
-            player.sendMessage(ChatColor.RED + "You've been smitten. Reason: " + ChatColor.YELLOW + reason);
+            String smiteMsg = ChatColor.RED + "You've been smitten. Reason: " + ChatColor.YELLOW + reason;
+            player.sendMessage(AdventureUtil.legacyToComponent(smiteMsg));
         }
     }
 }

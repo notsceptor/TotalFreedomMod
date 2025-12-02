@@ -39,7 +39,7 @@ public class Command_qop extends FreedomCommand
                 {
                     matchedPlayerNames.add(player.getName());
                     player.setOp(true);
-                    player.sendMessage(FreedomCommand.YOU_ARE_OP);
+                    msg(player, FreedomCommand.YOU_ARE_OP);
                 }
             }
         }

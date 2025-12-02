@@ -5,7 +5,10 @@ import java.util.List;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.rank.Displayable;
 import me.totalfreedom.totalfreedommod.rank.Rank;
+import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FUtil;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
@@ -68,14 +71,14 @@ public class Command_list extends FreedomCommand
             listFilter = ListFilter.PLAYERS;
         }
 
-        final StringBuilder onlineStats = new StringBuilder();
-        final StringBuilder onlineUsers = new StringBuilder();
+        Component onlineStats = Component.text("There are ")
+                .color(NamedTextColor.BLUE)
+                .append(Component.text(String.valueOf(server.getOnlinePlayers().size())).color(NamedTextColor.RED))
+                .append(Component.text(" out of a maximum ").color(NamedTextColor.BLUE))
+                .append(Component.text(String.valueOf(server.getMaxPlayers())).color(NamedTextColor.RED))
+                .append(Component.text(" players online.").color(NamedTextColor.BLUE));
 
-        onlineStats.append(ChatColor.BLUE).append("There are ").append(ChatColor.RED).append(server.getOnlinePlayers().size());
-        onlineStats.append(ChatColor.BLUE).append(" out of a maximum ").append(ChatColor.RED).append(server.getMaxPlayers());
-        onlineStats.append(ChatColor.BLUE).append(" players online.");
-
-        final List<String> names = new ArrayList<>();
+        final List<Component> nameComponents = new ArrayList<>();
         for (Player player : server.getOnlinePlayers())
         {
             if (listFilter == ListFilter.ADMINS && !plugin.al.isAdmin(player))
@@ -95,24 +98,33 @@ public class Command_list extends FreedomCommand
 
             Displayable display = plugin.rm.getDisplay(player);
 
-            names.add(display.getColoredTag() + player.getName());
+            nameComponents.add(display.getColoredTag().append(Component.text(player.getName())));
         }
 
         String playerType = listFilter == null ? "players" : listFilter.toString().toLowerCase().replace('_', ' ');
 
-        onlineUsers.append("Connected ");
-        onlineUsers.append(playerType + ": ");
-        onlineUsers.append(StringUtils.join(names, ChatColor.WHITE + ", "));
+        Component onlineUsers = Component.text("Connected " + playerType + ": ");
+        
+        // Join name components with ", "
+        for (int i = 0; i < nameComponents.size(); i++)
+        {
+            if (i > 0)
+            {
+                onlineUsers = onlineUsers.append(Component.text(", ").color(NamedTextColor.WHITE));
+            }
+            onlineUsers = onlineUsers.append(nameComponents.get(i));
+        }
 
         if (senderIsConsole)
         {
-            sender.sendMessage(ChatColor.stripColor(onlineStats.toString()));
-            sender.sendMessage(ChatColor.stripColor(onlineUsers.toString()));
+            // Console gets plain text
+            sender.sendMessage(AdventureUtil.stripColor(AdventureUtil.componentToLegacy(onlineStats)));
+            sender.sendMessage(AdventureUtil.stripColor(AdventureUtil.componentToLegacy(onlineUsers)));
         }
         else
         {
-            sender.sendMessage(onlineStats.toString());
-            sender.sendMessage(onlineUsers.toString());
+            sender.sendMessage(onlineStats);
+            sender.sendMessage(onlineUsers);
         }
 
         return true;

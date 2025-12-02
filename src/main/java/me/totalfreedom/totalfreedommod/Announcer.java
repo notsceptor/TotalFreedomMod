@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.List;
 import lombok.Getter;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
+import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
@@ -31,12 +32,12 @@ public class Announcer extends FreedomService
     {
         enabled = ConfigEntry.ANNOUNCER_ENABLED.getBoolean();
         interval = ConfigEntry.ANNOUNCER_INTERVAL.getInteger() * 20L;
-        prefix = FUtil.colorize(ConfigEntry.ANNOUNCER_PREFIX.getString());
+        prefix = AdventureUtil.componentToLegacy(FUtil.colorize(ConfigEntry.ANNOUNCER_PREFIX.getString()));
 
         announcements.clear();
         for (Object announcement : ConfigEntry.ANNOUNCER_ANNOUNCEMENTS.getList())
         {
-            announcements.add(FUtil.colorize((String) announcement));
+            announcements.add(AdventureUtil.componentToLegacy(FUtil.colorize((String) announcement)));
         }
 
         if (!enabled)
@@ -82,7 +83,9 @@ public class Announcer extends FreedomService
 
     public void announce(String message)
     {
-        FUtil.bcastMsg(prefix + message);
+        // Convert legacy string with & codes to Component for proper color rendering
+        String fullMessage = prefix + message;
+        FUtil.bcastMsg(AdventureUtil.legacyToComponent(fullMessage));
     }
 
 }

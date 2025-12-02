@@ -7,6 +7,7 @@ import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
+import net.kyori.adventure.text.Component;
 import net.pravian.aero.command.AbstractCommandBase;
 import net.pravian.aero.util.Players;
 import org.bukkit.ChatColor;
@@ -72,7 +73,7 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
         {
             FLog.severe("Uncaught exception executing command: " + command.getName());
             FLog.severe(ex);
-            sender.sendMessage(ChatColor.RED + "Command error: " + (ex.getMessage() == null ? "Unknown cause" : ex.getMessage()));
+            msg("Command error: " + (ex.getMessage() == null ? "Unknown cause" : ex.getMessage()), ChatColor.RED);
             return true;
         }
     }
@@ -128,11 +129,14 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
 
     protected void msg(final CommandSender sender, final String message, final ChatColor color)
     {
-        if (sender == null)
+        if (sender == null || message == null)
         {
             return;
         }
-        sender.sendMessage(color + message);
+        String coloredMessage = (color != null ? color : "") + message;
+        String ampersandMessage = coloredMessage.replace('§', '&');
+        Component component = me.totalfreedom.totalfreedommod.util.AdventureUtil.legacyToComponent(ampersandMessage);
+        sender.sendMessage(component);
     }
 
     protected void msg(final String message, final ChatColor color)
@@ -148,6 +152,37 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
     protected void msg(final String message)
     {
         msg(sender, message);
+    }
+    
+    protected void msg(final Player target, final String message)
+    {
+        if (target != null && message != null)
+        {
+            target.sendMessage(me.totalfreedom.totalfreedommod.util.AdventureUtil.legacyToComponent(message));
+        }
+    }
+    
+    protected void msg(final Player target, final String message, final ChatColor color)
+    {
+        if (target != null && message != null)
+        {
+            String coloredMessage = (color != null ? color : "") + message;
+            target.sendMessage(me.totalfreedom.totalfreedommod.util.AdventureUtil.legacyToComponent(coloredMessage));
+        }
+    }
+    
+    protected void msg(final CommandSender sender, final Component component)
+    {
+        if (sender == null || component == null)
+        {
+            return;
+        }
+        sender.sendMessage(component);
+    }
+
+    protected void msg(final Component component)
+    {
+        msg(sender, component);
     }
 
     protected boolean isAdmin(CommandSender sender)

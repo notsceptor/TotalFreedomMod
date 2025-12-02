@@ -1,6 +1,7 @@
 package me.totalfreedom.totalfreedommod;
 
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
+import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -58,7 +59,7 @@ public class ServerPing extends FreedomService
 //        String baseMotd = ConfigEntry.SERVER_MOTD.getString().replace("%mcversion%", plugin.si.getVersion());
         String baseMotd = ConfigEntry.SERVER_MOTD.getString();
         baseMotd = baseMotd.replace("\\n", "\n");
-        baseMotd = FUtil.colorize(baseMotd);
+        baseMotd = AdventureUtil.componentToLegacySection(FUtil.colorize(baseMotd));
 
         if (!ConfigEntry.SERVER_COLORFUL_MOTD.getBoolean())
         {
@@ -70,7 +71,8 @@ public class ServerPing extends FreedomService
         final StringBuilder motd = new StringBuilder();
         for (String word : baseMotd.split(" "))
         {
-            motd.append(FUtil.randomChatColor()).append(word).append(" ");
+            ChatColor color = AdventureUtil.namedTextColorToChatColor(FUtil.randomChatColor());
+            motd.append(color != null ? color : ChatColor.WHITE).append(word).append(" ");
         }
 
         event.setMotd(motd.toString().trim());

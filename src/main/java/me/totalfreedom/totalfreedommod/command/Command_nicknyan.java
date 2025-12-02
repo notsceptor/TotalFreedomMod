@@ -1,7 +1,10 @@
 package me.totalfreedom.totalfreedommod.command;
 
 import me.totalfreedom.totalfreedommod.rank.Rank;
+import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FUtil;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
@@ -28,7 +31,8 @@ public class Command_nicknyan extends FreedomCommand
             return true;
         }
 
-        final String nickPlain = ChatColor.stripColor(FUtil.colorize(args[0].trim()));
+        Component colorized = FUtil.colorize(args[0].trim());
+        final String nickPlain = AdventureUtil.stripColor(AdventureUtil.componentToLegacy(colorized));
 
         if (!nickPlain.matches("^[a-zA-Z_0-9" + ChatColor.COLOR_CHAR + "]+$"))
         {
@@ -47,26 +51,26 @@ public class Command_nicknyan extends FreedomCommand
             {
                 continue;
             }
-            if (player.getName().equalsIgnoreCase(nickPlain) || ChatColor.stripColor(player.getDisplayName()).trim().equalsIgnoreCase(nickPlain))
+            if (player.getName().equalsIgnoreCase(nickPlain) || AdventureUtil.stripColor(player.getDisplayName()).trim().equalsIgnoreCase(nickPlain))
             {
                 msg("That nickname is already in use.");
                 return true;
             }
         }
 
-        final StringBuilder newNick = new StringBuilder();
-
+        Component newNickComponent = Component.empty();
         final char[] chars = nickPlain.toCharArray();
         for (char c : chars)
         {
-            newNick.append(FUtil.randomChatColor()).append(c);
+            newNickComponent = newNickComponent.append(Component.text(String.valueOf(c)).color(FUtil.randomChatColor()));
         }
+        newNickComponent = newNickComponent.append(Component.text("").color(NamedTextColor.WHITE));
+        
+        String newNick = AdventureUtil.componentToLegacy(newNickComponent);
 
-        newNick.append(ChatColor.WHITE);
+        plugin.esb.setNickname(sender.getName(), newNick);
 
-        plugin.esb.setNickname(sender.getName(), newNick.toString());
-
-        msg("Your nickname is now: " + newNick.toString());
+        msg("Your nickname is now: " + newNick);
 
         return true;
     }

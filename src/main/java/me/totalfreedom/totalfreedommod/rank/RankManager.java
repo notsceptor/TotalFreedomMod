@@ -5,7 +5,10 @@ import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
+import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FUtil;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.pravian.aero.util.ChatUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.ChatColor;
@@ -135,7 +138,9 @@ public class RankManager extends FreedomService
             // Verify strict IP match
             if (!plugin.al.isIdentityMatched(player))
             {
-                FUtil.bcastMsg("Warning: " + player.getName() + " is an admin, but is using an account not registered to one of their ip-list.", ChatColor.RED);
+                Component warningMsg = Component.text("Warning: " + player.getName() + " is an admin, but is using an account not registered to one of their ip-list.")
+                        .color(NamedTextColor.RED);
+                FUtil.bcastMsg(warningMsg);
                 fPlayer.setSuperadminIdVerified(false);
             }
             else
@@ -148,13 +153,23 @@ public class RankManager extends FreedomService
         // Handle impostors
         if (plugin.al.isAdminImpostor(player))
         {
-            FUtil.bcastMsg(ChatColor.AQUA + player.getName() + " is " + Rank.IMPOSTOR.getColoredLoginMessage());
-            FUtil.bcastMsg("Warning: " + player.getName() + " has been flagged as an impostor and has been frozen!", ChatColor.RED);
+            Component impostorMsg = Component.text(player.getName() + " is ")
+                    .color(NamedTextColor.AQUA)
+                    .append(Rank.IMPOSTOR.getColoredLoginMessage());
+            FUtil.bcastMsg(impostorMsg);
+            
+            Component warningMsg = Component.text("Warning: " + player.getName() + " has been flagged as an impostor and has been frozen!")
+                    .color(NamedTextColor.RED);
+            FUtil.bcastMsg(warningMsg);
+            
             player.getInventory().clear();
             player.setOp(false);
             player.setGameMode(GameMode.SURVIVAL);
             plugin.pl.getPlayer(player).getFreezeData().setFrozen(true);
-            player.sendMessage(ChatColor.RED + "You are marked as an impostor, please verify yourself!");
+            
+            Component playerMsg = Component.text("You are marked as an impostor, please verify yourself!")
+                    .color(NamedTextColor.RED);
+            player.sendMessage(playerMsg);
             return;
         }
 
@@ -206,21 +221,31 @@ public class RankManager extends FreedomService
         if (isAdmin || FUtil.DEVELOPERS.contains(player.getName()))
         {
             final Displayable display = getDisplay(player);
-            String loginMsg = display.getColoredLoginMessage();
+            Component loginMsg = display.getColoredLoginMessage();
 
             if (isAdmin)
             {
                 Admin admin = plugin.al.getAdmin(player);
                 if (admin.hasLoginMessage())
                 {
-                    loginMsg = ChatUtils.colorize(admin.getLoginMessage());
+                    // ChatUtils.colorize returns String, convert to Component
+                    String legacyMsg = ChatUtils.colorize(admin.getLoginMessage());
+                    loginMsg = AdventureUtil.legacyToComponent(legacyMsg);
                 }
             }
 
-            FUtil.bcastMsg(ChatColor.AQUA + player.getName() + " is " + loginMsg);
-            plugin.pl.getPlayer(player).setTag(display.getColoredTag());
+            Component broadcastMsg = Component.text(player.getName() + " is ")
+                    .color(NamedTextColor.AQUA)
+                    .append(loginMsg);
+            FUtil.bcastMsg(broadcastMsg);
+            
+            // setTag expects String, convert Component to legacy with § codes for chat format
+            String tagLegacy = AdventureUtil.componentToLegacySection(display.getColoredTag());
+            plugin.pl.getPlayer(player).setTag(tagLegacy);
 
-            String displayName = display.getColor() + player.getName();
+            // setPlayerListName is deprecated but still used - convert Component to legacy string
+            Component displayNameComponent = Component.text(player.getName()).color(display.getColor());
+            String displayName = AdventureUtil.componentToLegacy(displayNameComponent);
             try
             {
                 player.setPlayerListName(StringUtils.substring(displayName, 0, 16));

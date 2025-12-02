@@ -4,7 +4,10 @@ import java.util.Arrays;
 import java.util.List;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.rank.Rank;
+import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FUtil;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
@@ -111,7 +114,7 @@ public class Command_tag extends FreedomCommand
             else if ("set".equalsIgnoreCase(args[0]))
             {
                 final String inputTag = StringUtils.join(args, " ", 1, args.length);
-                final String outputTag = FUtil.colorize(StringUtils.replaceEachRepeatedly(StringUtils.strip(inputTag),
+                Component colorizedTag = FUtil.colorize(StringUtils.replaceEachRepeatedly(StringUtils.strip(inputTag),
                         new String[]
                         {
                             "" + ChatColor.COLOR_CHAR, "&k"
@@ -119,11 +122,13 @@ public class Command_tag extends FreedomCommand
                         new String[]
                         {
                             "", ""
-                        })) + ChatColor.RESET;
+                        }));
+                colorizedTag = colorizedTag.append(Component.text("").color(NamedTextColor.WHITE));
+                final String outputTag = AdventureUtil.componentToLegacySection(colorizedTag);
 
                 if (!plugin.al.isAdmin(sender))
                 {
-                    final String rawTag = ChatColor.stripColor(outputTag).toLowerCase();
+                    final String rawTag = AdventureUtil.stripColor(outputTag).toLowerCase();
 
                     if (rawTag.length() > 20)
                     {

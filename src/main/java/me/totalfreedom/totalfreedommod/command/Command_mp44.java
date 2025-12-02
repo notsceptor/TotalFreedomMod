@@ -3,6 +3,7 @@ package me.totalfreedom.totalfreedommod.command;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.rank.Rank;
+import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
@@ -44,7 +45,7 @@ public class Command_mp44 extends FreedomCommand
         {
             playerdata.disarmMP44();
 
-            sender.sendMessage(ChatColor.GREEN + "mp44 Disarmed.");
+            msg("mp44 Disarmed.", ChatColor.GREEN);
         }
 
         return true;

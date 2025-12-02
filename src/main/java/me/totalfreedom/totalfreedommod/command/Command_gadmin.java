@@ -6,6 +6,7 @@ import java.util.UUID;
 import me.totalfreedom.totalfreedommod.banning.Ban;
 import me.totalfreedom.totalfreedommod.freeze.FreezeData;
 import me.totalfreedom.totalfreedommod.rank.Rank;
+import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
@@ -85,10 +86,11 @@ public class Command_gadmin extends FreedomCommand
             while (it.hasNext())
             {
                 final Player player = it.next();
-                sender.sendMessage(ChatColor.GRAY + String.format("[ %s ] : [ %s ] - %s",
+                String listMsg = ChatColor.GRAY + String.format("[ %s ] : [ %s ] - %s",
                         player.getName(),
-                        ChatColor.stripColor(player.getDisplayName()),
-                        getPlayerHash(player)));
+                        AdventureUtil.stripColor(AdventureUtil.componentToLegacy(player.displayName())),
+                        getPlayerHash(player));
+                msg(listMsg);
             }
             return true;
         }
@@ -168,7 +170,7 @@ public class Command_gadmin extends FreedomCommand
             {
                 FUtil.adminAction(sender.getName(), String.format("Opping %s.", target.getName()), false);
                 target.setOp(true);
-                target.sendMessage(FreedomCommand.YOU_ARE_OP);
+                msg(target, FreedomCommand.YOU_ARE_OP);
 
                 break;
             }
@@ -176,7 +178,7 @@ public class Command_gadmin extends FreedomCommand
             {
                 FUtil.adminAction(sender.getName(), String.format("Deopping %s.", target.getName()), false);
                 target.setOp(false);
-                target.sendMessage(FreedomCommand.YOU_ARE_NOT_OP);
+                msg(target, FreedomCommand.YOU_ARE_NOT_OP);
 
                 break;
             }
@@ -192,7 +194,7 @@ public class Command_gadmin extends FreedomCommand
                 fd.setFrozen(!fd.isFrozen());
 
                 msg(target.getName() + " has been " + (fd.isFrozen() ? "frozen" : "unfrozen") + ".");
-                target.sendMessage(ChatColor.AQUA + "You have been " + (fd.isFrozen() ? "frozen" : "unfrozen") + ".");
+                msg(target, "You have been " + (fd.isFrozen() ? "frozen" : "unfrozen") + ".", ChatColor.AQUA);
 
                 break;
             }

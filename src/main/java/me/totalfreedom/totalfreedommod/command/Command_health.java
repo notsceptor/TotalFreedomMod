@@ -56,7 +56,8 @@ public class Command_health extends FreedomCommand
                         @Override
                         public void run()
                         {
-                            msg("Ticks per second: " + (TPS_RANGE.containsDouble(ticksPerSecond) ? ChatColor.GREEN : ChatColor.RED) + ticksPerSecond);
+                            ChatColor tpsColor = TPS_RANGE.containsDouble(ticksPerSecond) ? ChatColor.GREEN : ChatColor.RED;
+                            msg("Ticks per second: " + ticksPerSecond, tpsColor);
                         }
                     }.runTask(plugin);
                 }

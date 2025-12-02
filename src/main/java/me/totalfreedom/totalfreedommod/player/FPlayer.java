@@ -8,6 +8,7 @@ import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.caging.CageData;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.freeze.FreezeData;
+import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.pravian.aero.util.Ips;
 import org.bukkit.Bukkit;
@@ -400,7 +401,8 @@ public class FPlayer
         }
         else
         {
-            this.tag = FUtil.colorize(tag) + ChatColor.WHITE;
+            String colorizedTag = AdventureUtil.componentToLegacySection(FUtil.colorize(tag));
+            this.tag = colorizedTag + "§f"; // §f is white
         }
     }
 

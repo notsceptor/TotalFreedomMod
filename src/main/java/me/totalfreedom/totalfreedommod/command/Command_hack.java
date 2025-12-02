@@ -23,15 +23,16 @@ public class Command_hack extends FreedomCommand
         Player player = (Player) sender;
 
         // Fake hacking sequence
-        player.sendMessage(ChatColor.RED + "Initializing hack sequence...");
-        player.sendMessage(ChatColor.YELLOW + "Bypassing security protocols...");
-        player.sendMessage(ChatColor.GOLD + "Accessing server files...");
-        player.sendMessage(ChatColor.GREEN + "Uploading virus...");
-        player.sendMessage(ChatColor.DARK_RED + "ERROR: Hack failed!");
-        player.sendMessage(ChatColor.RED + "You have been detected and will be kicked.");
+        msg(player, "Initializing hack sequence...", ChatColor.RED);
+        msg(player, "Bypassing security protocols...", ChatColor.YELLOW);
+        msg(player, "Accessing server files...", ChatColor.GOLD);
+        msg(player, "Uploading virus...", ChatColor.GREEN);
+        msg(player, "ERROR: Hack failed!", ChatColor.DARK_RED);
+        msg(player, "You have been detected and will be kicked.", ChatColor.RED);
 
-        // Kick the player with a funny message
-        player.kickPlayer(ChatColor.RED + "Nice try, hacker!\n" + ChatColor.YELLOW + "The server is protected by TotalFreedomMod.");
+        // Kick the player with a funny message - kickPlayer accepts String with legacy codes
+        String kickMsg = ChatColor.RED + "Nice try, hacker!\n" + ChatColor.YELLOW + "The server is protected by TotalFreedomMod.";
+        player.kickPlayer(kickMsg);
 
         return true;
     }

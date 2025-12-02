@@ -2,6 +2,7 @@ package me.totalfreedom.totalfreedommod.command;
 
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.rank.Rank;
+import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.ChatColor;
@@ -24,7 +25,7 @@ public class Command_tagnyan extends FreedomCommand
 
         final StringBuilder tag = new StringBuilder();
 
-        for (char c : ChatColor.stripColor(FUtil.colorize(StringUtils.join(args, " "))).toCharArray())
+        for (char c : ChatColor.stripColor(AdventureUtil.componentToLegacy(FUtil.colorize(StringUtils.join(args, " ")))).toCharArray())
         {
             tag.append(FUtil.randomChatColor()).append(c);
         }

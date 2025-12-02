@@ -19,6 +19,8 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
@@ -38,8 +40,26 @@ public class FUtil
     // See https://github.com/TotalFreedom/License - None of the listed names may be removed.
     public static final List<String> DEVELOPERS = Arrays.asList("Madgeek1450", "Prozza", "Wild1145", "WickedGamingUK", "aggelosQQ", "aokod");
     public static String DATE_STORAGE_FORMAT = "EEE, d MMM yyyy HH:mm:ss Z";
-    public static final Map<String, ChatColor> CHAT_COLOR_NAMES = new HashMap<>();
-    public static final List<ChatColor> CHAT_COLOR_POOL = Arrays.asList(
+    public static final Map<String, NamedTextColor> CHAT_COLOR_NAMES = new HashMap<>();
+    public static final List<NamedTextColor> CHAT_COLOR_POOL = Arrays.asList(
+            NamedTextColor.DARK_BLUE,
+            NamedTextColor.DARK_GREEN,
+            NamedTextColor.DARK_AQUA,
+            NamedTextColor.DARK_RED,
+            NamedTextColor.DARK_PURPLE,
+            NamedTextColor.GOLD,
+            NamedTextColor.BLUE,
+            NamedTextColor.GREEN,
+            NamedTextColor.AQUA,
+            NamedTextColor.RED,
+            NamedTextColor.LIGHT_PURPLE,
+            NamedTextColor.YELLOW);
+    
+    // Backward compatibility - deprecated
+    @Deprecated
+    public static final Map<String, ChatColor> CHAT_COLOR_NAMES_LEGACY = new HashMap<>();
+    @Deprecated
+    public static final List<ChatColor> CHAT_COLOR_POOL_LEGACY = Arrays.asList(
             ChatColor.DARK_BLUE,
             ChatColor.DARK_GREEN,
             ChatColor.DARK_AQUA,
@@ -55,9 +75,13 @@ public class FUtil
 
     static
     {
-        for (ChatColor chatColor : CHAT_COLOR_POOL)
+        for (NamedTextColor color : CHAT_COLOR_POOL)
         {
-            CHAT_COLOR_NAMES.put(chatColor.name().toLowerCase().replace("_", ""), chatColor);
+            CHAT_COLOR_NAMES.put(color.toString().toLowerCase().replace("_", ""), color);
+        }
+        for (ChatColor chatColor : CHAT_COLOR_POOL_LEGACY)
+        {
+            CHAT_COLOR_NAMES_LEGACY.put(chatColor.name().toLowerCase().replace("_", ""), chatColor);
         }
     }
 
@@ -81,31 +105,66 @@ public class FUtil
         }
     }
 
-    public static void bcastMsg(String message, ChatColor color)
+    public static void bcastMsg(Component component)
     {
-        FLog.info(message, true);
+        Bukkit.getConsoleSender().sendMessage(component);
 
         for (Player player : Bukkit.getOnlinePlayers())
         {
-            player.sendMessage((color == null ? "" : color) + message);
+            player.sendMessage(component);
         }
+
+    public static void bcastMsg(String message, NamedTextColor color)
+    {
+        Component component = Component.text(message);
+        if (color != null)
+        {
+            component = component.color(color);
+        }
+        bcastMsg(component);
+    }
+
+    @Deprecated
+    public static void bcastMsg(String message, ChatColor color)
+    {
+        NamedTextColor namedColor = color != null ? AdventureUtil.chatColorToNamedTextColor(color) : null;
+        bcastMsg(message, namedColor);
     }
 
     public static void bcastMsg(String message)
     {
-        FUtil.bcastMsg(message, null);
+        bcastMsg(Component.text(message));
     }
 
-    // Still in use by listeners
+    public static void playerMsg(CommandSender sender, Component component)
+    {
+        if (sender == null || component == null)
+        {
+            return;
+        }
+        sender.sendMessage(component);
+    }
+
+    public static void playerMsg(CommandSender sender, String message, NamedTextColor color)
+    {
+        Component component = Component.text(message);
+        if (color != null)
+        {
+            component = component.color(color);
+        }
+        playerMsg(sender, component);
+    }
+
+    @Deprecated
     public static void playerMsg(CommandSender sender, String message, ChatColor color)
     {
-        sender.sendMessage(color + message);
+        NamedTextColor namedColor = color != null ? AdventureUtil.chatColorToNamedTextColor(color) : null;
+        playerMsg(sender, message, namedColor);
     }
 
-    // Still in use by listeners
     public static void playerMsg(CommandSender sender, String message)
     {
-        FUtil.playerMsg(sender, message, ChatColor.GRAY);
+        playerMsg(sender, message, NamedTextColor.GRAY);
     }
 
     public static void setFlying(Player player, boolean flying)
@@ -116,7 +175,7 @@ public class FUtil
 
     public static void adminAction(String adminName, String action, boolean isRed)
     {
-        FUtil.bcastMsg(adminName + " - " + action, (isRed ? ChatColor.RED : ChatColor.AQUA));
+        FUtil.bcastMsg(adminName + " - " + action, (isRed ? NamedTextColor.RED : NamedTextColor.AQUA));
     }
 
     public static String formatLocation(Location location)
@@ -364,12 +423,24 @@ public class FUtil
         return null;
     }
 
-    public static ChatColor randomChatColor()
+    public static NamedTextColor randomChatColor()
     {
         return CHAT_COLOR_POOL.get(RANDOM.nextInt(CHAT_COLOR_POOL.size()));
     }
 
-    public static String colorize(String string)
+    @Deprecated
+    public static ChatColor randomChatColorLegacy()
+    {
+        return CHAT_COLOR_POOL_LEGACY.get(RANDOM.nextInt(CHAT_COLOR_POOL_LEGACY.size()));
+    }
+
+    public static Component colorize(String string)
+    {
+        return AdventureUtil.translateAlternateColorCodes('&', string);
+    }
+
+    @Deprecated
+    public static String colorizeLegacy(String string)
     {
         return ChatColor.translateAlternateColorCodes('&', string);
     }

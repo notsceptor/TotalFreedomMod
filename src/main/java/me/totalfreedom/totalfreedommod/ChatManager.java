@@ -1,11 +1,13 @@
 package me.totalfreedom.totalfreedommod;
 
 import me.totalfreedom.totalfreedommod.player.FPlayer;
+import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FSync;
 import static me.totalfreedom.totalfreedommod.util.FUtil.playerMsg;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -49,7 +51,7 @@ public class ChatManager extends FreedomService
         String message = event.getMessage().trim();
 
         // Strip color from messages
-        message = ChatColor.stripColor(message);
+        message = AdventureUtil.stripColor(message);
 
         // Truncate messages that are too long - 256 characters is vanilla client max
         if (message.length() > 256)
@@ -102,25 +104,47 @@ public class ChatManager extends FreedomService
 
     public void adminChat(CommandSender sender, String message)
     {
-        String name = sender.getName() + " " + plugin.rm.getDisplay(sender).getColoredTag() + ChatColor.WHITE;
-        FLog.info("[ADMIN] " + name + ": " + message);
+        Component nameComponent = Component.text(sender.getName() + " ")
+                .append(plugin.rm.getDisplay(sender).getColoredTag())
+                .append(Component.text("").color(NamedTextColor.WHITE));
+
+        Component adminMsg = Component.text("[")
+                .color(NamedTextColor.AQUA)
+                .append(Component.text("ADMIN").color(NamedTextColor.AQUA))
+                .append(Component.text("] ").color(NamedTextColor.WHITE))
+                .append(nameComponent.color(NamedTextColor.DARK_RED))
+                .append(Component.text(": ").color(NamedTextColor.DARK_RED))
+                .append(Component.text(message).color(NamedTextColor.GOLD));
+
+        // Send Component directly to console - Paper's console sender handles colors properly
+        Component consoleMsg = Component.text("[ADMIN] ")
+                .color(NamedTextColor.AQUA)
+                .append(nameComponent)
+                .append(Component.text(": ").color(NamedTextColor.WHITE))
+                .append(Component.text(message).color(NamedTextColor.GOLD));
+        Bukkit.getConsoleSender().sendMessage(consoleMsg);
 
         for (Player player : server.getOnlinePlayers())
         {
             if (plugin.al.isAdmin(player))
             {
-                player.sendMessage("[" + ChatColor.AQUA + "ADMIN" + ChatColor.WHITE + "] " + ChatColor.DARK_RED + name + ": " + ChatColor.GOLD + message);
+                player.sendMessage(adminMsg);
             }
         }
     }
 
     public void reportAction(Player reporter, Player reported, String report)
     {
+        Component reportMsg = Component.text("[REPORTS] ")
+                .color(NamedTextColor.RED)
+                .append(Component.text(reporter.getName() + " has reported " + reported.getName() + " for " + report)
+                        .color(NamedTextColor.GOLD));
+
         for (Player player : server.getOnlinePlayers())
         {
             if (plugin.al.isAdmin(player))
             {
-                playerMsg(player, ChatColor.RED + "[REPORTS] " + ChatColor.GOLD + reporter.getName() + " has reported " + reported.getName() + " for " + report);
+                playerMsg(player, reportMsg);
             }
         }
     }
