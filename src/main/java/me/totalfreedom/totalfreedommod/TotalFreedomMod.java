@@ -2,7 +2,6 @@ package me.totalfreedom.totalfreedommod;
 
 import me.totalfreedom.totalfreedommod.fun.Trailer;
 import java.io.File;
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 import me.totalfreedom.totalfreedommod.admin.AdminList;
@@ -39,7 +38,6 @@ import net.pravian.aero.plugin.AeroPlugin;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.mcstats.Metrics;
 
 public class TotalFreedomMod extends AeroPlugin<TotalFreedomMod>
 {
@@ -89,7 +87,6 @@ public class TotalFreedomMod extends AeroPlugin<TotalFreedomMod>
     public AutoEject ae;
     public MovementValidator mv;
     public EntityWiper ew;
-    public FrontDoor fd;
     public ServerPing sp;
     public ItemFun it;
     public Landminer lm;
@@ -187,7 +184,6 @@ public class TotalFreedomMod extends AeroPlugin<TotalFreedomMod>
 
         mv = services.registerService(MovementValidator.class);
         ew = services.registerService(EntityWiper.class);
-        fd = services.registerService(FrontDoor.class);
         sp = services.registerService(ServerPing.class);
 
         // Fun
@@ -212,17 +208,6 @@ public class TotalFreedomMod extends AeroPlugin<TotalFreedomMod>
 
         timer.update();
         FLog.info("Version " + pluginVersion + " for " + ServerInterface.COMPILE_NMS_VERSION + " enabled in " + timer.getTotal() + "ms");
-
-        // Metrics @ http://mcstats.org/plugin/TotalFreedomMod
-        try
-        {
-            final Metrics metrics = new Metrics(plugin);
-            metrics.start();
-        }
-        catch (IOException ex)
-        {
-            FLog.warning("Failed to submit metrics data: " + ex.getMessage());
-        }
 
         // Add spawnpoints later - https://github.com/TotalFreedom/TotalFreedomMod/issues/438
         new BukkitRunnable()

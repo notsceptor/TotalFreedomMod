@@ -113,6 +113,7 @@ public class FUtil
         {
             player.sendMessage(component);
         }
+    }
 
     public static void bcastMsg(String message, NamedTextColor color)
     {
