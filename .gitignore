@@ -26,6 +26,14 @@ manifest.mf
 # Maven excludes
 /target
 
+# Gradle excludes
+.gradle/
+build/
+!gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+gradle-app.setting
+
 # OS generated files
 .DS_Store
 ._*

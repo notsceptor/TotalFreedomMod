@@ -109,7 +109,7 @@ public class WorldEditBridge extends FreedomService
                 listenerInstance, executor, priority, pluginInstance, ignoreCancelled);
             
             handlerList.register(registeredListener);
-            FLog.info("Successfully registered WorldEditOperationEvent handler.");
+            FLog.info("Registered handler for me.totalfreedom.worldedit.WorldEditOperationEvent");
         }
         catch (ClassNotFoundException ex)
         {

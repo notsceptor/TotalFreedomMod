@@ -1,0 +1,145 @@
+plugins {
+    id 'java'
+    id 'com.gorylenko.gradle-git-properties' version '2.5.2'
+}
+
+group = 'me.totalfreedom'
+version = '6.0.0'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        url 'https://repo.papermc.io/repository/maven-public/'
+    }
+    maven {
+        url 'https://hub.spigotmc.org/nexus/content/repositories/snapshots/'
+    }
+    maven {
+        url 'https://jitpack.io'
+    }
+    maven {
+        url 'https://maven.enginehub.org/repo/'
+    }
+}
+
+dependencies {
+    compileOnly 'io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT'
+    compileOnly 'org.projectlombok:lombok:1.18.42'
+    annotationProcessor 'org.projectlombok:lombok:1.18.42'
+    compileOnly 'org.apache.commons:commons-lang3:3.14.0'
+    compileOnly 'commons-lang:commons-lang:2.6'
+    compileOnly 'commons-io:commons-io:2.16.1'
+    compileOnly 'net.kyori:adventure-text-serializer-ansi:4.17.0'
+    compileOnly 'com.googlecode.json-simple:json-simple:1.1.1'
+    
+    implementation 'com.github.tfreedomorg:Aero:master-SNAPSHOT'
+    implementation('com.github.TotalFreedom:BukkitTelnet:4.5-pre1') {
+        exclude group: 'org.spigotmc', module: 'spigot-api'
+    }
+}
+
+configurations.all {
+    resolutionStrategy {
+        force 'io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT'
+    }
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+    options.release = 21
+    options.compilerArgs.add('-parameters')
+    options.compilerArgs.add('-Xlint:unchecked')
+    options.deprecation = true
+}
+
+task generateBuildNumber {
+    def buildNumberFile = file('build.properties')
+    def buildNumber = buildNumberFile.exists() ? {
+        try {
+            def props = new Properties()
+            props.load(new FileInputStream(buildNumberFile))
+            (props.getProperty('buildNumber', '0') as Integer ?: 0) + 1
+        } catch (Exception e) {
+            1
+        }
+    }.call() : 1
+
+    doLast {
+        buildNumberFile.text = "buildNumber=$buildNumber\n"
+    }
+}
+
+gitProperties {
+    dateFormat = 'yyyy-MM-dd HH:mm:ss'
+    failOnNoGitDirectory = true
+    gitPropertiesResourceDir = file("${projectDir}/src/main/resources")
+    keys = [
+        'git.commit.id',
+        'git.commit.id.abbrev'
+    ]
+    gitPropertiesName = 'git.properties'
+}
+
+task addBuildTimeToGitProperties {
+    dependsOn generateGitProperties
+    doLast {
+        def gitPropsFile = file("${projectDir}/src/main/resources/git.properties")
+        if (gitPropsFile.exists()) {
+            def props = new Properties()
+            props.load(new FileInputStream(gitPropsFile))
+            
+            def dateFormat = new java.text.SimpleDateFormat('yyyy-MM-dd HH:mm:ss')
+            props.setProperty('git.build.time', dateFormat.format(new Date()))
+            
+            def writer = new FileWriter(gitPropsFile)
+            props.store(writer, null)
+            writer.close()
+        }
+    }
+}
+
+processResources {
+    dependsOn generateBuildNumber, addBuildTimeToGitProperties
+    filteringCharset = 'UTF-8'
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    
+    filesMatching('build.properties') {
+        def buildNumberFile = file('build.properties')
+        def buildNumber = '1'
+        if (buildNumberFile.exists()) {
+            def props = new Properties()
+            props.load(new FileInputStream(buildNumberFile))
+            buildNumber = props.getProperty('buildNumber', '1')
+        }
+        
+        expand(
+            buildAuthor: project.findProperty('buildAuthor') ?: 'aokod',
+            buildCodeName: project.findProperty('buildCodeName') ?: 'Elektra',
+            buildNumber: buildNumber,
+            buildVersion: project.version
+        )
+    }
+    
+    filesMatching('plugin.yml') {
+        expand(
+            tfm: [
+                build: [
+                    version: project.version
+                ]
+            ]
+        )
+    }
+}
+
+jar {
+    archiveBaseName = 'TotalFreedomMod'
+    archiveVersion = project.version
+    destinationDirectory = file('build/libs')
+}
+

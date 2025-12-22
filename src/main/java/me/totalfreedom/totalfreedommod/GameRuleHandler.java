@@ -5,7 +5,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
-import me.totalfreedom.totalfreedommod.util.FUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 
@@ -85,15 +84,15 @@ public class GameRuleHandler extends FreedomService
     public static enum GameRule
     {
 
-        DO_FIRE_TICK("doFireTick", true),
-        MOB_GRIEFING("mobGriefing", true),
-        KEEP_INVENTORY("keepInventory", false),
-        DO_MOB_SPAWNING("doMobSpawning", true),
-        DO_MOB_LOOT("doMobLoot", true),
-        DO_TILE_DROPS("doTileDrops", true),
-        COMMAND_BLOCK_OUTPUT("commandBlockOutput", true),
-        NATURAL_REGENERATION("naturalRegeneration", true),
-        DO_DAYLIGHT_CYCLE("doDaylightCycle", true);
+        DO_FIRE_TICK("do_fire_tick", true),
+        MOB_GRIEFING("mob_griefing", true),
+        KEEP_INVENTORY("keep_inventory", false),
+        DO_MOB_SPAWNING("do_mob_spawning", true),
+        DO_MOB_LOOT("do_mob_loot", true),
+        DO_TILE_DROPS("do_tile_drops", true),
+        COMMAND_BLOCK_OUTPUT("command_block_output", true),
+        NATURAL_REGENERATION("natural_regeneration", true),
+        DO_DAYLIGHT_CYCLE("do_daylight_cycle", true);
         //
         private final String gameRuleName;
         private final boolean defaultValue;

@@ -63,7 +63,7 @@ public class Command_totalfreedommod extends FreedomCommand
                 + ChatColor.BLUE + "%s",
                 build.date,
                 build.author), ChatColor.GOLD);
-        msg("Visit " + ChatColor.AQUA + "http://github.com/tfreedom/totalfreedommod"
+        msg("Visit " + ChatColor.AQUA + "https://github.com/tfreedomorg/totalfreedommod"
                 + ChatColor.GREEN + " for more information.", ChatColor.GREEN);
 
         return true;
