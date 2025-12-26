@@ -17,215 +17,199 @@
  */
 package me.totalfreedom.totalfreedommod.world;
 
-import static java.lang.System.arraycopy;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Random;
 import java.util.logging.Logger;
-import me.totalfreedom.totalfreedommod.util.MaterialHelper;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
-import org.bukkit.generator.BlockPopulator;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.generator.ChunkGenerator;
-import org.bukkit.generator.ChunkGenerator.ChunkData;
-import org.bukkit.generator.WorldInfo;
 
+/**
+ * CleanroomChunkGenerator - Generates flat, cleanroom-style worlds.
+ * 
+ * Based on CleanroomGenerator v1.2.1 by nvx
+ * https://github.com/nvx/CleanroomGenerator
+ * 
+ * Syntax: [prefix]height|block|height|block|...
+ * 
+ * Prefixes:
+ *   . = Skip bedrock generation (void world if only ".")
+ *   ^ = Start generation at y=-64 instead of y=0 (1.18+ deep worlds)
+ * 
+ * Examples:
+ *   "64|stone"                    - 1 bedrock + 64 stone (starts at y=0)
+ *   ".64|stone"                   - 64 stone, no bedrock
+ *   "^64|stone"                   - 1 bedrock + 64 stone (starts at y=-64)
+ *   "."                           - Void world (no blocks at all)
+ *   "16|stone|32|dirt|1|grass_block" - Layered world
+ * 
+ * Also supports legacy comma-separated format for backward compatibility:
+ *   "16,stone,32,dirt,1,grass"
+ */
 public class CleanroomChunkGenerator extends ChunkGenerator
 {
-
     private static final Logger log = Bukkit.getLogger();
-    private Material[] layer;
-    private byte[] layerDataValues;
+    
+    private BlockData[] layerBlock;
+    private int[] layerHeight;
+    private boolean noBedrock = false;
+    private boolean newHeight = false;
 
     public CleanroomChunkGenerator()
     {
-        this("64,stone");
+        this("64|stone");
     }
 
     public CleanroomChunkGenerator(String id)
     {
-        if (id != null)
+        if (id == null || id.isEmpty())
         {
-            try
+            id = "64|stone";
+        }
+
+        // Check for void world (just ".")
+        if (id.equals("."))
+        {
+            layerBlock = new BlockData[0];
+            layerHeight = new int[0];
+            return;
+        }
+
+        try
+        {
+            // Parse prefixes
+            while (id.length() > 0 && (id.charAt(0) == '.' || id.charAt(0) == '^'))
             {
-                int y = 0;
-
-                layer = new Material[128]; // Default to 128, will be resized later if required
-                layerDataValues = null;
-
-                if ((id.length() > 0) && (id.charAt(0) == '.')) // Is the first character a '.'? If so, skip bedrock generation.
+                if (id.charAt(0) == '.')
                 {
-                    id = id.substring(1); // Skip bedrock then and remove the .
+                    noBedrock = true;
                 }
-                else // Guess not, bedrock at layer0 it is then.
+                if (id.charAt(0) == '^')
                 {
-                    layer[y++] = Material.BEDROCK;
+                    newHeight = true;
                 }
-
-                if (id.length() > 0)
-                {
-                    String tokens[] = id.split("[,]");
-
-                    if ((tokens.length % 2) != 0)
-                    {
-                        throw new Exception();
-                    }
-
-                    for (int i = 0; i < tokens.length; i += 2)
-                    {
-                        int height = Integer.parseInt(tokens[i]);
-                        if (height <= 0)
-                        {
-                            log.warning("[CleanroomGenerator] Invalid height '" + tokens[i] + "'. Using 64 instead.");
-                            height = 64;
-                        }
-
-                        String materialTokens[] = tokens[i + 1].split("[:]", 2);
-                        byte dataValue = 0;
-                        if (materialTokens.length == 2)
-                        {
-                            try
-                            {
-                                // Lets try to read the data value
-                                dataValue = Byte.parseByte(materialTokens[1]);
-                            }
-                            catch (Exception e)
-                            {
-                                log.warning("[CleanroomGenerator] Invalid Data Value '" + materialTokens[1] + "'. Defaulting to 0.");
-                                dataValue = 0;
-                            }
-                        }
-                        // Use MaterialHelper to avoid triggering legacy material support
-                        Material mat = MaterialHelper.getMaterial(materialTokens[0]);
-                        if (mat == null)
-                        {
-                            // Numeric IDs no longer exist in 1.13+, try legacy name mapping
-                            try
-                            {
-                                // Try to map old numeric ID to material name (for legacy configs)
-                                int oldId = Integer.parseInt(materialTokens[0]);
-                                // This is a simplified mapping - in practice, you'd need a full mapping table
-                                // For now, just default to stone
-                                log.warning("[CleanroomGenerator] Numeric block IDs are no longer supported. Use material names instead. Defaulting to stone.");
-                                mat = Material.STONE;
-                            }
-                            catch (Exception e)
-                            {
-                                // Not a number, default to stone
-                                log.warning("[CleanroomGenerator] Invalid Block ID '" + materialTokens[0] + "'. Defaulting to stone.");
-                                mat = Material.STONE;
-                            }
-                        }
-
-                        if (!mat.isBlock())
-                        {
-                            log.warning("[CleanroomGenerator] Error, '" + materialTokens[0] + "' is not a block. Defaulting to stone.");
-                            mat = Material.STONE;
-                        }
-
-                        if (y + height > layer.length)
-                        {
-                            Material[] newLayer = new Material[Math.max(y + height, layer.length * 2)];
-                            arraycopy(layer, 0, newLayer, 0, y);
-                            layer = newLayer;
-                            if (layerDataValues != null)
-                            {
-                                byte[] newLayerDataValues = new byte[Math.max(y + height, layerDataValues.length * 2)];
-                                arraycopy(layerDataValues, 0, newLayerDataValues, 0, y);
-                                layerDataValues = newLayerDataValues;
-                            }
-                        }
-
-                        Arrays.fill(layer, y, y + height, mat);
-                        if (dataValue != 0)
-                        {
-                            if (layerDataValues == null)
-                            {
-                                layerDataValues = new byte[layer.length];
-                            }
-                            Arrays.fill(layerDataValues, y, y + height, dataValue);
-                        }
-                        y += height;
-                    }
-                }
-
-                // Trim to size
-                if (layer.length > y)
-                {
-                    Material[] newLayer = new Material[y];
-                    arraycopy(layer, 0, newLayer, 0, y);
-                    layer = newLayer;
-                }
-                if (layerDataValues != null && layerDataValues.length > y)
-                {
-                    byte[] newLayerDataValues = new byte[y];
-                    arraycopy(layerDataValues, 0, newLayerDataValues, 0, y);
-                    layerDataValues = newLayerDataValues;
-                }
+                id = id.substring(1);
             }
-            catch (Exception e)
+
+            // Add bedrock layer unless disabled
+            if (!noBedrock)
             {
-                log.severe("[CleanroomGenerator] Error parsing CleanroomGenerator ID '" + id + "'. using defaults '64,stone': " + e.toString());
-                e.printStackTrace();
-                layerDataValues = null;
-                layer = new Material[65];
-                layer[0] = Material.BEDROCK;
-                Arrays.fill(layer, 1, 65, Material.STONE);
+                id = "1|minecraft:bedrock|" + id;
+            }
+
+            // Determine separator (support both pipe and legacy comma)
+            String separator;
+            if (id.contains("|"))
+            {
+                separator = "[|]";
+            }
+            else
+            {
+                // Legacy comma-separated format
+                separator = "[,]";
+                log.info("[CleanroomGenerator] Using legacy comma-separated format. Consider updating to pipe-separated format.");
+            }
+
+            String[] tokens = id.split(separator);
+
+            if ((tokens.length % 2) != 0)
+            {
+                throw new Exception("Invalid layer specification: odd number of tokens");
+            }
+
+            int layerCount = tokens.length / 2;
+            layerBlock = new BlockData[layerCount];
+            layerHeight = new int[layerCount];
+
+            for (int i = 0; i < layerCount; i++)
+            {
+                int j = i * 2;
+                
+                // Parse height
+                int height = Integer.parseInt(tokens[j].trim());
+                if (height <= 0)
+                {
+                    log.warning("[CleanroomGenerator] Invalid height '" + tokens[j] + "'. Using 64 instead.");
+                    height = 64;
+                }
+
+                // Parse block
+                String blockName = tokens[j + 1].trim();
+                BlockData blockData;
+                try
+                {
+                    // Try modern block data format first (e.g., "minecraft:grass_block[snowy=true]")
+                    blockData = Bukkit.createBlockData(blockName);
+                }
+                catch (Exception e)
+                {
+                    // Try with minecraft: prefix
+                    try
+                    {
+                        blockData = Bukkit.createBlockData("minecraft:" + blockName);
+                    }
+                    catch (Exception e2)
+                    {
+                        // Try Material enum as fallback
+                        try
+                        {
+                            Material mat = Material.valueOf(blockName.toUpperCase().replace(" ", "_"));
+                            if (mat.isBlock())
+                            {
+                                blockData = mat.createBlockData();
+                            }
+                            else
+                            {
+                                throw new Exception("Not a block");
+                            }
+                        }
+                        catch (Exception e3)
+                        {
+                            log.warning("[CleanroomGenerator] Failed to lookup block '" + blockName + "'. Using stone instead. Exception: " + e.toString());
+                            blockData = Material.STONE.createBlockData();
+                        }
+                    }
+                }
+
+                layerBlock[i] = blockData;
+                layerHeight[i] = height;
             }
         }
-        else
+        catch (Exception e)
         {
-            layerDataValues = null;
-            layer = new Material[65];
-            layer[0] = Material.BEDROCK;
-            Arrays.fill(layer, 1, 65, Material.STONE);
+            log.severe("[CleanroomGenerator] Error parsing CleanroomGenerator ID '" + id + "'. Using defaults '1|bedrock|64|stone': " + e.toString());
+            e.printStackTrace();
+
+            layerBlock = new BlockData[2];
+            layerBlock[0] = Material.BEDROCK.createBlockData();
+            layerBlock[1] = Material.STONE.createBlockData();
+
+            layerHeight = new int[2];
+            layerHeight[0] = 1;
+            layerHeight[1] = 64;
         }
     }
 
     @Override
-    public void generateSurface(WorldInfo worldInfo, Random random, int chunkX, int chunkZ, ChunkData chunkData)
+    @SuppressWarnings("deprecation")
+    public ChunkData generateChunkData(World world, Random random, int chunkX, int chunkZ, BiomeGrid biome)
     {
-        int maxHeight = worldInfo.getMaxHeight();
-        if (layer.length > maxHeight)
-        {
-            log.warning("[CleanroomGenerator] Error, chunk height " + layer.length + " is greater than the world max height (" + maxHeight + "). Trimming to world max height.");
-            Material[] newLayer = new Material[maxHeight];
-            arraycopy(layer, 0, newLayer, 0, maxHeight);
-            layer = newLayer;
-        }
+        ChunkData chunk = createChunkData(world);
+
+        int y = newHeight ? world.getMinHeight() : 0;
         
-        // Fill chunk with materials from layer array
-        for (int y = 0; y < Math.min(layer.length, maxHeight); y++)
+        for (int i = 0; i < layerBlock.length; i++)
         {
-            if (layer[y] != null && layer[y].isBlock())
+            if (layerBlock[i] != null)
             {
-                Material material = layer[y];
-                for (int xx = 0; xx < 16; xx++)
-            {
-                    for (int zz = 0; zz < 16; zz++)
-                    {
-                        chunkData.setBlock(xx, y, zz, material);
+                chunk.setRegion(0, y, 0, 16, y + layerHeight[i], 16, layerBlock[i]);
             }
+            y += layerHeight[i];
         }
-            }
-        }
-    }
 
-    @Override
-    public List<BlockPopulator> getDefaultPopulators(World world)
-    {
-        if (layerDataValues != null)
-        {
-            return Arrays.asList((BlockPopulator) new CleanroomBlockPopulator(layer, layerDataValues));
-        }
-        else
-        {
-            // This is the default, but just in case default populators change to stock minecraft populators by default...
-            return new ArrayList<>();
-        }
+        return chunk;
     }
 
     @Override
@@ -236,11 +220,14 @@ public class CleanroomChunkGenerator extends ChunkGenerator
             world.loadChunk(0, 0);
         }
 
-        if ((world.getHighestBlockYAt(0, 0) <= 0) && (world.getBlockAt(0, 0, 0).getType() == Material.AIR)) // SPACE!
+        int highestBlock = world.getHighestBlockYAt(0, 0);
+
+        if ((highestBlock <= world.getMinHeight()) && (world.getBlockAt(0, world.getMinHeight(), 0).getType() == Material.AIR))
         {
-            return new Location(world, 0, 64, 0); // Lets allow people to drop a little before hitting the void then shall we?
+            // SPACE! Let people drop a little before hitting the void
+            return new Location(world, 0, 64, 0);
         }
 
-        return new Location(world, 0, world.getHighestBlockYAt(0, 0), 0);
+        return new Location(world, 0, highestBlock, 0);
     }
 }
