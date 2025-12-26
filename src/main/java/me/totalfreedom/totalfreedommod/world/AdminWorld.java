@@ -76,10 +76,22 @@ public final class AdminWorld extends CustomWorld
         welcomeSignBlock.setBlockData(signData);
         
         org.bukkit.block.Sign welcomeSign = (org.bukkit.block.Sign) welcomeSignBlock.getState();
-        welcomeSign.setLine(0, ChatColor.GREEN + "AdminWorld");
-        welcomeSign.setLine(1, ChatColor.DARK_GRAY + "---");
-        welcomeSign.setLine(2, ChatColor.YELLOW + "Spawn Point");
-        welcomeSign.setLine(3, ChatColor.DARK_GRAY + "---");
+
+        String[] lines = {
+            ChatColor.GREEN + "AdminWorld",
+            ChatColor.DARK_GRAY + "---",
+            ChatColor.YELLOW + "Spawn Point",
+            ChatColor.DARK_GRAY + "---"
+        };
+
+        org.bukkit.block.sign.SignSide front = welcomeSign.getSide(org.bukkit.block.sign.Side.FRONT);
+        org.bukkit.block.sign.SignSide back = welcomeSign.getSide(org.bukkit.block.sign.Side.BACK);
+
+        for (int i = 0; i < lines.length; i++) {
+            front.setLine(i, lines[i]);
+            back.setLine(i, lines[i]);
+        }
+
         welcomeSign.update();
 
         plugin.gr.commitGameRules();
