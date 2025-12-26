@@ -3,8 +3,10 @@ package me.totalfreedom.totalfreedommod;
 import java.io.File;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import net.pravian.aero.component.PluginComponent;
-import net.pravian.aero.config.YamlConfig;
+import java.io.File;
+import java.io.IOException;
+import me.totalfreedom.totalfreedommod.framework.PluginComponent;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.util.FileUtil;
 
 public class BackupManager extends PluginComponent<TotalFreedomMod>
@@ -23,8 +25,20 @@ public class BackupManager extends PluginComponent<TotalFreedomMod>
     public void createBackups(String file, boolean onlyWeekly)
     {
         final String save = file.split("\\.")[0];
-        final YamlConfig config = new YamlConfig(plugin, "backup/backup.yml", false);
-        config.load();
+        final File configFile = new File(plugin.getDataFolder(), "backup/backup.yml");
+        if (!configFile.exists())
+        {
+            try
+            {
+                configFile.getParentFile().mkdirs();
+                configFile.createNewFile();
+            }
+            catch (IOException ex)
+            {
+                FLog.severe("Could not create backup.yml");
+            }
+        }
+        final YamlConfiguration config = YamlConfiguration.loadConfiguration(configFile);
 
         // Weekly
         if (!config.isInt(save + ".weekly"))
@@ -45,7 +59,14 @@ public class BackupManager extends PluginComponent<TotalFreedomMod>
 
         if (onlyWeekly)
         {
-            config.save();
+            try
+        {
+            config.save(configFile);
+        }
+        catch (IOException ex)
+        {
+            FLog.severe("Could not save backup.yml");
+        }
             return;
         }
 
@@ -66,7 +87,14 @@ public class BackupManager extends PluginComponent<TotalFreedomMod>
             }
         }
 
-        config.save();
+        try
+        {
+            config.save(configFile);
+        }
+        catch (IOException ex)
+        {
+            FLog.severe("Could not save backup.yml");
+        }
     }
 
     private void performBackup(String file, String type)

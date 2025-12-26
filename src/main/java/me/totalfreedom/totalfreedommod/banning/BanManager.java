@@ -15,7 +15,9 @@ import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import net.pravian.aero.config.YamlConfig;
+import java.io.File;
+import java.io.IOException;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -30,18 +32,32 @@ public class BanManager extends FreedomService
     private final Map<String, Ban> nameBans = Maps.newHashMap();
     private final List<String> unbannableUsernames = Lists.newArrayList();
     //
-    private final YamlConfig config;
+    private final File configFile;
+    private YamlConfiguration config;
 
     public BanManager(TotalFreedomMod plugin)
     {
         super(plugin);
-        this.config = new YamlConfig(plugin, "bans.yml");
+        this.configFile = new File(plugin.getDataFolder(), "bans.yml");
+        this.config = YamlConfiguration.loadConfiguration(configFile);
     }
 
     @Override
     protected void onStart()
     {
-        config.load();
+        if (!configFile.exists())
+        {
+            try
+            {
+                configFile.getParentFile().mkdirs();
+                configFile.createNewFile();
+            }
+            catch (IOException ex)
+            {
+                FLog.severe("Could not create bans.yml");
+            }
+        }
+        config = YamlConfiguration.loadConfiguration(configFile);
 
         bans.clear();
         for (String id : config.getKeys(false))
@@ -79,7 +95,7 @@ public class BanManager extends FreedomService
     protected void onStop()
     {
         saveAll();
-        logger.info("Saved " + bans.size() + " player bans");
+        FLog.info("Saved " + bans.size() + " player bans");
     }
 
     public Set<Ban> getAllBans()
@@ -102,14 +118,24 @@ public class BanManager extends FreedomService
         // Remove expired
         updateViews();
 
-        config.clear();
+        for (String key : config.getKeys(false))
+        {
+            config.set(key, null);
+        }
         for (Ban ban : bans)
         {
             ban.saveTo(config.createSection(String.valueOf(ban.hashCode())));
         }
 
         // Save config
-        config.save();
+        try
+        {
+            config.save(configFile);
+        }
+        catch (IOException ex)
+        {
+            FLog.severe("Could not save bans.yml");
+        }
     }
 
     public Ban getByIp(String ip)
@@ -218,8 +244,18 @@ public class BanManager extends FreedomService
 
     public int purge()
     {
-        config.clear();
-        config.save();
+        for (String key : config.getKeys(false))
+        {
+            config.set(key, null);
+        }
+        try
+        {
+            config.save(configFile);
+        }
+        catch (IOException ex)
+        {
+            FLog.severe("Could not save bans.yml");
+        }
 
         int size = bans.size();
         bans.clear();

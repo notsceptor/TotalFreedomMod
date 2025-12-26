@@ -21,6 +21,7 @@ public class BukkitTelnetBridge extends FreedomService
 
     private Plugin bukkitTelnetPlugin = null;
     private boolean eventsRegistered = false;
+    private boolean detectionAttempted = false;
 
     public BukkitTelnetBridge(TotalFreedomMod plugin)
     {
@@ -52,10 +53,12 @@ public class BukkitTelnetBridge extends FreedomService
 
     private void registerEventsIfAvailable()
     {
-        if (eventsRegistered)
+        if (eventsRegistered || detectionAttempted)
         {
             return;
         }
+
+        detectionAttempted = true;
 
         try
         {
@@ -108,7 +111,7 @@ public class BukkitTelnetBridge extends FreedomService
             
             boolean ignoreCancelled = false;
             org.bukkit.plugin.Plugin pluginInstance = plugin;
-            org.bukkit.event.Listener listenerInstance = this;
+            org.bukkit.event.Listener listenerInstance = (org.bukkit.event.Listener) this;
             final Method finalHandlerMethod = handlerMethod;
             final Class<?> finalEventClass = eventClass;
             

@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import org.apache.commons.lang3.StringUtils;
@@ -37,9 +38,9 @@ public final class AdminWorld extends CustomWorld
     private WorldWeather weather = WorldWeather.OFF;
     private WorldTime time = WorldTime.INHERIT;
 
-    public AdminWorld()
+    public AdminWorld(TotalFreedomMod plugin)
     {
-        super("adminworld");
+        super(plugin, "adminworld");
     }
 
     @Override

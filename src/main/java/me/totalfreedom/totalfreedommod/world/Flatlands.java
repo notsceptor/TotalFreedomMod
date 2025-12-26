@@ -1,6 +1,7 @@
 package me.totalfreedom.totalfreedommod.world;
 
 import java.io.File;
+import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
@@ -19,9 +20,9 @@ public class Flatlands extends CustomWorld
 
     private static final String GENERATION_PARAMETERS = ConfigEntry.FLATLANDS_GENERATE_PARAMS.getString();
 
-    public Flatlands()
+    public Flatlands(TotalFreedomMod plugin)
     {
-        super("flatlands");
+        super(plugin, "flatlands");
     }
 
     @Override

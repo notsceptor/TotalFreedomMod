@@ -38,7 +38,6 @@ dependencies {
     compileOnly 'net.kyori:adventure-text-serializer-ansi:4.17.0'
     compileOnly 'com.googlecode.json-simple:json-simple:1.1.1'
     
-    implementation 'com.github.tfreedomorg:Aero:master-SNAPSHOT'
     implementation('com.github.TotalFreedom:BukkitTelnet:4.5-pre1') {
         exclude group: 'org.spigotmc', module: 'spigot-api'
     }

@@ -3,7 +3,7 @@ package me.totalfreedom.totalfreedommod.world;
 import lombok.Getter;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.util.FLog;
-import net.pravian.aero.component.PluginComponent;
+import me.totalfreedom.totalfreedommod.framework.PluginComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -16,8 +16,9 @@ public abstract class CustomWorld extends PluginComponent<TotalFreedomMod>
     //
     private World world;
 
-    public CustomWorld(String name)
+    public CustomWorld(TotalFreedomMod plugin, String name)
     {
+        super(plugin);
         this.name = name;
     }
     

@@ -4,7 +4,6 @@ import java.util.Arrays;
 import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import net.pravian.aero.util.ChatUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
@@ -144,7 +143,7 @@ public class Command_myadmin extends FreedomCommand
                 FUtil.adminAction(sender.getName(), "Setting personal login message" + (init == null ? "" : " for " + targetPlayer.getName()), false);
                 target.setLoginMessage(msg);
                 msg((init == null ? "Your" : targetPlayer.getName() + "'s") + " login message is now: ");
-                msg("> " + ChatColor.AQUA + targetPlayer.getName() + " is " + ChatUtils.colorize(target.getLoginMessage()));
+                msg("> " + ChatColor.AQUA + targetPlayer.getName() + " is " + target.getLoginMessage().replace('&', '§'));
                 plugin.al.save();
                 plugin.al.updateTables();
                 return true;

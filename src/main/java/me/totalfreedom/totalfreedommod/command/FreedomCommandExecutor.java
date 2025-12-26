@@ -5,26 +5,27 @@ import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import net.pravian.aero.command.AeroCommandBase;
-import net.pravian.aero.command.executor.AbstractCommandExecutor;
-import net.pravian.aero.command.executor.AeroCommandExecutor;
-import net.pravian.aero.command.executor.AeroCommandExecutorFactory;
-import net.pravian.aero.command.handler.AeroCommandHandler;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
+import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.entity.Player;
 
-public class FreedomCommandExecutor<C extends AeroCommandBase<?>> extends AbstractCommandExecutor<C>
+public class FreedomCommandExecutor implements CommandExecutor
 {
 
     private final TotalFreedomMod plugin;
+    private final CommandHandler<?> handler;
+    private final String name;
+    private final AbstractCommandBase<?> commandBase;
 
-    public FreedomCommandExecutor(TotalFreedomMod plugin, AeroCommandHandler<?> handler, String name, C command)
+    public FreedomCommandExecutor(TotalFreedomMod plugin, CommandHandler<?> handler, String name, AbstractCommandBase<?> command)
     {
-        super(handler, name, command);
         this.plugin = plugin;
+        this.handler = handler;
+        this.name = name;
+        this.commandBase = command;
     }
 
     protected FreedomCommand getCommand()
@@ -32,7 +33,6 @@ public class FreedomCommandExecutor<C extends AeroCommandBase<?>> extends Abstra
         return commandBase instanceof FreedomCommand ? (FreedomCommand) commandBase : null;
     }
 
-    @Override
     public void setupCommand(PluginCommand pluginCommand)
     {
         final FreedomCommand command = getCommand();
@@ -68,7 +68,6 @@ public class FreedomCommandExecutor<C extends AeroCommandBase<?>> extends Abstra
         }
     }
 
-    @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args)
     {
         if (!hasPermission(sender, true))
@@ -90,7 +89,6 @@ public class FreedomCommandExecutor<C extends AeroCommandBase<?>> extends Abstra
         }
     }
 
-    @Override
     public boolean hasPermission(CommandSender sender, boolean sendMsg)
     {
         final FreedomCommand command = getCommand();
@@ -162,7 +160,7 @@ public class FreedomCommandExecutor<C extends AeroCommandBase<?>> extends Abstra
         return result;
     }
 
-    public static class FreedomExecutorFactory implements AeroCommandExecutorFactory
+    public static class FreedomExecutorFactory implements CommandHandler.CommandExecutorFactory
     {
 
         private final TotalFreedomMod plugin;
@@ -173,9 +171,9 @@ public class FreedomCommandExecutor<C extends AeroCommandBase<?>> extends Abstra
         }
 
         @Override
-        public AeroCommandExecutor<? extends AeroCommandBase<?>> newExecutor(AeroCommandHandler<?> handler, String name, AeroCommandBase<?> command)
+        public CommandExecutor newExecutor(CommandHandler<?> handler, String name, AbstractCommandBase<?> command)
         {
-            return new FreedomCommandExecutor<>(plugin, handler, name, command);
+            return new FreedomCommandExecutor(plugin, handler, name, command);
         }
 
     }

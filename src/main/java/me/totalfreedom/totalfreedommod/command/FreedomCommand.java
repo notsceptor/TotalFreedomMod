@@ -8,11 +8,12 @@ import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
+import java.util.ArrayList;
+import java.util.List;
+import me.totalfreedom.totalfreedommod.command.AbstractCommandBase;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.serializer.ansi.ANSIComponentSerializer;
-import net.pravian.aero.command.AbstractCommandBase;
-import net.pravian.aero.util.Players;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -116,7 +117,44 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
 
     protected Player getPlayer(String name)
     {
-        return Players.getPlayer(name);
+        if (name == null || name.isEmpty())
+        {
+            return null;
+        }
+
+        // Try exact match first
+        Player player = server.getPlayerExact(name);
+        if (player != null)
+        {
+            return player;
+        }
+
+        // Try case-insensitive match
+        name = name.toLowerCase();
+        for (Player p : server.getOnlinePlayers())
+        {
+            if (p.getName().toLowerCase().equals(name))
+            {
+                return p;
+            }
+        }
+
+        // Try partial match
+        List<Player> matches = new ArrayList<>();
+        for (Player p : server.getOnlinePlayers())
+        {
+            if (p.getName().toLowerCase().startsWith(name))
+            {
+                matches.add(p);
+            }
+        }
+
+        if (matches.size() == 1)
+        {
+            return matches.get(0);
+        }
+
+        return null;
     }
 
     /**
@@ -290,7 +328,8 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
     {
         try
         {
-            return (FreedomCommand) ((FreedomCommandExecutor) (((PluginCommand) command).getExecutor())).getCommandBase();
+            FreedomCommandExecutor executor = (FreedomCommandExecutor) (((PluginCommand) command).getExecutor());
+            return executor != null ? executor.getCommand() : null;
         }
         catch (Exception ex)
         {

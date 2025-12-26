@@ -9,7 +9,7 @@ import lombok.Getter;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.httpd.module.HTTPDModule;
 import me.totalfreedom.totalfreedommod.util.FLog;
-import net.pravian.aero.component.PluginComponent;
+import me.totalfreedom.totalfreedommod.framework.PluginComponent;
 import org.bukkit.Bukkit;
 
 public abstract class ModuleExecutable

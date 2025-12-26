@@ -65,7 +65,8 @@ public enum ConfigEntry
     AUTOKICK_TIME(Integer.class, "autokick.time"),
     //
     AUTO_OP_ENABLED(Boolean.class, "auto_op.enabled"),
-    AUTO_OP_TIMEOUT(Integer.class, "auto_op.timeout"),
+    AUTO_OP_PERSISTENT_MONITOR(Boolean.class, "auto_op.persistent_monitor"),
+    AUTO_OP_MONITOR_INTERVAL(Integer.class, "auto_op.monitor_interval"),
     //
     LOGS_SECRET(String.class, "logs.secret"),
     LOGS_URL(String.class, "logs.url"),

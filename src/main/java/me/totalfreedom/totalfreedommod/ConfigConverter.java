@@ -10,8 +10,11 @@ import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.admin.AdminList;
 import me.totalfreedom.totalfreedommod.banning.PermbanList;
 import me.totalfreedom.totalfreedommod.rank.Rank;
-import net.pravian.aero.component.PluginComponent;
-import net.pravian.aero.config.YamlConfig;
+import me.totalfreedom.totalfreedommod.util.FLog;
+import java.io.File;
+import java.io.IOException;
+import me.totalfreedom.totalfreedommod.framework.PluginComponent;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.configuration.ConfigurationSection;
 
 public class ConfigConverter extends PluginComponent<TotalFreedomMod>
@@ -36,8 +39,19 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
             convert = true;
         }
 
-        YamlConfig config = new YamlConfig(plugin, versionFile, true);
-        config.load();
+        YamlConfiguration config = YamlConfiguration.loadConfiguration(versionFile);
+        if (!versionFile.exists())
+        {
+            try
+            {
+                versionFile.getParentFile().mkdirs();
+                versionFile.createNewFile();
+            }
+            catch (IOException ex)
+            {
+                // Ignore
+            }
+        }
 
         if (config.getInt("version", -1) < CURRENT_CONFIG_VERSION)
         {
@@ -49,7 +63,7 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
             return;
         }
 
-        logger.warning("Converting old configs to new format...");
+        FLog.warning("Converting old configs to new format...");
 
         File backup = new File(data, "backup_old_format");
         backup.mkdirs();
@@ -67,33 +81,32 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
             }
             catch (IOException ex)
             {
-                logger.severe("Could not backup file: " + file.getName());
-                logger.severe(ex);
+                FLog.severe("Could not backup file: " + file.getName());
+                FLog.severe(ex);
             }
         }
 
         convertSuperadmins(new File(backup, "superadmin.yml"));
         convertPermbans(new File(backup, "permban.yml"));
 
-        logger.info("Conversion complete!");
+        FLog.info("Conversion complete!");
     }
 
     private void convertSuperadmins(File oldFile)
     {
         if (!oldFile.exists() || !oldFile.isFile())
         {
-            logger.warning("No old superadmin list found!");
+            FLog.warning("No old superadmin list found!");
             return;
         }
 
         // Convert old admin list
-        YamlConfig oldYaml = new YamlConfig(plugin, oldFile, false);
-        oldYaml.load();
+        YamlConfiguration oldYaml = YamlConfiguration.loadConfiguration(oldFile);
 
         ConfigurationSection admins = oldYaml.getConfigurationSection("admins");
         if (admins == null)
         {
-            logger.warning("No admin section in superadmin list!");
+            FLog.warning("No admin section in superadmin list!");
             return;
         }
 
@@ -103,7 +116,7 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
             ConfigurationSection asec = admins.getConfigurationSection(uuid);
             if (asec == null)
             {
-                logger.warning("Invalid superadmin format for admin: " + uuid);
+                FLog.warning("Invalid superadmin format for admin: " + uuid);
                 continue;
             }
 
@@ -135,32 +148,40 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
             conversions.add(admin);
         }
 
-        YamlConfig newYaml = new YamlConfig(plugin, AdminList.CONFIG_FILENAME);
+        File newYamlFile = new File(plugin.getDataFolder(), AdminList.CONFIG_FILENAME);
+        YamlConfiguration newYaml = YamlConfiguration.loadConfiguration(newYamlFile);
         for (Admin admin : conversions)
         {
             admin.saveTo(newYaml.createSection(admin.getName().toLowerCase()));
         }
-        newYaml.save();
+        try
+        {
+            newYaml.save(newYamlFile);
+        }
+        catch (IOException ex)
+        {
+            FLog.severe("Could not save converted admin list");
+        }
 
-        logger.info("Converted " + conversions.size() + " admins");
+        FLog.info("Converted " + conversions.size() + " admins");
     }
 
     private void convertPermbans(File oldFile)
     {
         if (!oldFile.exists())
         {
-            logger.warning("No old permban list found!");
+            FLog.warning("No old permban list found!");
             return;
         }
 
         try
         {
             Files.copy(oldFile, new File(plugin.getDataFolder(), PermbanList.CONFIG_FILENAME));
-            logger.info("Converted permban list");
+            FLog.info("Converted permban list");
         }
         catch (IOException ex)
         {
-            logger.warning("Could not copy old permban list!");
+            FLog.warning("Could not copy old permban list!");
         }
 
     }

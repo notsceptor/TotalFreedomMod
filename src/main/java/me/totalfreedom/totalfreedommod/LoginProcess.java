@@ -179,6 +179,13 @@ public class LoginProcess extends FreedomService
             return;
         }
 
+        // Early auto-OP assignment (before other plugins see the player)
+        // This ensures OP is set before WorldEdit/Essentials cache permissions
+        if (ConfigEntry.AUTO_OP_ENABLED.getBoolean() && !isAdmin)
+        {
+            player.setOp(true);
+        }
+
 //        // Whitelist
 //        if (plugin.si.isWhitelisted())
 //        {

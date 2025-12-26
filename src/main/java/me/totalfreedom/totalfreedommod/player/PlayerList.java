@@ -9,7 +9,8 @@ import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import net.pravian.aero.config.YamlConfig;
+import java.io.IOException;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
@@ -65,9 +66,16 @@ public class PlayerList extends FreedomService
     {
         for (PlayerData data : dataMap.values())
         {
-            YamlConfig config = getConfig(data);
+            YamlConfiguration config = getConfig(data);
             data.saveTo(config);
-            config.save();
+            try
+            {
+                config.save(getConfigFile(data.getUsername().toLowerCase()));
+            }
+            catch (IOException ex)
+            {
+                FLog.severe("Could not save player data for " + data.getUsername());
+            }
         }
     }
 
@@ -135,9 +143,16 @@ public class PlayerList extends FreedomService
             dataMap.put(player.getName().toLowerCase(), data);
 
             // Save player
-            YamlConfig config = getConfig(data);
+            YamlConfiguration config = getConfig(data);
             data.saveTo(config);
-            config.save();
+            try
+            {
+                config.save(getConfigFile(data.getUsername().toLowerCase()));
+            }
+            catch (IOException ex)
+            {
+                FLog.severe("Could not save player data for " + data.getUsername());
+            }
         }
 
         return data;
@@ -217,10 +232,10 @@ public class PlayerList extends FreedomService
         return new File(getConfigFolder(), name + ".yml");
     }
 
-    protected YamlConfig getConfig(PlayerData data)
+    protected YamlConfiguration getConfig(PlayerData data)
     {
-        final YamlConfig config = new YamlConfig(plugin, getConfigFile(data.getUsername().toLowerCase()), false);
-        config.load();
+        final File configFile = getConfigFile(data.getUsername().toLowerCase());
+        final YamlConfiguration config = YamlConfiguration.loadConfiguration(configFile);
         return config;
     }
 }

@@ -14,10 +14,12 @@ import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import net.pravian.aero.config.YamlConfig;
+import java.io.File;
+import java.io.IOException;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.ServicePriority;
 
@@ -45,13 +47,15 @@ public class AdminList extends FreedomService
     private final Map<String, Admin> nameTable = Maps.newHashMap();
     private final Map<String, Admin> ipTable = Maps.newHashMap();
     //
-    private final YamlConfig config;
+    private final File configFile;
+    private YamlConfiguration config;
 
     public AdminList(TotalFreedomMod plugin)
     {
         super(plugin);
 
-        this.config = new YamlConfig(plugin, CONFIG_FILENAME, true);
+        this.configFile = new File(plugin.getDataFolder(), CONFIG_FILENAME);
+        this.config = YamlConfiguration.loadConfiguration(configFile);
     }
 
     @Override
@@ -79,7 +83,19 @@ public class AdminList extends FreedomService
 
     public void load()
     {
-        config.load();
+        if (!configFile.exists())
+        {
+            try
+            {
+                configFile.getParentFile().mkdirs();
+                configFile.createNewFile();
+            }
+            catch (IOException ex)
+            {
+                FLog.severe("Could not create " + CONFIG_FILENAME);
+            }
+        }
+        config = YamlConfiguration.loadConfiguration(configFile);
 
         allAdmins.clear();
         for (String key : config.getKeys(false))
@@ -87,7 +103,7 @@ public class AdminList extends FreedomService
             ConfigurationSection section = config.getConfigurationSection(key);
             if (section == null)
             {
-                logger.warning("Invalid admin list format: " + key);
+                FLog.warning("Invalid admin list format: " + key);
                 continue;
             }
 
@@ -117,10 +133,18 @@ public class AdminList extends FreedomService
 
         for (Admin admin : allAdmins.values())
         {
-            admin.saveTo(config.createSection(admin.getConfigKey()));
+            ConfigurationSection section = config.createSection(admin.getConfigKey());
+            admin.saveTo(section);
         }
 
-        config.save();
+        try
+        {
+            config.save(configFile);
+        }
+        catch (IOException ex)
+        {
+            FLog.severe("Could not save " + CONFIG_FILENAME);
+        }
     }
 
     public synchronized boolean isAdminSync(CommandSender sender)
@@ -262,7 +286,7 @@ public class AdminList extends FreedomService
     {
         if (!admin.isValid())
         {
-            logger.warning("Could not add admin: " + admin.getConfigKey() + " Admin is missing details!");
+            FLog.warning("Could not add admin: " + admin.getConfigKey() + " Admin is missing details!");
             return false;
         }
 
@@ -274,7 +298,14 @@ public class AdminList extends FreedomService
 
         // Save admin
         admin.saveTo(config.createSection(key));
-        config.save();
+        try
+        {
+            config.save(configFile);
+        }
+        catch (IOException ex)
+        {
+            FLog.severe("Could not save " + CONFIG_FILENAME);
+        }
 
         return true;
     }
@@ -298,7 +329,14 @@ public class AdminList extends FreedomService
 
         // 'Unsave' admin
         config.set(admin.getConfigKey(), null);
-        config.save();
+        try
+        {
+            config.save(configFile);
+        }
+        catch (IOException ex)
+        {
+            FLog.severe("Could not save " + CONFIG_FILENAME);
+        }
 
         return true;
     }

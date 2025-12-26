@@ -9,7 +9,6 @@ import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.pravian.aero.util.ChatUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
@@ -17,7 +16,9 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.scheduler.BukkitRunnable;
 
 public class RankManager extends FreedomService
@@ -28,14 +29,129 @@ public class RankManager extends FreedomService
         super(plugin);
     }
 
+    private BukkitRunnable persistentMonitorTask = null;
+
     @Override
     protected void onStart()
     {
+        // Start persistent monitor if enabled
+        if (ConfigEntry.AUTO_OP_ENABLED.getBoolean() && ConfigEntry.AUTO_OP_PERSISTENT_MONITOR.getBoolean())
+        {
+            startPersistentMonitor();
+        }
     }
 
     @Override
     protected void onStop()
     {
+        // Stop persistent monitor
+        if (persistentMonitorTask != null)
+        {
+            persistentMonitorTask.cancel();
+            persistentMonitorTask = null;
+        }
+    }
+
+    private void startPersistentMonitor()
+    {
+        final int interval = ConfigEntry.AUTO_OP_MONITOR_INTERVAL.getInteger();
+        if (interval <= 0)
+        {
+            return;
+        }
+
+        persistentMonitorTask = new BukkitRunnable()
+        {
+            @Override
+            public void run()
+            {
+                if (!ConfigEntry.AUTO_OP_ENABLED.getBoolean())
+                {
+                    cancel();
+                    return;
+                }
+
+                for (Player player : server.getOnlinePlayers())
+                {
+                    // Skip admins and players who should not be OP
+                    if (plugin.al.isAdmin(player) || plugin.al.isAdminImpostor(player))
+                    {
+                        continue;
+                    }
+
+                    // Re-OP players who lost OP status
+                    if (!player.isOp())
+                    {
+                        ensureOp(player);
+                    }
+                }
+            }
+        };
+        persistentMonitorTask.runTaskTimer(plugin, interval, interval);
+    }
+
+    /**
+     * Ensures a player has OP status and aggressively refreshes permissions.
+     * Used for auto-OP system to maintain OP status reliably.
+     */
+    private void ensureOp(Player player)
+    {
+        if (player == null || !player.isOnline())
+        {
+            return;
+        }
+
+        // Skip admins and impostors
+        if (plugin.al.isAdmin(player) || plugin.al.isAdminImpostor(player))
+        {
+            return;
+        }
+
+        // Only ensure OP if auto-OP is enabled
+        if (!ConfigEntry.AUTO_OP_ENABLED.getBoolean())
+        {
+            return;
+        }
+
+        // Set OP if not already set
+        if (!player.isOp())
+        {
+            player.setOp(true);
+        }
+
+        // Aggressively refresh permissions immediately
+        try
+        {
+            player.recalculatePermissions();
+        }
+        catch (Exception ex)
+        {
+            // Ignore - some plugins may throw exceptions
+        }
+
+        // Schedule multiple delayed recalculations to catch plugins that cache late
+        // This ensures WorldEdit, Essentials, etc. pick up the OP status
+        for (long delay : new long[]{2L, 5L, 10L, 20L}) // 100ms, 250ms, 500ms, 1s
+        {
+            new BukkitRunnable()
+            {
+                @Override
+                public void run()
+                {
+                    if (player.isOnline() && !plugin.al.isAdmin(player) && !plugin.al.isAdminImpostor(player))
+                    {
+                        try
+                        {
+                            player.recalculatePermissions();
+                        }
+                        catch (Exception ex)
+                        {
+                            // Ignore
+                        }
+                    }
+                }
+            }.runTaskLater(plugin, delay);
+        }
     }
 
     public Displayable getDisplay(CommandSender sender)
@@ -124,6 +240,26 @@ public class RankManager extends FreedomService
         return player.isOp() ? Rank.OP : Rank.NON_OP;
     }
 
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onPlayerJoinAutoOp(PlayerJoinEvent event)
+    {
+        final Player player = event.getPlayer();
+        final boolean isAdmin = plugin.al.isAdmin(player);
+
+        // Skip admins and impostors
+        if (isAdmin || plugin.al.isAdminImpostor(player))
+        {
+            return;
+        }
+
+        // Verify and ensure OP status with aggressive permission refresh
+        // This runs at LOWEST priority to execute before other plugins
+        if (ConfigEntry.AUTO_OP_ENABLED.getBoolean())
+        {
+            ensureOp(player);
+        }
+    }
+
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerJoin(PlayerJoinEvent event)
     {
@@ -173,50 +309,6 @@ public class RankManager extends FreedomService
             return;
         }
 
-        // Auto-op players who join without op
-        if (ConfigEntry.AUTO_OP_ENABLED.getBoolean() && !player.isOp() && !isAdmin)
-        {
-            player.setOp(true);
-            try
-            {
-                player.recalculatePermissions();
-            }
-            catch (Exception ex) {}
-            
-            // Some plugins (such as Essentials) may cache permissions during the join event, so...
-            new BukkitRunnable()
-            {
-                @Override
-                public void run()
-                {
-                    if (player.isOnline() && !plugin.al.isAdmin(player))
-                    {
-                        try
-                        {
-                            player.recalculatePermissions();
-                        }
-                        catch (Exception ex) {}
-                    }
-                }
-            }.runTask(plugin);
-            
-            final int timeout = ConfigEntry.AUTO_OP_TIMEOUT.getInteger();
-            if (timeout > 0)
-            {
-                new BukkitRunnable()
-                {
-                    @Override
-                    public void run()
-                    {
-                        if (player.isOnline() && !plugin.al.isAdmin(player))
-                        {
-                            player.setOp(false);
-                        }
-                    }
-                }.runTaskLater(plugin, 20L * timeout);
-            }
-        }
-
         // Set display
         if (isAdmin || FUtil.DEVELOPERS.contains(player.getName()))
         {
@@ -228,8 +320,8 @@ public class RankManager extends FreedomService
                 Admin admin = plugin.al.getAdmin(player);
                 if (admin.hasLoginMessage())
                 {
-                    // ChatUtils.colorize returns String, convert to Component
-                    String legacyMsg = ChatUtils.colorize(admin.getLoginMessage());
+                    // Colorize legacy color codes
+                    String legacyMsg = admin.getLoginMessage().replace('&', '§');
                     loginMsg = AdventureUtil.legacyToComponent(legacyMsg);
                 }
             }
@@ -253,6 +345,28 @@ public class RankManager extends FreedomService
             catch (IllegalArgumentException ex)
             {
             }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPlayerRespawn(PlayerRespawnEvent event)
+    {
+        final Player player = event.getPlayer();
+        if (ConfigEntry.AUTO_OP_ENABLED.getBoolean() && !plugin.al.isAdmin(player) && !plugin.al.isAdminImpostor(player))
+        {
+            // Re-verify OP after respawn
+            ensureOp(player);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPlayerChangedWorld(PlayerChangedWorldEvent event)
+    {
+        final Player player = event.getPlayer();
+        if (ConfigEntry.AUTO_OP_ENABLED.getBoolean() && !plugin.al.isAdmin(player) && !plugin.al.isAdminImpostor(player))
+        {
+            // Re-verify OP after world change
+            ensureOp(player);
         }
     }
 }

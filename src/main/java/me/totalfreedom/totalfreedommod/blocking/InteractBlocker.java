@@ -95,13 +95,6 @@ public class InteractBlocker extends FreedomService
                 event.setCancelled(true);
                 break;
             }
-
-            case OAK_SIGN:
-            case OAK_WALL_SIGN:
-            {
-                player.sendMessage(ChatColor.GRAY + "Sign interaction is currently disabled.");
-                break;
-            }
         }
     }
 }

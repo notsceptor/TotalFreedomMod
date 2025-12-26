@@ -27,8 +27,8 @@ public class WorldManager extends FreedomService
     {
         super(plugin);
 
-        this.flatlands = new Flatlands();
-        this.adminworld = new AdminWorld();
+        this.flatlands = new Flatlands(plugin);
+        this.adminworld = new AdminWorld(plugin);
     }
 
     @Override

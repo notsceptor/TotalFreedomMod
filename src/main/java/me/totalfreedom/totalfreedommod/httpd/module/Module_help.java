@@ -14,7 +14,7 @@ import static me.totalfreedom.totalfreedommod.httpd.HTMLGenerationTools.heading;
 import static me.totalfreedom.totalfreedommod.httpd.HTMLGenerationTools.paragraph;
 import me.totalfreedom.totalfreedommod.httpd.NanoHTTPD;
 import me.totalfreedom.totalfreedommod.rank.Displayable;
-import net.pravian.aero.command.CommandReflection;
+import me.totalfreedom.totalfreedommod.util.FUtil;
 import static org.apache.commons.lang3.StringEscapeUtils.escapeHtml4;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.command.Command;
@@ -33,7 +33,7 @@ public class Module_help extends HTTPDModule
     @Override
     public String getBody()
     {
-        final CommandMap map = CommandReflection.getCommandMap();
+        final CommandMap map = getCommandMap();
         if (map == null || !(map instanceof SimpleCommandMap))
         {
             return paragraph("Error loading commands.");
@@ -154,6 +154,32 @@ public class Module_help extends HTTPDModule
             }
 
             return ca.getPerms().level().getName().compareTo(cb.getPerms().level().getName());
+        }
+    }
+
+    private CommandMap getCommandMap()
+    {
+        try
+        {
+            // Try Paper API first (available in Paper 1.20+)
+            try
+            {
+                java.lang.reflect.Method getCommandMapMethod = server.getClass().getMethod("getCommandMap");
+                return (CommandMap) getCommandMapMethod.invoke(server);
+            }
+            catch (NoSuchMethodException e)
+            {
+                // Fall back to reflection on PluginManager
+            }
+            
+            // Fallback: access via SimplePluginManager reflection
+            java.lang.reflect.Field commandMapField = org.bukkit.plugin.SimplePluginManager.class.getDeclaredField("commandMap");
+            commandMapField.setAccessible(true);
+            return (CommandMap) commandMapField.get(server.getPluginManager());
+        }
+        catch (Exception ex)
+        {
+            return null;
         }
     }
 

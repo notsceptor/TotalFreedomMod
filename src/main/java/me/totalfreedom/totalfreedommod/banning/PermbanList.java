@@ -8,7 +8,9 @@ import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import net.pravian.aero.config.YamlConfig;
+import java.io.File;
+import java.io.IOException;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.ChatColor;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -46,8 +48,20 @@ public class PermbanList extends FreedomService
         permbannedNames.clear();
         permbannedIps.clear();
 
-        final YamlConfig config = new YamlConfig(plugin, CONFIG_FILENAME, true);
-        config.load();
+        final File configFile = new File(plugin.getDataFolder(), CONFIG_FILENAME);
+        if (!configFile.exists())
+        {
+            try
+            {
+                configFile.getParentFile().mkdirs();
+                configFile.createNewFile();
+            }
+            catch (IOException ex)
+            {
+                FLog.severe("Could not create " + CONFIG_FILENAME);
+            }
+        }
+        final YamlConfiguration config = YamlConfiguration.loadConfiguration(configFile);
 
         for (String name : config.getKeys(false))
         {
@@ -61,6 +75,12 @@ public class PermbanList extends FreedomService
     @Override
     protected void onStop()
     {
+    }
+
+    public void reload()
+    {
+        onStop();
+        onStart();
     }
 
     @EventHandler(priority = EventPriority.LOWEST)

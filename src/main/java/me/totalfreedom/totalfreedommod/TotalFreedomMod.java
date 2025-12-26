@@ -32,13 +32,13 @@ import me.totalfreedom.totalfreedommod.rollback.RollbackManager;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import me.totalfreedom.totalfreedommod.util.MethodTimer;
+import me.totalfreedom.totalfreedommod.framework.ServiceManager;
 import me.totalfreedom.totalfreedommod.world.WorldManager;
-import net.pravian.aero.component.service.ServiceManager;
-import net.pravian.aero.plugin.AeroPlugin;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.java.JavaPlugin;
 
-public class TotalFreedomMod extends AeroPlugin<TotalFreedomMod>
+public class TotalFreedomMod extends JavaPlugin
 {
 
     public static final String CONFIG_FILENAME = "config.yml";
@@ -103,19 +103,19 @@ public class TotalFreedomMod extends AeroPlugin<TotalFreedomMod>
     public WorldEditBridge web; // WorldEditBridge - Bridge to WorldEdit plugin
 
     @Override
-    public void load()
+    public void onLoad()
     {
-        TotalFreedomMod.pluginName = plugin.getDescription().getName();
-        TotalFreedomMod.pluginVersion = plugin.getDescription().getVersion();
+        TotalFreedomMod.pluginName = getDescription().getName();
+        TotalFreedomMod.pluginVersion = getDescription().getVersion();
 
-        FLog.setPluginLogger(plugin.getLogger());
-        FLog.setServerLogger(server.getLogger());
+        FLog.setPluginLogger(getLogger());
+        FLog.setServerLogger(getServer().getLogger());
 
-        build.load(plugin);
+        build.load(this);
     }
 
     @Override
-    public void enable()
+    public void onEnable()
     {
         FLog.info("Created by Madgeek1450 and Prozza");
         FLog.info("Version " + build.formattedVersion());
@@ -132,7 +132,7 @@ public class TotalFreedomMod extends AeroPlugin<TotalFreedomMod>
         FUtil.deleteFolder(new File("./_deleteme"));
 
         // Convert old config files
-        new ConfigConverter(plugin).convert();
+        new ConfigConverter(this).convert();
 
         BackupManager backups = new BackupManager(this);
         backups.createBackups(TotalFreedomMod.CONFIG_FILENAME, true);
@@ -143,7 +143,7 @@ public class TotalFreedomMod extends AeroPlugin<TotalFreedomMod>
         config.load();
 
         // Start services
-        services = new ServiceManager<>(plugin);
+        services = new ServiceManager<>(this);
         si = services.registerService(ServerInterface.class);
         sf = services.registerService(SavedFlags.class);
         wm = services.registerService(WorldManager.class);
@@ -198,7 +198,7 @@ public class TotalFreedomMod extends AeroPlugin<TotalFreedomMod>
         services.start();
 
         // Start bridges
-        bridges = new ServiceManager<>(plugin);
+        bridges = new ServiceManager<>(this);
         btb = bridges.registerService(BukkitTelnetBridge.class);
         esb = bridges.registerService(EssentialsBridge.class);
         ldb = bridges.registerService(LibsDisguisesBridge.class);
@@ -209,11 +209,11 @@ public class TotalFreedomMod extends AeroPlugin<TotalFreedomMod>
         FLog.info("Version " + pluginVersion + " for " + ServerInterface.COMPILE_NMS_VERSION + " enabled in " + timer.getTotal() + "ms");
 
         // Add spawnpoints later - https://github.com/TotalFreedom/TotalFreedomMod/issues/438
-        Bukkit.getScheduler().runTaskLater(plugin, () -> pa.autoAddSpawnpoints(), 60L);
+        getServer().getScheduler().runTaskLater(this, () -> pa.autoAddSpawnpoints(), 60L);
     }
 
     @Override
-    public void disable()
+    public void onDisable()
     {
         // Stop services and bridges (check for null in case initialization failed)
         if (bridges != null)
@@ -225,7 +225,7 @@ public class TotalFreedomMod extends AeroPlugin<TotalFreedomMod>
             services.stop();
         }
 
-        server.getScheduler().cancelTasks(plugin);
+        getServer().getScheduler().cancelTasks(this);
 
         FLog.info("Plugin disabled");
     }

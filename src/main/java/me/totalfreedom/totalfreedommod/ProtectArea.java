@@ -17,11 +17,30 @@ import me.totalfreedom.totalfreedommod.util.FLog;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockBurnEvent;
+import org.bukkit.event.block.BlockExplodeEvent;
+import org.bukkit.event.block.BlockFadeEvent;
+import org.bukkit.event.block.BlockFromToEvent;
+import org.bukkit.event.block.BlockIgniteEvent;
+import org.bukkit.event.block.BlockPistonExtendEvent;
+import org.bukkit.event.block.BlockPistonRetractEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.block.BlockSpreadEvent;
+import org.bukkit.event.block.SignChangeEvent;
+import org.bukkit.event.entity.EntityChangeBlockEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.hanging.HangingBreakByEntityEvent;
+import org.bukkit.event.hanging.HangingPlaceEvent;
+import org.bukkit.event.player.PlayerBucketEmptyEvent;
+import org.bukkit.event.player.PlayerBucketFillEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.vehicle.VehicleDestroyEvent;
 import org.bukkit.util.Vector;
 
 public class ProtectArea extends FreedomService
@@ -128,6 +147,330 @@ public class ProtectArea extends FreedomService
         final Location location = event.getBlock().getLocation();
 
         if (isInProtectedArea(location))
+        {
+            event.setCancelled(true);
+        }
+    }
+
+    // Entity explosions (TNT, Creepers, Withers, etc.)
+    @EventHandler(priority = EventPriority.NORMAL)
+    public void onEntityExplode(EntityExplodeEvent event)
+    {
+        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
+        {
+            return;
+        }
+
+        event.blockList().removeIf(block -> isInProtectedArea(block.getLocation()));
+    }
+
+    // Block explosions (beds in nether, respawn anchors)
+    @EventHandler(priority = EventPriority.NORMAL)
+    public void onBlockExplode(BlockExplodeEvent event)
+    {
+        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
+        {
+            return;
+        }
+
+        event.blockList().removeIf(block -> isInProtectedArea(block.getLocation()));
+    }
+
+    // Enderman picking up blocks, falling blocks, etc.
+    @EventHandler(priority = EventPriority.NORMAL)
+    public void onEntityChangeBlock(EntityChangeBlockEvent event)
+    {
+        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
+        {
+            return;
+        }
+
+        if (isInProtectedArea(event.getBlock().getLocation()))
+        {
+            event.setCancelled(true);
+        }
+    }
+
+    // Water/lava bucket placement
+    @EventHandler(priority = EventPriority.NORMAL)
+    public void onBucketEmpty(PlayerBucketEmptyEvent event)
+    {
+        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
+        {
+            return;
+        }
+
+        final Player player = event.getPlayer();
+        if (plugin.al.isAdmin(player))
+        {
+            return;
+        }
+
+        if (isInProtectedArea(event.getBlock().getLocation()))
+        {
+            event.setCancelled(true);
+        }
+    }
+
+    // Water/lava bucket removal
+    @EventHandler(priority = EventPriority.NORMAL)
+    public void onBucketFill(PlayerBucketFillEvent event)
+    {
+        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
+        {
+            return;
+        }
+
+        final Player player = event.getPlayer();
+        if (plugin.al.isAdmin(player))
+        {
+            return;
+        }
+
+        if (isInProtectedArea(event.getBlock().getLocation()))
+        {
+            event.setCancelled(true);
+        }
+    }
+
+    // Fire starting
+    @EventHandler(priority = EventPriority.NORMAL)
+    public void onBlockIgnite(BlockIgniteEvent event)
+    {
+        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
+        {
+            return;
+        }
+
+        final Player player = event.getPlayer();
+        if (player != null && plugin.al.isAdmin(player))
+        {
+            return;
+        }
+
+        if (isInProtectedArea(event.getBlock().getLocation()))
+        {
+            event.setCancelled(true);
+        }
+    }
+
+    // Fire spread
+    @EventHandler(priority = EventPriority.NORMAL)
+    public void onBlockSpread(BlockSpreadEvent event)
+    {
+        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
+        {
+            return;
+        }
+
+        // Only block fire spread
+        if (event.getSource().getType() == org.bukkit.Material.FIRE)
+        {
+            if (isInProtectedArea(event.getBlock().getLocation()))
+            {
+                event.setCancelled(true);
+            }
+        }
+    }
+
+    // Blocks burning
+    @EventHandler(priority = EventPriority.NORMAL)
+    public void onBlockBurn(BlockBurnEvent event)
+    {
+        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
+        {
+            return;
+        }
+
+        if (isInProtectedArea(event.getBlock().getLocation()))
+        {
+            event.setCancelled(true);
+        }
+    }
+
+    // Water/lava flow
+    @EventHandler(priority = EventPriority.NORMAL)
+    public void onBlockFromTo(BlockFromToEvent event)
+    {
+        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
+        {
+            return;
+        }
+
+        // Check if liquid is flowing INTO a protected area from outside
+        if (!isInProtectedArea(event.getBlock().getLocation()) && isInProtectedArea(event.getToBlock().getLocation()))
+        {
+            event.setCancelled(true);
+        }
+    }
+
+    // Piston extend
+    @EventHandler(priority = EventPriority.NORMAL)
+    public void onPistonExtend(BlockPistonExtendEvent event)
+    {
+        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
+        {
+            return;
+        }
+
+        for (Block block : event.getBlocks())
+        {
+            if (isInProtectedArea(block.getLocation()))
+            {
+                event.setCancelled(true);
+                return;
+            }
+        }
+    }
+
+    // Piston retract
+    @EventHandler(priority = EventPriority.NORMAL)
+    public void onPistonRetract(BlockPistonRetractEvent event)
+    {
+        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
+        {
+            return;
+        }
+
+        for (Block block : event.getBlocks())
+        {
+            if (isInProtectedArea(block.getLocation()))
+            {
+                event.setCancelled(true);
+                return;
+            }
+        }
+    }
+
+    // Placing paintings, item frames, etc.
+    @EventHandler(priority = EventPriority.NORMAL)
+    public void onHangingPlace(HangingPlaceEvent event)
+    {
+        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
+        {
+            return;
+        }
+
+        final Player player = event.getPlayer();
+        if (player != null && plugin.al.isAdmin(player))
+        {
+            return;
+        }
+
+        if (isInProtectedArea(event.getEntity().getLocation()))
+        {
+            event.setCancelled(true);
+        }
+    }
+
+    // Breaking paintings, item frames by entity
+    @EventHandler(priority = EventPriority.NORMAL)
+    public void onHangingBreak(HangingBreakByEntityEvent event)
+    {
+        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
+        {
+            return;
+        }
+
+        Entity remover = event.getRemover();
+        if (remover instanceof Player)
+        {
+            Player player = (Player) remover;
+            if (plugin.al.isAdmin(player))
+            {
+                return;
+            }
+        }
+
+        if (isInProtectedArea(event.getEntity().getLocation()))
+        {
+            event.setCancelled(true);
+        }
+    }
+
+    // Vehicle destruction (minecarts, boats)
+    @EventHandler(priority = EventPriority.NORMAL)
+    public void onVehicleDestroy(VehicleDestroyEvent event)
+    {
+        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
+        {
+            return;
+        }
+
+        Entity attacker = event.getAttacker();
+        if (attacker instanceof Player)
+        {
+            Player player = (Player) attacker;
+            if (plugin.al.isAdmin(player))
+            {
+                return;
+            }
+        }
+
+        if (isInProtectedArea(event.getVehicle().getLocation()))
+        {
+            event.setCancelled(true);
+        }
+    }
+
+    // Block fade (ice melting, snow melting, etc.) - protect structure integrity
+    @EventHandler(priority = EventPriority.NORMAL)
+    public void onBlockFade(BlockFadeEvent event)
+    {
+        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
+        {
+            return;
+        }
+
+        if (isInProtectedArea(event.getBlock().getLocation()))
+        {
+            event.setCancelled(true);
+        }
+    }
+
+    // Sign text editing (Minecraft 1.20+ allows editing signs after placement)
+    @EventHandler(priority = EventPriority.NORMAL)
+    public void onSignChange(SignChangeEvent event)
+    {
+        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
+        {
+            return;
+        }
+
+        final Player player = event.getPlayer();
+        if (plugin.al.isAdmin(player))
+        {
+            return;
+        }
+
+        if (isInProtectedArea(event.getBlock().getLocation()))
+        {
+            event.setCancelled(true);
+        }
+    }
+
+    // Player interact (crop trampling, etc.)
+    @EventHandler(priority = EventPriority.NORMAL)
+    public void onPlayerInteract(PlayerInteractEvent event)
+    {
+        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
+        {
+            return;
+        }
+
+        if (event.getAction() != org.bukkit.event.block.Action.PHYSICAL)
+        {
+            return;
+        }
+
+        final Player player = event.getPlayer();
+        if (plugin.al.isAdmin(player))
+        {
+            return;
+        }
+
+        Block block = event.getClickedBlock();
+        if (block != null && isInProtectedArea(block.getLocation()))
         {
             event.setCancelled(true);
         }

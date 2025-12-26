@@ -11,7 +11,8 @@ import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import net.pravian.aero.command.CommandReflection;
+import org.bukkit.command.SimpleCommandMap;
+import me.totalfreedom.totalfreedommod.util.FUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandMap;
@@ -50,7 +51,7 @@ public class CommandBlocker extends FreedomService
         entryList.clear();
         unknownCommands.clear();
 
-        final CommandMap commandMap = CommandReflection.getCommandMap();
+        final CommandMap commandMap = getCommandMap();
         if (commandMap == null)
         {
             FLog.severe("Error loading commandMap.");
@@ -206,5 +207,32 @@ public class CommandBlocker extends FreedomService
         }
 
         return true;
+    }
+
+    private CommandMap getCommandMap()
+    {
+        try
+        {
+            // Try Paper API first (available in Paper 1.20+)
+            try
+            {
+                java.lang.reflect.Method getCommandMapMethod = server.getClass().getMethod("getCommandMap");
+                return (CommandMap) getCommandMapMethod.invoke(server);
+            }
+            catch (NoSuchMethodException e)
+            {
+                // Fall back to reflection on PluginManager
+            }
+            
+            // Fallback: access via SimplePluginManager reflection
+            java.lang.reflect.Field commandMapField = org.bukkit.plugin.SimplePluginManager.class.getDeclaredField("commandMap");
+            commandMapField.setAccessible(true);
+            return (CommandMap) commandMapField.get(server.getPluginManager());
+        }
+        catch (Exception ex)
+        {
+            FLog.severe("Could not get command map: " + ex.getMessage());
+            return null;
+        }
     }
 }
