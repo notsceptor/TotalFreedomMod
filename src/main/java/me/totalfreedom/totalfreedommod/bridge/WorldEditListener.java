@@ -1,6 +1,7 @@
 package me.totalfreedom.totalfreedommod.bridge;
 
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 
@@ -152,13 +153,21 @@ public class WorldEditListener extends PluginListener<TotalFreedomMod>
                 return;
             }
 
-            if (limit < 0 || limit > 10000)
+            int maxLimit = ConfigEntry.WORLDEDIT_LIMIT_MAX.getInteger();
+            if (limit < 0 || limit > maxLimit)
             {
-                player.setOp(false);
-                FUtil.bcastMsg(player.getName() + " tried to set their WorldEdit limit to " + limit + " and has been de-opped", ChatColor.RED);
+                if (ConfigEntry.WORLDEDIT_DEOP_ON_LIMIT_ABUSE.getBoolean())
+                {
+                    player.setOp(false);
+                    FUtil.bcastMsg(player.getName() + " tried to set their WorldEdit limit to " + limit + " and has been de-opped", ChatColor.RED);
+                }
+                else
+                {
+                    FUtil.bcastMsg(player.getName() + " tried to set their WorldEdit limit to " + limit, ChatColor.RED);
+                }
                 java.lang.reflect.Method setCancelledMethod = event.getClass().getMethod("setCancelled", boolean.class);
                 setCancelledMethod.invoke(event, true);
-                player.sendMessage(ChatColor.RED + "You cannot set your limit higher than 10000 or to -1!");
+                player.sendMessage(ChatColor.RED + "You cannot set your limit higher than " + maxLimit + " or to -1!");
             }
         }
         catch (Exception ex)

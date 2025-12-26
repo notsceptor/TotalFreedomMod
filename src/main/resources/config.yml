@@ -111,6 +111,9 @@ blocked_commands:
   - 'n:b:/playsound:_'
   - 'n:b:/skinrestorer:_'
   - 'n:b:/packet:_'
+  - 'n:b:/packetlog:_'
+  - 'n:b:/filter:_'
+  - 'n:b:/protocol:_'
   - 'n:b:/thaw:_'
   - 'n:b:/pp largeexplode:You may not use this particle! Please use another.'
   - 'n:b:/pp hugeexplosion:You may not use this particle! Please use another.'
@@ -222,6 +225,14 @@ protectarea:
   enabled: true
   auto_protect_spawnpoints: true
   auto_protect_radius: 25.0
+
+# WorldEdit settings
+worldedit:
+  # Maximum limit non-admins can set for their WorldEdit operations
+  limit_max: 10000
+
+  # De-op players who try to set their limit higher than allowed
+  deop_on_limit_abuse: false
 
 # Host Sender Names - Names that indicate automated services or host-based consoles you want to block from using some commands.
 # Make sure these are all lower-case.
