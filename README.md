@@ -1,8 +1,7 @@
 # TotalFreedomMod r03
-
-![Release](https://img.shields.io/github/languages/release/tfreedomorg/TotalFreedomMod?style=plastic)
-![Version](https://img.shields.io/badge/version-1.21.11-blue?style=plastic)
-![License](https://img.shields.io/github/languages/license/tfreedomorg/TotalFreedomMod?style=plastic)
+![Release](https://img.shields.io/github/v/release/tfreedomorg/TotalFreedomMod?include_prereleases&style=plastic)
+![Version](https://img.shields.io/badge/version-1.21.11-green?style=plastic)
+![License](https://img.shields.io/badge/license-TFGL%20v2.0-orange?style=plastic)
 ![Code size](https://img.shields.io/github/languages/code-size/tfreedomorg/TotalFreedomMod?style=plastic)
 
 TotalFreedomMod is a CraftBukkit server plugin designed primarily to support the [TotalFreedom Minecraft Server](https://tfreedom.org/). However, you are more than welcome to adapt the source for your own server.

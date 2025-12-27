@@ -85,13 +85,13 @@ public class ProtectArea extends FreedomService
         try (FileInputStream fis = new FileInputStream(legacyFile);
              ObjectInputStream ois = new ObjectInputStream(fis))
         {
-            HashMap<String, LegacySerializableProtectedRegion> legacyAreas = 
-                (HashMap<String, LegacySerializableProtectedRegion>) ois.readObject();
+            HashMap<String, SerializableProtectedRegion> legacyAreas = 
+                (HashMap<String, SerializableProtectedRegion>) ois.readObject();
             
             areas.clear();
-            for (Map.Entry<String, LegacySerializableProtectedRegion> entry : legacyAreas.entrySet())
+            for (Map.Entry<String, SerializableProtectedRegion> entry : legacyAreas.entrySet())
             {
-                LegacySerializableProtectedRegion legacy = entry.getValue();
+                SerializableProtectedRegion legacy = entry.getValue();
                 areas.put(entry.getKey(), new ProtectedRegion(
                     legacy.x, legacy.y, legacy.z, 
                     legacy.radius, 
@@ -842,7 +842,7 @@ public class ProtectArea extends FreedomService
     }
 
     // Legacy class for reading old .dat files during migration
-    private static class LegacySerializableProtectedRegion implements Serializable
+    private static class SerializableProtectedRegion implements Serializable
     {
         private static final long serialVersionUID = 213123517828282L;
         final double x, y, z;
@@ -850,7 +850,7 @@ public class ProtectArea extends FreedomService
         final String worldName;
         final UUID worldUUID;
 
-        private LegacySerializableProtectedRegion()
+        private SerializableProtectedRegion()
         {
             this.x = 0;
             this.y = 0;
