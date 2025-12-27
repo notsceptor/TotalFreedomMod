@@ -352,7 +352,7 @@ service_checker_url: http://status.mojang.com/check
 
 # HTTPD server
 httpd:
-  enabled: true
+  enabled: false
   port: 28966
   public_folder: ./public_html
 

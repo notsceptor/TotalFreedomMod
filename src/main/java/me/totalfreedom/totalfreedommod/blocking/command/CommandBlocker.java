@@ -100,20 +100,23 @@ public class CommandBlocker extends FreedomService
                 commandName = command.getName().toLowerCase();
             }
 
-            if (entryList.containsKey(commandName))
+            String entryKey = subCommand != null ? commandName + " " + subCommand : commandName;
+
+            if (entryList.containsKey(entryKey))
             {
-                FLog.warning("Not blocking: /" + commandName + " - Duplicate entry exists!");
+                FLog.warning("Not blocking: /" + entryKey + " - Duplicate entry exists!");
                 continue;
             }
 
             final CommandBlockerEntry blockedCommandEntry = new CommandBlockerEntry(rank, action, commandName, subCommand, message);
-            entryList.put(blockedCommandEntry.getCommand(), blockedCommandEntry);
+            entryList.put(entryKey, blockedCommandEntry);
 
             if (command != null)
             {
                 for (String alias : command.getAliases())
                 {
-                    entryList.put(alias.toLowerCase(), blockedCommandEntry);
+                    String aliasKey = subCommand != null ? alias.toLowerCase() + " " + subCommand : alias.toLowerCase();
+                    entryList.put(aliasKey, blockedCommandEntry);
                 }
             }
         }
@@ -181,7 +184,25 @@ public class CommandBlocker extends FreedomService
         }
 
         // Obtain entry
-        final CommandBlockerEntry entry = entryList.get(commandParts[0]);
+        CommandBlockerEntry entry = null;
+        
+        // Try from full subcommand to single argument
+        if (subCommand != null)
+        {
+            String[] subParts = subCommand.split(" ");
+            for (int i = subParts.length; i >= 1 && entry == null; i--)
+            {
+                String partialKey = commandParts[0] + " " + StringUtils.join(subParts, " ", 0, i);
+                entry = entryList.get(partialKey);
+            }
+        }
+        
+        // Fall back to base command only (for entries without subcommands)
+        if (entry == null)
+        {
+            entry = entryList.get(commandParts[0]);
+        }
+        
         if (entry == null)
         {
             return false;
