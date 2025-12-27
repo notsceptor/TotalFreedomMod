@@ -229,6 +229,7 @@ protectarea:
 # WorldEdit settings
 worldedit:
   # Maximum limit non-admins can set for their WorldEdit operations
+  # Set to -1 for no limit.
   limit_max: 10000
 
   # De-op players who try to set their limit higher than allowed

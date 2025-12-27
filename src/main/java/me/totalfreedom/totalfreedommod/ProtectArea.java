@@ -3,9 +3,8 @@ package me.totalfreedom.totalfreedommod;
 import com.google.common.collect.Maps;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -18,6 +17,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -46,10 +47,11 @@ import org.bukkit.util.Vector;
 public class ProtectArea extends FreedomService
 {
 
-    public static final String DATA_FILENAME = "protectedareas.dat";
+    public static final String DATA_FILENAME = "protectedareas.yml";
+    public static final String LEGACY_DATA_FILENAME = "protectedareas.dat";
     public static final double MAX_RADIUS = 50.0;
     //
-    private final Map<String, SerializableProtectedRegion> areas = Maps.newHashMap();
+    private final Map<String, ProtectedRegion> areas = Maps.newHashMap();
 
     public ProtectArea(TotalFreedomMod plugin)
     {
@@ -64,26 +66,102 @@ public class ProtectArea extends FreedomService
             return;
         }
 
-        File input = new File(plugin.getDataFolder(), DATA_FILENAME);
-        try
+        File ymlFile = new File(plugin.getDataFolder(), DATA_FILENAME);
+        File legacyFile = new File(plugin.getDataFolder(), LEGACY_DATA_FILENAME);
+
+        if (legacyFile.exists() && !ymlFile.exists())
         {
-            if (input.exists())
+            migrateLegacyData(legacyFile, ymlFile);
+        }
+
+        loadFromYaml(ymlFile);
+        cleanProtectedAreas();
+    }
+
+    @SuppressWarnings("unchecked")
+    private void migrateLegacyData(File legacyFile, File ymlFile)
+    {
+        FLog.info("Migrating protected areas from legacy .dat format to .yml format...");
+        try (FileInputStream fis = new FileInputStream(legacyFile);
+             ObjectInputStream ois = new ObjectInputStream(fis))
+        {
+            HashMap<String, LegacySerializableProtectedRegion> legacyAreas = 
+                (HashMap<String, LegacySerializableProtectedRegion>) ois.readObject();
+            
+            areas.clear();
+            for (Map.Entry<String, LegacySerializableProtectedRegion> entry : legacyAreas.entrySet())
             {
-                FileInputStream fis = new FileInputStream(input);
-                ObjectInputStream ois = new ObjectInputStream(fis);
-                areas.clear();
-                areas.putAll((HashMap<String, SerializableProtectedRegion>) ois.readObject());
-                ois.close();
-                fis.close();
+                LegacySerializableProtectedRegion legacy = entry.getValue();
+                areas.put(entry.getKey(), new ProtectedRegion(
+                    legacy.x, legacy.y, legacy.z, 
+                    legacy.radius, 
+                    legacy.worldName, 
+                    legacy.worldUUID
+                ));
+            }
+            
+            save();
+            
+            File oldFile = new File(legacyFile.getParent(), LEGACY_DATA_FILENAME + ".old");
+            if (legacyFile.renameTo(oldFile))
+            {
+                FLog.info("Migration complete. Legacy file renamed to " + LEGACY_DATA_FILENAME + ".old");
+            }
+            else
+            {
+                FLog.warning("Migration complete but could not rename legacy file.");
             }
         }
         catch (Exception ex)
         {
-            input.delete();
+            FLog.severe("Failed to migrate legacy protected areas data: " + ex.getMessage());
             FLog.severe(ex);
         }
+    }
 
-        cleanProtectedAreas();
+    private void loadFromYaml(File file)
+    {
+        areas.clear();
+        
+        if (!file.exists())
+        {
+            return;
+        }
+
+        try
+        {
+            YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
+            ConfigurationSection areasSection = config.getConfigurationSection("areas");
+            
+            if (areasSection == null)
+            {
+                return;
+            }
+
+            for (String label : areasSection.getKeys(false))
+            {
+                ConfigurationSection areaSection = areasSection.getConfigurationSection(label);
+                if (areaSection == null)
+                {
+                    continue;
+                }
+
+                double x = areaSection.getDouble("x");
+                double y = areaSection.getDouble("y");
+                double z = areaSection.getDouble("z");
+                double radius = areaSection.getDouble("radius");
+                String worldName = areaSection.getString("world_name");
+                String worldUuidStr = areaSection.getString("world_uuid");
+                UUID worldUUID = worldUuidStr != null ? UUID.fromString(worldUuidStr) : null;
+
+                areas.put(label, new ProtectedRegion(x, y, z, radius, worldName, worldUUID));
+            }
+        }
+        catch (Exception ex)
+        {
+            FLog.severe("Failed to load protected areas: " + ex.getMessage());
+            FLog.severe(ex);
+        }
     }
 
     @Override
@@ -96,14 +174,27 @@ public class ProtectArea extends FreedomService
     {
         try
         {
-            FileOutputStream fos = new FileOutputStream(new File(plugin.getDataFolder(), DATA_FILENAME));
-            ObjectOutputStream oos = new ObjectOutputStream(fos);
-            oos.writeObject(areas);
-            oos.close();
-            fos.close();
+            YamlConfiguration config = new YamlConfiguration();
+            ConfigurationSection areasSection = config.createSection("areas");
+
+            for (Map.Entry<String, ProtectedRegion> entry : areas.entrySet())
+            {
+                ConfigurationSection areaSection = areasSection.createSection(entry.getKey());
+                ProtectedRegion region = entry.getValue();
+                
+                areaSection.set("x", region.x);
+                areaSection.set("y", region.y);
+                areaSection.set("z", region.z);
+                areaSection.set("radius", region.radius);
+                areaSection.set("world_name", region.worldName);
+                areaSection.set("world_uuid", region.worldUUID != null ? region.worldUUID.toString() : null);
+            }
+
+            config.save(new File(plugin.getDataFolder(), DATA_FILENAME));
         }
-        catch (Exception ex)
+        catch (IOException ex)
         {
+            FLog.severe("Failed to save protected areas: " + ex.getMessage());
             FLog.severe(ex);
         }
     }
@@ -481,18 +572,18 @@ public class ProtectArea extends FreedomService
         boolean doSave = false;
         boolean inProtectedArea = false;
 
-        final Iterator<Map.Entry<String, SerializableProtectedRegion>> it = areas.entrySet().iterator();
+        final Iterator<Map.Entry<String, ProtectedRegion>> it = areas.entrySet().iterator();
 
         while (it.hasNext())
         {
-            final SerializableProtectedRegion region = it.next().getValue();
+            final ProtectedRegion region = it.next().getValue();
 
             Location regionCenter = null;
             try
             {
                 regionCenter = region.getLocation();
             }
-            catch (SerializableProtectedRegion.CantFindWorldException ex)
+            catch (ProtectedRegion.CantFindWorldException ex)
             {
                 it.remove();
                 doSave = true;
@@ -526,18 +617,18 @@ public class ProtectArea extends FreedomService
         boolean doSave = false;
         boolean inProtectedArea = false;
 
-        final Iterator<Map.Entry<String, SerializableProtectedRegion>> it = areas.entrySet().iterator();
+        final Iterator<Map.Entry<String, ProtectedRegion>> it = areas.entrySet().iterator();
 
         while (it.hasNext())
         {
-            final SerializableProtectedRegion region = it.next().getValue();
+            final ProtectedRegion region = it.next().getValue();
 
             Location regionCenter = null;
             try
             {
                 regionCenter = region.getLocation();
             }
-            catch (SerializableProtectedRegion.CantFindWorldException ex)
+            catch (ProtectedRegion.CantFindWorldException ex)
             {
                 it.remove();
                 doSave = true;
@@ -604,7 +695,7 @@ public class ProtectArea extends FreedomService
 
     public void addProtectedArea(String label, Location location, double radius)
     {
-        areas.put(label.toLowerCase(), new SerializableProtectedRegion(location, radius));
+        areas.put(label.toLowerCase(), new ProtectedRegion(location, radius));
         save();
     }
 
@@ -635,7 +726,7 @@ public class ProtectArea extends FreedomService
     {
         boolean doSave = false;
 
-        final Iterator<Map.Entry<String, SerializableProtectedRegion>> it = areas.entrySet().iterator();
+        final Iterator<Map.Entry<String, ProtectedRegion>> it = areas.entrySet().iterator();
 
         while (it.hasNext())
         {
@@ -643,7 +734,7 @@ public class ProtectArea extends FreedomService
             {
                 it.next().getValue().getLocation();
             }
-            catch (SerializableProtectedRegion.CantFindWorldException ex)
+            catch (ProtectedRegion.CantFindWorldException ex)
             {
                 it.remove();
                 doSave = true;
@@ -679,17 +770,15 @@ public class ProtectArea extends FreedomService
         }
     }
 
-    public static class SerializableProtectedRegion implements Serializable
+    public static class ProtectedRegion
     {
-
-        private static final long serialVersionUID = 213123517828282L;
         private final double x, y, z;
         private final double radius;
         private final String worldName;
         private final UUID worldUUID;
         private transient Location location = null;
 
-        public SerializableProtectedRegion(final Location location, final double radius)
+        public ProtectedRegion(final Location location, final double radius)
         {
             this.x = location.getX();
             this.y = location.getY();
@@ -700,20 +789,35 @@ public class ProtectArea extends FreedomService
             this.location = location;
         }
 
+        public ProtectedRegion(double x, double y, double z, double radius, String worldName, UUID worldUUID)
+        {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            this.radius = radius;
+            this.worldName = worldName;
+            this.worldUUID = worldUUID;
+        }
+
         public Location getLocation() throws CantFindWorldException
         {
             if (this.location == null)
             {
-                World world = Bukkit.getWorld(this.worldUUID);
+                World world = null;
+                
+                if (this.worldUUID != null)
+                {
+                    world = Bukkit.getWorld(this.worldUUID);
+                }
 
-                if (world == null)
+                if (world == null && this.worldName != null)
                 {
                     world = Bukkit.getWorld(this.worldName);
                 }
 
                 if (world == null)
                 {
-                    throw new CantFindWorldException("Can't find world " + this.worldName + ", UUID: " + this.worldUUID.toString());
+                    throw new CantFindWorldException("Can't find world " + this.worldName + ", UUID: " + this.worldUUID);
                 }
 
                 location = new Location(world, x, y, z);
@@ -726,9 +830,8 @@ public class ProtectArea extends FreedomService
             return radius;
         }
 
-        public class CantFindWorldException extends Exception
+        public static class CantFindWorldException extends Exception
         {
-
             private static final long serialVersionUID = 1L;
 
             public CantFindWorldException(String string)
@@ -736,7 +839,26 @@ public class ProtectArea extends FreedomService
                 super(string);
             }
         }
+    }
 
+    // Legacy class for reading old .dat files during migration
+    private static class LegacySerializableProtectedRegion implements Serializable
+    {
+        private static final long serialVersionUID = 213123517828282L;
+        final double x, y, z;
+        final double radius;
+        final String worldName;
+        final UUID worldUUID;
+
+        private LegacySerializableProtectedRegion()
+        {
+            this.x = 0;
+            this.y = 0;
+            this.z = 0;
+            this.radius = 0;
+            this.worldName = null;
+            this.worldUUID = null;
+        }
     }
 
 }

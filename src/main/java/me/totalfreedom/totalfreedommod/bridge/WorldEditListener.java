@@ -154,6 +154,10 @@ public class WorldEditListener extends PluginListener<TotalFreedomMod>
             }
 
             int maxLimit = ConfigEntry.WORLDEDIT_LIMIT_MAX.getInteger();
+            if (maxLimit < 0)
+            {
+                return;
+            }
             if (limit < 0 || limit > maxLimit)
             {
                 if (ConfigEntry.WORLDEDIT_DEOP_ON_LIMIT_ABUSE.getBoolean())

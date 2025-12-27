@@ -2,17 +2,19 @@ package me.totalfreedom.totalfreedommod;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.util.HashMap;
 import java.util.Map;
 import me.totalfreedom.totalfreedommod.util.FLog;
-import me.totalfreedom.totalfreedommod.util.FUtil;
-import static me.totalfreedom.totalfreedommod.util.FUtil.SAVED_FLAGS_FILENAME;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.YamlConfiguration;
 
 public class SavedFlags extends FreedomService
 {
+
+    public static final String DATA_FILENAME = "savedflags.yml";
+    public static final String LEGACY_DATA_FILENAME = "savedflags.dat";
 
     public SavedFlags(TotalFreedomMod plugin)
     {
@@ -22,6 +24,13 @@ public class SavedFlags extends FreedomService
     @Override
     protected void onStart()
     {
+        File ymlFile = new File(plugin.getDataFolder(), DATA_FILENAME);
+        File legacyFile = new File(plugin.getDataFolder(), LEGACY_DATA_FILENAME);
+
+        if (legacyFile.exists() && !ymlFile.exists())
+        {
+            migrateLegacyData(legacyFile, ymlFile);
+        }
     }
 
     @Override
@@ -30,24 +39,68 @@ public class SavedFlags extends FreedomService
     }
 
     @SuppressWarnings("unchecked")
+    private void migrateLegacyData(File legacyFile, File ymlFile)
+    {
+        FLog.info("Migrating saved flags from legacy .dat format to .yml format...");
+        try (FileInputStream fis = new FileInputStream(legacyFile);
+             ObjectInputStream ois = new ObjectInputStream(fis))
+        {
+            HashMap<String, Boolean> legacyFlags = (HashMap<String, Boolean>) ois.readObject();
+
+            YamlConfiguration config = new YamlConfiguration();
+            ConfigurationSection flagsSection = config.createSection("flags");
+
+            for (Map.Entry<String, Boolean> entry : legacyFlags.entrySet())
+            {
+                flagsSection.set(entry.getKey(), entry.getValue());
+            }
+
+            config.save(ymlFile);
+
+            File oldFile = new File(legacyFile.getParent(), LEGACY_DATA_FILENAME + ".old");
+            if (legacyFile.renameTo(oldFile))
+            {
+                FLog.info("Migration complete. Legacy file renamed to " + LEGACY_DATA_FILENAME + ".old");
+            }
+            else
+            {
+                FLog.warning("Migration complete but could not rename legacy file.");
+            }
+        }
+        catch (Exception ex)
+        {
+            FLog.severe("Failed to migrate legacy saved flags data: " + ex.getMessage());
+            FLog.severe(ex);
+        }
+    }
+
     public Map<String, Boolean> getSavedFlags()
     {
-        Map<String, Boolean> flags = null;
+        Map<String, Boolean> flags = new HashMap<>();
 
-        File input = new File(TotalFreedomMod.plugin().getDataFolder(), SAVED_FLAGS_FILENAME);
-        if (input.exists())
+        File file = new File(TotalFreedomMod.plugin().getDataFolder(), DATA_FILENAME);
+        if (!file.exists())
         {
-            try
+            return flags;
+        }
+
+        try
+        {
+            YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
+            ConfigurationSection flagsSection = config.getConfigurationSection("flags");
+
+            if (flagsSection != null)
             {
-                try (FileInputStream fis = new FileInputStream(input); ObjectInputStream ois = new ObjectInputStream(fis))
+                for (String key : flagsSection.getKeys(false))
                 {
-                    flags = (HashMap<String, Boolean>) ois.readObject();
+                    flags.put(key, flagsSection.getBoolean(key));
                 }
             }
-            catch (Exception ex)
-            {
-                FLog.severe(ex);
-            }
+        }
+        catch (Exception ex)
+        {
+            FLog.severe("Failed to load saved flags: " + ex.getMessage());
+            FLog.severe(ex);
         }
 
         return flags;
@@ -90,14 +143,19 @@ public class SavedFlags extends FreedomService
 
         try
         {
-            final FileOutputStream fos = new FileOutputStream(new File(plugin.getDataFolder(), SAVED_FLAGS_FILENAME));
-            final ObjectOutputStream oos = new ObjectOutputStream(fos);
-            oos.writeObject(flags);
-            oos.close();
-            fos.close();
+            YamlConfiguration config = new YamlConfiguration();
+            ConfigurationSection flagsSection = config.createSection("flags");
+
+            for (Map.Entry<String, Boolean> entry : flags.entrySet())
+            {
+                flagsSection.set(entry.getKey(), entry.getValue());
+            }
+
+            config.save(new File(plugin.getDataFolder(), DATA_FILENAME));
         }
-        catch (Exception ex)
+        catch (IOException ex)
         {
+            FLog.severe("Failed to save saved flags: " + ex.getMessage());
             FLog.severe(ex);
         }
     }
