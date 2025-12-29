@@ -385,3 +385,59 @@ overlord_ips:
   - 178.62.117.94
   - 141.101.104.243
 
+# Chat formatting settings
+# TotalFreedomMod can act as a chat plugin on its own and will display prefixes/custom tags, but it should cooperate with existing chat plugins as well.
+chat:
+  provider:
+    # When enabled, the plugin will register itself as the chat provider to be used by plugins such as Essentials.
+    # This functionality requires the Vault API.
+    enabled: true
+    
+    # Whether to try and override an already-existing Vault chat provider (e.g. LuckPerms)
+    override_existing: false
+  
+  format:
+    # Tag format template (space is included in default value)
+    # {TAG} will be replaced with the actual tag value
+    tag: "&7{TAG} "
+    # Chat message format template with placeholders
+    # Keep in mind that this syntax will be ignored if you are using a chat plugin like EssentialsChat!
+    # Available placeholders:
+    #   {PREFIX} - Player's rank prefix (includes tag if present, based on enforce_prefix setting)
+    #   {DISPLAYNAME} - Player's display name
+    #   {MESSAGE} - The chat message
+    #   {WORLD} - World name
+    message: "{PREFIX}&8<&r{DISPLAYNAME}&8>&r {MESSAGE}"
+  
+  behavior:
+    # Shows a player's rank prefix next to their custom tag (otherwise the tag will replace it)
+    enforce_prefix: false
+    # Automatically converts messages with capitals in them to lowercase
+    no_caps:
+      enabled: true
+      # Percentage of capital letters required to trigger no_caps (integer of 0-100)
+      caps_ratio: 65
+    # Sends a message to a player if their message is the same as their previous one
+    prevent_spam: true
+    # Allow color codes (0-9, a-f) in chat messages using the & character
+    allow_color_formatting: false
+    # Allow formatting codes (l,m,k,o,n,r) in the same manner
+    allow_special_formatting: false
+    # Maximum length in characters that a message can be (the current game limit is 256)
+    max_message_length: 256
+    # Notifies a player when their message is truncated in length
+    notify_truncated: true
+  
+  prefix:
+    # Configurable rank prefixes (supports & color codes)
+    # Leave empty ("") to display no prefix
+    impostor: "&8[&eImp&8] "
+    non_op: ""
+    op: "&8[&cOP&8] "
+    super_admin: "&8[&bSA&8] "
+    telnet_admin: "&8[&2STA&8] "
+    senior_admin: "&8[&6SrA&8] "
+    telnet_console: "&8[&5Console&8] "
+    senior_console: "&8[&5Console&8] "
+    developer: "&8[&5Dev&8] "
+    owner: "&8[&9Owner&8] "

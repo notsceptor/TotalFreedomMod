@@ -92,7 +92,31 @@ public enum ConfigEntry
     NOADMIN_IPS(List.class, "noadmin_ips"),
     ADMIN_ONLY_MODE(Boolean.class, "admin_only_mode"),
     AUTO_ENTITY_WIPE(Boolean.class, "auto_wipe"),
-    DISGUISES_FORBIDDEN_TYPES(List.class, "disguises.forbidden_types");
+    DISGUISES_FORBIDDEN_TYPES(List.class, "disguises.forbidden_types"),
+    //
+    VAULT_CHAT_PROVIDER_ENABLED(Boolean.class, "chat.provider.enabled"),
+    VAULT_CHAT_PROVIDER_OVERRIDE_EXISTING(Boolean.class, "chat.provider.override_existing"),
+    VAULT_CHAT_FORMAT(String.class, "chat.format.message"),
+    VAULT_CHAT_TAG(String.class, "chat.format.tag"),
+    VAULT_CHAT_ENFORCE_PREFIX(Boolean.class, "chat.behavior.enforce_prefix"),
+    VAULT_CHAT_NO_CAPS(Boolean.class, "chat.behavior.no_caps.enabled"),
+    VAULT_CHAT_CAPS_RATIO(Integer.class, "chat.behavior.no_caps.caps_ratio"),
+    VAULT_CHAT_PREVENT_SPAM(Boolean.class, "chat.behavior.prevent_spam"),
+    VAULT_CHAT_ALLOW_COLOR_FORMATTING(Boolean.class, "chat.behavior.allow_color_formatting"),
+    VAULT_CHAT_ALLOW_SPECIAL_FORMATTING(Boolean.class, "chat.behavior.allow_special_formatting"),
+    VAULT_CHAT_MAX_MESSAGE_LENGTH(Integer.class, "chat.behavior.max_message_length"),
+    VAULT_CHAT_NOTIFY_TRUNCATED(Boolean.class, "chat.behavior.notify_truncated"),
+    VAULT_PREFIX_IMPOSTOR(String.class, "chat.prefix.impostor"),
+    VAULT_PREFIX_NON_OP(String.class, "chat.prefix.non_op"),
+    VAULT_PREFIX_OP(String.class, "chat.prefix.op"),
+    VAULT_PREFIX_SUPER_ADMIN(String.class, "chat.prefix.super_admin"),
+    VAULT_PREFIX_TELNET_ADMIN(String.class, "chat.prefix.telnet_admin"),
+    VAULT_PREFIX_SENIOR_ADMIN(String.class, "chat.prefix.senior_admin"),
+    VAULT_PREFIX_TELNET_CONSOLE(String.class, "chat.prefix.telnet_console"),
+    VAULT_PREFIX_SENIOR_CONSOLE(String.class, "chat.prefix.senior_console"),
+    VAULT_PREFIX_DEVELOPER(String.class, "chat.prefix.developer"),
+    VAULT_PREFIX_OWNER(String.class, "chat.prefix.owner");
+
     //
     private final Class<?> type;
     private final String configName;

@@ -2,6 +2,7 @@ package me.totalfreedom.totalfreedommod.command;
 
 import java.util.Arrays;
 import java.util.List;
+import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
@@ -23,6 +24,13 @@ public class Command_tag extends FreedomCommand
     {
         "admin", "owner", "moderator", "developer", "console"
     });
+
+    private String getClearedTagValue()
+    {
+        Boolean enforcePrefixConfig = ConfigEntry.VAULT_CHAT_ENFORCE_PREFIX.getBoolean();
+        boolean enforcePrefix = enforcePrefixConfig != null ? enforcePrefixConfig : false;
+        return !enforcePrefix ? "" : null;
+    }
 
     @Override
     public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
@@ -54,6 +62,7 @@ public class Command_tag extends FreedomCommand
 
                 FUtil.adminAction(sender.getName(), "Removing all tags", false);
 
+                String clearedTagValue = getClearedTagValue();
                 int count = 0;
                 for (final Player player : server.getOnlinePlayers())
                 {
@@ -61,7 +70,7 @@ public class Command_tag extends FreedomCommand
                     if (playerdata.getTag() != null)
                     {
                         count++;
-                        playerdata.setTag(null);
+                        playerdata.setTag(clearedTagValue);
                     }
                 }
 
@@ -77,7 +86,7 @@ public class Command_tag extends FreedomCommand
                 }
                 else
                 {
-                    plugin.pl.getPlayer(playerSender).setTag(null);
+                    plugin.pl.getPlayer(playerSender).setTag(getClearedTagValue());
                     msg("Your tag has been removed.");
                 }
 
@@ -106,7 +115,7 @@ public class Command_tag extends FreedomCommand
                     return true;
                 }
 
-                plugin.pl.getPlayer(player).setTag(null);
+                plugin.pl.getPlayer(player).setTag(getClearedTagValue());
                 msg("Removed " + player.getName() + "'s tag.");
 
                 return true;

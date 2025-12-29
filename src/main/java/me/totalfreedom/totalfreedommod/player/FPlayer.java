@@ -359,9 +359,9 @@ public class FPlayer
 
     public void setTag(String tag)
     {
-        if (tag == null)
+        if (tag == null || tag.isEmpty())
         {
-            this.tag = null;
+            this.tag = tag;
         }
         else
         {

@@ -1,9 +1,12 @@
 package me.totalfreedom.totalfreedommod;
 
+import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FSync;
+import me.totalfreedom.totalfreedommod.vault.ChatService;
+import me.totalfreedom.totalfreedommod.vault.PermissionService;
 import static me.totalfreedom.totalfreedommod.util.FUtil.playerMsg;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -14,9 +17,21 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
+import org.bukkit.event.server.PluginEnableEvent;
+import org.bukkit.ChatColor;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.ServicePriority;
+import net.milkbowl.vault.chat.Chat;
+import net.milkbowl.vault.permission.Permission;
 
 public class ChatManager extends FreedomService
 {
+    // The maximum message length that the Java Minecraft client can currently handle.
+    private static final int MAX_MESSAGE_LENGTH_HARD_LIMIT = 32767;
+
+    private ChatService vaultChatProvider = null;
+    private PermissionService vaultPermissionProvider = null;
+    private boolean essentialsChatInstalled = false;
 
     public ChatManager(TotalFreedomMod plugin)
     {
@@ -26,129 +41,405 @@ public class ChatManager extends FreedomService
     @Override
     protected void onStart()
     {
+        // Check for the EssentialsChat plugin
+        Plugin essentialsChat = server.getPluginManager().getPlugin("EssentialsChat");
+        if (essentialsChat != null && essentialsChat.isEnabled()) {
+            essentialsChatInstalled = true;
+        }
+
+        // Try to register the Vault chat provider using a delayed task
+        server.getScheduler().runTask(plugin, () -> {
+            registerVaultChatProvider();
+        });
     }
 
-    @Override
-    protected void onStop()
-    {
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onPlayerChatFormat(AsyncPlayerChatEvent event)
-    {
-        try
-        {
-            handleChatEvent(event);
-        }
-        catch (Exception ex)
-        {
-            FLog.severe(ex);
-        }
-    }
-
-    private void handleChatEvent(AsyncPlayerChatEvent event)
-    {
-        final Player player = event.getPlayer();
-        String message = event.getMessage().trim();
-
-        // Strip color from messages
-        message = AdventureUtil.stripColor(message);
-
-        // Truncate messages that are too long - 256 characters is vanilla client max
-        if (message.length() > 256)
-        {
-            message = message.substring(0, 256);
-            FSync.playerMsg(player, "Message was shortened because it was too long to send.");
-        }
-
-        // Check for caps
-        if (message.length() >= 6)
-        {
-            int caps = 0;
-            for (char c : message.toCharArray())
-            {
-                if (Character.isUpperCase(c))
-                {
-                    caps++;
-                }
-            }
-            if (((float) caps / (float) message.length()) > 0.65) //Compute a ratio so that longer sentences can have more caps.
-            {
-                message = message.toLowerCase();
-            }
-        }
-
-        // Check for adminchat
-        final FPlayer fPlayer = plugin.pl.getPlayerSync(player);
-        if (fPlayer.inAdminChat())
-        {
-            FSync.adminChatMessage(player, message);
-            event.setCancelled(true);
+    private void registerVaultChatProvider() {
+        if (!ConfigEntry.VAULT_CHAT_PROVIDER_ENABLED.getBoolean()) {
             return;
         }
 
-        // Finally, set message
-        event.setMessage(message);
+		Plugin vaultPlugin = server.getPluginManager().getPlugin("Vault");
+		if (vaultPlugin == null || !vaultPlugin.isEnabled()) {
+			return;
+		}
 
-        // Make format
-        String format = "<%1$s> %2$s";
+		try {
+			org.bukkit.plugin.RegisteredServiceProvider<net.milkbowl.vault.chat.Chat> existingProvider = server
+					.getServicesManager().getRegistration(net.milkbowl.vault.chat.Chat.class);
 
-        String tag = fPlayer.getTag();
-        if (tag != null && !tag.isEmpty())
-        {
-            format = tag.replace("%", "%%") + " " + format;
-        }
+			boolean shouldOverride = ConfigEntry.VAULT_CHAT_PROVIDER_OVERRIDE_EXISTING.getBoolean();
+			if (existingProvider != null && !shouldOverride && !essentialsChatInstalled) {
+				if (vaultChatProvider == null) {
+					FLog.info("Using a registered chat provider (" + existingProvider.getProvider().getName()
+							+ "). To avoid this, set 'override_existing' to 'true' in config.yml.");
+				}
+				return;
+			}
 
-        // Set format
-        event.setFormat(format);
-    }
+			if (!essentialsChatInstalled && existingProvider != null) {
+				FLog.info("Overriding existing chat provider (" + existingProvider.getProvider().getName() + ".");
+			}
 
-    public void adminChat(CommandSender sender, String message)
-    {
-        Component nameComponent = Component.text(sender.getName() + " ")
-                .append(plugin.rm.getDisplay(sender).getColoredTag())
-                .append(Component.text("").color(NamedTextColor.WHITE));
+			// Register Permission provider (required to use the Vault handler)
+			vaultPermissionProvider = new PermissionService(plugin);
+			server.getServicesManager().register(
+					Permission.class,
+					vaultPermissionProvider,
+					plugin,
+					org.bukkit.plugin.ServicePriority.High);
 
-        Component adminMsg = Component.text("[")
-                .color(NamedTextColor.AQUA)
-                .append(Component.text("ADMIN").color(NamedTextColor.AQUA))
-                .append(Component.text("] ").color(NamedTextColor.WHITE))
-                .append(nameComponent.color(NamedTextColor.DARK_RED))
-                .append(Component.text(": ").color(NamedTextColor.DARK_RED))
-                .append(Component.text(message).color(NamedTextColor.GOLD));
+			// Register Chat provider
+			vaultChatProvider = new ChatService(plugin, vaultPermissionProvider);
+			server.getServicesManager().register(
+					Chat.class,
+					vaultChatProvider,
+					plugin,
+					org.bukkit.plugin.ServicePriority.High);
 
-        // Serialize console message to ANSI for terminal colors
-        Component consoleMsg = Component.text("[ADMIN] ")
-                .color(NamedTextColor.AQUA)
-                .append(nameComponent)
-                .append(Component.text(": ").color(NamedTextColor.WHITE))
-                .append(Component.text(message).color(NamedTextColor.GOLD));
-        String ansiMessage = ANSIComponentSerializer.ansi().serialize(consoleMsg);
-        Bukkit.getConsoleSender().sendMessage(ansiMessage);
+			// Trigger EssentialsX to re-check permissions provider
+			triggerEssentialsPermissionRecheck();
+		} catch (Exception ex) {
+			FLog.warning("Failed to register chat provider: " + ex.getMessage());
+			FLog.warning(ex);
+		}
+	}
 
-        for (Player player : server.getOnlinePlayers())
-        {
-            if (plugin.al.isAdmin(player))
-            {
-                player.sendMessage(adminMsg);
-            }
-        }
-    }
+	/**
+	 * Handles PluginEnableEvent to re-register Vault Chat Provider when Vault
+	 * loads.
+	 * This ensures we register even if Vault loads after TotalFreedomMod.
+	 */
+	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+	public void onPluginEnable(PluginEnableEvent event) {
+		if (event.getPlugin().getName().equals("Vault")) {
+			server.getScheduler().runTaskLater(plugin, () -> {
+				registerVaultChatProvider();
+			}, 5L);
+		}
+	}
 
-    public void reportAction(Player reporter, Player reported, String report)
-    {
-        Component reportMsg = Component.text("[REPORTS] ")
-                .color(NamedTextColor.RED)
-                .append(Component.text(reporter.getName() + " has reported " + reported.getName() + " for " + report)
-                        .color(NamedTextColor.GOLD));
+	/**
+	 * Triggers EssentialsX to re-check permissions providers.
+	 * EssentialsX checks for Vault providers on startup, but TFM registers after.
+	 * This forces a re-check so EssentialsX uses TFM's Vault provider instead of
+	 * superperms.
+	 */
+	private void triggerEssentialsPermissionRecheck() {
+		Plugin essentials = server.getPluginManager().getPlugin("Essentials");
+		if (essentials == null || !essentials.isEnabled()) {
+			return;
+		}
 
-        for (Player player : server.getOnlinePlayers())
-        {
-            if (plugin.al.isAdmin(player))
-            {
-                playerMsg(player, reportMsg);
-            }
-        }
-    }
+		try {
+			// Use reflection to call PermissionsHandler.checkPermissions()
+			Object permissionsHandler = essentials.getClass().getMethod("getPermissionsHandler").invoke(essentials);
+			if (permissionsHandler != null) {
+				permissionsHandler.getClass().getMethod("checkPermissions").invoke(permissionsHandler);
+			}
+		} catch (Exception ex) {
+			// If reflection fails, log a warning but don't break TFM
+			FLog.info(
+					"Could not trigger EssentialsX to re-check permissions. Server restart may be required for prefixes to work.");
+		}
+	}
+
+	@Override
+	protected void onStop() {
+	}
+
+	@EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)
+	public void onPlayerChatFormat(AsyncPlayerChatEvent event) {
+		try {
+			handleChatEvent(event);
+		} catch (Exception ex) {
+			FLog.severe(ex);
+		}
+	}
+
+	private void handleChatEvent(AsyncPlayerChatEvent event) {
+		final Player player = event.getPlayer();
+		String message = event.getMessage().trim();
+
+		// Handle color and formatting codes based on config
+		boolean allowColors = ConfigEntry.VAULT_CHAT_ALLOW_COLOR_FORMATTING.getBoolean();
+		boolean allowSpecial = ConfigEntry.VAULT_CHAT_ALLOW_SPECIAL_FORMATTING.getBoolean();
+		
+		if (!allowColors && !allowSpecial) {
+			message = AdventureUtil.stripColor(message);
+		} else {
+			message = stripColorCodesSelectively(message, allowColors, allowSpecial);
+			if (allowColors || allowSpecial) {
+				message = ChatColor.translateAlternateColorCodes('&', message);
+			}
+		}
+
+		// Truncate messages that are too long
+		Integer maxLengthConfig = ConfigEntry.VAULT_CHAT_MAX_MESSAGE_LENGTH.getInteger();
+		int maxLength = 256; // Default fallback
+		if (maxLengthConfig != null && maxLengthConfig >= 1) {
+			maxLength = maxLengthConfig;
+		}
+		maxLength = Math.min(maxLength, MAX_MESSAGE_LENGTH_HARD_LIMIT);
+		maxLength = Math.max(1, maxLength); // Ensure at least 1
+		
+		if (message.length() > maxLength) {
+			message = message.substring(0, maxLength);
+			if (ConfigEntry.VAULT_CHAT_NOTIFY_TRUNCATED.getBoolean()) {
+				FSync.playerMsg(player, "Message was shortened because it was too long to send.");
+			}
+		}
+
+		// Check for caps (if enabled)
+		if (ConfigEntry.VAULT_CHAT_NO_CAPS.getBoolean() && message.length() >= 6) {
+			int caps = 0;
+			for (char c : message.toCharArray()) {
+				if (Character.isUpperCase(c)) {
+					caps++;
+				}
+			}
+			Integer capsRatioConfig = ConfigEntry.VAULT_CHAT_CAPS_RATIO.getInteger();
+			double capsRatio = 0.65; // integer fallback
+			if (capsRatioConfig != null && capsRatioConfig >= 0 && capsRatioConfig <= 100) {
+				capsRatio = capsRatioConfig / 100.0;
+			}
+			if (((float) caps / (float) message.length()) > capsRatio) {
+				message = message.toLowerCase();
+			}
+		}
+
+		// Check for adminchat
+		final FPlayer fPlayer = plugin.pl.getPlayerSync(player);
+		if (fPlayer.inAdminChat()) {
+			FSync.adminChatMessage(player, message);
+			event.setCancelled(true);
+			return;
+		}
+
+		// Finally, set message
+		event.setMessage(message);
+
+		// If EssentialsChat is installed, let it handle formatting
+		if (essentialsChatInstalled) {
+			return;
+		}
+
+		// Only set format if EssentialsChat is not installed
+		// Get prefix (includes tag if present, based on enforce_prefix setting)
+		String prefix = "";
+		if (vaultChatProvider != null) {
+			prefix = vaultChatProvider.getPlayerPrefix(player);
+		} else {
+			prefix = getPlayerRankPrefix(player);
+		}
+		prefix = prefix.replace("%", "%%");
+		
+		String suffix = getPlayerSuffix(player).replace("%", "%%");
+		String worldName = player.getWorld().getName().replace("%", "%%");
+
+		String formatTemplate = ConfigEntry.VAULT_CHAT_FORMAT.getString();
+
+		// Default format if not configured
+		if (formatTemplate == null || formatTemplate.isEmpty()) {
+			formatTemplate = "{PREFIX}<{DISPLAYNAME}> {MESSAGE}";
+		}
+
+		formatTemplate = ChatColor.translateAlternateColorCodes('&', formatTemplate);
+
+		// Placeholders
+		String format = formatTemplate
+				.replace("{PREFIX}", prefix)
+				.replace("{SUFFIX}", suffix)
+				.replace("{DISPLAYNAME}", "%1$s")
+				.replace("{MESSAGE}", "%2$s")
+				.replace("{WORLD}", worldName)
+				.replace("{GROUP}", ""); // Groups not supported yet
+
+		event.setFormat(format);
+	}
+
+	public void adminChat(CommandSender sender, String message) {
+		Component nameComponent = Component.text(sender.getName() + " ")
+				.append(plugin.rm.getDisplay(sender).getColoredTag())
+				.append(Component.text("").color(NamedTextColor.WHITE));
+
+		Component adminMsg = Component.text("[")
+				.color(NamedTextColor.AQUA)
+				.append(Component.text("ADMIN").color(NamedTextColor.AQUA))
+				.append(Component.text("] ").color(NamedTextColor.WHITE))
+				.append(nameComponent.color(NamedTextColor.DARK_RED))
+				.append(Component.text(": ").color(NamedTextColor.DARK_RED))
+				.append(Component.text(message).color(NamedTextColor.GOLD));
+
+		// Serialize console message to ANSI for terminal colors
+		Component consoleMsg = Component.text("[ADMIN] ")
+				.color(NamedTextColor.AQUA)
+				.append(nameComponent)
+				.append(Component.text(": ").color(NamedTextColor.WHITE))
+				.append(Component.text(message).color(NamedTextColor.GOLD));
+		String ansiMessage = ANSIComponentSerializer.ansi().serialize(consoleMsg);
+		Bukkit.getConsoleSender().sendMessage(ansiMessage);
+
+		for (Player player : server.getOnlinePlayers()) {
+			if (plugin.al.isAdmin(player)) {
+				player.sendMessage(adminMsg);
+			}
+		}
+	}
+
+	public void reportAction(Player reporter, Player reported, String report) {
+		Component reportMsg = Component.text("[REPORTS] ")
+				.color(NamedTextColor.RED)
+				.append(Component.text(reporter.getName() + " has reported " + reported.getName() + " for " + report)
+						.color(NamedTextColor.GOLD));
+
+		for (Player player : server.getOnlinePlayers()) {
+			if (plugin.al.isAdmin(player)) {
+				playerMsg(player, reportMsg);
+			}
+		}
+	}
+
+	/**
+	 * Gets the player's rank prefix only (without custom tag).
+	 */
+	private String getPlayerRankPrefix(Player player) {
+		if (vaultChatProvider != null) {
+			String prefix = vaultChatProvider.getPlayerPrefix(player);
+			return prefix != null ? prefix : "";
+		}
+
+		// Build rank prefix directly
+		me.totalfreedom.totalfreedommod.rank.Displayable display = plugin.rm.getDisplay(player);
+		if (display == null) {
+			return "";
+		}
+
+		// Get configurable prefix for this rank/title
+		String configPrefix = getConfigPrefix(display);
+		if (configPrefix != null && !configPrefix.isEmpty()) {
+			return ChatColor.translateAlternateColorCodes('&', configPrefix);
+		}
+
+		// Fall back to default rank tag
+		Component coloredTag = display.getColoredTag();
+		if (coloredTag != null && !coloredTag.equals(Component.empty())) {
+			return AdventureUtil.componentToLegacySection(coloredTag);
+		}
+
+		return "";
+	}
+
+	/**
+	 * Gets the player's custom tag (from /tag command).
+	 */
+	private String getPlayerCustomTag(Player player) {
+		FPlayer fPlayer = plugin.pl.getPlayer(player);
+		if (fPlayer == null) {
+			return "";
+		}
+		String tag = fPlayer.getTag();
+		return tag != null ? tag : "";
+	}
+
+	/**
+	 * Gets the configured prefix for a display rank/title.
+	 * Returns null if not configured (will use default).
+	 */
+	private String getConfigPrefix(me.totalfreedom.totalfreedommod.rank.Displayable display) {
+		if (display instanceof me.totalfreedom.totalfreedommod.rank.Rank) {
+			me.totalfreedom.totalfreedommod.rank.Rank rank = (me.totalfreedom.totalfreedommod.rank.Rank) display;
+			switch (rank) {
+				case IMPOSTOR:
+					return ConfigEntry.VAULT_PREFIX_IMPOSTOR.getString();
+				case NON_OP:
+					return ConfigEntry.VAULT_PREFIX_NON_OP.getString();
+				case OP:
+					return ConfigEntry.VAULT_PREFIX_OP.getString();
+				case SUPER_ADMIN:
+					return ConfigEntry.VAULT_PREFIX_SUPER_ADMIN.getString();
+				case TELNET_ADMIN:
+					return ConfigEntry.VAULT_PREFIX_TELNET_ADMIN.getString();
+				case SENIOR_ADMIN:
+					return ConfigEntry.VAULT_PREFIX_SENIOR_ADMIN.getString();
+				case TELNET_CONSOLE:
+					return ConfigEntry.VAULT_PREFIX_TELNET_CONSOLE.getString();
+				case SENIOR_CONSOLE:
+					return ConfigEntry.VAULT_PREFIX_SENIOR_CONSOLE.getString();
+				default:
+					return null;
+			}
+		} else if (display instanceof me.totalfreedom.totalfreedommod.rank.Title) {
+			me.totalfreedom.totalfreedommod.rank.Title title = (me.totalfreedom.totalfreedommod.rank.Title) display;
+			switch (title) {
+				case DEVELOPER:
+					return ConfigEntry.VAULT_PREFIX_DEVELOPER.getString();
+				case OWNER:
+					return ConfigEntry.VAULT_PREFIX_OWNER.getString();
+				default:
+					return null;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Gets the player's suffix (currently returns an empty string).
+	 */
+	private String getPlayerSuffix(Player player) {
+		if (vaultChatProvider != null) {
+			return vaultChatProvider.getPlayerSuffix(player);
+		}
+		return "";
+	}
+
+	/**
+	 * Strips color/formatting codes selectively based on config.
+	 * @param text The text to process
+	 * @param allowColors Whether to allow color codes
+	 * @param allowSpecial Whether to allow formatting codes
+	 * @return Text with appropriate codes stripped
+	 */
+	private String stripColorCodesSelectively(String text, boolean allowColors, boolean allowSpecial) {
+		if (text == null || text.isEmpty()) {
+			return text;
+		}
+		
+		StringBuilder result = new StringBuilder();
+		char[] chars = text.toCharArray();
+		
+		for (int i = 0; i < chars.length; i++) {
+			char c = chars[i];
+			
+			if ((c == '&' || c == '§') && i + 1 < chars.length) {
+				char code = chars[i + 1];
+				boolean shouldKeep = false;
+				
+				if (allowColors && ((code >= '0' && code <= '9') || 
+								   (code >= 'a' && code <= 'f') || 
+								   (code >= 'A' && code <= 'F'))) {
+					shouldKeep = true;
+				}
+				else if (allowSpecial && (code == 'l' || code == 'L' ||  // bold
+										 code == 'o' || code == 'O' ||  // italic
+										 code == 'n' || code == 'N' ||  // underline
+										 code == 'm' || code == 'M' ||  // strikethrough
+										 code == 'k' || code == 'K' ||  // obfuscated
+										 code == 'r' || code == 'R')) { // reset
+					shouldKeep = true;
+				}
+				
+				if (shouldKeep) {
+					result.append(c).append(code);
+					i++;
+				} else {
+					i++;
+				}
+			} else {
+				result.append(c);
+			}
+		}
+		
+		return result.toString();
+	}
 
 }

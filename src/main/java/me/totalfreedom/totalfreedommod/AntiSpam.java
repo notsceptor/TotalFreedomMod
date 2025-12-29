@@ -3,6 +3,7 @@ package me.totalfreedom.totalfreedommod;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.util.FSync;
 import me.totalfreedom.totalfreedommod.util.FUtil;
+import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -79,7 +80,8 @@ public class AntiSpam extends FreedomService
         }
 
         // Check for message repeat
-        if (playerdata.getLastMessage().equalsIgnoreCase(message))
+        if (me.totalfreedom.totalfreedommod.config.ConfigEntry.VAULT_CHAT_PREVENT_SPAM.getBoolean() && playerdata.getLastMessage().equalsIgnoreCase(message))
+
         {
             FSync.playerMsg(player, "Please do not repeat messages.");
             event.setCancelled(true);
