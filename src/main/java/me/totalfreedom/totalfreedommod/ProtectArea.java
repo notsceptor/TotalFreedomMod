@@ -41,6 +41,7 @@ import org.bukkit.event.hanging.HangingPlaceEvent;
 import org.bukkit.event.player.PlayerBucketEmptyEvent;
 import org.bukkit.event.player.PlayerBucketFillEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.vehicle.VehicleDestroyEvent;
 import org.bukkit.util.Vector;
 
@@ -544,27 +545,60 @@ public class ProtectArea extends FreedomService
     @EventHandler(priority = EventPriority.NORMAL)
     public void onPlayerInteract(PlayerInteractEvent event)
     {
-        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
-        {
-            return;
-        }
-
-        if (event.getAction() != org.bukkit.event.block.Action.PHYSICAL)
-        {
-            return;
-        }
-
         final Player player = event.getPlayer();
-        if (plugin.al.isAdmin(player))
+        Block block = event.getClickedBlock();
+        if (block == null)
         {
             return;
         }
 
-        Block block = event.getClickedBlock();
-        if (block != null && isInProtectedArea(block.getLocation()))
+        final Location location = block.getLocation();
+        if (!shouldBlockInteraction(player, location))
+        {
+            return;
+        }
+
+        if (event.getAction() == org.bukkit.event.block.Action.PHYSICAL)
+        {
+            event.setCancelled(true);
+            return;
+        }
+
+        // block right-click interactions
+		if (event.getAction() == org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK)
+        {
+            if (event.getItem() != null)
+            {
+                event.setCancelled(true);
+            }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.NORMAL)
+    public void onPlayerInteractEntity(PlayerInteractEntityEvent event)
+    {
+        final Player player = event.getPlayer();
+        final Location location = event.getRightClicked().getLocation();
+        
+        if (shouldBlockInteraction(player, location))
         {
             event.setCancelled(true);
         }
+    }
+
+    private boolean shouldBlockInteraction(Player player, Location location)
+    {
+        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
+        {
+            return false;
+        }
+
+        if (player != null && plugin.al.isAdmin(player))
+        {
+            return false;
+        }
+
+        return isInProtectedArea(location);
     }
 
     public boolean isInProtectedArea(final Location modifyLocation)

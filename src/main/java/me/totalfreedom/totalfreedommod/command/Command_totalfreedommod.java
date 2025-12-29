@@ -42,8 +42,14 @@ public class Command_totalfreedommod extends FreedomCommand
                     TotalFreedomMod.pluginName,
                     TotalFreedomMod.pluginVersion);
 
-            msg(message);
-            FLog.info(message);
+            if (senderIsConsole)
+            {
+                FLog.info(message);
+            }
+            else
+            {
+                msg(message);
+            }
             return true;
         }
 
