@@ -17,11 +17,12 @@ As of TotalFreedomMod 6.0, the plugin no longer requires any dependencies in ord
 
 ### Soft dependencies
 The following plugins hook into TotalFreedomMod and are only necessary for specific features of the plugin to function as intended.  However, these plugins are not required for TotalFreedomMod to run.
-1. [WorldEdit](https://github.com/EngineHub/WorldEdit) 7.3.x
-2. [TF-WorldEdit](https://github.com/tfreedomorg/TF-WorldEdit) 2.0.x (tested on v2.0-pre1, [specially compiled](https://github.com/tfreedomorg/TF-WorldEdit/releases/tag/v2.0-pre1) for this plugin; requires WorldEdit)
-3. [LibsDisguises](https://github.com/libraryaddict/LibsDisguises) 11.0.x
-4. [EssentialsX](https://github.com/EssentialsX/Essentials) 2.21.x (including EssentialsXSpawn and other extensions)
-5. [BukkitTelnet](https://github.com/TotalFreedom/BukkitTelnet) 4.x (deprecated; no longer guaranteed to work)
+1. [Vault](https://github.com/MilkBowl/Vault) (supports both the original library and [https://github.com/TheNewEconomy/VaultUnlockedAPI](VaultUnlockedAPI))
+2. [WorldEdit](https://github.com/EngineHub/WorldEdit) 7.3.x
+3. [TF-WorldEdit](https://github.com/tfreedomorg/TF-WorldEdit) 2.0.x (tested on v2.0-pre1, [specially compiled](https://github.com/tfreedomorg/TF-WorldEdit/releases/tag/v2.0-pre1) for this plugin; requires WorldEdit)
+4. [LibsDisguises](https://github.com/libraryaddict/LibsDisguises) 11.0.x
+5. [EssentialsX](https://github.com/EssentialsX/Essentials) 2.21.x (including EssentialsChat, EssentialsSpawn and EssentialsDiscord)
+6. [BukkitTelnet](https://github.com/TotalFreedom/BukkitTelnet) 4.x (deprecated; no longer guaranteed to work)
 
 ### Download
 Section 2.1 of the [TotalFreedom General License](https://github.com/tfreedomorg/TotalFreedomMod/blob/devel/LICENSE.md) states that "Redistructions of This Software must solely occur in Source form. Redistribution in Object form is prohibited without prior written permission from the Licensor."

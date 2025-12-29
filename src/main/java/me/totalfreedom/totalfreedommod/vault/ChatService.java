@@ -9,7 +9,6 @@ import net.milkbowl.vault.chat.Chat;
 import net.milkbowl.vault.permission.Permission;
 import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
-import org.bukkit.World;
 import org.bukkit.entity.Player;
 
 /**
@@ -188,31 +187,6 @@ public class ChatService extends Chat {
 		return getPlayerPrefix(player);
 	}
 
-	// World-based overloads are convenience methods in the abstract class
-	public String getPlayerPrefix(World world, String player) {
-		return getPlayerPrefix(world.getName(), player);
-	}
-
-	public String getPlayerPrefix(World world, OfflinePlayer player) {
-		return getPlayerPrefix(world.getName(), player);
-	}
-
-	public String getPlayerPrefix(World world, Player player) {
-		return getPlayerPrefix(player);
-	}
-
-	public void setPlayerPrefix(World world, String player, String prefix) {
-		setPlayerPrefix(world.getName(), player, prefix);
-	}
-
-	public void setPlayerPrefix(World world, OfflinePlayer player, String prefix) {
-		setPlayerPrefix(world.getName(), player, prefix);
-	}
-
-	public void setPlayerPrefix(World world, Player player, String prefix) {
-		setPlayerPrefix(player, prefix);
-	}
-
 	@Override
 	public String getPlayerSuffix(String world, String player) {
 		return "";
@@ -240,31 +214,6 @@ public class ChatService extends Chat {
 
 	@Override
 	public void setPlayerSuffix(Player player, String suffix) {
-		// Not used
-	}
-
-	// World-based overloads are convenience methods in the abstract class
-	public String getPlayerSuffix(World world, String player) {
-		return "";
-	}
-
-	public String getPlayerSuffix(World world, OfflinePlayer player) {
-		return "";
-	}
-
-	public String getPlayerSuffix(World world, Player player) {
-		return "";
-	}
-
-	public void setPlayerSuffix(World world, String player, String suffix) {
-		// Not used
-	}
-
-	public void setPlayerSuffix(World world, OfflinePlayer player, String suffix) {
-		// Not used
-	}
-
-	public void setPlayerSuffix(World world, Player player, String suffix) {
 		// Not used
 	}
 
@@ -318,31 +267,6 @@ public class ChatService extends Chat {
 		// Not used
 	}
 
-	// World-based overloads are convenience methods in the abstract class
-	public int getPlayerInfoInteger(World world, String player, String node, int defaultValue) {
-		return defaultValue;
-	}
-
-	public int getPlayerInfoInteger(World world, OfflinePlayer player, String node, int defaultValue) {
-		return defaultValue;
-	}
-
-	public int getPlayerInfoInteger(World world, Player player, String node, int defaultValue) {
-		return defaultValue;
-	}
-
-	public void setPlayerInfoInteger(World world, String player, String node, int value) {
-		// Not used
-	}
-
-	public void setPlayerInfoInteger(World world, OfflinePlayer player, String node, int value) {
-		// Not used
-	}
-
-	public void setPlayerInfoInteger(World world, Player player, String node, int value) {
-		// Not used
-	}
-
 	@Override
 	public double getPlayerInfoDouble(String world, String player, String node, double defaultValue) {
 		return defaultValue;
@@ -370,31 +294,6 @@ public class ChatService extends Chat {
 
 	@Override
 	public void setPlayerInfoDouble(Player player, String node, double value) {
-		// Not used
-	}
-
-	// World-based overloads are convenience methods in the abstract class
-	public double getPlayerInfoDouble(World world, String player, String node, double defaultValue) {
-		return defaultValue;
-	}
-
-	public double getPlayerInfoDouble(World world, OfflinePlayer player, String node, double defaultValue) {
-		return defaultValue;
-	}
-
-	public double getPlayerInfoDouble(World world, Player player, String node, double defaultValue) {
-		return defaultValue;
-	}
-
-	public void setPlayerInfoDouble(World world, String player, String node, double value) {
-		// Not used
-	}
-
-	public void setPlayerInfoDouble(World world, OfflinePlayer player, String node, double value) {
-		// Not used
-	}
-
-	public void setPlayerInfoDouble(World world, Player player, String node, double value) {
 		// Not used
 	}
 
@@ -428,31 +327,6 @@ public class ChatService extends Chat {
 		// Not used
 	}
 
-	// World-based overloads are convenience methods in the abstract class
-	public boolean getPlayerInfoBoolean(World world, String player, String node, boolean defaultValue) {
-		return defaultValue;
-	}
-
-	public boolean getPlayerInfoBoolean(World world, OfflinePlayer player, String node, boolean defaultValue) {
-		return defaultValue;
-	}
-
-	public boolean getPlayerInfoBoolean(World world, Player player, String node, boolean defaultValue) {
-		return defaultValue;
-	}
-
-	public void setPlayerInfoBoolean(World world, String player, String node, boolean value) {
-		// Not used
-	}
-
-	public void setPlayerInfoBoolean(World world, OfflinePlayer player, String node, boolean value) {
-		// Not used
-	}
-
-	public void setPlayerInfoBoolean(World world, Player player, String node, boolean value) {
-		// Not used
-	}
-
 	@Override
 	public String getPlayerInfoString(String world, String player, String node, String defaultValue) {
 		return defaultValue;
@@ -480,31 +354,6 @@ public class ChatService extends Chat {
 
 	@Override
 	public void setPlayerInfoString(Player player, String node, String value) {
-		// Not used
-	}
-
-	// World-based overloads are convenience methods in the abstract class
-	public String getPlayerInfoString(World world, String player, String node, String defaultValue) {
-		return defaultValue;
-	}
-
-	public String getPlayerInfoString(World world, OfflinePlayer player, String node, String defaultValue) {
-		return defaultValue;
-	}
-
-	public String getPlayerInfoString(World world, Player player, String node, String defaultValue) {
-		return defaultValue;
-	}
-
-	public void setPlayerInfoString(World world, String player, String node, String value) {
-		// Not used
-	}
-
-	public void setPlayerInfoString(World world, OfflinePlayer player, String node, String value) {
-		// Not used
-	}
-
-	public void setPlayerInfoString(World world, Player player, String node, String value) {
 		// Not used
 	}
 

@@ -57,7 +57,7 @@ public class ServiceChecker extends FreedomService
                     final URLConnection connection = url.openConnection();
                     connection.setConnectTimeout(10000);
                     connection.setReadTimeout(10000);
-                    connection.setRequestProperty("User-Agent", "TotalFreedomMod/6.0.0");
+                    connection.setRequestProperty("User-Agent", "TotalFreedomMod/" + TotalFreedomMod.pluginVersion);
 
                     String statusRaw;
                     try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream())))
