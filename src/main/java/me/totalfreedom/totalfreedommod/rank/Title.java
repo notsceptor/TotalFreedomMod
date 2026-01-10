@@ -10,7 +10,8 @@ public enum Title implements Displayable
 {
 
     DEVELOPER("a", "Developer", NamedTextColor.DARK_PURPLE, "Dev"),
-    OWNER("the", "Owner", NamedTextColor.BLUE, "Owner");
+    OWNER("the", "Owner", NamedTextColor.BLUE, "Owner"),
+    EXECUTIVE("an", "Executive", NamedTextColor.YELLOW, "Exec");
 
     private final String determiner;
     @Getter
@@ -29,7 +30,7 @@ public enum Title implements Displayable
         this.tag = "[" + tag + "]";
         this.color = color;
         this.colorLegacy = me.totalfreedom.totalfreedommod.util.AdventureUtil.namedTextColorToChatColor(color);
-        
+
         // Build colored tag as Component
         this.coloredTag = Component.text("[")
                 .color(NamedTextColor.DARK_GRAY)
@@ -50,30 +51,30 @@ public enum Title implements Displayable
         return Component.text(determiner + " ")
                 .append(Component.text(name).color(color).decorate(TextDecoration.ITALIC));
     }
-    
+
     // Manual getters - Lombok @Getter not processing on enum fields
     public String getName()
     {
         return name;
     }
-    
+
     public String getTag()
     {
         return tag;
     }
-    
+
     @Override
     public Component getColoredTag()
     {
         return coloredTag;
     }
-    
+
     @Override
     public NamedTextColor getColor()
     {
         return color;
     }
-    
+
     @Override
     @Deprecated
     public ChatColor getColorLegacy()
