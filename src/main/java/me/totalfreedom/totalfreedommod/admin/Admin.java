@@ -118,7 +118,7 @@ public class Admin implements ConfigLoadable, ConfigSavable, Validatable
         }
         else
         {
-            cs.set("title", null);
+            cs.set("title", "none");
         }
         cs.set("ips", Lists.newArrayList(ips));
         cs.set("last_login", FUtil.dateToString(lastLogin));
