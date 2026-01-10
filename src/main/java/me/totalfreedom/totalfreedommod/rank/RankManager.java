@@ -189,6 +189,13 @@ public class RankManager extends FreedomService
             return Title.OWNER;
         }
 
+        // Check for custom title in Admin entry
+        Admin admin = plugin.al.getAdmin(player);
+        if (admin != null && admin.getTitle() != null)
+        {
+            return admin.getTitle();
+        }
+
         return rank;
     }
 
@@ -293,16 +300,16 @@ public class RankManager extends FreedomService
                     .color(NamedTextColor.AQUA)
                     .append(Rank.IMPOSTOR.getColoredLoginMessage());
             FUtil.bcastMsg(impostorMsg);
-            
+
             Component warningMsg = Component.text("Warning: " + player.getName() + " has been flagged as an impostor and has been frozen!")
                     .color(NamedTextColor.RED);
             FUtil.bcastMsg(warningMsg);
-            
+
             player.getInventory().clear();
             player.setOp(false);
             player.setGameMode(GameMode.SURVIVAL);
             plugin.pl.getPlayer(player).getFreezeData().setFrozen(true);
-            
+
             Component playerMsg = Component.text("You are marked as an impostor, please verify yourself!")
                     .color(NamedTextColor.RED);
             player.sendMessage(playerMsg);
@@ -330,7 +337,7 @@ public class RankManager extends FreedomService
                     .color(NamedTextColor.AQUA)
                     .append(loginMsg);
             FUtil.bcastMsg(broadcastMsg);
-            
+
             // setTag expects String, convert Component to legacy with § codes for chat format
             String tagLegacy = AdventureUtil.componentToLegacySection(display.getColoredTag());
             plugin.pl.getPlayer(player).setTag(tagLegacy);
