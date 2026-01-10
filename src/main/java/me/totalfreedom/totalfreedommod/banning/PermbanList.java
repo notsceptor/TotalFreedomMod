@@ -224,7 +224,7 @@ public class PermbanList extends FreedomService
         {
             try
             {
-                plugin.dm.getPermbanRepository().deleteByUsername(name).join();
+                plugin.dm.getPermbanRepository().deleteByUsername(name);
             }
             catch (Exception ex)
             {

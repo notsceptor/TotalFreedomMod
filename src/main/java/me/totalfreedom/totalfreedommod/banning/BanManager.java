@@ -373,7 +373,7 @@ public class BanManager extends FreedomService
             }
             else if (ban.hasUsername())
             {
-                plugin.dm.getBanRepository().deleteByUsername(ban.getUsername()).join();
+                plugin.dm.getBanRepository().deleteByUsername(ban.getUsername());
             }
         }
         catch (Exception ex)
@@ -428,7 +428,7 @@ public class BanManager extends FreedomService
 
         int size = bans.size();
         bans.clear();
-        updateViews()();
+        updateViews();
 
         return size;
     }

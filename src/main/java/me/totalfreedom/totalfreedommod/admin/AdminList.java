@@ -534,7 +534,7 @@ public class AdminList extends FreedomService
             }
             else
             {
-                plugin.dm.getAdminRepository().deleteByUsername(admin.getName()).join();
+                plugin.dm.getAdminRepository().deleteByUsername(admin.getName());
             }
         }
         catch (Exception ex)
