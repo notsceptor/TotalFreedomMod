@@ -2,6 +2,7 @@
 /lib
 build.properties
 git.properties
+.github/
 
 # Netbeans excludes
 /nbproject/private

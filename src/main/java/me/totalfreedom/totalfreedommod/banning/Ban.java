@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
@@ -24,6 +25,15 @@ public class Ban implements ConfigLoadable, ConfigSavable, Validatable
 {
 
     public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd \'at\' HH:mm:ss z");
+
+    // UUID support for SQL storage
+    @Getter
+    @Setter
+    private UUID uuid = null;
+    
+    @Getter
+    @Setter
+    private UUID bannedByUuid = null;
 
     @Getter
     @Setter
@@ -54,6 +64,37 @@ public class Ban implements ConfigLoadable, ConfigSavable, Validatable
     {
         this.reason = reason;
     }
+    
+    // Alias methods for SQL repository compatibility
+    public String getBannedBy()
+    {
+        return by;
+    }
+    
+    public void setBannedBy(String bannedBy)
+    {
+        this.by = bannedBy;
+    }
+    
+    public Date getExpireAt()
+    {
+        return expiryUnix > 0 ? FUtil.getUnixDate(expiryUnix) : null;
+    }
+    
+    public void setExpireAt(Date expireAt)
+    {
+        this.expiryUnix = expireAt != null ? FUtil.getUnixTime(expireAt) : -1;
+    }
+    
+    public void setIps(List<String> newIps)
+    {
+        ips.clear();
+        if (newIps != null)
+        {
+            ips.addAll(newIps);
+        }
+    }
+    
     @Getter
     @Setter
     private String reason = null; // Unformatted, &[0-9,a-f] instead of ChatColor

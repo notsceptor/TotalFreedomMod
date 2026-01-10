@@ -29,6 +29,8 @@ import me.totalfreedom.totalfreedommod.httpd.HTTPDaemon;
 import me.totalfreedom.totalfreedommod.player.PlayerList;
 import me.totalfreedom.totalfreedommod.rank.RankManager;
 import me.totalfreedom.totalfreedommod.rollback.RollbackManager;
+import me.totalfreedom.totalfreedommod.sql.FreedomDatabase;
+import me.totalfreedom.totalfreedommod.sql.YamlMigrationService;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import me.totalfreedom.totalfreedommod.util.MethodTimer;
@@ -52,6 +54,7 @@ public class TotalFreedomMod extends JavaPlugin
     //
     // Services
     public ServiceManager<TotalFreedomMod> services;
+    public FreedomDatabase dm; // FreedomDatabase - Manages SQL database connections
     public ServerInterface si; // ServerInterface - Core server interface and version checking
     public SavedFlags sf; // SavedFlags - Stores saved flag states
     public WorldManager wm; // WorldManager - Manages world operations
@@ -146,9 +149,17 @@ public class TotalFreedomMod extends JavaPlugin
         services = new ServiceManager<>(this);
         si = services.registerService(ServerInterface.class);
         sf = services.registerService(SavedFlags.class);
+        
+        // Initialize database manager first (before services that depend on it)
+        dm = services.registerService(FreedomDatabase.class);
+        
         wm = services.registerService(WorldManager.class);
         lv = services.registerService(LogViewer.class);
         al = services.registerService(AdminList.class);
+        
+        // Run YAML to SQL migrations after database and admin list are ready
+        runYamlMigrations();
+        
         rm = services.registerService(RankManager.class);
         cl = services.registerService(CommandLoader.class);
         cb = services.registerService(CommandBlocker.class);
@@ -290,6 +301,35 @@ public class TotalFreedomMod extends JavaPlugin
             }
         }
         return null;
+    }
+    
+    /**
+     * Run YAML to SQL migrations for admins, bans, and permbans.
+     * This converts existing YAML files to the new SQL database format.
+     */
+    private void runYamlMigrations()
+    {
+        if (dm == null || !dm.isInitialized())
+        {
+            FLog.info("Database not initialized, skipping YAML migrations");
+            return;
+        }
+        
+        try
+        {
+            YamlMigrationService migrationService = new YamlMigrationService(this, dm);
+            migrationService.runMigrations().join();
+            
+            // Reload admin list after migration to pick up SQL data
+            if (al != null)
+            {
+                al.load();
+            }
+        }
+        catch (Exception ex)
+        {
+            FLog.warning("Error during YAML migrations: " + ex.getMessage());
+        }
     }
 
 }

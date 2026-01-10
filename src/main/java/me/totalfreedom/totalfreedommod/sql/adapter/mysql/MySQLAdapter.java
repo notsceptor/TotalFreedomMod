@@ -1,0 +1,256 @@
+package me.totalfreedom.totalfreedommod.sql.adapter.mysql;
+
+import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.totalfreedommod.sql.ConnectionHandler;
+import me.totalfreedom.totalfreedommod.sql.StatementHandler;
+import me.totalfreedom.totalfreedommod.sql.adapter.AdminRepository;
+import me.totalfreedom.totalfreedommod.sql.adapter.BanRepository;
+import me.totalfreedom.totalfreedommod.sql.adapter.DatabaseAdapter;
+import me.totalfreedom.totalfreedommod.sql.adapter.PermbanRepository;
+import me.totalfreedom.totalfreedommod.util.FLog;
+
+import java.sql.SQLException;
+
+/**
+ * MySQL-specific database adapter.
+ * Works with both MySQL and MariaDB as they share SQL syntax.
+ * Uses MySQL-specific SQL features like:
+ * - INT AUTO_INCREMENT for primary keys
+ * - INSERT IGNORE for upsert operations
+ * - Backtick (`) for identifier quoting
+ * - DATETIME for timestamp columns
+ * - LOWER() for case-insensitive comparisons (collation may also handle this)
+ */
+public class MySQLAdapter extends DatabaseAdapter
+{
+    private MySQLAdminRepository adminRepository;
+    private MySQLBanRepository banRepository;
+    private MySQLPermbanRepository permbanRepository;
+
+    public MySQLAdapter(TotalFreedomMod plugin, ConnectionHandler connectionHandler, StatementHandler statementHandler)
+    {
+        super(plugin, connectionHandler, statementHandler);
+    }
+
+    // ============================================
+    // SQL Dialect Methods
+    // ============================================
+
+    @Override
+    public String autoIncrementSyntax()
+    {
+        return "INT AUTO_INCREMENT";
+    }
+
+    @Override
+    public String primaryKeySyntax()
+    {
+        return "PRIMARY KEY";
+    }
+
+    @Override
+    public String textType()
+    {
+        return "TEXT";
+    }
+
+    @Override
+    public String timestampType()
+    {
+        return "DATETIME";
+    }
+
+    @Override
+    public String booleanType()
+    {
+        return "TINYINT(1)";
+    }
+
+    @Override
+    public String insertIgnoreSyntax()
+    {
+        return "INSERT IGNORE";
+    }
+
+    @Override
+    public String quoteIdentifier(String identifier)
+    {
+        return "`" + identifier + "`";
+    }
+
+    @Override
+    public String currentTimestamp()
+    {
+        return "NOW()";
+    }
+
+    @Override
+    public String caseInsensitiveLike()
+    {
+        // MySQL is case-insensitive by default with utf8_general_ci collation
+        return "LIKE";
+    }
+
+    // ============================================
+    // Migration Methods
+    // ============================================
+
+    @Override
+    public void runMigrations() throws SQLException
+    {
+        FLog.info("[MySQL] Running database migrations...");
+
+        createMigrationTable();
+        createAdminsTable();
+        createAdminIpsTable();
+        createBansTable();
+        createBanIpsTable();
+        createPermbansTable();
+        createPermbanIpsTable();
+
+        FLog.info("[MySQL] Database migrations complete.");
+    }
+
+    private void createMigrationTable() throws SQLException
+    {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS `migrations` (
+                `id` INT AUTO_INCREMENT PRIMARY KEY,
+                `version` VARCHAR(50) NOT NULL UNIQUE,
+                `applied_at` DATETIME DEFAULT NOW()
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """;
+        statementHandler.executeUpdate(sql);
+    }
+
+    private void createAdminsTable() throws SQLException
+    {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS `admins` (
+                `id` INT AUTO_INCREMENT PRIMARY KEY,
+                `uuid` VARCHAR(36) NOT NULL UNIQUE,
+                `username` VARCHAR(16) NOT NULL,
+                `rank` VARCHAR(32) NOT NULL,
+                `active` TINYINT(1) DEFAULT 1,
+                `last_login` DATETIME,
+                `login_message` TEXT,
+                INDEX `idx_admins_username` (`username`),
+                INDEX `idx_admins_active` (`active`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """;
+        statementHandler.executeUpdate(sql);
+    }
+
+    private void createAdminIpsTable() throws SQLException
+    {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS `admin_ips` (
+                `id` INT AUTO_INCREMENT PRIMARY KEY,
+                `admin_id` INT NOT NULL,
+                `ip` VARCHAR(45) NOT NULL,
+                UNIQUE KEY `uk_admin_ip` (`admin_id`, `ip`),
+                INDEX `idx_admin_ips_ip` (`ip`),
+                FOREIGN KEY (`admin_id`) REFERENCES `admins`(`id`) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """;
+        statementHandler.executeUpdate(sql);
+    }
+
+    private void createBansTable() throws SQLException
+    {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS `bans` (
+                `id` INT AUTO_INCREMENT PRIMARY KEY,
+                `uuid` VARCHAR(36),
+                `username` VARCHAR(16),
+                `banned_by` VARCHAR(16),
+                `banned_by_uuid` VARCHAR(36),
+                `reason` TEXT,
+                `expire_at` DATETIME,
+                INDEX `idx_bans_uuid` (`uuid`),
+                INDEX `idx_bans_username` (`username`),
+                INDEX `idx_bans_expire` (`expire_at`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """;
+        statementHandler.executeUpdate(sql);
+    }
+
+    private void createBanIpsTable() throws SQLException
+    {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS `ban_ips` (
+                `id` INT AUTO_INCREMENT PRIMARY KEY,
+                `ban_id` INT NOT NULL,
+                `ip` VARCHAR(45) NOT NULL,
+                UNIQUE KEY `uk_ban_ip` (`ban_id`, `ip`),
+                INDEX `idx_ban_ips_ip` (`ip`),
+                FOREIGN KEY (`ban_id`) REFERENCES `bans`(`id`) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """;
+        statementHandler.executeUpdate(sql);
+    }
+
+    private void createPermbansTable() throws SQLException
+    {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS `permbans` (
+                `id` INT AUTO_INCREMENT PRIMARY KEY,
+                `uuid` VARCHAR(36),
+                `username` VARCHAR(16),
+                `reason` TEXT,
+                INDEX `idx_permbans_uuid` (`uuid`),
+                INDEX `idx_permbans_username` (`username`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """;
+        statementHandler.executeUpdate(sql);
+    }
+
+    private void createPermbanIpsTable() throws SQLException
+    {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS `permban_ips` (
+                `id` INT AUTO_INCREMENT PRIMARY KEY,
+                `permban_id` INT NOT NULL,
+                `ip` VARCHAR(45) NOT NULL,
+                UNIQUE KEY `uk_permban_ip` (`permban_id`, `ip`),
+                INDEX `idx_permban_ips_ip` (`ip`),
+                FOREIGN KEY (`permban_id`) REFERENCES `permbans`(`id`) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """;
+        statementHandler.executeUpdate(sql);
+    }
+
+    // ============================================
+    // Repository Getters
+    // ============================================
+
+    @Override
+    public AdminRepository getAdminRepository()
+    {
+        if (adminRepository == null)
+        {
+            adminRepository = new MySQLAdminRepository(plugin, statementHandler);
+        }
+        return adminRepository;
+    }
+
+    @Override
+    public BanRepository getBanRepository()
+    {
+        if (banRepository == null)
+        {
+            banRepository = new MySQLBanRepository(plugin, statementHandler);
+        }
+        return banRepository;
+    }
+
+    @Override
+    public PermbanRepository getPermbanRepository()
+    {
+        if (permbanRepository == null)
+        {
+            permbanRepository = new MySQLPermbanRepository(plugin, statementHandler);
+        }
+        return permbanRepository;
+    }
+}

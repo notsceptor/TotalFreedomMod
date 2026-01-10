@@ -27,7 +27,6 @@ public class PlayerList extends FreedomService
     public final Map<String, FPlayer> playerMap = Maps.newHashMap(); // ip,dataMap
     @Getter
     public final Map<String, PlayerData> dataMap = Maps.newHashMap(); // ip,dataMap
-    @Getter
     private final File configFolder;
     
     // Manual getter - Lombok @Getter not processing reliably

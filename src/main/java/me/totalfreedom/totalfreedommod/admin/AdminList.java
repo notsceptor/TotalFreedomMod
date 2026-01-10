@@ -4,14 +4,17 @@ import com.google.common.base.Function;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import lombok.Getter;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.rank.Rank;
+import me.totalfreedom.totalfreedommod.sql.adapter.AdminRepository;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import java.io.File;
@@ -34,6 +37,9 @@ public class AdminList extends FreedomService
     @Getter
     private final Set<Admin> activeAdmins = Sets.newHashSet();
     
+    // UUID-based lookup table
+    private final Map<UUID, Admin> uuidTable = Maps.newHashMap();
+    
     // Manual getters - Lombok @Getter not processing reliably
     public Map<String, Admin> getAllAdmins()
     {
@@ -49,6 +55,9 @@ public class AdminList extends FreedomService
     //
     private final File configFile;
     private YamlConfiguration config;
+    
+    // Flag to track if SQL is available
+    private boolean usingSql = false;
 
     public AdminList(TotalFreedomMod plugin)
     {
@@ -82,6 +91,73 @@ public class AdminList extends FreedomService
     }
 
     public void load()
+    {
+        // Try to load from SQL database first
+        if (plugin.dm != null && plugin.dm.isInitialized())
+        {
+            loadFromSql();
+        }
+        else
+        {
+            loadFromYaml();
+        }
+    }
+    
+    /**
+     * Load admins from SQL database.
+     */
+    private void loadFromSql()
+    {
+        try
+        {
+            AdminRepository repo = plugin.dm.getAdminRepository();
+            List<Admin> admins = repo.findAll().join();
+            
+            allAdmins.clear();
+            for (Admin admin : admins)
+            {
+                String key = admin.getName().toLowerCase();
+                admin = fixConfigKey(admin, key);
+                allAdmins.put(key, admin);
+            }
+            
+            usingSql = true;
+            updateTables();
+            FLog.info("Loaded " + allAdmins.size() + " admins from SQL database (" + nameTable.size() + " active, " + ipTable.size() + " IPs)");
+        }
+        catch (Exception ex)
+        {
+            FLog.warning("Failed to load admins from SQL, falling back to YAML: " + ex.getMessage());
+            loadFromYaml();
+        }
+    }
+    
+    /**
+     * Fix the config key on an admin (needed when loading from SQL).
+     */
+    private Admin fixConfigKey(Admin admin, String key)
+    {
+        // Use reflection or create new admin to set configKey
+        // Since configKey is private with no setter, we need to recreate
+        if (admin.getConfigKey() == null || !admin.getConfigKey().equals(key))
+        {
+            Admin fixed = new Admin(key);
+            fixed.setUuid(admin.getUuid());
+            fixed.setName(admin.getName());
+            fixed.setRank(admin.getRank());
+            fixed.setActive(admin.isActive());
+            fixed.setLastLogin(admin.getLastLogin());
+            fixed.setLoginMessage(admin.getLoginMessage());
+            fixed.addIps(admin.getIps());
+            return fixed;
+        }
+        return admin;
+    }
+    
+    /**
+     * Load admins from YAML file (fallback).
+     */
+    private void loadFromYaml()
     {
         if (!configFile.exists())
         {
@@ -119,11 +195,66 @@ public class AdminList extends FreedomService
             allAdmins.put(key, admin);
         }
 
+        usingSql = false;
         updateTables();
-        FLog.info("Loaded " + allAdmins.size() + " admins (" + nameTable.size() + " active,  " + ipTable.size() + " IPs)");
+        FLog.info("Loaded " + allAdmins.size() + " admins from YAML (" + nameTable.size() + " active, " + ipTable.size() + " IPs)");
     }
 
     public void save()
+    {
+        if (usingSql)
+        {
+            saveToSql();
+        }
+        else
+        {
+            saveToYaml();
+        }
+    }
+    
+    /**
+     * Save all admins to SQL database.
+     */
+    private void saveToSql()
+    {
+        if (plugin.dm == null || !plugin.dm.isInitialized())
+        {
+            FLog.warning("SQL not available, falling back to YAML save");
+            saveToYaml();
+            return;
+        }
+        
+        try
+        {
+            AdminRepository repo = plugin.dm.getAdminRepository();
+            for (Admin admin : allAdmins.values())
+            {
+                UUID uuid = admin.getUuid();
+                if (uuid == null)
+                {
+                    // Generate UUID if not present
+                    uuid = FUtil.nameToUUID(admin.getName());
+                    if (uuid == null)
+                    {
+                        uuid = UUID.nameUUIDFromBytes(("OfflinePlayer:" + admin.getName().toLowerCase()).getBytes());
+                    }
+                    admin.setUuid(uuid);
+                }
+                repo.save(uuid, admin).join();
+            }
+            FLog.debug("Saved " + allAdmins.size() + " admins to SQL database");
+        }
+        catch (Exception ex)
+        {
+            FLog.warning("Failed to save admins to SQL: " + ex.getMessage());
+            // Don't fall back to YAML here - we don't want to create conflicting data
+        }
+    }
+    
+    /**
+     * Save all admins to YAML file (fallback).
+     */
+    private void saveToYaml()
     {
         // Clear the config
         for (String key : config.getKeys(false))
@@ -297,17 +428,54 @@ public class AdminList extends FreedomService
         updateTables();
 
         // Save admin
-        admin.saveTo(config.createSection(key));
-        try
+        if (usingSql)
         {
-            config.save(configFile);
+            saveAdminToSql(admin);
         }
-        catch (IOException ex)
+        else
         {
-            FLog.severe("Could not save " + CONFIG_FILENAME);
+            admin.saveTo(config.createSection(key));
+            try
+            {
+                config.save(configFile);
+            }
+            catch (IOException ex)
+            {
+                FLog.severe("Could not save " + CONFIG_FILENAME);
+            }
         }
 
         return true;
+    }
+    
+    /**
+     * Save a single admin to SQL database.
+     */
+    private void saveAdminToSql(Admin admin)
+    {
+        if (plugin.dm == null || !plugin.dm.isInitialized())
+        {
+            return;
+        }
+        
+        try
+        {
+            UUID uuid = admin.getUuid();
+            if (uuid == null)
+            {
+                uuid = FUtil.nameToUUID(admin.getName());
+                if (uuid == null)
+                {
+                    uuid = UUID.nameUUIDFromBytes(("OfflinePlayer:" + admin.getName().toLowerCase()).getBytes());
+                }
+                admin.setUuid(uuid);
+            }
+            plugin.dm.getAdminRepository().save(uuid, admin).join();
+        }
+        catch (Exception ex)
+        {
+            FLog.warning("Failed to save admin to SQL: " + ex.getMessage());
+        }
     }
 
     public boolean removeAdmin(Admin admin)
@@ -327,18 +495,52 @@ public class AdminList extends FreedomService
         }
         updateTables();
 
-        // 'Unsave' admin
-        config.set(admin.getConfigKey(), null);
-        try
+        // Remove from storage
+        if (usingSql)
         {
-            config.save(configFile);
+            removeAdminFromSql(admin);
         }
-        catch (IOException ex)
+        else
         {
-            FLog.severe("Could not save " + CONFIG_FILENAME);
+            config.set(admin.getConfigKey(), null);
+            try
+            {
+                config.save(configFile);
+            }
+            catch (IOException ex)
+            {
+                FLog.severe("Could not save " + CONFIG_FILENAME);
+            }
         }
 
         return true;
+    }
+    
+    /**
+     * Remove admin from SQL database.
+     */
+    private void removeAdminFromSql(Admin admin)
+    {
+        if (plugin.dm == null || !plugin.dm.isInitialized())
+        {
+            return;
+        }
+        
+        try
+        {
+            if (admin.getUuid() != null)
+            {
+                plugin.dm.getAdminRepository().deleteByUuid(admin.getUuid()).join();
+            }
+            else
+            {
+                plugin.dm.getAdminRepository().deleteByUsername(admin.getName()).join();
+            }
+        }
+        catch (Exception ex)
+        {
+            FLog.warning("Failed to remove admin from SQL: " + ex.getMessage());
+        }
     }
 
     public void updateTables()
@@ -346,9 +548,16 @@ public class AdminList extends FreedomService
         activeAdmins.clear();
         nameTable.clear();
         ipTable.clear();
+        uuidTable.clear();
 
         for (Admin admin : allAdmins.values())
         {
+            // Always populate UUID table
+            if (admin.getUuid() != null)
+            {
+                uuidTable.put(admin.getUuid(), admin);
+            }
+            
             if (!admin.isActive())
             {
                 continue;
@@ -365,6 +574,14 @@ public class AdminList extends FreedomService
         }
 
         plugin.wm.adminworld.wipeAccessCache();
+    }
+    
+    /**
+     * Get admin by UUID.
+     */
+    public Admin getAdminByUuid(UUID uuid)
+    {
+        return uuidTable.get(uuid);
     }
 
     public Set<String> getAdminNames()
