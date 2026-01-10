@@ -171,11 +171,13 @@ public class Command_saconfig extends FreedomCommand
                         return true;
                     }
 
+                    player.setOp(true);
                     FUtil.adminAction(sender.getName(), "Adding " + player.getName() + " to the admin list", true);
                     plugin.al.addAdmin(new Admin(player));
                 }
                 else // Existing admin
                 {
+                    player.setOp(true);
                     FUtil.adminAction(sender.getName(), "Readding " + admin.getName() + " to the admin list", true);
 
                     if (player != null)
