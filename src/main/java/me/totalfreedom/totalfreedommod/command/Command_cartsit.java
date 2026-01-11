@@ -6,7 +6,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
 
-@CommandPermissions(level = Rank.NON_OP, source = SourceType.BOTH)
+@CommandPermissions(level = Rank.NON_OP, source = SourceType.BOTH, permission = "tfm.player.cartsit")
 @CommandParameters(description = "Sit in nearest minecart. If target is in a minecart already, they will disembark.", usage = "/<command> [partialname]")
 public class Command_cartsit extends FreedomCommand
 {

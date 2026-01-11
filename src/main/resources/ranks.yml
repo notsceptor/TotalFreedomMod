@@ -1,0 +1,207 @@
+# TotalFreedomMod Ranks Configuration
+# This file defines all custom ranks and their properties.
+# 
+# Format:
+#   rankid:
+#     name: Display Name
+#     abbreviation: TAG
+#     level: <number> (higher = more authority)
+#     color: <color name>
+#     determiner: a/an
+#     admin: true/false
+#     console_only: true/false
+#     permissions:
+#       - permission.node
+#       - another.permission
+#
+# Available colors:
+#   black, dark_blue, dark_green, dark_aqua, dark_red, dark_purple,
+#   gold, gray, dark_gray, blue, green, aqua, red, light_purple, yellow, white
+#
+# Permission nodes are TFM-internal only (NOT Bukkit permission nodes).
+# Since all players have OP, Bukkit permissions don't apply.
+# Use these to restrict TFM features based on rank.
+#
+# Permission Categories:
+#   tfm.player.*      - Basic player commands (NON_OP/OP level)
+#   tfm.fun.*         - Fun commands (smite, doom, orbit, etc.)
+#   tfm.admin.*       - Admin actions (ban, kick, mute, freeze, cage)
+#   tfm.admin.senior.* - Senior admin only actions
+#   tfm.admin.telnet.* - Telnet admin actions
+#   tfm.server.*      - Server management commands
+#   tfm.world.*       - World management commands
+#   tfm.manage.*      - Management commands (ranks, config)
+#
+
+impostor:
+  name: Impostor
+  abbreviation: IMP
+  level: -1
+  color: dark_gray
+  determiner: an
+  admin: false
+  console_only: false
+  permissions:
+    - tfm.player.list
+    - tfm.admin.overlord
+
+non_op:
+  name: Player
+  abbreviation: ""
+  level: 0
+  color: white
+  determiner: a
+  admin: false
+  console_only: false
+  permissions:
+    - tfm.player.cartsit
+    - tfm.player.cbtool
+    - tfm.player.commandlist
+    - tfm.player.localspawn
+    - tfm.player.radar
+    - tfm.player.rank
+    - tfm.player.setlever
+    - tfm.player.list
+    - tfm.world.ender
+    - tfm.world.flatlands
+    - tfm.world.nether
+    - tfm.server.onlinemode
+    - tfm.server.status
+    - tfm.server.info
+
+op:
+  name: Operator
+  abbreviation: OP
+  level: 1
+  color: green
+  determiner: an
+  admin: false
+  console_only: false
+  permissions:
+    - tfm.player.*
+    - tfm.world.adminworld
+    - tfm.admin.banlist
+    - tfm.admin.myadmin
+    - tfm.fun.hack
+    - tfm.fun.landmine
+    - tfm.fun.mp44
+    - tfm.fun.spawnmob
+    - tfm.fun.tossmob
+    - tfm.server.whitelist
+    - tfm.manage.saconfig
+
+super_admin:
+  name: Super Admin
+  abbreviation: SA
+  level: 2
+  color: gold
+  determiner: a
+  admin: true
+  console_only: false
+  permissions:
+    - tfm.player.*
+    - tfm.fun.*
+    - tfm.world.*
+    - tfm.admin.adminchat
+    - tfm.admin.announce
+    - tfm.admin.ban
+    - tfm.admin.banlist
+    - tfm.admin.blockcmd
+    - tfm.admin.cage
+    - tfm.admin.cmdspy
+    - tfm.admin.consolesay
+    - tfm.admin.denick
+    - tfm.admin.deop
+    - tfm.admin.disguisetoggle
+    - tfm.admin.findip
+    - tfm.admin.freeze
+    - tfm.admin.gadmin
+    - tfm.admin.gcmd
+    - tfm.admin.glist
+    - tfm.admin.invis
+    - tfm.admin.kick
+    - tfm.admin.lastcmd
+    - tfm.admin.logs
+    - tfm.admin.mute
+    - tfm.admin.myadmin
+    - tfm.admin.nickclean
+    - tfm.admin.opall
+    - tfm.admin.opme
+    - tfm.admin.overlord
+    - tfm.admin.premium
+    - tfm.admin.purgeall
+    - tfm.admin.ro
+    - tfm.admin.rollback
+    - tfm.admin.say
+    - tfm.admin.setlimit
+    - tfm.admin.undisguiseall
+    - tfm.admin.warn
+    - tfm.admin.whohas
+    - tfm.admin.wildcard
+    - tfm.admin.gamemode
+    - tfm.server.*
+    - tfm.manage.saconfig
+
+telnet_admin:
+  name: Telnet Admin
+  abbreviation: STA
+  level: 3
+  color: dark_green
+  determiner: a
+  admin: true
+  console_only: false
+  permissions:
+    - tfm.player.*
+    - tfm.fun.*
+    - tfm.world.*
+    - tfm.admin.*
+    - tfm.admin.ban.perm
+    - tfm.admin.telnet.plugincontrol
+    - tfm.server.*
+    - tfm.manage.saconfig
+
+senior_admin:
+  name: Senior Admin
+  abbreviation: SSA
+  level: 4
+  color: light_purple
+  determiner: a
+  admin: true
+  console_only: false
+  permissions:
+    - tfm.player.*
+    - tfm.fun.*
+    - tfm.world.*
+    - tfm.admin.*
+    - tfm.admin.senior.*
+    - tfm.admin.telnet.*
+    - tfm.server.*
+    - tfm.manage.*
+
+telnet_console:
+  name: Telnet Console
+  abbreviation: TC
+  level: 5
+  color: dark_green
+  determiner: a
+  admin: true
+  console_only: true
+  permissions:
+    - tfm.player.*
+    - tfm.fun.*
+    - tfm.world.*
+    - tfm.admin.*
+    - tfm.admin.telnet.*
+    - tfm.server.*
+    - tfm.manage.saconfig
+
+senior_console:
+  name: Senior Console
+  abbreviation: SC
+  level: 6
+  color: light_purple
+  determiner: a
+  admin: true
+  console_only: true
+  permissions:
+    - tfm.*

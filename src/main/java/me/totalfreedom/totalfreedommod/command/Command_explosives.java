@@ -6,7 +6,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-@CommandPermissions(level = Rank.SUPER_ADMIN, source = SourceType.BOTH)
+@CommandPermissions(level = Rank.SUPER_ADMIN, source = SourceType.BOTH, permission = "tfm.server.explosives")
 @CommandParameters(description = "Enable/disable explosives and set effect radius.", usage = "/<command> <on | off> [radius]")
 public class Command_explosives extends FreedomCommand
 {

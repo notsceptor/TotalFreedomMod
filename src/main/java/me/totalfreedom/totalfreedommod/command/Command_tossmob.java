@@ -13,7 +13,7 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-@CommandPermissions(level = Rank.OP, source = SourceType.ONLY_IN_GAME)
+@CommandPermissions(level = Rank.OP, source = SourceType.ONLY_IN_GAME, permission = "tfm.fun.tossmob")
 @CommandParameters(description = "Throw a mob in the direction you are facing when you left click with a stick.",
         usage = "/<command> <mobtype [speed] | off | list>")
 public class Command_tossmob extends FreedomCommand

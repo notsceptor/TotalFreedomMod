@@ -7,7 +7,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-@CommandPermissions(level = Rank.SUPER_ADMIN, source = SourceType.ONLY_CONSOLE, blockHostConsole = true)
+@CommandPermissions(level = Rank.SUPER_ADMIN, source = SourceType.ONLY_CONSOLE, blockHostConsole = true, permission = "tfm.server.adminmode")
 @CommandParameters(description = "Close server to non-superadmins.", usage = "/<command> [on | off]")
 public class Command_adminmode extends FreedomCommand
 {

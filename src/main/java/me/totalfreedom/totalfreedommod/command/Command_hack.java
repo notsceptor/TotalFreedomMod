@@ -6,7 +6,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-@CommandPermissions(level = Rank.OP, source = SourceType.ONLY_IN_GAME)
+@CommandPermissions(level = Rank.OP, source = SourceType.ONLY_IN_GAME, permission = "tfm.fun.hack")
 @CommandParameters(description = "Easter egg command - pretends to hack the server", usage = "/<command>")
 public class Command_hack extends FreedomCommand
 {

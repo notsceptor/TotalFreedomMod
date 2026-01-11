@@ -6,7 +6,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-@CommandPermissions(level = Rank.SUPER_ADMIN, source = SourceType.BOTH)
+@CommandPermissions(level = Rank.SUPER_ADMIN, source = SourceType.BOTH, permission = "tfm.server.lavaplace")
 @CommandParameters(description = "Enable/disable lava placement.", usage = "/<command> <on | off>")
 public class Command_lavaplace extends FreedomCommand
 {

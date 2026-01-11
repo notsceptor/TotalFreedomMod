@@ -8,7 +8,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-@CommandPermissions(level = Rank.SUPER_ADMIN, source = SourceType.BOTH, blockHostConsole = true)
+@CommandPermissions(level = Rank.SUPER_ADMIN, source = SourceType.BOTH, blockHostConsole = true, permission = "tfm.admin.warn")
 @CommandParameters(description = "Warns a player.", usage = "/<command> <player> <reason>")
 public class Command_warn extends FreedomCommand
 {
