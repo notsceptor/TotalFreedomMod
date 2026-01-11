@@ -1,0 +1,264 @@
+package me.totalfreedom.totalfreedommod.sql.adapter.postgresql;
+
+import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.totalfreedommod.sql.ConnectionHandler;
+import me.totalfreedom.totalfreedommod.sql.StatementHandler;
+import me.totalfreedom.totalfreedommod.sql.adapter.AdminRepository;
+import me.totalfreedom.totalfreedommod.sql.adapter.BanRepository;
+import me.totalfreedom.totalfreedommod.sql.adapter.DatabaseAdapter;
+import me.totalfreedom.totalfreedommod.sql.adapter.PermbanRepository;
+import me.totalfreedom.totalfreedommod.util.FLog;
+
+import java.sql.SQLException;
+
+/**
+ * PostgreSQL-specific database adapter.
+ * Uses PostgreSQL-specific SQL features like:
+ * - SERIAL for auto-incrementing primary keys
+ * - INSERT ... ON CONFLICT DO NOTHING for upsert operations
+ * - Double quotes (") for identifier quoting
+ * - TIMESTAMP for timestamp columns
+ * - ILIKE for case-insensitive LIKE
+ */
+public class PostgreSQLAdapter extends DatabaseAdapter
+{
+    private PostgreSQLAdminRepository adminRepository;
+    private PostgreSQLBanRepository banRepository;
+    private PostgreSQLPermbanRepository permbanRepository;
+
+    public PostgreSQLAdapter(TotalFreedomMod plugin, ConnectionHandler connectionHandler, StatementHandler statementHandler)
+    {
+        super(plugin, connectionHandler, statementHandler);
+    }
+
+    // ============================================
+    // SQL Dialect Methods
+    // ============================================
+
+    @Override
+    public String autoIncrementSyntax()
+    {
+        return "SERIAL";
+    }
+
+    @Override
+    public String primaryKeySyntax()
+    {
+        return "PRIMARY KEY";
+    }
+
+    @Override
+    public String textType()
+    {
+        return "TEXT";
+    }
+
+    @Override
+    public String timestampType()
+    {
+        return "TIMESTAMP";
+    }
+
+    @Override
+    public String booleanType()
+    {
+        return "BOOLEAN";
+    }
+
+    @Override
+    public String insertIgnoreSyntax()
+    {
+        // PostgreSQL uses ON CONFLICT DO NOTHING instead of INSERT IGNORE
+        return "INSERT";  // Base INSERT, ON CONFLICT added per-statement
+    }
+
+    @Override
+    public String quoteIdentifier(String identifier)
+    {
+        return "\"" + identifier + "\"";
+    }
+
+    @Override
+    public String currentTimestamp()
+    {
+        return "CURRENT_TIMESTAMP";
+    }
+
+    @Override
+    public String caseInsensitiveLike()
+    {
+        return "ILIKE";
+    }
+
+    /**
+     * PostgreSQL-specific ON CONFLICT DO NOTHING clause
+     */
+    public String onConflictDoNothing()
+    {
+        return "ON CONFLICT DO NOTHING";
+    }
+
+    // ============================================
+    // Migration Methods
+    // ============================================
+
+    @Override
+    public void runMigrations() throws SQLException
+    {
+        FLog.info("[PostgreSQL] Running database migrations...");
+
+        createMigrationTable();
+        createAdminsTable();
+        createAdminIpsTable();
+        createBansTable();
+        createBanIpsTable();
+        createPermbansTable();
+        createPermbanIpsTable();
+
+        FLog.info("[PostgreSQL] Database migrations complete.");
+    }
+
+    private void createMigrationTable() throws SQLException
+    {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS "migrations" (
+                "id" SERIAL PRIMARY KEY,
+                "version" VARCHAR(50) NOT NULL UNIQUE,
+                "applied_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            """;
+        statementHandler.executeUpdate(sql);
+    }
+
+    private void createAdminsTable() throws SQLException
+    {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS "admins" (
+                "id" SERIAL PRIMARY KEY,
+                "uuid" VARCHAR(36) NOT NULL UNIQUE,
+                "username" VARCHAR(16) NOT NULL,
+                "rank" VARCHAR(32) NOT NULL,
+                "active" BOOLEAN DEFAULT TRUE,
+                "last_login" TIMESTAMP,
+                "login_message" TEXT
+            )
+            """;
+        statementHandler.executeUpdate(sql);
+
+        // Create indexes separately (PostgreSQL style)
+        statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_admins_username ON \"admins\"(\"username\")");
+        statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_admins_active ON \"admins\"(\"active\")");
+    }
+
+    private void createAdminIpsTable() throws SQLException
+    {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS "admin_ips" (
+                "id" SERIAL PRIMARY KEY,
+                "admin_id" INTEGER NOT NULL REFERENCES "admins"("id") ON DELETE CASCADE,
+                "ip" VARCHAR(45) NOT NULL,
+                UNIQUE ("admin_id", "ip")
+            )
+            """;
+        statementHandler.executeUpdate(sql);
+        statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_admin_ips_ip ON \"admin_ips\"(\"ip\")");
+    }
+
+    private void createBansTable() throws SQLException
+    {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS "bans" (
+                "id" SERIAL PRIMARY KEY,
+                "uuid" VARCHAR(36),
+                "username" VARCHAR(16),
+                "banned_by" VARCHAR(16),
+                "banned_by_uuid" VARCHAR(36),
+                "reason" TEXT,
+                "expire_at" TIMESTAMP
+            )
+            """;
+        statementHandler.executeUpdate(sql);
+
+        statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_bans_uuid ON \"bans\"(\"uuid\")");
+        statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_bans_username ON \"bans\"(\"username\")");
+        statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_bans_expire ON \"bans\"(\"expire_at\")");
+    }
+
+    private void createBanIpsTable() throws SQLException
+    {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS "ban_ips" (
+                "id" SERIAL PRIMARY KEY,
+                "ban_id" INTEGER NOT NULL REFERENCES "bans"("id") ON DELETE CASCADE,
+                "ip" VARCHAR(45) NOT NULL,
+                UNIQUE ("ban_id", "ip")
+            )
+            """;
+        statementHandler.executeUpdate(sql);
+        statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_ban_ips_ip ON \"ban_ips\"(\"ip\")");
+    }
+
+    private void createPermbansTable() throws SQLException
+    {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS "permbans" (
+                "id" SERIAL PRIMARY KEY,
+                "uuid" VARCHAR(36),
+                "username" VARCHAR(16),
+                "reason" TEXT
+            )
+            """;
+        statementHandler.executeUpdate(sql);
+
+        statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_permbans_uuid ON \"permbans\"(\"uuid\")");
+        statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_permbans_username ON \"permbans\"(\"username\")");
+    }
+
+    private void createPermbanIpsTable() throws SQLException
+    {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS "permban_ips" (
+                "id" SERIAL PRIMARY KEY,
+                "permban_id" INTEGER NOT NULL REFERENCES "permbans"("id") ON DELETE CASCADE,
+                "ip" VARCHAR(45) NOT NULL,
+                UNIQUE ("permban_id", "ip")
+            )
+            """;
+        statementHandler.executeUpdate(sql);
+        statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_permban_ips_ip ON \"permban_ips\"(\"ip\")");
+    }
+
+    // ============================================
+    // Repository Getters
+    // ============================================
+
+    @Override
+    public AdminRepository getAdminRepository()
+    {
+        if (adminRepository == null)
+        {
+            adminRepository = new PostgreSQLAdminRepository(plugin, statementHandler);
+        }
+        return adminRepository;
+    }
+
+    @Override
+    public BanRepository getBanRepository()
+    {
+        if (banRepository == null)
+        {
+            banRepository = new PostgreSQLBanRepository(plugin, statementHandler);
+        }
+        return banRepository;
+    }
+
+    @Override
+    public PermbanRepository getPermbanRepository()
+    {
+        if (permbanRepository == null)
+        {
+            permbanRepository = new PostgreSQLPermbanRepository(plugin, statementHandler);
+        }
+        return permbanRepository;
+    }
+}

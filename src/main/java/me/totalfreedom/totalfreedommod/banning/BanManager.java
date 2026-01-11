@@ -13,6 +13,7 @@ import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
+import me.totalfreedom.totalfreedommod.sql.adapter.BanRepository;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import java.io.File;
@@ -34,6 +35,9 @@ public class BanManager extends FreedomService
     //
     private final File configFile;
     private YamlConfiguration config;
+    
+    // Flag to track if SQL is available
+    private boolean usingSql = false;
 
     public BanManager(TotalFreedomMod plugin)
     {
@@ -44,6 +48,51 @@ public class BanManager extends FreedomService
 
     @Override
     protected void onStart()
+    {
+        // Try to load from SQL database first
+        if (plugin.dm != null && plugin.dm.isInitialized())
+        {
+            loadFromSql();
+        }
+        else
+        {
+            loadFromYaml();
+        }
+        
+        // Load unbannable usernames
+        unbannableUsernames.clear();
+        unbannableUsernames.addAll((Collection<? extends String>) ConfigEntry.FAMOUS_PLAYERS.getList());
+        FLog.info("Loaded " + unbannableUsernames.size() + " unbannable usernames.");
+    }
+    
+    /**
+     * Load bans from SQL database.
+     */
+    private void loadFromSql()
+    {
+        try
+        {
+            BanRepository repo = plugin.dm.getBanRepository();
+            List<Ban> loadedBans = repo.findAll().join();
+            
+            bans.clear();
+            bans.addAll(loadedBans);
+            
+            usingSql = true;
+            updateViews();
+            FLog.info("Loaded " + ipBans.size() + " IP bans and " + nameBans.size() + " username bans from SQL database.");
+        }
+        catch (Exception ex)
+        {
+            FLog.warning("Failed to load bans from SQL, falling back to YAML: " + ex.getMessage());
+            loadFromYaml();
+        }
+    }
+    
+    /**
+     * Load bans from YAML file (fallback).
+     */
+    private void loadFromYaml()
     {
         if (!configFile.exists())
         {
@@ -81,14 +130,9 @@ public class BanManager extends FreedomService
         }
 
         // Remove expired bans, repopulate ipBans and nameBans,
+        usingSql = false;
         updateViews();
-
-        FLog.info("Loaded " + ipBans.size() + " IP bans and " + nameBans.size() + " username bans.");
-
-        // Load unbannable usernames
-        unbannableUsernames.clear();
-        unbannableUsernames.addAll((Collection<? extends String>) ConfigEntry.FAMOUS_PLAYERS.getList());
-        FLog.info("Loaded " + unbannableUsernames.size() + " unbannable usernames.");
+        FLog.info("Loaded " + ipBans.size() + " IP bans and " + nameBans.size() + " username bans from YAML.");
     }
 
     @Override
@@ -118,6 +162,50 @@ public class BanManager extends FreedomService
         // Remove expired
         updateViews();
 
+        if (usingSql)
+        {
+            saveAllToSql();
+        }
+        else
+        {
+            saveAllToYaml();
+        }
+    }
+    
+    /**
+     * Save all bans to SQL database.
+     */
+    private void saveAllToSql()
+    {
+        if (plugin.dm == null || !plugin.dm.isInitialized())
+        {
+            FLog.warning("SQL not available, falling back to YAML save");
+            saveAllToYaml();
+            return;
+        }
+        
+        try
+        {
+            BanRepository repo = plugin.dm.getBanRepository();
+            // Clear and re-add all (simple approach for now)
+            repo.deleteAll().join();
+            for (Ban ban : bans)
+            {
+                repo.save(ban).join();
+            }
+            FLog.debug("Saved " + bans.size() + " bans to SQL database");
+        }
+        catch (Exception ex)
+        {
+            FLog.warning("Failed to save bans to SQL: " + ex.getMessage());
+        }
+    }
+    
+    /**
+     * Save all bans to YAML file.
+     */
+    private void saveAllToYaml()
+    {
         for (String key : config.getKeys(false))
         {
             config.set(key, null);
@@ -191,6 +279,10 @@ public class BanManager extends FreedomService
         if (ban != null)
         {
             bans.remove(ban);
+            if (usingSql)
+            {
+                removeBanFromSql(ban);
+            }
             saveAll();
         }
 
@@ -204,6 +296,10 @@ public class BanManager extends FreedomService
         if (ban != null)
         {
             bans.remove(ban);
+            if (usingSql)
+            {
+                removeBanFromSql(ban);
+            }
             saveAll();
         }
 
@@ -224,17 +320,76 @@ public class BanManager extends FreedomService
     {
         if (bans.add(ban))
         {
-            saveAll();
+            if (usingSql)
+            {
+                saveBanToSql(ban);
+            }
+            else
+            {
+                saveAll();
+            }
+            updateViews();
             return true;
         }
 
         return false;
+    }
+    
+    /**
+     * Save a single ban to SQL database.
+     */
+    private void saveBanToSql(Ban ban)
+    {
+        if (plugin.dm == null || !plugin.dm.isInitialized())
+        {
+            return;
+        }
+        
+        try
+        {
+            plugin.dm.getBanRepository().save(ban).join();
+        }
+        catch (Exception ex)
+        {
+            FLog.warning("Failed to save ban to SQL: " + ex.getMessage());
+        }
+    }
+    
+    /**
+     * Remove a ban from SQL database.
+     */
+    private void removeBanFromSql(Ban ban)
+    {
+        if (plugin.dm == null || !plugin.dm.isInitialized())
+        {
+            return;
+        }
+        
+        try
+        {
+            if (ban.getUuid() != null)
+            {
+                plugin.dm.getBanRepository().deleteByUuid(ban.getUuid()).join();
+            }
+            else if (ban.hasUsername())
+            {
+                plugin.dm.getBanRepository().deleteByUsername(ban.getUsername());
+            }
+        }
+        catch (Exception ex)
+        {
+            FLog.warning("Failed to remove ban from SQL: " + ex.getMessage());
+        }
     }
 
     public boolean removeBan(Ban ban)
     {
         if (bans.remove(ban))
         {
+            if (usingSql)
+            {
+                removeBanFromSql(ban);
+            }
             saveAll();
             return true;
         }
@@ -244,17 +399,31 @@ public class BanManager extends FreedomService
 
     public int purge()
     {
-        for (String key : config.getKeys(false))
+        if (usingSql)
         {
-            config.set(key, null);
+            try
+            {
+                plugin.dm.getBanRepository().deleteAll().join();
+            }
+            catch (Exception ex)
+            {
+                FLog.warning("Failed to purge bans from SQL: " + ex.getMessage());
+            }
         }
-        try
+        else
         {
-            config.save(configFile);
-        }
-        catch (IOException ex)
-        {
-            FLog.severe("Could not save bans.yml");
+            for (String key : config.getKeys(false))
+            {
+                config.set(key, null);
+            }
+            try
+            {
+                config.save(configFile);
+            }
+            catch (IOException ex)
+            {
+                FLog.severe("Could not save bans.yml");
+            }
         }
 
         int size = bans.size();

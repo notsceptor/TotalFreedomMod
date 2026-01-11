@@ -3,8 +3,7 @@ package me.totalfreedom.totalfreedommod.admin;
 import com.google.common.collect.Lists;
 import java.util.Date;
 import java.util.List;
-import lombok.Getter;
-import lombok.Setter;
+import java.util.UUID;
 import me.totalfreedom.totalfreedommod.LogViewer.LogsRegistrationMode;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.rank.Rank;
@@ -21,30 +20,19 @@ import org.bukkit.entity.Player;
 public class Admin implements ConfigLoadable, ConfigSavable, Validatable
 {
 
-    @Getter
+    private UUID uuid;
     private String configKey;
-    @Getter
-    @Setter
     private String name;
-    @Getter
     private boolean active = true;
-    @Getter
-    @Setter
     private Rank rank = Rank.SUPER_ADMIN;
-    @Getter
-    @Setter
     private Title title = null;
-    @Getter
     private final List<String> ips = Lists.newArrayList();
-    @Getter
-    @Setter
     private Date lastLogin = new Date();
-    @Getter
-    @Setter
     private String loginMessage = null;
 
     public Admin(Player player)
     {
+        this.uuid = player.getUniqueId();
         this.configKey = player.getName().toLowerCase();
         this.name = player.getName();
         this.ips.add(player.getAddress().getAddress().getHostAddress());
@@ -166,6 +154,16 @@ public class Admin implements ConfigLoadable, ConfigSavable, Validatable
     }
 
     // Manual getters - Lombok @Getter not processing
+    public UUID getUuid()
+    {
+        return uuid;
+    }
+    
+    public void setUuid(UUID uuid)
+    {
+        this.uuid = uuid;
+    }
+    
     public Rank getRank()
     {
         return rank;

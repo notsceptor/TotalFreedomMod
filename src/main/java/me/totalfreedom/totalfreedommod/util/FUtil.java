@@ -1,7 +1,13 @@
 package me.totalfreedom.totalfreedommod.util;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.InputStreamReader;
 import java.lang.reflect.Field;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -15,6 +21,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
@@ -453,6 +460,170 @@ public class FUtil
     {
         String packageName = Bukkit.getServer().getClass().getPackage().getName();
         return packageName.substring(packageName.lastIndexOf('.') + 1);
+    }
+
+    // ============================================
+    // UUID Utilities
+    // ============================================
+
+    private static final String MOJANG_API_URL = "https://api.mojang.com/users/profiles/minecraft/";
+    private static final Map<String, UUID> UUID_CACHE = new HashMap<>();
+
+    /**
+     * Converts a username to a UUID by querying the Mojang API.
+     * Results are cached to reduce API calls.
+     *
+     * @param username The player's username
+     * @return The player's UUID, or null if not found or an error occurred
+     */
+    public static UUID usernameToUuid(String username)
+    {
+        if (username == null || username.isEmpty())
+        {
+            return null;
+        }
+
+        // Check cache first
+        String lowerName = username.toLowerCase();
+        if (UUID_CACHE.containsKey(lowerName))
+        {
+            return UUID_CACHE.get(lowerName);
+        }
+
+        // Check if player is online
+        Player onlinePlayer = Bukkit.getPlayerExact(username);
+        if (onlinePlayer != null)
+        {
+            UUID_CACHE.put(lowerName, onlinePlayer.getUniqueId());
+            return onlinePlayer.getUniqueId();
+        }
+
+        // Check offline player cache
+        OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(username);
+        if (offlinePlayer.hasPlayedBefore())
+        {
+            UUID_CACHE.put(lowerName, offlinePlayer.getUniqueId());
+            return offlinePlayer.getUniqueId();
+        }
+
+        // Query Mojang API
+        try
+        {
+            URL url = new URL(MOJANG_API_URL + username);
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("GET");
+            connection.setConnectTimeout(5000);
+            connection.setReadTimeout(5000);
+
+            int responseCode = connection.getResponseCode();
+            if (responseCode == 200)
+            {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null)
+                {
+                    response.append(line);
+                }
+                reader.close();
+
+                JsonObject json = JsonParser.parseString(response.toString()).getAsJsonObject();
+                String uuidString = json.get("id").getAsString();
+                UUID uuid = parseUuidFromMojangFormat(uuidString);
+                UUID_CACHE.put(lowerName, uuid);
+                return uuid;
+            }
+            else if (responseCode == 204 || responseCode == 404)
+            {
+                // Player not found
+                return null;
+            }
+        }
+        catch (Exception ex)
+        {
+            FLog.warning("Failed to fetch UUID for " + username + ": " + ex.getMessage());
+        }
+
+        return null;
+    }
+
+    /**
+     * Parses a UUID from Mojang's format (without dashes) to a standard UUID.
+     *
+     * @param mojangUuid The UUID string without dashes (32 characters)
+     * @return The parsed UUID
+     */
+    public static UUID parseUuidFromMojangFormat(String mojangUuid)
+    {
+        if (mojangUuid == null || mojangUuid.length() != 32)
+        {
+            throw new IllegalArgumentException("Invalid Mojang UUID format: " + mojangUuid);
+        }
+
+        String formatted = mojangUuid.substring(0, 8) + "-"
+                + mojangUuid.substring(8, 12) + "-"
+                + mojangUuid.substring(12, 16) + "-"
+                + mojangUuid.substring(16, 20) + "-"
+                + mojangUuid.substring(20, 32);
+
+        return UUID.fromString(formatted);
+    }
+
+    /**
+     * Safely parses a UUID from a string, handling both standard and Mojang formats.
+     *
+     * @param uuidString The UUID string (with or without dashes)
+     * @return The parsed UUID, or null if invalid
+     */
+    public static UUID parseUuid(String uuidString)
+    {
+        if (uuidString == null || uuidString.isEmpty())
+        {
+            return null;
+        }
+
+        try
+        {
+            // Standard format with dashes
+            if (uuidString.contains("-"))
+            {
+                return UUID.fromString(uuidString);
+            }
+            // Mojang format without dashes
+            else if (uuidString.length() == 32)
+            {
+                return parseUuidFromMojangFormat(uuidString);
+            }
+        }
+        catch (IllegalArgumentException ex)
+        {
+            FLog.warning("Failed to parse UUID: " + uuidString);
+        }
+
+        return null;
+    }
+
+    /**
+     * Converts a UUID to Mojang's format (without dashes).
+     *
+     * @param uuid The UUID to convert
+     * @return The UUID string without dashes
+     */
+    public static String uuidToMojangFormat(UUID uuid)
+    {
+        if (uuid == null)
+        {
+            return null;
+        }
+        return uuid.toString().replace("-", "");
+    }
+
+    /**
+     * Clears the UUID cache. Useful for testing or when cache needs to be refreshed.
+     */
+    public static void clearUuidCache()
+    {
+        UUID_CACHE.clear();
     }
 
 }
