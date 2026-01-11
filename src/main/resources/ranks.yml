@@ -5,11 +5,13 @@
 #   rankid:
 #     name: Display Name
 #     abbreviation: TAG
+#     prefix: "&8[&bTAG&8] " (chat prefix with color codes)
 #     level: <number> (higher = more authority)
 #     color: <color name>
 #     determiner: a/an
 #     admin: true/false
 #     console_only: true/false
+#     inherit: <rank_id> (inherit all permissions from another rank)
 #     permissions:
 #       - permission.node
 #       - another.permission
@@ -35,7 +37,8 @@
 
 impostor:
   name: Impostor
-  abbreviation: IMP
+  abbreviation: Imp
+  prefix: "&8[&eImp&8] "
   level: -1
   color: dark_gray
   determiner: an
@@ -48,6 +51,7 @@ impostor:
 non_op:
   name: Player
   abbreviation: ""
+  prefix: ""
   level: 0
   color: white
   determiner: a
@@ -72,11 +76,13 @@ non_op:
 op:
   name: Operator
   abbreviation: OP
+  prefix: "&8[&cOP&8] "
   level: 1
   color: green
   determiner: an
   admin: false
   console_only: false
+  inherit: non_op
   permissions:
     - tfm.player.*
     - tfm.world.adminworld
@@ -93,13 +99,14 @@ op:
 super_admin:
   name: Super Admin
   abbreviation: SA
+  prefix: "&8[&bSA&8] "
   level: 2
   color: gold
   determiner: a
   admin: true
   console_only: false
+  inherit: op
   permissions:
-    - tfm.player.*
     - tfm.fun.*
     - tfm.world.*
     - tfm.admin.adminchat
@@ -145,59 +152,48 @@ super_admin:
 telnet_admin:
   name: Telnet Admin
   abbreviation: STA
+  prefix: "&8[&2STA&8] "
   level: 3
   color: dark_green
   determiner: a
   admin: true
   console_only: false
+  inherit: super_admin
   permissions:
-    - tfm.player.*
-    - tfm.fun.*
-    - tfm.world.*
     - tfm.admin.*
     - tfm.admin.ban.perm
     - tfm.admin.telnet.plugincontrol
-    - tfm.server.*
-    - tfm.manage.saconfig
 
 senior_admin:
   name: Senior Admin
-  abbreviation: SSA
+  abbreviation: SrA
+  prefix: "&8[&6SrA&8] "
   level: 4
   color: light_purple
   determiner: a
   admin: true
   console_only: false
+  inherit: telnet_admin
   permissions:
-    - tfm.player.*
-    - tfm.fun.*
-    - tfm.world.*
-    - tfm.admin.*
     - tfm.admin.senior.*
     - tfm.admin.telnet.*
-    - tfm.server.*
     - tfm.manage.*
 
 telnet_console:
   name: Telnet Console
-  abbreviation: TC
+  abbreviation: Console
+  prefix: "&8[&5Console&8] "
   level: 5
   color: dark_green
   determiner: a
   admin: true
   console_only: true
-  permissions:
-    - tfm.player.*
-    - tfm.fun.*
-    - tfm.world.*
-    - tfm.admin.*
-    - tfm.admin.telnet.*
-    - tfm.server.*
-    - tfm.manage.saconfig
+  inherit: telnet_admin
 
 senior_console:
   name: Senior Console
-  abbreviation: SC
+  abbreviation: Console
+  prefix: "&8[&5Console&8] "
   level: 6
   color: light_purple
   determiner: a
@@ -205,3 +201,36 @@ senior_console:
   console_only: true
   permissions:
     - tfm.*
+
+developer:
+  name: Developer
+  abbreviation: Dev
+  prefix: "&8[&5Dev&8] "
+  level: 4
+  color: dark_purple
+  determiner: a
+  admin: true
+  console_only: false
+  inherit: senior_admin
+
+owner:
+  name: Owner
+  abbreviation: Owner
+  prefix: "&8[&9Owner&8] "
+  level: 4
+  color: blue
+  determiner: the
+  admin: true
+  console_only: false
+  inherit: senior_admin
+
+executive:
+  name: Executive
+  abbreviation: Exec
+  prefix: "&8[&eExec&8] "
+  level: 4
+  color: yellow
+  determiner: an
+  admin: true
+  console_only: false
+  inherit: senior_admin

@@ -6,8 +6,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
@@ -119,8 +121,8 @@ public class RankManager extends FreedomService
         
         if (!ranksFile.exists())
         {
-            // Create default ranks from legacy enum
             createDefaultRanks();
+            migrateConfigRanks();
             return;
         }
         
@@ -137,7 +139,34 @@ public class RankManager extends FreedomService
             customRanks.put(key.toLowerCase(), rank);
         }
         
+        validateEssentialRanks();
+        resolveInheritance();
         FLog.info("Loaded " + customRanks.size() + " custom ranks.");
+    }
+    
+    private static final String[] ESSENTIAL_RANKS = {
+        "non_op", "op", "super_admin", "telnet_admin", "senior_admin"
+    };
+    
+    private void validateEssentialRanks()
+    {
+        boolean modified = false;
+        for (String rankId : ESSENTIAL_RANKS)
+        {
+            if (!customRanks.containsKey(rankId))
+            {
+                FLog.warning("Essential rank '" + rankId + "' missing from ranks.yml, recreating...");
+                Rank legacyRank = Rank.findRank(rankId);
+                CustomRank custom = CustomRank.fromLegacyRank(legacyRank);
+                customRanks.put(rankId, custom);
+                modified = true;
+            }
+        }
+        if (modified)
+        {
+            saveRanks();
+            FLog.info("Repaired ranks.yml with missing essential ranks.");
+        }
     }
     
     /**
@@ -183,8 +212,112 @@ public class RankManager extends FreedomService
             customRanks.put(custom.getId(), custom);
         }
         
+        resolveInheritance();
         saveRanks();
         FLog.info("Created default ranks configuration.");
+    }
+    
+    private void migrateConfigRanks()
+    {
+        applyConfigPrefix("impostor", ConfigEntry.VAULT_PREFIX_IMPOSTOR);
+        applyConfigPrefix("non_op", ConfigEntry.VAULT_PREFIX_NON_OP);
+        applyConfigPrefix("op", ConfigEntry.VAULT_PREFIX_OP);
+        applyConfigPrefix("super_admin", ConfigEntry.VAULT_PREFIX_SUPER_ADMIN);
+        applyConfigPrefix("telnet_admin", ConfigEntry.VAULT_PREFIX_TELNET_ADMIN);
+        applyConfigPrefix("senior_admin", ConfigEntry.VAULT_PREFIX_SENIOR_ADMIN);
+        applyConfigPrefix("telnet_console", ConfigEntry.VAULT_PREFIX_TELNET_CONSOLE);
+        applyConfigPrefix("senior_console", ConfigEntry.VAULT_PREFIX_SENIOR_CONSOLE);
+        applyConfigPrefix("developer", ConfigEntry.VAULT_PREFIX_DEVELOPER);
+        applyConfigPrefix("owner", ConfigEntry.VAULT_PREFIX_OWNER);
+        
+        List<String> owners = ConfigEntry.SERVER_OWNERS.getStringList();
+        if (owners != null && !owners.isEmpty())
+        {
+            int found = 0;
+            for (String ownerName : owners)
+            {
+                if (ownerName != null && !ownerName.trim().isEmpty())
+                {
+                    if (plugin.al.getEntryByName(ownerName.trim()) != null)
+                    {
+                        found++;
+                    }
+                }
+            }
+            if (found > 0)
+            {
+                FLog.info("Found " + found + " owner(s) from config.yml. They will display with the owner rank.");
+            }
+        }
+        
+        saveRanks();
+        removeConfigRanks();
+        FLog.info("Migrated rank configuration from config.yml to ranks.yml.");
+    }
+    
+    private void applyConfigPrefix(String rankId, ConfigEntry entry)
+    {
+        String prefix = entry.getString();
+        if (prefix != null && !prefix.isEmpty())
+        {
+            CustomRank rank = getCustomRank(rankId);
+            if (rank != null)
+            {
+                rank.setPrefix(prefix);
+            }
+        }
+    }
+    
+    private void removeConfigRanks()
+    {
+        File configFile = new File(plugin.getDataFolder(), "config.yml");
+        if (!configFile.exists())
+        {
+            return;
+        }
+        
+        try
+        {
+            YamlConfiguration config = YamlConfiguration.loadConfiguration(configFile);
+            boolean modified = false;
+            
+            if (config.contains("server.owners"))
+            {
+                config.set("server.owners", null);
+                modified = true;
+            }
+            
+            String[] prefixKeys = {
+                "chat.prefix.impostor", "chat.prefix.non_op", "chat.prefix.op",
+                "chat.prefix.super_admin", "chat.prefix.telnet_admin", "chat.prefix.senior_admin",
+                "chat.prefix.telnet_console", "chat.prefix.senior_console",
+                "chat.prefix.developer", "chat.prefix.owner"
+            };
+            
+            for (String key : prefixKeys)
+            {
+                if (config.contains(key))
+                {
+                    config.set(key, null);
+                    modified = true;
+                }
+            }
+            
+            ConfigurationSection prefixSection = config.getConfigurationSection("chat.prefix");
+            if (prefixSection != null && prefixSection.getKeys(false).isEmpty())
+            {
+                config.set("chat.prefix", null);
+            }
+            
+            if (modified)
+            {
+                config.save(configFile);
+            }
+        }
+        catch (IOException ex)
+        {
+            FLog.warning("Could not update config.yml: " + ex.getMessage());
+        }
     }
     
     /**
@@ -215,9 +348,44 @@ public class RankManager extends FreedomService
         }
     }
     
-    /**
-     * Get a custom rank by ID.
-     */
+    private void resolveInheritance()
+    {
+        for (CustomRank rank : customRanks.values())
+        {
+            Set<String> resolved = collectPermissions(rank, new HashSet<>());
+            rank.setResolvedPermissions(resolved);
+        }
+    }
+    
+    private Set<String> collectPermissions(CustomRank rank, Set<String> visited)
+    {
+        if (rank == null) return Set.of();
+        
+        if (visited.contains(rank.getId()))
+        {
+            FLog.warning("Circular inheritance detected for rank: " + rank.getId());
+            return Set.of();
+        }
+        visited.add(rank.getId());
+        
+        Set<String> perms = new HashSet<>(rank.getPermissions());
+        
+        if (rank.getInheritFrom() != null)
+        {
+            CustomRank parent = customRanks.get(rank.getInheritFrom().toLowerCase());
+            if (parent == null)
+            {
+                FLog.warning("Rank '" + rank.getId() + "' inherits from non-existent rank: " + rank.getInheritFrom());
+            }
+            else
+            {
+                perms.addAll(collectPermissions(parent, visited));
+            }
+        }
+        
+        return perms;
+    }
+    
     public CustomRank getCustomRank(String id)
     {
         return customRanks.get(id.toLowerCase());
@@ -241,12 +409,10 @@ public class RankManager extends FreedomService
         return sorted;
     }
     
-    /**
-     * Add or update a custom rank.
-     */
     public void setCustomRank(CustomRank rank)
     {
         customRanks.put(rank.getId(), rank);
+        resolveInheritance();
         saveRanks();
     }
     
@@ -647,14 +813,15 @@ public class RankManager extends FreedomService
         builder.append(Component.text("═══════════════════════════════════════").color(NamedTextColor.AQUA));
         builder.append(Component.text("\n\n"));
         
-        // Properties
         builder.append(buildEditableProperty("Name", rank.getName(), "/rankconfig set " + rank.getId() + " name"));
         builder.append(buildEditableProperty("Abbreviation", rank.getAbbreviation(), "/rankconfig set " + rank.getId() + " abbreviation"));
+        builder.append(buildEditableProperty("Prefix", rank.getPrefix() != null ? rank.getPrefix() : "(none)", "/rankconfig set " + rank.getId() + " prefix"));
         builder.append(buildEditableProperty("Level", String.valueOf(rank.getLevel()), "/rankconfig set " + rank.getId() + " level"));
         builder.append(buildEditableProperty("Color", rank.getColor().toString(), "/rankconfig set " + rank.getId() + " color"));
         builder.append(buildEditableProperty("Determiner", rank.getDeterminer(), "/rankconfig set " + rank.getId() + " determiner"));
         builder.append(buildEditableProperty("Is Admin", String.valueOf(rank.isAdmin()), "/rankconfig set " + rank.getId() + " admin"));
         builder.append(buildEditableProperty("Console Only", String.valueOf(rank.isConsoleOnly()), "/rankconfig set " + rank.getId() + " console"));
+        builder.append(buildEditableProperty("Inherit From", rank.getInheritFrom() != null ? rank.getInheritFrom() : "(none)", "/rankconfig set " + rank.getId() + " inherit"));
         
         builder.append(Component.text("\n"));
         
@@ -829,45 +996,35 @@ public class RankManager extends FreedomService
     {
         if (!(sender instanceof Player))
         {
-            return getRank(sender); // Consoles don't have display ranks
+            Rank rank = getRank(sender);
+            CustomRank custom = getCustomRankForLegacy(rank);
+            return custom != null ? custom : rank;
         }
 
         final Player player = (Player) sender;
 
-        // Display impostors
         if (plugin.al.isAdminImpostor(player))
         {
-            return Rank.IMPOSTOR;
+            CustomRank impostorRank = getCustomRank("impostor");
+            return impostorRank != null ? impostorRank : Rank.IMPOSTOR;
         }
 
-        // Developers always show up
         if (FUtil.DEVELOPERS.contains(player.getName()))
         {
-            return Title.DEVELOPER;
+            CustomRank devRank = getCustomRank("developer");
+            if (devRank != null) return devRank;
         }
 
         final Rank rank = getRank(player);
 
-        // Non-admins don't have titles, display actual rank
-        if (!rank.isAdmin())
-        {
-            return rank;
-        }
-
-        // If the player's an owner, display that
         if (ConfigEntry.SERVER_OWNERS.getList().contains(player.getName()))
         {
-            return Title.OWNER;
+            CustomRank ownerRank = getCustomRank("owner");
+            if (ownerRank != null) return ownerRank;
         }
 
-        // Check for custom title in Admin entry
-        Admin admin = plugin.al.getAdmin(player);
-        if (admin != null && admin.getTitle() != null)
-        {
-            return admin.getTitle();
-        }
-
-        return rank;
+        CustomRank customRank = getCustomRankForLegacy(rank);
+        return customRank != null ? customRank : rank;
     }
 
     public Rank getRank(CommandSender sender)

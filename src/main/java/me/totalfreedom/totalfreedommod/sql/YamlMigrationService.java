@@ -272,7 +272,7 @@ public class YamlMigrationService
                 permban.setReason("Migrated from permbans.yml");
 
                 // Generate UUID for name
-                permban.setUuid(FUtil.nameToUUID(name));
+                permban.setUuid(FUtil.usernameToUuid(name));
 
                 repo.save(permban).join();
                 migrated.incrementAndGet();
@@ -296,7 +296,7 @@ public class YamlMigrationService
     private UUID generateUuidForAdmin(Admin admin)
     {
         // Try to get UUID by name from Mojang/cache
-        UUID uuid = FUtil.nameToUUID(admin.getName());
+        UUID uuid = FUtil.usernameToUuid(admin.getName());
         if (uuid != null)
         {
             return uuid;

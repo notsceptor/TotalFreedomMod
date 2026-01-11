@@ -17,10 +17,6 @@ server:
   # Every word in the MOTD will be a different color unless prefixed by a color code
   colorful_motd: true
 
-  # All players who show up as owner
-  owners:
-    - hultschin
-
   # URL players should appeal for bans at
   ban_url: https://tfreedom.org/appeal/
 
@@ -427,17 +423,3 @@ chat:
     max_message_length: 256
     # Notifies a player when their message is truncated in length
     notify_truncated: true
-  
-  prefix:
-    # Configurable rank prefixes (supports & color codes)
-    # Leave empty ("") to display no prefix
-    impostor: "&8[&eImp&8] "
-    non_op: ""
-    op: "&8[&cOP&8] "
-    super_admin: "&8[&bSA&8] "
-    telnet_admin: "&8[&2STA&8] "
-    senior_admin: "&8[&6SrA&8] "
-    telnet_console: "&8[&5Console&8] "
-    senior_console: "&8[&5Console&8] "
-    developer: "&8[&5Dev&8] "
-    owner: "&8[&9Owner&8] "

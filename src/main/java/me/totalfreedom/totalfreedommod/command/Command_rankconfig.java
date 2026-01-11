@@ -368,6 +368,43 @@ public class Command_rankconfig extends FreedomCommand
                 }, 60);
                 return true;
 
+            case "prefix":
+                prompt = Component.text("Enter the new prefix (e.g., &8[&6SrA&8] ):").color(NamedTextColor.YELLOW)
+                        .append(Component.text("\n(Use & color codes, include trailing space if desired)").color(NamedTextColor.GRAY));
+                rm.getChatInputHandler().awaitInput(player, prompt, input -> {
+                    rank.setPrefix(input);
+                    rm.setCustomRank(rank);
+                    player.sendMessage(Component.text("Prefix updated to: " + input).color(NamedTextColor.GREEN));
+                    player.sendMessage(rm.buildEditMenu(rank));
+                }, 60);
+                return true;
+
+            case "inherit":
+                prompt = Component.text("Enter the rank ID to inherit from (or 'none' to remove):").color(NamedTextColor.YELLOW);
+                rm.getChatInputHandler().awaitInput(player, prompt, input -> {
+                    if (input.equalsIgnoreCase("none") || input.isEmpty())
+                    {
+                        rank.setInheritFrom(null);
+                    }
+                    else
+                    {
+                        if (rm.hasCustomRank(input))
+                        {
+                            rank.setInheritFrom(input.toLowerCase());
+                        }
+                        else
+                        {
+                            player.sendMessage(Component.text("Rank '" + input + "' does not exist!").color(NamedTextColor.RED));
+                            player.sendMessage(rm.buildEditMenu(rank));
+                            return;
+                        }
+                    }
+                    rm.setCustomRank(rank);
+                    player.sendMessage(Component.text("Inheritance updated").color(NamedTextColor.GREEN));
+                    player.sendMessage(rm.buildEditMenu(rank));
+                }, 60);
+                return true;
+
             case "addperm":
                 prompt = Component.text("Enter the permission to add (e.g., tfm.admin.ban):").color(NamedTextColor.YELLOW);
                 rm.getChatInputHandler().awaitInput(player, prompt, input -> {
@@ -380,7 +417,7 @@ public class Command_rankconfig extends FreedomCommand
 
             default:
                 player.sendMessage(Component.text("Unknown property: " + property).color(NamedTextColor.RED));
-                player.sendMessage(Component.text("Valid properties: name, abbreviation, level, color, determiner, admin, console, addperm").color(NamedTextColor.GRAY));
+                player.sendMessage(Component.text("Valid properties: name, abbreviation, prefix, level, color, determiner, admin, console, inherit, addperm").color(NamedTextColor.GRAY));
                 return true;
         }
     }
@@ -427,6 +464,26 @@ public class Command_rankconfig extends FreedomCommand
 
             case "console":
                 rank.setConsoleOnly(value.equalsIgnoreCase("true") || value.equalsIgnoreCase("yes"));
+                break;
+
+            case "prefix":
+                rank.setPrefix(value);
+                break;
+
+            case "inherit":
+                if (value.equalsIgnoreCase("none") || value.isEmpty())
+                {
+                    rank.setInheritFrom(null);
+                }
+                else
+                {
+                    if (!rm.hasCustomRank(value))
+                    {
+                        msg("Rank '" + value + "' does not exist!", NamedTextColor.RED);
+                        return true;
+                    }
+                    rank.setInheritFrom(value.toLowerCase());
+                }
                 break;
 
             case "addperm":

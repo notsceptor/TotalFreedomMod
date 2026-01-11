@@ -81,6 +81,21 @@ public class CustomRank implements Displayable, Comparable<CustomRank>
      */
     private String playerVariantId = null;
     
+    /**
+     * Custom prefix string for chat display (e.g., "&8[&6SrA&8] ").
+     */
+    private String prefix = null;
+    
+    /**
+     * ID of parent rank to inherit permissions from.
+     */
+    private String inheritFrom = null;
+    
+    /**
+     * Flattened permissions including inherited permissions.
+     */
+    private Set<String> resolvedPermissions = new HashSet<>();
+    
     // Cached components for performance
     private transient Component cachedColoredTag;
     private transient Component cachedColoredName;
@@ -147,6 +162,8 @@ public class CustomRank implements Displayable, Comparable<CustomRank>
         this.consoleOnly = cs.getBoolean("console_only", false);
         this.consoleVariantId = cs.getString("console_variant", null);
         this.playerVariantId = cs.getString("player_variant", null);
+        this.prefix = cs.getString("prefix", null);
+        this.inheritFrom = cs.getString("inherit", null);
         
         this.permissions.clear();
         if (cs.contains("permissions"))
@@ -171,6 +188,8 @@ public class CustomRank implements Displayable, Comparable<CustomRank>
         cs.set("console_only", consoleOnly);
         cs.set("console_variant", consoleVariantId);
         cs.set("player_variant", playerVariantId);
+        cs.set("prefix", prefix);
+        cs.set("inherit", inheritFrom);
         cs.set("permissions", permissions.isEmpty() ? null : permissions.stream().toList());
     }
     
@@ -216,13 +235,9 @@ public class CustomRank implements Displayable, Comparable<CustomRank>
     // Permission Methods
     // ========================================================================
     
-    /**
-     * Check if this rank has a specific permission.
-     * This checks both explicit permissions and inherited permissions based on level.
-     */
     public boolean hasPermission(String permission)
     {
-        return permissions.contains(permission) || permissions.contains("*");
+        return resolvedPermissions.contains(permission) || resolvedPermissions.contains("*");
     }
     
     /**
@@ -438,5 +453,44 @@ public class CustomRank implements Displayable, Comparable<CustomRank>
     public String getPlayerVariantId()
     {
         return playerVariantId;
+    }
+    
+    public String getPrefix()
+    {
+        return prefix;
+    }
+    
+    public void setPrefix(String prefix)
+    {
+        this.prefix = prefix;
+    }
+    
+    public String getFormattedPrefix()
+    {
+        if (prefix == null || prefix.isEmpty())
+        {
+            return "";
+        }
+        return org.bukkit.ChatColor.translateAlternateColorCodes('&', prefix);
+    }
+    
+    public String getInheritFrom()
+    {
+        return inheritFrom;
+    }
+    
+    public void setInheritFrom(String inheritFrom)
+    {
+        this.inheritFrom = inheritFrom;
+    }
+    
+    public Set<String> getResolvedPermissions()
+    {
+        return resolvedPermissions;
+    }
+    
+    public void setResolvedPermissions(Set<String> resolvedPermissions)
+    {
+        this.resolvedPermissions = resolvedPermissions;
     }
 }
