@@ -9,7 +9,7 @@ import org.bukkit.Chunk;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 
-@CommandPermissions(level = Rank.SUPER_ADMIN, source = SourceType.BOTH)
+@CommandPermissions(level = Rank.SUPER_ADMIN, source = SourceType.BOTH, permission = "tfm.server.unloadchunks")
 @CommandParameters(description = "Unloads chunks not currently in use", usage = "/<command>", aliases = "rc")
 public class Command_unloadchunks extends FreedomCommand {
 

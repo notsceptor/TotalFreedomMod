@@ -7,7 +7,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-@CommandPermissions(level = Rank.OP, source = SourceType.BOTH)
+@CommandPermissions(level = Rank.OP, source = SourceType.BOTH, permission = "tfm.player.ops")
 @CommandParameters(description = "Manager operators", usage = "/<command> <count | purge>")
 public class Command_ops extends FreedomCommand
 {

@@ -233,7 +233,7 @@ public class AdminList extends FreedomService
                 if (uuid == null)
                 {
                     // Generate UUID if not present
-                    uuid = FUtil.nameToUUID(admin.getName());
+                    uuid = FUtil.usernameToUuid(admin.getName());
                     if (uuid == null)
                     {
                         uuid = UUID.nameUUIDFromBytes(("OfflinePlayer:" + admin.getName().toLowerCase()).getBytes());
@@ -463,7 +463,7 @@ public class AdminList extends FreedomService
             UUID uuid = admin.getUuid();
             if (uuid == null)
             {
-                uuid = FUtil.nameToUUID(admin.getName());
+                uuid = FUtil.usernameToUuid(admin.getName());
                 if (uuid == null)
                 {
                     uuid = UUID.nameUUIDFromBytes(("OfflinePlayer:" + admin.getName().toLowerCase()).getBytes());

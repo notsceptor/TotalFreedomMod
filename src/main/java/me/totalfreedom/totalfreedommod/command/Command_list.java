@@ -15,7 +15,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-@CommandPermissions(level = Rank.IMPOSTOR, source = SourceType.BOTH)
+@CommandPermissions(level = Rank.IMPOSTOR, source = SourceType.BOTH, permission = "tfm.player.list")
 @CommandParameters(description = "Lists the real names of all online players.", usage = "/<command> [-a | -i | -f]", aliases = "who")
 public class Command_list extends FreedomCommand
 {

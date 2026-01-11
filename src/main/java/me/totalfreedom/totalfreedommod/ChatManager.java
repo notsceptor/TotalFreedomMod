@@ -346,6 +346,12 @@ public class ChatManager extends FreedomService
 	 * Returns null if not configured (will use default).
 	 */
 	private String getConfigPrefix(me.totalfreedom.totalfreedommod.rank.Displayable display) {
+		if (display instanceof me.totalfreedom.totalfreedommod.rank.CustomRank) {
+			me.totalfreedom.totalfreedommod.rank.CustomRank custom = (me.totalfreedom.totalfreedommod.rank.CustomRank) display;
+			if (custom.getPrefix() != null && !custom.getPrefix().isEmpty()) {
+				return custom.getPrefix();
+			}
+		}
 		if (display instanceof me.totalfreedom.totalfreedommod.rank.Rank) {
 			me.totalfreedom.totalfreedommod.rank.Rank rank = (me.totalfreedom.totalfreedommod.rank.Rank) display;
 			switch (rank) {
@@ -365,16 +371,6 @@ public class ChatManager extends FreedomService
 					return ConfigEntry.VAULT_PREFIX_TELNET_CONSOLE.getString();
 				case SENIOR_CONSOLE:
 					return ConfigEntry.VAULT_PREFIX_SENIOR_CONSOLE.getString();
-				default:
-					return null;
-			}
-		} else if (display instanceof me.totalfreedom.totalfreedommod.rank.Title) {
-			me.totalfreedom.totalfreedommod.rank.Title title = (me.totalfreedom.totalfreedommod.rank.Title) display;
-			switch (title) {
-				case DEVELOPER:
-					return ConfigEntry.VAULT_PREFIX_DEVELOPER.getString();
-				case OWNER:
-					return ConfigEntry.VAULT_PREFIX_OWNER.getString();
 				default:
 					return null;
 			}

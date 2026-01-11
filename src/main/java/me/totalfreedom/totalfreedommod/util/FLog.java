@@ -14,6 +14,12 @@ public class FLog
     {
     }
 
+    // Level.FINE (debug):
+    public static void debug(String message)
+    {
+        log(Level.FINE, message, false);
+    }
+
     // Level.INFO:
     public static void info(String message)
     {

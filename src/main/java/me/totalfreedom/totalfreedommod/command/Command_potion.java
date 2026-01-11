@@ -12,7 +12,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
-@CommandPermissions(level = Rank.OP, source = SourceType.BOTH)
+@CommandPermissions(level = Rank.OP, source = SourceType.BOTH, permission = "tfm.player.potion")
 @CommandParameters(
         description = "Manipulate potion effects. Duration is measured in server ticks (~20 ticks per second).",
         usage = "/<command> <list | clear [target name] | add <type> <duration> <amplifier> [target name]>")

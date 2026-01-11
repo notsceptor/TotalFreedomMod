@@ -9,7 +9,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-@CommandPermissions(level = Rank.NON_OP, source = SourceType.BOTH)
+@CommandPermissions(level = Rank.NON_OP, source = SourceType.BOTH, permission = "tfm.server.status")
 @CommandParameters(description = "Show misc. server info.", usage = "/<command>")
 public class Command_status extends FreedomCommand
 {

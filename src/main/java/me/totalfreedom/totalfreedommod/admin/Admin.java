@@ -7,7 +7,6 @@ import java.util.UUID;
 import me.totalfreedom.totalfreedommod.LogViewer.LogsRegistrationMode;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.rank.Rank;
-import me.totalfreedom.totalfreedommod.rank.Title;
 import me.totalfreedom.totalfreedommod.util.ConfigInterfaces.ConfigLoadable;
 import me.totalfreedom.totalfreedommod.util.ConfigInterfaces.ConfigSavable;
 import me.totalfreedom.totalfreedommod.util.ConfigInterfaces.Validatable;
@@ -25,7 +24,6 @@ public class Admin implements ConfigLoadable, ConfigSavable, Validatable
     private String name;
     private boolean active = true;
     private Rank rank = Rank.SUPER_ADMIN;
-    private Title title = null;
     private final List<String> ips = Lists.newArrayList();
     private Date lastLogin = new Date();
     private String loginMessage = null;
@@ -53,7 +51,6 @@ public class Admin implements ConfigLoadable, ConfigSavable, Validatable
                 .append("- Last Login: ").append(FUtil.dateToString(lastLogin)).append("\n")
                 .append("- Custom Login Message: ").append(loginMessage).append("\n")
                 .append("- Rank: ").append(rank.getName()).append("\n")
-                .append("- Title: ").append(title != null ? title.getName() : "None").append("\n")
                 .append("- Is Active: ").append(active);
 
         return output.toString();
@@ -74,19 +71,6 @@ public class Admin implements ConfigLoadable, ConfigSavable, Validatable
         active = cs.getBoolean("active", true);
         rank = Rank.findRank(cs.getString("rank"));
 
-        String titleStr = cs.getString("title");
-        if (titleStr != null)
-        {
-            try
-            {
-                title = Title.valueOf(titleStr.toUpperCase());
-            }
-            catch (Exception ignored)
-            {
-                title = null;
-            }
-        }
-
         ips.clear();
         ips.addAll(cs.getStringList("ips"));
         lastLogin = FUtil.stringToDate(cs.getString("last_login"));
@@ -100,14 +84,6 @@ public class Admin implements ConfigLoadable, ConfigSavable, Validatable
         cs.set("username", name);
         cs.set("active", active);
         cs.set("rank", rank.toString());
-        if (title != null)
-        {
-            cs.set("title", title.toString());
-        }
-        else
-        {
-            cs.set("title", "none");
-        }
         cs.set("ips", Lists.newArrayList(ips));
         cs.set("last_login", FUtil.dateToString(lastLogin));
         cs.set("login_message", loginMessage);
@@ -169,11 +145,6 @@ public class Admin implements ConfigLoadable, ConfigSavable, Validatable
         return rank;
     }
 
-    public Title getTitle()
-    {
-        return title;
-    }
-
     public String getName()
     {
         return name;
@@ -217,11 +188,6 @@ public class Admin implements ConfigLoadable, ConfigSavable, Validatable
     public void setRank(Rank rank)
     {
         this.rank = rank;
-    }
-
-    public void setTitle(Title title)
-    {
-        this.title = title;
     }
 
     public void setLoginMessage(String loginMessage)

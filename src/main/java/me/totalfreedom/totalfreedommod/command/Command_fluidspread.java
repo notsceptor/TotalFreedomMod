@@ -6,7 +6,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-@CommandPermissions(level = Rank.SUPER_ADMIN, source = SourceType.BOTH)
+@CommandPermissions(level = Rank.SUPER_ADMIN, source = SourceType.BOTH, permission = "tfm.server.fluidspread")
 @CommandParameters(description = "Enable/disable fluid spread.", usage = "/<command> <on | off>")
 public class Command_fluidspread extends FreedomCommand
 {

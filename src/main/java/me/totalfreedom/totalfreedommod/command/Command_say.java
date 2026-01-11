@@ -8,7 +8,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-@CommandPermissions(level = Rank.SUPER_ADMIN, source = SourceType.BOTH)
+@CommandPermissions(level = Rank.SUPER_ADMIN, source = SourceType.BOTH, permission = "tfm.admin.say")
 @CommandParameters(description = "Broadcasts the given message as the console, includes sender name.", usage = "/<command> <message>")
 public class Command_say extends FreedomCommand
 {

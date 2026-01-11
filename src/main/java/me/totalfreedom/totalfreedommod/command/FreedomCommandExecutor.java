@@ -138,6 +138,19 @@ public class FreedomCommandExecutor implements CommandExecutor
             return false;
         }
 
+        // Check TFM permission if specified (custom rank system)
+        String tfmPermission = perms.permission();
+        if (tfmPermission != null && !tfmPermission.isEmpty())
+        {
+            boolean result = plugin.rm.hasPermission(sender, tfmPermission);
+            if (!result && sendMsg)
+            {
+                sender.sendMessage(handler.getPermissionMessage());
+            }
+            return result;
+        }
+
+        // Fallback to legacy rank level check
         // Player permissions
         if (player != null)
         {
