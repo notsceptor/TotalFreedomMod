@@ -468,22 +468,9 @@ public class RankManager extends FreedomService
             CustomRank customRank = getCustomRankForLegacy(admin.getRank());
             if (customRank != null)
             {
-                // Check explicit permission
-                if (customRank.hasPermission(permission))
+                if (hasCustomRankPermission(customRank, permission))
                 {
                     return true;
-                }
-                
-                // Check wildcard permissions
-                String[] parts = permission.split("\\.");
-                StringBuilder wildcard = new StringBuilder();
-                for (int i = 0; i < parts.length - 1; i++)
-                {
-                    wildcard.append(parts[i]).append(".");
-                    if (customRank.hasPermission(wildcard + "*"))
-                    {
-                        return true;
-                    }
                 }
             }
             
@@ -496,7 +483,28 @@ public class RankManager extends FreedomService
         CustomRank opRank = getCustomRank("op");
         if (player.isOp() && opRank != null)
         {
-            return opRank.hasPermission(permission);
+            return hasCustomRankPermission(opRank, permission);
+        }
+        
+        return false;
+    }
+    
+    private boolean hasCustomRankPermission(CustomRank rank, String permission)
+    {
+        if (rank.hasPermission(permission))
+        {
+            return true;
+        }
+        
+        String[] parts = permission.split("\\.");
+        StringBuilder wildcard = new StringBuilder();
+        for (int i = 0; i < parts.length - 1; i++)
+        {
+            wildcard.append(parts[i]).append(".");
+            if (rank.hasPermission(wildcard + "*"))
+            {
+                return true;
+            }
         }
         
         return false;
