@@ -33,6 +33,11 @@ adminlist:
   # Handy in development environments.
   console_is_senior: true
 
+  # When true (default), TFM resolves unknown usernames to premium UUIDs via Mojang's public HTTP API
+  # when saving admins or migrating data. Set to false only on networks with no outbound access or a
+  # policy against Mojang calls; premium UUIDs must then be set manually or admins added while online,
+  mojang_uuid_lookup: true
+
 # ForceIP configuration
 forceip:
   enabled: false

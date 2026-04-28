@@ -114,6 +114,12 @@ public class SQLiteAdminRepository implements AdminRepository
                 admin.setLastLogin(FUtil.stringToDate(lastLoginStr));
                 admin.setLoginMessage(loginMessage);
 
+                UUID dbUuid = FUtil.parseUuid(rs.getString("uuid"));
+                if (dbUuid != null)
+                {
+                    admin.setUuid(dbUuid);
+                }
+
                 admins.put(configKey, admin);
                 adminById.put(id, admin);
             }
@@ -156,7 +162,6 @@ public class SQLiteAdminRepository implements AdminRepository
     @Override
     public Admin findByUsername(String username) throws SQLException
     {
-        // SQLite: case-insensitive with LOWER()
         String sql = "SELECT id, uuid, username, rank, active, last_login, login_message FROM admins WHERE LOWER(username) = LOWER(?)";
         try (PreparedStatement stmt = statementHandler.prepareStatement(sql, username);
              ResultSet rs = stmt.executeQuery())
@@ -473,6 +478,12 @@ public class SQLiteAdminRepository implements AdminRepository
         admin.setActive(active);
         admin.setLastLogin(FUtil.stringToDate(lastLoginStr));
         admin.setLoginMessage(loginMessage);
+
+        UUID dbUuid = FUtil.parseUuid(rs.getString("uuid"));
+        if (dbUuid != null)
+        {
+            admin.setUuid(dbUuid);
+        }
 
         List<String> ips = getIps(id);
         admin.addIps(ips);

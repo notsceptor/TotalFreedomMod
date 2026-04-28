@@ -470,11 +470,10 @@ public class FUtil
     private static final Map<String, UUID> UUID_CACHE = new HashMap<>();
 
     /**
-     * Converts a username to a UUID by querying the Mojang API.
-     * Results are cached to reduce API calls.
+     * Converts a username to a UUID: online players first, then Mojang HTTP if {@code adminlist.mojang_uuid_lookup} is true.
      *
      * @param username The player's username
-     * @return The player's UUID, or null if not found or an error occurred
+     * @return The player's UUID, or null if not found, Mojang lookup disabled, or an error occurred
      */
     public static UUID usernameToUuid(String username)
     {
@@ -498,15 +497,12 @@ public class FUtil
             return onlinePlayer.getUniqueId();
         }
 
-        // Check offline player cache
-        OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(username);
-        if (offlinePlayer.hasPlayedBefore())
+        Boolean mojangLookup = ConfigEntry.ADMINLIST_MOJANG_UUID_LOOKUP.getBoolean();
+        if (Boolean.FALSE.equals(mojangLookup))
         {
-            UUID_CACHE.put(lowerName, offlinePlayer.getUniqueId());
-            return offlinePlayer.getUniqueId();
+            return null;
         }
 
-        // Query Mojang API
         try
         {
             URL url = new URL(MOJANG_API_URL + username);

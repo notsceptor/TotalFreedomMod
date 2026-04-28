@@ -114,6 +114,12 @@ public class MySQLAdminRepository implements AdminRepository
                 admin.setLastLogin(FUtil.stringToDate(lastLoginStr));
                 admin.setLoginMessage(loginMessage);
 
+                UUID dbUuid = FUtil.parseUuid(rs.getString("uuid"));
+                if (dbUuid != null)
+                {
+                    admin.setUuid(dbUuid);
+                }
+
                 admins.put(configKey, admin);
                 adminById.put(id, admin);
             }
@@ -473,6 +479,12 @@ public class MySQLAdminRepository implements AdminRepository
         admin.setActive(active);
         admin.setLastLogin(FUtil.stringToDate(lastLoginStr));
         admin.setLoginMessage(loginMessage);
+
+        UUID dbUuid = FUtil.parseUuid(rs.getString("uuid"));
+        if (dbUuid != null)
+        {
+            admin.setUuid(dbUuid);
+        }
 
         List<String> ips = getIps(id);
         admin.addIps(ips);
