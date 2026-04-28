@@ -165,6 +165,27 @@ blocked_commands:
   - 's:a:/stop:_'
   - 's:a:/restart:_'
 
+# Block server-side commands (command blocks / command minecarts / @ feedback sources).
+server_command_blocker:
+  enabled: true
+  block_at_named_senders: true
+  block_command_block_holders: true
+  # Case-insensitive substring matches against the raw command string (without a leading slash).
+  blocked_substrings:
+    - 'tp '
+    - 'teleport '
+    - 'execute '
+    - 'save-all'
+    - 'save-on'
+    - 'save-off'
+    - 'stop'
+    - 'restart'
+    - 'kill '
+  # If true, emits an occasional WARNING when commands are blocked (rate-limited).
+  log_throttled_warnings: false
+  # 20 ticks = 1 second
+  log_interval_ticks: 1200
+
 # Automatically wipe dropped objects
 auto_wipe: true
 

@@ -11,15 +11,19 @@ import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import org.bukkit.command.SimpleCommandMap;
-import me.totalfreedom.totalfreedommod.util.FUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandMap;
+import org.bukkit.command.BlockCommandSender;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.ConsoleCommandSender;
+import org.bukkit.command.RemoteConsoleCommandSender;
+import org.bukkit.entity.minecart.CommandMinecart;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
+import org.bukkit.event.server.ServerCommandEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
+import org.bukkit.entity.Player;
 
 public class CommandBlocker extends FreedomService
 {
@@ -28,6 +32,9 @@ public class CommandBlocker extends FreedomService
     //
     private final Map<String, CommandBlockerEntry> entryList = Maps.newHashMap();
     private final List<String> unknownCommands = Lists.newArrayList();
+    private List<String> serverCommandBlockedSubstrings = Lists.newArrayList();
+    private long lastServerCommandBlockWarningTick = 0L;
+    private long blockedServerCommandsSinceLastWarning = 0L;
 
     public CommandBlocker(TotalFreedomMod plugin)
     {
@@ -50,6 +57,7 @@ public class CommandBlocker extends FreedomService
     {
         entryList.clear();
         unknownCommands.clear();
+        loadServerCommandBlockerConfig();
 
         final CommandMap commandMap = getCommandMap();
         if (commandMap == null)
@@ -124,6 +132,29 @@ public class CommandBlocker extends FreedomService
         FLog.info("Loaded " + blockedCommands.size() + " blocked commands (" + (blockedCommands.size() - unknownCommands.size()) + " known).");
     }
 
+    private void loadServerCommandBlockerConfig()
+    {
+        serverCommandBlockedSubstrings = Lists.newArrayList();
+
+        @SuppressWarnings("unchecked")
+        List<String> blockedSubstrings = (List<String>) ConfigEntry.BLOCK_SERVER_COMMANDS_BLOCKED_SUBSTRINGS.getList();
+        if (blockedSubstrings != null)
+        {
+            for (String token : blockedSubstrings)
+            {
+                if (token == null)
+                {
+                    continue;
+                }
+                final String trimmed = token.trim();
+                if (!trimmed.isEmpty())
+                {
+                    serverCommandBlockedSubstrings.add(trimmed.toLowerCase());
+                }
+            }
+        }
+    }
+
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerCommandPreprocess(PlayerCommandPreprocessEvent event)
     {
@@ -133,6 +164,95 @@ public class CommandBlocker extends FreedomService
             // CommandBlocker handles messages and broadcasts
             event.setCancelled(true);
         }
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onServerCommand(ServerCommandEvent event)
+    {
+        if (!Boolean.TRUE.equals(ConfigEntry.BLOCK_SERVER_COMMANDS_ENABLED.getBoolean()))
+        {
+            return;
+        }
+
+        final CommandSender sender = event.getSender();
+        if (sender instanceof Player)
+        {
+            return;
+        }
+        if (sender instanceof ConsoleCommandSender || sender instanceof RemoteConsoleCommandSender)
+        {
+            return;
+        }
+
+        final boolean blockAtNamedSenders = Boolean.TRUE.equals(ConfigEntry.BLOCK_SERVER_COMMANDS_BLOCK_AT_NAMED_SENDERS.getBoolean());
+        final boolean blockCommandBlockHolders = Boolean.TRUE.equals(ConfigEntry.BLOCK_SERVER_COMMANDS_BLOCK_COMMAND_BLOCK_HOLDERS.getBoolean());
+
+        final boolean isAtNamedSender = "@".equals(sender.getName());
+        final boolean isCommandBlockHolder = sender instanceof BlockCommandSender || sender instanceof CommandMinecart;
+
+        final boolean shouldApply =
+                (blockAtNamedSenders && isAtNamedSender)
+                        || (blockCommandBlockHolders && isCommandBlockHolder);
+
+        if (!shouldApply)
+        {
+            return;
+        }
+
+        final String rawCommand = event.getCommand();
+        if (rawCommand == null || rawCommand.isEmpty())
+        {
+            return;
+        }
+
+        if (!matchesServerCommandBlocklist(rawCommand))
+        {
+            return;
+        }
+
+        event.setCancelled(true);
+
+        if (Boolean.TRUE.equals(ConfigEntry.BLOCK_SERVER_COMMANDS_LOG_THROTTLED_WARNINGS.getBoolean()))
+        {
+            blockedServerCommandsSinceLastWarning++;
+
+            final long intervalTicks = Math.max(1, ConfigEntry.BLOCK_SERVER_COMMANDS_LOG_INTERVAL_TICKS.getInteger());
+            final long nowTick = server.getCurrentTick();
+            if (lastServerCommandBlockWarningTick == 0L || nowTick - lastServerCommandBlockWarningTick >= intervalTicks)
+            {
+                FLog.warning("[TFM] Blocked " + blockedServerCommandsSinceLastWarning
+                        + " server-side command(s) from " + sender.getClass().getSimpleName()
+                        + " (\"" + sender.getName() + "\"). Last: " + rawCommand);
+
+                lastServerCommandBlockWarningTick = nowTick;
+                blockedServerCommandsSinceLastWarning = 0L;
+            }
+        }
+    }
+
+    private boolean matchesServerCommandBlocklist(String command)
+    {
+        if (serverCommandBlockedSubstrings.isEmpty())
+        {
+            return false;
+        }
+
+        String normalized = command.trim();
+        if (normalized.startsWith("/"))
+        {
+            normalized = normalized.substring(1);
+        }
+        normalized = normalized.toLowerCase();
+
+        for (String token : serverCommandBlockedSubstrings)
+        {
+            if (normalized.contains(token))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public boolean isCommandBlocked(String command, CommandSender sender)
