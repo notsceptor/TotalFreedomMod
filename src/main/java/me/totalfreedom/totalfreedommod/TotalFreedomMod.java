@@ -1,6 +1,7 @@
 package me.totalfreedom.totalfreedommod;
 
 import me.totalfreedom.totalfreedommod.fun.Trailer;
+import me.totalfreedom.totalfreedommod.tablist.TabList;
 import java.io.File;
 import java.io.InputStream;
 import java.util.Properties;
@@ -97,6 +98,7 @@ public class TotalFreedomMod extends JavaPlugin
     public Trailer tr; // Trailer - Trailer functionality
     public HTTPDaemon hd; // HTTPDaemon - HTTP server for web interface
     public ServiceChecker sc; // ServiceChecker - Checks Mojang service status
+    public TabList tl; // TabList - Customizable tab list header, footer, and player names
     //
     // Bridges
     public ServiceManager<TotalFreedomMod> bridges;
@@ -206,6 +208,7 @@ public class TotalFreedomMod extends JavaPlugin
         // HTTPD
         hd = services.registerService(HTTPDaemon.class);
         sc = services.registerService(ServiceChecker.class);
+        tl = services.registerService(TabList.class);
         services.start();
 
         // Start bridges

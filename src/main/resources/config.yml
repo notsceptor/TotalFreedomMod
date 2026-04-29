@@ -449,3 +449,46 @@ chat:
     max_message_length: 256
     # Notifies a player when their message is truncated in length
     notify_truncated: true
+
+# Tab list
+tablist:
+  enabled: true
+
+  # Text displayed above the player list.
+  # Supports & color codes. Use | for multiline (YAML block scalar).
+  header: ""
+
+  # Text displayed below the player list. Supports color and multiline.
+  footer: ""
+
+  # Layout style. Options:
+  #   DYNAMIC_SIZE - Standard Minecraft behavior; all online players are listed.
+  #   FIXED_SIZE   - A fixed number of slots are reserved (see 'size' and 'columns' below).
+  type: DYNAMIC_SIZE
+
+  # (FIXED_SIZE) Total number of tab list slots.
+  size: 60
+
+  # (FIXED_SIZE) Number of columns (1-4).
+  columns: 3
+
+  # Template used to format each player's name in the tab list.
+  # Placeholders:
+  #   ${prefix}       - Player's rank prefix / custom tag (mirrors {PREFIX} in chat.format.message,
+  #                     including enforce_prefix and /tag behavior)
+  #   ${name}         - Player's real username
+  #   ${display_name} - Player's display name: nickname (if set via Essentials), otherwise the real
+  #                     username. When a nickname is set, display_nickname_prefix is automatically
+  #                     prepended.
+  #   ${afk_tag}      - Replaced with the afk_tag value below when the player is AFK; empty otherwise
+  player_component: "${afk_tag}${prefix}${display_name}"
+
+  # Text prepended to ${display_name} when the player has a nickname set in Essentials.
+  display_nickname_prefix: "&7~&r"
+
+  # Text value for ${afk_tag} when the player is AFK (requires EssentialsX).
+  afk_tag: " &7[AFK]"
+
+  # How often (in ticks) the header, footer, and player names are refreshed.
+  # 20 ticks = 1 second.  Default is every 3 seconds.
+  update_interval: 60

@@ -122,7 +122,18 @@ public enum ConfigEntry
     VAULT_PREFIX_TELNET_CONSOLE(String.class, "chat.prefix.telnet_console"),
     VAULT_PREFIX_SENIOR_CONSOLE(String.class, "chat.prefix.senior_console"),
     VAULT_PREFIX_DEVELOPER(String.class, "chat.prefix.developer"),
-    VAULT_PREFIX_OWNER(String.class, "chat.prefix.owner");
+    VAULT_PREFIX_OWNER(String.class, "chat.prefix.owner"),
+    //
+    TABLIST_ENABLED(Boolean.class, "tablist.enabled"),
+    TABLIST_HEADER(String.class, "tablist.header"),
+    TABLIST_FOOTER(String.class, "tablist.footer"),
+    TABLIST_TYPE(String.class, "tablist.type"),
+    TABLIST_SIZE(Integer.class, "tablist.size"),
+    TABLIST_COLUMNS(Integer.class, "tablist.columns"),
+    TABLIST_PLAYER_COMPONENT(String.class, "tablist.player_component"),
+    TABLIST_AFK_TAG(String.class, "tablist.afk_tag"),
+    TABLIST_DISPLAY_NICKNAME_PREFIX(String.class, "tablist.display_nickname_prefix"),
+    TABLIST_UPDATE_INTERVAL(Integer.class, "tablist.update_interval");
 
     //
     private final Class<?> type;

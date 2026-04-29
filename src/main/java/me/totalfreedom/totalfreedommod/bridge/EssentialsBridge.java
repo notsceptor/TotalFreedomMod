@@ -128,6 +128,27 @@ public class EssentialsBridge extends FreedomService
         return 0L;
     }
 
+    public boolean isAfk(String username)
+    {
+        try
+        {
+            final Object user = getEssentialsUser(username);
+            if (user != null)
+            {
+                Object result = user.getClass().getMethod("isAfk").invoke(user);
+                if (result instanceof Boolean)
+                {
+                    return (Boolean) result;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            FLog.severe(ex);
+        }
+        return false;
+    }
+
     public boolean isEssentialsEnabled()
     {
         try

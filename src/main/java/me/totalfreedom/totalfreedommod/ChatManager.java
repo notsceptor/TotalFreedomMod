@@ -379,6 +379,66 @@ public class ChatManager extends FreedomService
 	}
 
 	/**
+	 * Used by TabList so the same logic and config settings apply in chat and in the tab list.
+	 */
+	public String buildPlayerPrefix(Player player)
+	{
+		if (vaultChatProvider != null)
+		{
+			// ChatService already contains the full logic; just normalise § → &.
+			return vaultChatProvider.getPlayerPrefix(player).replace('§', '&');
+		}
+
+		me.totalfreedom.totalfreedommod.rank.Displayable display = plugin.rm.getDisplay(player);
+		String rankPrefix = "";
+
+		if (display != null)
+		{
+			String configPrefix = getConfigPrefix(display);
+			if (configPrefix != null && !configPrefix.isEmpty())
+			{
+				rankPrefix = ChatColor.translateAlternateColorCodes('&', configPrefix);
+			}
+			else
+			{
+				Component coloredTag = display.getColoredTag();
+				if (coloredTag != null && !coloredTag.equals(Component.empty()))
+				{
+					rankPrefix = AdventureUtil.componentToLegacySection(coloredTag);
+				}
+			}
+		}
+
+		String customTag = getPlayerCustomTag(player);
+		boolean enforcePrefix = Boolean.TRUE.equals(ConfigEntry.VAULT_CHAT_ENFORCE_PREFIX.getBoolean());
+
+		String formattedTag = null;
+		if (customTag != null && !customTag.isEmpty())
+		{
+			String tagTemplate = ConfigEntry.VAULT_CHAT_TAG.getString();
+			if (tagTemplate == null || tagTemplate.isEmpty())
+			{
+				tagTemplate = "&7{TAG} ";
+			}
+			formattedTag = ChatColor.translateAlternateColorCodes('&', tagTemplate).replace("{TAG}", customTag);
+		}
+
+		String result;
+		if (!enforcePrefix)
+		{
+			result = formattedTag != null ? formattedTag : rankPrefix;
+		}
+		else
+		{
+			result = formattedTag != null
+					? (!rankPrefix.isEmpty() ? rankPrefix + formattedTag : formattedTag)
+					: rankPrefix;
+		}
+
+		return result.replace('§', '&');
+	}
+
+	/**
 	 * Gets the player's suffix (currently returns an empty string).
 	 */
 	private String getPlayerSuffix(Player player) {
