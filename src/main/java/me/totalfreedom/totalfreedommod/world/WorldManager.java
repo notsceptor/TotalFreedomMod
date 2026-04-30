@@ -34,8 +34,11 @@ public class WorldManager extends FreedomService
     @Override
     protected void onStart()
     {
-        flatlands.getWorld();
-        adminworld.getWorld();
+        Bukkit.getScheduler().runTask(plugin, () ->
+        {
+            flatlands.getWorld();
+            adminworld.getWorld();
+        });
 
         // Disable weather
         if (ConfigEntry.DISABLE_WEATHER.getBoolean())
@@ -53,8 +56,10 @@ public class WorldManager extends FreedomService
     @Override
     protected void onStop()
     {
-        flatlands.getWorld().save();
-        adminworld.getWorld().save();
+        World fl = Bukkit.getWorld(flatlands.getName());
+        if (fl != null) fl.save();
+        World aw = Bukkit.getWorld(adminworld.getName());
+        if (aw != null) aw.save();
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)

@@ -2,6 +2,7 @@ name: TotalFreedomMod
 main: me.totalfreedom.totalfreedommod.TotalFreedomMod
 version: ${tfm.build.version}
 api-version: '1.21'
+load: STARTUP
 description: Plugin for the Total Freedom server.
 softdepend: [Vault, WorldEdit, TF-WorldEdit, BukkitTelnet, Essentials, LibsDisguises]
 authors: [Madgeek1450, Prozza]

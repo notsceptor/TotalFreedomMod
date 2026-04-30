@@ -2,6 +2,7 @@ package me.totalfreedom.totalfreedommod;
 
 import me.totalfreedom.totalfreedommod.fun.Trailer;
 import me.totalfreedom.totalfreedommod.tablist.TabList;
+import me.totalfreedom.totalfreedommod.world.CleanroomChunkGenerator;
 import java.io.File;
 import java.io.InputStream;
 import java.util.Properties;
@@ -20,6 +21,7 @@ import me.totalfreedom.totalfreedommod.bridge.LibsDisguisesBridge;
 import me.totalfreedom.totalfreedommod.bridge.WorldEditBridge;
 import me.totalfreedom.totalfreedommod.caging.Cager;
 import me.totalfreedom.totalfreedommod.command.CommandLoader;
+import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.config.MainConfig;
 import me.totalfreedom.totalfreedommod.freeze.Freezer;
 import me.totalfreedom.totalfreedommod.fun.ItemFun;
@@ -38,6 +40,7 @@ import me.totalfreedom.totalfreedommod.util.MethodTimer;
 import me.totalfreedom.totalfreedommod.framework.ServiceManager;
 import me.totalfreedom.totalfreedommod.world.WorldManager;
 import org.bukkit.Bukkit;
+import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -224,6 +227,26 @@ public class TotalFreedomMod extends JavaPlugin
 
         // Add spawnpoints later - https://github.com/TotalFreedom/TotalFreedomMod/issues/438
         getServer().getScheduler().runTaskLater(this, () -> pa.autoAddSpawnpoints(), 60L);
+    }
+
+    @Override
+    public ChunkGenerator getDefaultWorldGenerator(String worldName, String id)
+    {
+        if ("flatlands".equals(worldName))
+        {
+            String params;
+            if (config != null)
+            {
+                params = ConfigEntry.FLATLANDS_GENERATE_PARAMS.getString();
+            }
+            else
+            {
+                saveDefaultConfig();
+                params = getConfig().getString("flatlands.generate_params", "16|stone|32|dirt|1|grass_block");
+            }
+            return new CleanroomChunkGenerator(params);
+        }
+        return super.getDefaultWorldGenerator(worldName, id);
     }
 
     @Override
