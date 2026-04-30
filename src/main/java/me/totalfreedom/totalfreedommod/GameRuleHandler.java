@@ -34,7 +34,7 @@ public class GameRuleHandler extends FreedomService
         setGameRule(GameRule.MOB_GRIEFING, false, false);
         setGameRule(GameRule.COMMAND_BLOCK_OUTPUT, false);
         setGameRule(GameRule.NATURAL_REGENERATION, true, false);
-        commitGameRules();
+        Bukkit.getScheduler().runTask(plugin, this::commitGameRules);
     }
 
     @Override

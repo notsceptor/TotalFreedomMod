@@ -76,7 +76,7 @@ public class ProtectArea extends FreedomService
         }
 
         loadFromYaml(ymlFile);
-        cleanProtectedAreas();
+        Bukkit.getScheduler().runTask(plugin, this::cleanProtectedAreas);
     }
 
     @SuppressWarnings("unchecked")
