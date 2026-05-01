@@ -29,7 +29,6 @@ import org.bukkit.entity.ThrownPotion;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.entity.ItemSpawnEvent;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 
 public class EntityWiper extends FreedomService
@@ -70,15 +69,7 @@ public class EntityWiper extends FreedomService
             return;
         }
 
-        wipeTask = new BukkitRunnable()
-        {
-
-            @Override
-            public void run()
-            {
-                wipeEntities(false);
-            }
-        }.runTaskTimer(plugin, ENTITY_WIPE_RATE, ENTITY_WIPE_RATE);
+        wipeTask = plugin.getServer().getScheduler().runTaskTimer(plugin, () -> wipeEntities(false), ENTITY_WIPE_RATE, ENTITY_WIPE_RATE);
 
     }
 
@@ -177,15 +168,7 @@ public class EntityWiper extends FreedomService
     {
         final Item entity = event.getEntity();
 
-        new BukkitRunnable()
-        {
-
-            @Override
-            public void run()
-            {
-                entity.remove();
-            }
-        }.runTaskLater(plugin, ITEM_DESPAWN_RATE);
+        plugin.getServer().getScheduler().runTaskLater(plugin, entity::remove, ITEM_DESPAWN_RATE);
 
     }
 

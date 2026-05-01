@@ -13,7 +13,6 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerLoginEvent;
-import org.bukkit.scheduler.BukkitRunnable;
 
 public class LoginProcess extends FreedomService
 {
@@ -202,22 +201,18 @@ public class LoginProcess extends FreedomService
     {
         final Player player = event.getPlayer();
 
-        new BukkitRunnable()
+        plugin.getServer().getScheduler().runTaskLater(plugin, () ->
         {
-            @Override
-            public void run()
+            if (ConfigEntry.ADMIN_ONLY_MODE.getBoolean())
             {
-                if (ConfigEntry.ADMIN_ONLY_MODE.getBoolean())
-                {
-                    player.sendMessage(ChatColor.RED + "Server is currently closed to non-superadmins.");
-                }
-
-                if (lockdownEnabled)
-                {
-                    FUtil.playerMsg(player, "Warning: Server is currenty in lockdown-mode, new players will not be able to join!", ChatColor.RED);
-                }
+                player.sendMessage(ChatColor.RED + "Server is currently closed to non-superadmins.");
             }
-        }.runTaskLater(plugin, 20L * 1L);
+
+            if (lockdownEnabled)
+            {
+                FUtil.playerMsg(player, "Warning: Server is currenty in lockdown-mode, new players will not be able to join!", ChatColor.RED);
+            }
+        }, 20L);
     }
 
 }

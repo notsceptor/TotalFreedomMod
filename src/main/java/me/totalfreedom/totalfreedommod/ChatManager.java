@@ -11,12 +11,14 @@ import static me.totalfreedom.totalfreedommod.util.FUtil.playerMsg;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.serializer.ansi.ANSIComponentSerializer;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import io.papermc.paper.event.player.AsyncChatEvent;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
-import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.server.PluginEnableEvent;
 import org.bukkit.ChatColor;
 import org.bukkit.plugin.Plugin;
@@ -148,7 +150,7 @@ public class ChatManager extends FreedomService
 	}
 
 	@EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)
-	public void onPlayerChatFormat(AsyncPlayerChatEvent event) {
+	public void onPlayerChatFormat(AsyncChatEvent event) {
 		try {
 			handleChatEvent(event);
 		} catch (Exception ex) {
@@ -156,9 +158,9 @@ public class ChatManager extends FreedomService
 		}
 	}
 
-	private void handleChatEvent(AsyncPlayerChatEvent event) {
+	private void handleChatEvent(AsyncChatEvent event) {
 		final Player player = event.getPlayer();
-		String message = event.getMessage().trim();
+		String message = PlainTextComponentSerializer.plainText().serialize(event.message()).trim();
 
 		// Handle color and formatting codes based on config
 		boolean allowColors = ConfigEntry.VAULT_CHAT_ALLOW_COLOR_FORMATTING.getBoolean();
@@ -216,7 +218,10 @@ public class ChatManager extends FreedomService
 		}
 
 		// Finally, set message
-		event.setMessage(message);
+		final Component messageComponent = (allowColors || allowSpecial)
+			? LegacyComponentSerializer.legacySection().deserialize(message)
+			: Component.text(message);
+		event.message(messageComponent);
 
 		// If EssentialsChat is installed, let it handle formatting
 		if (essentialsChatInstalled) {
@@ -225,16 +230,11 @@ public class ChatManager extends FreedomService
 
 		// Only set format if EssentialsChat is not installed
 		// Get prefix (includes tag if present, based on enforce_prefix setting)
-		String prefix = "";
-		if (vaultChatProvider != null) {
-			prefix = vaultChatProvider.getPlayerPrefix(player);
-		} else {
-			prefix = getPlayerRankPrefix(player);
-		}
-		prefix = prefix.replace("%", "%%");
-		
-		String suffix = getPlayerSuffix(player).replace("%", "%%");
-		String worldName = player.getWorld().getName().replace("%", "%%");
+		String prefix = (vaultChatProvider != null)
+			? vaultChatProvider.getPlayerPrefix(player)
+			: getPlayerRankPrefix(player);
+		String suffix = getPlayerSuffix(player);
+		String worldName = player.getWorld().getName();
 
 		String formatTemplate = ConfigEntry.VAULT_CHAT_FORMAT.getString();
 
@@ -246,15 +246,65 @@ public class ChatManager extends FreedomService
 		formatTemplate = ChatColor.translateAlternateColorCodes('&', formatTemplate);
 
 		// Placeholders
-		String format = formatTemplate
-				.replace("{PREFIX}", prefix)
-				.replace("{SUFFIX}", suffix)
-				.replace("{DISPLAYNAME}", "%1$s")
-				.replace("{MESSAGE}", "%2$s")
-				.replace("{WORLD}", worldName)
-				.replace("{GROUP}", ""); // Groups not supported yet
+		final String finalTemplate = formatTemplate;
+		final String finalPrefix = prefix;
+		final String finalSuffix = suffix;
+		final String finalWorld = worldName;
 
-		event.setFormat(format);
+		event.renderer((source, sourceDisplayName, msg, viewer) ->
+			buildRenderedMessage(sourceDisplayName, msg, finalTemplate, finalPrefix, finalSuffix, finalWorld));
+	}
+
+	private Component buildRenderedMessage(Component sourceDisplayName, Component message,
+		String template, String prefix, String suffix, String worldName) {
+
+		String resolved = template
+			.replace("{PREFIX}", prefix)
+			.replace("{SUFFIX}", suffix)
+			.replace("{WORLD}", worldName)
+			.replace("{GROUP}", "");
+
+		int dnIdx = resolved.indexOf("{DISPLAYNAME}");
+		int msgIdx = resolved.indexOf("{MESSAGE}");
+
+		if (dnIdx < 0 && msgIdx < 0) {
+			return legacySection(resolved).append(message);
+		}
+
+		if (dnIdx >= 0 && msgIdx >= 0) {
+			if (dnIdx < msgIdx) {
+				return legacySection(resolved.substring(0, dnIdx))
+					.append(sourceDisplayName)
+					.append(legacySection(resolved.substring(dnIdx + "{DISPLAYNAME}".length(), msgIdx)))
+					.append(message)
+					.append(legacySection(resolved.substring(msgIdx + "{MESSAGE}".length())));
+			} else {
+				return legacySection(resolved.substring(0, msgIdx))
+					.append(message)
+					.append(legacySection(resolved.substring(msgIdx + "{MESSAGE}".length(), dnIdx)))
+					.append(sourceDisplayName)
+					.append(legacySection(resolved.substring(dnIdx + "{DISPLAYNAME}".length())));
+			}
+		}
+
+		if (dnIdx >= 0) {
+			return legacySection(resolved.substring(0, dnIdx))
+				.append(sourceDisplayName)
+				.append(legacySection(resolved.substring(dnIdx + "{DISPLAYNAME}".length())))
+				.append(message);
+		}
+
+		// msgIdx >= 0
+		return legacySection(resolved.substring(0, msgIdx))
+			.append(message)
+			.append(legacySection(resolved.substring(msgIdx + "{MESSAGE}".length())));
+	}
+
+	private static Component legacySection(String s) {
+		if (s == null || s.isEmpty()) {
+			return Component.empty();
+		}
+		return LegacyComponentSerializer.legacySection().deserialize(s);
 	}
 
 	public void adminChat(CommandSender sender, String message) {

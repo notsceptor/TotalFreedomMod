@@ -9,7 +9,6 @@ import org.bukkit.GameMode;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
 @CommandPermissions(level = Rank.SENIOR_ADMIN, source = SourceType.ONLY_CONSOLE, blockHostConsole = true, permission = "tfm.fun.doom")
@@ -77,34 +76,18 @@ public class Command_doom extends FreedomCommand
         // Shoot the player in the sky
         player.setVelocity(player.getVelocity().clone().add(new Vector(0, 20, 0)));
 
-        new BukkitRunnable()
+        plugin.getServer().getScheduler().runTaskLater(plugin, () ->
         {
-            @Override
-            public void run()
-            {
-                // strike lightning
-                player.getWorld().strikeLightning(player.getLocation());
+            player.getWorld().strikeLightning(player.getLocation());
+            player.setHealth(0.0);
+        }, 2L * 20L);
 
-                // kill (if not done already)
-                player.setHealth(0.0);
-            }
-        }.runTaskLater(plugin, 2L * 20L);
-
-        new BukkitRunnable()
+        plugin.getServer().getScheduler().runTaskLater(plugin, () ->
         {
-            @Override
-            public void run()
-            {
-                // message
-                FUtil.adminAction(sender.getName(), "Banning " + player.getName() + ", IP: " + ip, true);
-
-                // generate explosion
-                player.getWorld().createExplosion(player.getLocation(), 0F, false);
-
-                // kick player
-                player.kickPlayer(ChatColor.RED + "FUCKOFF, and get your shit together!");
-            }
-        }.runTaskLater(plugin, 3L * 20L);
+            FUtil.adminAction(sender.getName(), "Banning " + player.getName() + ", IP: " + ip, true);
+            player.getWorld().createExplosion(player.getLocation(), 0F, false);
+            player.kickPlayer(ChatColor.RED + "FUCKOFF, and get your shit together!");
+        }, 3L * 20L);
 
         return true;
     }

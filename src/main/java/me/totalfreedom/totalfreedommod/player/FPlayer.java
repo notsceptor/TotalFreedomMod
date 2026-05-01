@@ -286,15 +286,11 @@ public class FPlayer
         {
             return;
         }
-        unmuteTask = new BukkitRunnable()
+        unmuteTask = plugin.getServer().getScheduler().runTaskLater(plugin, () ->
         {
-            @Override
-            public void run()
-            {
-                FUtil.adminAction("TotalFreedom", "Unmuting " + getPlayer().getName(), false);
-                setMuted(false);
-            }
-        }.runTaskLater(plugin, AUTO_PURGE_TICKS);
+            FUtil.adminAction("TotalFreedom", "Unmuting " + getPlayer().getName(), false);
+            setMuted(false);
+        }, AUTO_PURGE_TICKS);
     }
 
     public BukkitTask getLockupScheduleID()

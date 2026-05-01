@@ -7,7 +7,6 @@ import org.bukkit.Sound;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitRunnable;
 
 @CommandPermissions(level = Rank.SENIOR_ADMIN, source = SourceType.BOTH, blockHostConsole = true, permission = "tfm.admin.senior.deafen")
 @CommandParameters(description = "Make some noise.", usage = "/<command>")
@@ -26,14 +25,9 @@ public class Command_deafen extends FreedomCommand
             {
                 final float pitch = (float) (percent * 2.0);
 
-                new BukkitRunnable()
-                {
-                    @Override
-                    public void run()
-                    {
-                        player.playSound(randomOffset(player.getLocation(), 5.0), Sound.values()[random.nextInt(Sound.values().length)], 100.0f, pitch);
-                    }
-                }.runTaskLater(plugin, Math.round(20.0 * percent * 2.0));
+                plugin.getServer().getScheduler().runTaskLater(plugin,
+                    () -> player.playSound(randomOffset(player.getLocation(), 5.0), Sound.values()[random.nextInt(Sound.values().length)], 100.0f, pitch),
+                    Math.round(20.0 * percent * 2.0));
             }
         }
 

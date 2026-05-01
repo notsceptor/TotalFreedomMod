@@ -18,7 +18,6 @@ import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
 public class ItemFun extends FreedomService
@@ -175,19 +174,15 @@ public class ItemFun extends FreedomService
                     lastBlock = block;
                 }
 
-                new BukkitRunnable()
+                plugin.getServer().getScheduler().runTaskLater(plugin, () ->
                 {
-                    @Override
-                    public void run()
+                    for (Block tntBlock : affected)
                     {
-                        for (Block tntBlock : affected)
-                        {
-                            TNTPrimed tnt = tntBlock.getWorld().spawn(tntBlock.getLocation(), TNTPrimed.class);
-                            tnt.setFuseTicks(5);
-                            tntBlock.setType(Material.AIR);
-                        }
+                        TNTPrimed tnt = tntBlock.getWorld().spawn(tntBlock.getLocation(), TNTPrimed.class);
+                        tnt.setFuseTicks(5);
+                        tntBlock.setType(Material.AIR);
                     }
-                }.runTaskLater(plugin, 30L);
+                }, 30L);
 
                 event.setCancelled(true);
                 break;

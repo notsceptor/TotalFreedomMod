@@ -20,7 +20,6 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.scheduler.BukkitRunnable;
 
 public class RollbackManager extends FreedomService
 {
@@ -150,18 +149,14 @@ public class RollbackManager extends FreedomService
             removeHistory.add(playerName.toLowerCase());
         }
 
-        new BukkitRunnable()
+        plugin.getServer().getScheduler().runTaskLater(plugin, () ->
         {
-            @Override
-            public void run()
+            if (removeHistory.contains(playerName.toLowerCase()))
             {
-                if (removeHistory.contains(playerName.toLowerCase()))
-                {
-                    removeHistory.remove(playerName.toLowerCase());
-                    purgeEntries(playerName);
-                }
+                removeHistory.remove(playerName.toLowerCase());
+                purgeEntries(playerName);
             }
-        }.runTaskLater(plugin, 40L * 20L);
+        }, 40L * 20L);
         return count;
     }
 

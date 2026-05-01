@@ -13,6 +13,7 @@ public class CommandLoader extends FreedomService
 
     @Getter
     private final CommandHandler<TotalFreedomMod> handler;
+    private boolean started = false;
 
     public CommandLoader(TotalFreedomMod plugin)
     {
@@ -23,7 +24,12 @@ public class CommandLoader extends FreedomService
     @Override
     protected void onStart()
     {
-        handler.clearCommands();
+        if (started)
+        {
+            return;
+        }
+        started = true;
+
         handler.setExecutorFactory(new FreedomCommandExecutor.FreedomExecutorFactory(plugin));
         handler.setCommandClassPrefix("Command_");
         handler.setPermissionMessage(ChatColor.RED + "You do not have permission to use this command.");
@@ -41,7 +47,5 @@ public class CommandLoader extends FreedomService
     @Override
     protected void onStop()
     {
-        CommandHandler.clearRegistry();
-        handler.clearCommands();
     }
 }

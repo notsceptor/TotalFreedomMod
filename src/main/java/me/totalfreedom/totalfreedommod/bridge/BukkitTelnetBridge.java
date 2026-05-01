@@ -14,7 +14,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventPriority;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.scheduler.BukkitRunnable;
 
 public class BukkitTelnetBridge extends FreedomService
 {
@@ -33,17 +32,13 @@ public class BukkitTelnetBridge extends FreedomService
     {
         registerEventsIfAvailable();
 		
-        new BukkitRunnable()
+        plugin.getServer().getScheduler().runTaskLater(plugin, () ->
         {
-            @Override
-            public void run()
+            if (!eventsRegistered)
             {
-                if (!eventsRegistered)
-                {
-                    registerEventsIfAvailable();
-                }
+                registerEventsIfAvailable();
             }
-        }.runTaskLater(plugin, 40L);
+        }, 40L);
     }
 
     @Override

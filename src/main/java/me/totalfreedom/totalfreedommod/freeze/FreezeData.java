@@ -9,7 +9,6 @@ import me.totalfreedom.totalfreedommod.util.FUtil;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 
 public class FreezeData
@@ -68,16 +67,11 @@ public class FreezeData
             return; // Don't run unfreeze task for impostors
         }
 
-        unfreeze = new BukkitRunnable()
+        unfreeze = fPlayer.getPlugin().getServer().getScheduler().runTaskLater(fPlayer.getPlugin(), () ->
         {
-            @Override
-            public void run()
-            {
-                FUtil.adminAction("TotalFreedom", "Unfreezing " + player.getName(), false);
-                setFrozen(false);
-            }
-
-        }.runTaskLater(fPlayer.getPlugin(), AUTO_PURGE_TICKS);
+            FUtil.adminAction("TotalFreedom", "Unfreezing " + player.getName(), false);
+            setFrozen(false);
+        }, AUTO_PURGE_TICKS);
     }
 
 }

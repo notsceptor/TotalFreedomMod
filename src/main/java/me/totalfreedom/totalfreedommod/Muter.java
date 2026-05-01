@@ -12,7 +12,7 @@ import org.bukkit.command.Command;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
-import org.bukkit.event.player.AsyncPlayerChatEvent;
+import io.papermc.paper.event.player.AsyncChatEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 
 public class Muter extends FreedomService
@@ -36,7 +36,7 @@ public class Muter extends FreedomService
     }
 
     @EventHandler(priority = EventPriority.LOW)
-    public void onAsyncPlayerChatEvent(AsyncPlayerChatEvent event)
+    public void onAsyncPlayerChatEvent(AsyncChatEvent event)
     {
         FPlayer fPlayer = plugin.pl.getPlayerSync(event.getPlayer());
 

@@ -8,7 +8,6 @@ import me.totalfreedom.totalfreedommod.util.FLog;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.scheduler.BukkitRunnable;
 
 /**
  * Bridge to LibsDisguises plugin.
@@ -44,17 +43,13 @@ public class LibsDisguisesBridge extends FreedomService
 
         // Schedule a delayed retry in case LibsDisguises loads after TFM
         // This handles the case where LibsDisguises is enabled but not fully initialized yet
-        new BukkitRunnable()
+        plugin.getServer().getScheduler().runTaskLater(plugin, () ->
         {
-            @Override
-            public void run()
+            if (initializeAPI())
             {
-                if (initializeAPI())
-                {
-                    FLog.info("LibsDisguises bridge initialized successfully (delayed initialization).");
-                }
+                FLog.info("LibsDisguises bridge initialized successfully (delayed initialization).");
             }
-        }.runTaskLater(plugin, 40L); // Run 2 seconds after server start (40 ticks)
+        }, 40L);
     }
 
     private boolean isInitialized()

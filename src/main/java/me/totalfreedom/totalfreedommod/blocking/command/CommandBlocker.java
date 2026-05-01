@@ -352,28 +352,6 @@ public class CommandBlocker extends FreedomService
 
     private CommandMap getCommandMap()
     {
-        try
-        {
-            // Try Paper API first (available in Paper 1.20+)
-            try
-            {
-                java.lang.reflect.Method getCommandMapMethod = server.getClass().getMethod("getCommandMap");
-                return (CommandMap) getCommandMapMethod.invoke(server);
-            }
-            catch (NoSuchMethodException e)
-            {
-                // Fall back to reflection on PluginManager
-            }
-            
-            // Fallback: access via SimplePluginManager reflection
-            java.lang.reflect.Field commandMapField = org.bukkit.plugin.SimplePluginManager.class.getDeclaredField("commandMap");
-            commandMapField.setAccessible(true);
-            return (CommandMap) commandMapField.get(server.getPluginManager());
-        }
-        catch (Exception ex)
-        {
-            FLog.severe("Could not get command map: " + ex.getMessage());
-            return null;
-        }
+        return server.getCommandMap();
     }
 }

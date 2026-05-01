@@ -39,9 +39,7 @@ import me.totalfreedom.totalfreedommod.util.FUtil;
 import me.totalfreedom.totalfreedommod.util.MethodTimer;
 import me.totalfreedom.totalfreedommod.framework.ServiceManager;
 import me.totalfreedom.totalfreedommod.world.WorldManager;
-import org.bukkit.Bukkit;
 import org.bukkit.generator.ChunkGenerator;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class TotalFreedomMod extends JavaPlugin
@@ -53,6 +51,8 @@ public class TotalFreedomMod extends JavaPlugin
     //
     public static String pluginName;
     public static String pluginVersion;
+    //
+    private static TotalFreedomMod instance;
     //
     public MainConfig config;
     //
@@ -113,6 +113,7 @@ public class TotalFreedomMod extends JavaPlugin
     @Override
     public void onLoad()
     {
+        instance = this;
         TotalFreedomMod.pluginName = getDescription().getName();
         TotalFreedomMod.pluginVersion = getDescription().getVersion();
 
@@ -252,6 +253,7 @@ public class TotalFreedomMod extends JavaPlugin
     @Override
     public void onDisable()
     {
+        instance = null;
         // Stop services and bridges (check for null in case initialization failed)
         if (bridges != null)
         {
@@ -319,14 +321,7 @@ public class TotalFreedomMod extends JavaPlugin
 
     public static TotalFreedomMod plugin()
     {
-        for (Plugin plugin : Bukkit.getPluginManager().getPlugins())
-        {
-            if (plugin.getName().equalsIgnoreCase(pluginName))
-            {
-                return (TotalFreedomMod) plugin;
-            }
-        }
-        return null;
+        return instance;
     }
     
     /**

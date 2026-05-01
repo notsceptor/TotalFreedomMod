@@ -8,9 +8,9 @@ import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
-import org.bukkit.event.player.AsyncPlayerChatEvent;
+import io.papermc.paper.event.player.AsyncChatEvent;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 
 public class AntiSpam extends FreedomService
@@ -29,15 +29,7 @@ public class AntiSpam extends FreedomService
     @Override
     protected void onStart()
     {
-        new BukkitRunnable()
-        {
-
-            @Override
-            public void run()
-            {
-                cycle();
-            }
-        }.runTaskTimer(plugin, TICKS_PER_CYCLE, TICKS_PER_CYCLE);
+        cycleTask = plugin.getServer().getScheduler().runTaskTimer(plugin, this::cycle, TICKS_PER_CYCLE, TICKS_PER_CYCLE);
     }
 
     @Override
@@ -60,10 +52,10 @@ public class AntiSpam extends FreedomService
     }
 
     @EventHandler(priority = EventPriority.LOW)
-    public void onAsyncPlayerChat(AsyncPlayerChatEvent event)
+    public void onAsyncPlayerChat(AsyncChatEvent event)
     {
         final Player player = event.getPlayer();
-        String message = event.getMessage().trim();
+        String message = PlainTextComponentSerializer.plainText().serialize(event.message()).trim();
 
         final FPlayer playerdata = plugin.pl.getPlayerSync(player);
 
