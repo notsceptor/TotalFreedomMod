@@ -7,7 +7,7 @@ load: STARTUP
 authors:
   - Madgeek1450
   - Prozza
-
+website: https://github.com/tfreedomorg/TotalFreedomMod
 dependencies:
   server:
     Vault:
