@@ -1,11 +1,13 @@
 package me.totalfreedom.totalfreedommod.command;
 
+import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import lombok.Getter;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import org.bukkit.ChatColor;
 
+@SuppressWarnings("UnstableApiUsage")
 public class CommandLoader extends FreedomService
 {
 
@@ -15,7 +17,6 @@ public class CommandLoader extends FreedomService
     public CommandLoader(TotalFreedomMod plugin)
     {
         super(plugin);
-
         handler = new CommandHandler<>(plugin);
     }
 
@@ -30,15 +31,17 @@ public class CommandLoader extends FreedomService
         handler.setOnlyPlayerMessage(ChatColor.RED + "This command can only be used by players.");
 
         int loaded = handler.loadFrom(FreedomCommand.class.getPackage());
-        handler.registerAll("TotalFreedomMod", true);
-
         FLog.info("Loaded " + loaded + " commands.");
+        plugin.getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event ->
+        {
+            handler.registerAllWithLifecycle(event.registrar());
+        });
     }
 
     @Override
     protected void onStop()
     {
+        CommandHandler.clearRegistry();
         handler.clearCommands();
     }
-
 }

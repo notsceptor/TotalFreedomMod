@@ -1,0 +1,36 @@
+name: TotalFreedomMod
+version: '${tfm.build.version}'
+main: me.totalfreedom.totalfreedommod.TotalFreedomMod
+api-version: '1.21'
+description: Plugin for the Total Freedom server.
+load: STARTUP
+authors:
+  - Madgeek1450
+  - Prozza
+
+dependencies:
+  server:
+    Vault:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    WorldEdit:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    TF-WorldEdit:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    BukkitTelnet:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    Essentials:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    LibsDisguises:
+      load: BEFORE
+      required: false
+      join-classpath: true

@@ -1,6 +1,5 @@
 package me.totalfreedom.totalfreedommod.command;
 
-import java.util.Arrays;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FLog;
@@ -9,7 +8,6 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.PluginCommand;
 import org.bukkit.entity.Player;
 
 public class FreedomCommandExecutor implements CommandExecutor
@@ -28,60 +26,68 @@ public class FreedomCommandExecutor implements CommandExecutor
         this.commandBase = command;
     }
 
-    protected FreedomCommand getCommand()
+    FreedomCommand getCommand()
     {
         return commandBase instanceof FreedomCommand ? (FreedomCommand) commandBase : null;
     }
 
-    public void setupCommand(PluginCommand pluginCommand)
+    /**
+     * Entry point for Paper's Brigadier BasicCommand path.
+     * Handles permissions and dispatches to commandBase.runCommand().
+     * The Command parameter is null in this path — no FreedomCommand uses it.
+     */
+    void executePaper(CommandSender sender, String label, String[] args)
     {
-        final FreedomCommand command = getCommand();
+        if (!hasPermission(sender, true))
+        {
+            return;
+        }
+        Command command = plugin.getServer().getPluginCommand(label);
         if (command == null)
         {
-            return;
+            command = plugin.getServer().getPluginCommand(name);
         }
-
-        final CommandParameters params = command.getParams();
-        if (params == null)
+        if (command == null)
         {
-            return;
+            command = new FallbackCommand(name);
         }
-
-        String aliasString = params.aliases();
-
-        if (aliasString.length() > 0)
+        try
         {
-            pluginCommand.setAliases(Arrays.asList(params.aliases().split(",")));
-        }
-        pluginCommand.setDescription(params.description());
-        pluginCommand.setUsage(params.usage());
-
-        // Check if permisions are correctly set up
-        CommandPermissions perms = command.getPerms();
-        if (perms != null)
-        {
-            if (perms.level().isConsole())
+            boolean handled = commandBase.runCommand(sender, command, label, args);
+            if (!handled)
             {
-                FLog.warning("[Command] " + pluginCommand.getName() + " - permission is set to a console rank, "
-                        + "should be set to player variant with 'source = SourceType.ONLY_CONSOLE'");
+                FreedomCommand freedomCommand = getCommand();
+                if (freedomCommand != null && freedomCommand.getParams() != null)
+                {
+                    String usage = freedomCommand.getParams().usage();
+                    if (usage != null && !usage.isEmpty())
+                    {
+                        sender.sendMessage(ChatColor.RED + "Usage: " + usage.replace("<command>", label));
+                    }
+                }
             }
+        }
+        catch (Exception ex)
+        {
+            FLog.severe("Unhandled command exception: " + label);
+            FLog.severe(ex);
+            sender.sendMessage(ChatColor.RED + "Unhandled Command Error: " + label);
         }
     }
 
+    @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args)
     {
         if (!hasPermission(sender, true))
         {
             return true;
         }
-
         try
         {
             return commandBase.runCommand(sender, command, label, args);
         }
         catch (Exception ex)
         {
-            // If this is ever ran, TFM failed :
             FLog.severe("Unhandled command exception: " + command.getName());
             FLog.severe(ex);
             sender.sendMessage(ChatColor.RED + "Unhandled Command Error: " + command.getName());
@@ -104,8 +110,7 @@ public class FreedomCommandExecutor implements CommandExecutor
         }
 
         // Block host console
-        if (FUtil.isFromHostConsole(sender.getName())
-                && perms.blockHostConsole())
+        if (FUtil.isFromHostConsole(sender.getName()) && perms.blockHostConsole())
         {
             if (sendMsg)
             {
@@ -117,8 +122,7 @@ public class FreedomCommandExecutor implements CommandExecutor
         final Player player = sender instanceof Player ? (Player) sender : null;
 
         // Only console
-        if (perms.source() == SourceType.ONLY_CONSOLE
-                && player != null)
+        if (perms.source() == SourceType.ONLY_CONSOLE && player != null)
         {
             if (sendMsg)
             {
@@ -128,8 +132,7 @@ public class FreedomCommandExecutor implements CommandExecutor
         }
 
         // Only in game
-        if (perms.source() == SourceType.ONLY_IN_GAME
-                && player == null)
+        if (perms.source() == SourceType.ONLY_IN_GAME && player == null)
         {
             if (sendMsg)
             {
@@ -191,4 +194,18 @@ public class FreedomCommandExecutor implements CommandExecutor
 
     }
 
+    // Minimal fallback when running through Paper's lifecycle command path.
+    private static final class FallbackCommand extends Command
+    {
+        private FallbackCommand(String name)
+        {
+            super(name);
+        }
+
+        @Override
+        public boolean execute(CommandSender sender, String commandLabel, String[] args)
+        {
+            return false;
+        }
+    }
 }

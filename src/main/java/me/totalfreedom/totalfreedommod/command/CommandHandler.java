@@ -1,23 +1,27 @@
 package me.totalfreedom.totalfreedommod.command;
 
+import io.papermc.paper.command.brigadier.Commands;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandExecutor;
-import org.bukkit.command.PluginCommand;
 
 /**
  * Handles command discovery, registration, and execution.
  * Replaces Aero's SimpleCommandHandler.
  */
+@SuppressWarnings("UnstableApiUsage")
 public class CommandHandler<T extends TotalFreedomMod>
 {
+
+    private static final Map<String, FreedomCommand> COMMAND_REGISTRY = new ConcurrentHashMap<>();
 
     private final T plugin;
     private final Map<String, CommandExecutor> executors;
@@ -113,11 +117,26 @@ public class CommandHandler<T extends TotalFreedomMod>
         executors.clear();
     }
 
+    public static FreedomCommand getByName(String name)
+    {
+        if (name == null)
+        {
+            return null;
+        }
+        return COMMAND_REGISTRY.get(name.toLowerCase());
+    }
+
     /**
-     * Discovers and loads commands from a package.
-     * Scans for classes with the command prefix that extend AbstractCommandBase.
+     * Clears the static registry. Called on plugin disable via CommandLoader.onStop().
+     */
+    public static void clearRegistry()
+    {
+        COMMAND_REGISTRY.clear();
+    }
+
+    /**
+     * Discovers and loads commands from a package by scanning the plugin JAR.
      *
-     * @param packageObj The package to scan
      * @return Number of commands loaded
      */
     public int loadFrom(Package packageObj)
@@ -237,13 +256,7 @@ public class CommandHandler<T extends TotalFreedomMod>
         {
             return false;
         }
-
-        if (!AbstractCommandBase.class.isAssignableFrom(clazz))
-        {
-            return false;
-        }
-
-        return true;
+        return AbstractCommandBase.class.isAssignableFrom(clazz);
     }
 
     /**
@@ -264,7 +277,7 @@ public class CommandHandler<T extends TotalFreedomMod>
             String commandName = commandClass.getSimpleName().substring(commandClassPrefix.length()).toLowerCase();
 
             // Create executor
-            CommandExecutor executor = null;
+            CommandExecutor executor;
             if (executorFactory != null)
             {
                 executor = executorFactory.newExecutor(this, commandName, command);
@@ -284,89 +297,63 @@ public class CommandHandler<T extends TotalFreedomMod>
 
     /**
      * Registers all loaded commands with Bukkit.
-     *
-     * @param pluginName The plugin name
-     * @param fallbackPrefix The fallback prefix
      */
-    public void registerAll(String pluginName, boolean fallbackPrefix)
+    public void registerAllWithLifecycle(Commands registrar)
     {
-        org.bukkit.command.CommandMap commandMap = plugin.getServer().getCommandMap();
-        
         for (Map.Entry<String, CommandExecutor> entry : executors.entrySet())
         {
             String commandName = entry.getKey();
             CommandExecutor executor = entry.getValue();
 
+            if (!(executor instanceof FreedomCommandExecutor fce))
+            {
+                continue;
+            }
+
+            FreedomCommand cmd = fce.getCommand();
+            String description = "";
+            List<String> aliases = new ArrayList<>();
+
+            if (cmd != null && cmd.getParams() != null)
+            {
+                description = cmd.getParams().description();
+                String aliasString = cmd.getParams().aliases();
+                if (aliasString != null && !aliasString.isEmpty())
+                {
+                    for (String alias : aliasString.split(","))
+                    {
+                        String trimmed = alias.trim();
+                        if (!trimmed.isEmpty())
+                        {
+                            aliases.add(trimmed);
+                        }
+                    }
+                }
+            }
+
+            if (cmd != null)
+            {
+                COMMAND_REGISTRY.put(commandName, cmd);
+                for (String alias : aliases)
+                {
+                    COMMAND_REGISTRY.put(alias.toLowerCase(), cmd);
+                }
+            }
+
+            FreedomBasicCommand basicCommand = new FreedomBasicCommand(fce, commandName);
+
             try
             {
-                // Get aliases before creating the command
-                List<String> aliases = new ArrayList<>();
-                if (executor instanceof FreedomCommandExecutor)
-                {
-                    FreedomCommand cmd = ((FreedomCommandExecutor) executor).getCommand();
-                    if (cmd != null && cmd.getParams() != null)
-                    {
-                        String aliasString = cmd.getParams().aliases();
-                        if (aliasString != null && !aliasString.isEmpty())
-                        {
-                            for (String alias : aliasString.split(","))
-                            {
-                                aliases.add(alias.trim());
-                            }
-                        }
-                    }
-                }
-
-                PluginCommand pluginCommand = plugin.getCommand(commandName);
-                if (pluginCommand == null)
-                {
-                    // Command not in plugin.yml - create dynamically
-                    try
-                    {
-                        Constructor<PluginCommand> constructor = PluginCommand.class.getDeclaredConstructor(String.class, org.bukkit.plugin.Plugin.class);
-                        constructor.setAccessible(true);
-                        pluginCommand = constructor.newInstance(commandName, plugin);
-                        
-                        // Set aliases BEFORE registering
-                        if (!aliases.isEmpty())
-                        {
-                            pluginCommand.setAliases(aliases);
-                        }
-                        
-                        // Register the command with aliases
-                        commandMap.register(pluginName, pluginCommand);
-                    }
-                    catch (Exception ex)
-                    {
-                        FLog.warning("Could not register command " + commandName + ": " + ex.getMessage());
-                        continue;
-                    }
-                }
-                else
-                {
-                    // Command exists in plugin.yml, but we still need to register aliases
-                    if (!aliases.isEmpty())
-                    {
-                        pluginCommand.setAliases(aliases);
-                        // Re-register aliases manually
-                        for (String alias : aliases)
-                        {
-                            commandMap.register(alias, pluginName, pluginCommand);
-                        }
-                    }
-                }
-
-                pluginCommand.setExecutor(executor);
-
-                // Setup command if it's a FreedomCommandExecutor
-                if (executor instanceof FreedomCommandExecutor)
-                {
-                    ((FreedomCommandExecutor) executor).setupCommand(pluginCommand);
-                }
+                registrar.register(
+                    commandName,
+                    description,
+                    aliases,
+                    basicCommand
+                );
             }
             catch (Exception ex)
             {
-                FLog.warning("Error registering command " + commandName + ": " + ex.getMessage());
+                FLog.warning("Failed to register command " + commandName + ": " + ex.getMessage());
             }
         }
     }

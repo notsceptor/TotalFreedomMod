@@ -9,14 +9,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.totalfreedommod.command.CommandHandler;
 import me.totalfreedom.totalfreedommod.command.FreedomCommand;
 import static me.totalfreedom.totalfreedommod.httpd.HTMLGenerationTools.heading;
 import static me.totalfreedom.totalfreedommod.httpd.HTMLGenerationTools.paragraph;
 import me.totalfreedom.totalfreedommod.httpd.NanoHTTPD;
 import me.totalfreedom.totalfreedommod.rank.Displayable;
-import me.totalfreedom.totalfreedommod.util.FUtil;
-import static org.apache.commons.lang3.StringEscapeUtils.escapeHtml4;
 import org.apache.commons.lang3.StringUtils;
+import static org.apache.commons.lang3.StringEscapeUtils.escapeHtml4;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandMap;
 import org.bukkit.command.PluginIdentifiableCommand;
@@ -33,8 +33,8 @@ public class Module_help extends HTTPDModule
     @Override
     public String getBody()
     {
-        final CommandMap map = getCommandMap();
-        if (map == null || !(map instanceof SimpleCommandMap))
+        final CommandMap map = server.getCommandMap();
+        if (!(map instanceof SimpleCommandMap))
         {
             return paragraph("Error loading commands.");
         }
@@ -42,8 +42,8 @@ public class Module_help extends HTTPDModule
         final StringBuilder responseBody = new StringBuilder()
                 .append(heading("Command Help", 1))
                 .append(paragraph(
-                                "This page is an automatically generated listing of all plugin commands that are currently live on the server. "
-                                + "Please note that it does not include vanilla server commands."));
+                        "This page is an automatically generated listing of all plugin commands that are currently live on the server. "
+                        + "Please note that it does not include vanilla server commands."));
 
         final Collection<Command> knownCommands = ((SimpleCommandMap) map).getCommands();
         final Map<String, List<Command>> commandsByPlugin = new HashMap<>();
@@ -56,14 +56,7 @@ public class Module_help extends HTTPDModule
                 pluginName = ((PluginIdentifiableCommand) command).getPlugin().getName();
             }
 
-            List<Command> pluginCommands = commandsByPlugin.get(pluginName);
-            if (pluginCommands == null)
-            {
-                pluginCommands = Lists.newArrayList();
-                commandsByPlugin.put(pluginName, pluginCommands);
-            }
-
-            pluginCommands.add(command);
+            commandsByPlugin.computeIfAbsent(pluginName, k -> Lists.newArrayList()).add(command);
         }
 
         final Iterator<Map.Entry<String, List<Command>>> it = commandsByPlugin.entrySet().iterator();
@@ -86,7 +79,14 @@ public class Module_help extends HTTPDModule
                     continue;
                 }
 
-                Displayable tfmCommandLevel = FreedomCommand.getFrom(command).getPerms().level();
+                FreedomCommand fc = FreedomCommand.getFrom(command);
+                if (fc == null || fc.getPerms() == null)
+                {
+                    responseBody.append(buildDescription(command));
+                    continue;
+                }
+
+                Displayable tfmCommandLevel = fc.getPerms().level();
                 if (lastTfmCommandLevel == null || lastTfmCommandLevel != tfmCommandLevel)
                 {
                     responseBody.append("</ul>\r\n").append(heading(tfmCommandLevel.getName(), 3)).append("<ul>\r\n");
@@ -103,12 +103,37 @@ public class Module_help extends HTTPDModule
 
     private static String buildDescription(Command command)
     {
-        StringBuilder sb = new StringBuilder();
+        // Fall back to annotation data from the FreedomCommand registry.
+        String usage = command.getUsage();
+        String description = command.getDescription();
 
+        FreedomCommand fc = CommandHandler.getByName(command.getName());
+        if (fc != null && fc.getParams() != null)
+        {
+            if (usage == null || usage.isBlank())
+            {
+                usage = fc.getParams().usage();
+            }
+            if (description == null || description.isBlank())
+            {
+                description = fc.getParams().description();
+            }
+        }
+
+        if (usage == null)
+        {
+            usage = "";
+        }
+        if (description == null)
+        {
+            description = "";
+        }
+
+        StringBuilder sb = new StringBuilder();
         sb.append(
                 "<li><span class=\"commandName\">{$CMD_NAME}</span> - Usage: <span class=\"commandUsage\">{$CMD_USAGE}</span>"
                 .replace("{$CMD_NAME}", escapeHtml4(command.getName().trim()))
-                .replace("{$CMD_USAGE}", escapeHtml4(command.getUsage().trim())));
+                .replace("{$CMD_USAGE}", escapeHtml4(usage.trim())));
 
         if (!command.getAliases().isEmpty())
         {
@@ -119,7 +144,7 @@ public class Module_help extends HTTPDModule
 
         sb.append(
                 "<br><span class=\"commandDescription\">{$CMD_DESC}</span></li>\r\n"
-                .replace("{$CMD_DESC}", escapeHtml4(command.getDescription().trim())));
+                .replace("{$CMD_DESC}", escapeHtml4(description.trim())));
 
         return sb.toString();
     }
@@ -145,10 +170,7 @@ public class Module_help extends HTTPDModule
             FreedomCommand ca = FreedomCommand.getFrom(a);
             FreedomCommand cb = FreedomCommand.getFrom(b);
 
-            if (ca == null
-                    || cb == null
-                    || ca.getPerms() == null
-                    || cb.getPerms() == null)
+            if (ca == null || cb == null || ca.getPerms() == null || cb.getPerms() == null)
             {
                 return a.getName().compareTo(b.getName());
             }
@@ -156,31 +178,4 @@ public class Module_help extends HTTPDModule
             return ca.getPerms().level().getName().compareTo(cb.getPerms().level().getName());
         }
     }
-
-    private CommandMap getCommandMap()
-    {
-        try
-        {
-            // Try Paper API first (available in Paper 1.20+)
-            try
-            {
-                java.lang.reflect.Method getCommandMapMethod = server.getClass().getMethod("getCommandMap");
-                return (CommandMap) getCommandMapMethod.invoke(server);
-            }
-            catch (NoSuchMethodException e)
-            {
-                // Fall back to reflection on PluginManager
-            }
-            
-            // Fallback: access via SimplePluginManager reflection
-            java.lang.reflect.Field commandMapField = org.bukkit.plugin.SimplePluginManager.class.getDeclaredField("commandMap");
-            commandMapField.setAccessible(true);
-            return (CommandMap) commandMapField.get(server.getPluginManager());
-        }
-        catch (Exception ex)
-        {
-            return null;
-        }
-    }
-
 }

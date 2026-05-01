@@ -81,7 +81,7 @@ public class Muter extends FreedomService
             cmdName = cmdName.substring(1);
         }
 
-        Command command = server.getPluginCommand(cmdName);
+        Command command = server.getCommandMap().getCommand(cmdName);
         if (command != null)
         {
             cmdName = command.getName().toLowerCase();

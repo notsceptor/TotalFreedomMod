@@ -29,7 +29,7 @@ public class Command_wildcard extends FreedomCommand
             return false;
         }
 
-        Command runCmd = server.getPluginCommand(args[0]);
+        Command runCmd = server.getCommandMap().getCommand(args[0]);
         if (runCmd == null)
         {
             msg("Unknown command: " + args[0], ChatColor.RED);

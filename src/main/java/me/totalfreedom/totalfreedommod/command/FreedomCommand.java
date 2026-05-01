@@ -17,7 +17,6 @@ import net.kyori.adventure.text.serializer.ansi.ANSIComponentSerializer;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.PluginCommand;
 import org.bukkit.entity.Player;
 
 public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod>
@@ -326,14 +325,10 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
 
     public static FreedomCommand getFrom(Command command)
     {
-        try
-        {
-            FreedomCommandExecutor executor = (FreedomCommandExecutor) (((PluginCommand) command).getExecutor());
-            return executor != null ? executor.getCommand() : null;
-        }
-        catch (Exception ex)
+        if (command == null)
         {
             return null;
         }
+        return CommandHandler.getByName(command.getName());
     }
 }

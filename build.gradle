@@ -138,6 +138,16 @@ processResources {
             ]
         )
     }
+
+    filesMatching('paper-plugin.yml') {
+        expand(
+            tfm: [
+                build: [
+                    version: project.version
+                ]
+            ]
+        )
+    }
 }
 
 jar {

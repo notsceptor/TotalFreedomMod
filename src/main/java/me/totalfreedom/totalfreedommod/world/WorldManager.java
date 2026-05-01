@@ -38,19 +38,19 @@ public class WorldManager extends FreedomService
         {
             flatlands.getWorld();
             adminworld.getWorld();
-        });
 
         // Disable weather
-        if (ConfigEntry.DISABLE_WEATHER.getBoolean())
-        {
-            for (World world : server.getWorlds())
+            if (ConfigEntry.DISABLE_WEATHER.getBoolean())
             {
-                world.setThundering(false);
-                world.setStorm(false);
-                world.setThunderDuration(0);
-                world.setWeatherDuration(0);
+                for (World world : server.getWorlds())
+                {
+                    world.setThundering(false);
+                    world.setStorm(false);
+                    world.setThunderDuration(0);
+                    world.setWeatherDuration(0);
+                }
             }
-        }
+        });
     }
 
     @Override

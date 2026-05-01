@@ -37,7 +37,10 @@ public class LibsDisguisesBridge extends FreedomService
 
         // Initialize API lazily - LibsDisguises might not be loaded yet
         // We'll try to initialize it when first needed
-        initializeAPI();
+        if (initializeAPI())
+        {
+            FLog.info("LibsDisguises bridge initialized successfully.");
+        }
 
         // Schedule a delayed retry in case LibsDisguises loads after TFM
         // This handles the case where LibsDisguises is enabled but not fully initialized yet
@@ -46,28 +49,28 @@ public class LibsDisguisesBridge extends FreedomService
             @Override
             public void run()
             {
-                if (disguiseAPI == null || isDisguisedMethod == null || undisguiseToAllMethod == null)
+                if (initializeAPI())
                 {
-                    initializeAPI();
-                    if (disguiseAPI != null && isDisguisedMethod != null && undisguiseToAllMethod != null)
-                    {
-                        FLog.info("LibsDisguises bridge initialized successfully (delayed initialization).");
-                    }
+                    FLog.info("LibsDisguises bridge initialized successfully (delayed initialization).");
                 }
             }
         }.runTaskLater(plugin, 40L); // Run 2 seconds after server start (40 ticks)
+    }
+
+    private boolean isInitialized()
+    {
+        return disguiseAPI != null && isDisguisedMethod != null && undisguiseToAllMethod != null;
     }
 
     /**
      * Initializes the LibsDisguises API connection.
      * Can be called multiple times safely.
      */
-    private void initializeAPI()
+    private boolean initializeAPI()
     {
-        // If already initialized, don't try again
-        if (disguiseAPI != null && isDisguisedMethod != null && undisguiseToAllMethod != null)
+        if (isInitialized())
         {
-            return;
+            return false;
         }
 
         try
@@ -76,7 +79,7 @@ public class LibsDisguisesBridge extends FreedomService
             if (ldPlugin == null || !ldPlugin.isEnabled())
             {
                 // Plugin not available yet, will retry later
-                return;
+                return false;
             }
 
             libsDisguisesPlugin = ldPlugin;
@@ -97,7 +100,7 @@ public class LibsDisguisesBridge extends FreedomService
                     Class<?> entityClass = Class.forName("org.bukkit.entity.Entity", true, pluginClassLoader);
                     isDisguisedMethod = disguiseAPI.getMethod("isDisguised", entityClass);
                     undisguiseToAllMethod = disguiseAPI.getMethod("undisguiseToAll", entityClass);
-                    FLog.info("LibsDisguises bridge initialized successfully.");
+                    return true;
                 }
                 catch (NoSuchMethodException | ClassNotFoundException ex1)
                 {
@@ -106,7 +109,7 @@ public class LibsDisguisesBridge extends FreedomService
                     {
                         isDisguisedMethod = disguiseAPI.getMethod("isDisguised", Player.class);
                         undisguiseToAllMethod = disguiseAPI.getMethod("undisguiseToAll", Player.class);
-                        FLog.info("LibsDisguises bridge initialized successfully (Player-based methods).");
+                        return true;
                     }
                     catch (NoSuchMethodException ex2)
                     {
@@ -127,6 +130,7 @@ public class LibsDisguisesBridge extends FreedomService
                         }
                         FLog.warning("Expected methods: isDisguised(Entity), undisguiseToAll(Entity)");
                         disguiseAPI = null;
+                        return false;
                     }
                 }
             }
@@ -138,13 +142,14 @@ public class LibsDisguisesBridge extends FreedomService
                     disguiseAPI = Class.forName("me.libraryaddict.disguise.api.DisguiseAPI", true, pluginClassLoader);
                     isDisguisedMethod = disguiseAPI.getMethod("isDisguised", Player.class);
                     undisguiseToAllMethod = disguiseAPI.getMethod("undisguiseToAll", Player.class);
-                    FLog.info("LibsDisguises bridge initialized successfully (alternative API path).");
+                    return true;
                 }
                 catch (Exception ex2)
                 {
                     FLog.warning("LibsDisguises API not found. Tried: me.libraryaddict.disguise.DisguiseAPI and me.libraryaddict.disguise.api.DisguiseAPI");
                     FLog.warning("LibsDisguises plugin is loaded but API class not accessible. Disguise features will be limited.");
                     disguiseAPI = null;
+                    return false;
                 }
             }
         }
@@ -152,6 +157,7 @@ public class LibsDisguisesBridge extends FreedomService
         {
             FLog.severe("Error initializing LibsDisguises bridge: " + ex.getMessage());
             FLog.severe(ex);
+            return false;
         }
     }
 
