@@ -23,7 +23,7 @@ public class Command_fuckoff extends FreedomCommand
 
         if (!args[0].equals("on"))
         {
-            player.disableFuckoff();
+            plugin.fo.disable(playerSender);
         }
         else
         {
@@ -40,7 +40,7 @@ public class Command_fuckoff extends FreedomCommand
                 }
             }
 
-            player.setFuckoff(radius);
+            plugin.fo.enable(playerSender, radius);
         }
 
         msg("Fuckoff " + (player.isFuckOff() ? ("enabled. Radius: " + player.getFuckoffRadius() + ".") : "disabled."));

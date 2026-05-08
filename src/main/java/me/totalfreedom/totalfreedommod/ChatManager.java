@@ -329,10 +329,8 @@ public class ChatManager extends FreedomService
 		String ansiMessage = ANSIComponentSerializer.ansi().serialize(consoleMsg);
 		Bukkit.getConsoleSender().sendMessage(ansiMessage);
 
-		for (Player player : server.getOnlinePlayers()) {
-			if (plugin.al.isAdmin(player)) {
-				player.sendMessage(adminMsg);
-			}
+		for (Player player : plugin.al.getOnlineAdmins()) {
+			player.sendMessage(adminMsg);
 		}
 	}
 
@@ -342,10 +340,8 @@ public class ChatManager extends FreedomService
 				.append(Component.text(reporter.getName() + " has reported " + reported.getName() + " for " + report)
 						.color(NamedTextColor.GOLD));
 
-		for (Player player : server.getOnlinePlayers()) {
-			if (plugin.al.isAdmin(player)) {
-				playerMsg(player, reportMsg);
-			}
+		for (Player player : plugin.al.getOnlineAdmins()) {
+			playerMsg(player, reportMsg);
 		}
 	}
 

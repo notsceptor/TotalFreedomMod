@@ -28,6 +28,10 @@ public class Orbiter extends FreedomService
     @EventHandler(priority = EventPriority.NORMAL)
     public void onPlayerMove(PlayerMoveEvent event)
     {
+        if (!event.hasChangedPosition())
+        {
+            return;
+        }
 
         final Player player = event.getPlayer();
         final FPlayer fPlayer = plugin.pl.getPlayer(player);

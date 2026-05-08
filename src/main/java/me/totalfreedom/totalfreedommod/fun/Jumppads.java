@@ -69,7 +69,7 @@ public class Jumppads extends FreedomService
     @EventHandler
     public void onPlayerMove(PlayerMoveEvent event)
     {
-        if (mode == JumpPadMode.OFF)
+        if (mode == JumpPadMode.OFF || !event.hasExplicitlyChangedBlock())
         {
             return;
         }

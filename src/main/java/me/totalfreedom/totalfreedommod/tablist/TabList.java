@@ -61,24 +61,26 @@ public class TabList extends FreedomService
         }
         final Player player = event.getPlayer();
         // Delay 1 tick so all other MONITOR-priority join handlers finish first.
-        plugin.getServer().getScheduler().runTaskLater(plugin, () -> applyToPlayer(player), 1L);
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> applyToPlayer(player, buildHeader(), buildFooter()), 1L);
     }
 
     private void updateAll()
     {
+        final Component header = buildHeader();
+        final Component footer = buildFooter();
         for (Player player : server.getOnlinePlayers())
         {
-            applyToPlayer(player);
+            applyToPlayer(player, header, footer);
         }
     }
 
-    private void applyToPlayer(Player player)
+    private void applyToPlayer(Player player, Component header, Component footer)
     {
         if (!player.isOnline())
         {
             return;
         }
-        player.sendPlayerListHeaderAndFooter(buildHeader(), buildFooter());
+        player.sendPlayerListHeaderAndFooter(header, footer);
         player.playerListName(buildPlayerListName(player));
     }
 

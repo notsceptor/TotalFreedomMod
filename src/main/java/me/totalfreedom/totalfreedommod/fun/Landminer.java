@@ -58,6 +58,11 @@ public class Landminer extends FreedomService
     @EventHandler(priority = EventPriority.NORMAL)
     public void onPlayerMove(PlayerMoveEvent event)
     {
+        if (landmines.isEmpty() || !event.hasChangedPosition())
+        {
+            return;
+        }
+
         if (!(ConfigEntry.LANDMINES_ENABLED.getBoolean() && ConfigEntry.ALLOW_EXPLOSIONS.getBoolean()))
         {
             return;

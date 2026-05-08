@@ -11,15 +11,12 @@ import org.bukkit.event.EventPriority;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
-import org.bukkit.scheduler.BukkitTask;
 
 public class AntiSpam extends FreedomService
 {
 
     public static final int MSG_PER_CYCLE = 8;
     public static final int TICKS_PER_CYCLE = 2 * 10;
-    //
-    public BukkitTask cycleTask = null;
 
     public AntiSpam(TotalFreedomMod plugin)
     {
@@ -29,26 +26,11 @@ public class AntiSpam extends FreedomService
     @Override
     protected void onStart()
     {
-        cycleTask = plugin.getServer().getScheduler().runTaskTimer(plugin, this::cycle, TICKS_PER_CYCLE, TICKS_PER_CYCLE);
     }
 
     @Override
     protected void onStop()
     {
-        FUtil.cancel(cycleTask);
-    }
-
-    private void cycle()
-    {
-        for (Player player : server.getOnlinePlayers())
-        {
-            final FPlayer playerdata = plugin.pl.getPlayer(player);
-
-            // TODO: Move each to their own section
-            playerdata.resetMsgCount();
-            playerdata.resetBlockDestroyCount();
-            playerdata.resetBlockPlaceCount();
-        }
     }
 
     @EventHandler(priority = EventPriority.LOW)

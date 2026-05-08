@@ -1,14 +1,19 @@
 package me.totalfreedom.totalfreedommod;
 
+import java.util.HashSet;
+import java.util.Set;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 
 public class Fuckoff extends FreedomService
 {
+
+    private final Set<Player> fuckoffPlayers = new HashSet<>();
 
     public Fuckoff(TotalFreedomMod plugin)
     {
@@ -18,31 +23,55 @@ public class Fuckoff extends FreedomService
     @Override
     protected void onStart()
     {
+        fuckoffPlayers.clear();
     }
 
     @Override
     protected void onStop()
     {
+        fuckoffPlayers.clear();
+    }
+
+    public void enable(Player player, double radius)
+    {
+        plugin.pl.getPlayer(player).setFuckoff(radius);
+        fuckoffPlayers.add(player);
+    }
+
+    public void disable(Player player)
+    {
+        plugin.pl.getPlayer(player).disableFuckoff();
+        fuckoffPlayers.remove(player);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPlayerQuit(PlayerQuitEvent event)
+    {
+        fuckoffPlayers.remove(event.getPlayer());
     }
 
     @EventHandler(priority = EventPriority.NORMAL)
     public void onPlayerMove(PlayerMoveEvent event)
     {
+        if (fuckoffPlayers.isEmpty() || !event.hasChangedPosition())
+        {
+            return;
+        }
+
         final Player fuckoffPlayer = event.getPlayer();
         if (plugin.al.isAdmin(fuckoffPlayer))
         {
             return;
         }
 
-        for (Player onlinePlayer : server.getOnlinePlayers())
+        for (Player onlinePlayer : fuckoffPlayers)
         {
-            final FPlayer fPlayer = plugin.pl.getPlayer(onlinePlayer);
-            if (!fPlayer.isFuckOff()
-                    || fuckoffPlayer.equals(onlinePlayer))
+            if (fuckoffPlayer.equals(onlinePlayer))
             {
                 continue;
             }
 
+            final FPlayer fPlayer = plugin.pl.getPlayer(onlinePlayer);
             double fuckoffRange = fPlayer.getFuckoffRadius();
             Location opLocation = onlinePlayer.getLocation();
             Location foLocation = fuckoffPlayer.getLocation();

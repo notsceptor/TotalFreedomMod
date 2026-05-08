@@ -1,7 +1,6 @@
 package me.totalfreedom.totalfreedommod.fun;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Random;
 import java.util.Set;
 import me.totalfreedom.totalfreedommod.FreedomService;
@@ -15,6 +14,13 @@ import org.bukkit.event.player.PlayerMoveEvent;
 
 public class Trailer extends FreedomService
 {
+
+    private static final Material[] WOOL_COLORS = {
+        Material.WHITE_WOOL, Material.ORANGE_WOOL, Material.MAGENTA_WOOL, Material.LIGHT_BLUE_WOOL,
+        Material.YELLOW_WOOL, Material.LIME_WOOL, Material.PINK_WOOL, Material.GRAY_WOOL,
+        Material.LIGHT_GRAY_WOOL, Material.CYAN_WOOL, Material.PURPLE_WOOL, Material.BLUE_WOOL,
+        Material.BROWN_WOOL, Material.GREEN_WOOL, Material.RED_WOOL, Material.BLACK_WOOL
+    };
 
     private final Random random = new Random();
     private final Set<String> trailPlayers = new HashSet<>(); // player name
@@ -37,7 +43,7 @@ public class Trailer extends FreedomService
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPlayerMove(PlayerMoveEvent event)
     {
-        if (trailPlayers.isEmpty())
+        if (trailPlayers.isEmpty() || !event.hasExplicitlyChangedBlock())
         {
             return;
         }
@@ -53,20 +59,7 @@ public class Trailer extends FreedomService
             return;
         }
 
-        Block toBlock = event.getTo().getBlock();
-        if (fromBlock.equals(toBlock))
-        {
-            return;
-        }
-
-        // Use colored wool materials directly instead of data values
-        Material[] woolColors = {
-            Material.WHITE_WOOL, Material.ORANGE_WOOL, Material.MAGENTA_WOOL, Material.LIGHT_BLUE_WOOL,
-            Material.YELLOW_WOOL, Material.LIME_WOOL, Material.PINK_WOOL, Material.GRAY_WOOL,
-            Material.LIGHT_GRAY_WOOL, Material.CYAN_WOOL, Material.PURPLE_WOOL, Material.BLUE_WOOL,
-            Material.BROWN_WOOL, Material.GREEN_WOOL, Material.RED_WOOL, Material.BLACK_WOOL
-        };
-        fromBlock.setType(woolColors[random.nextInt(woolColors.length)]);
+        fromBlock.setType(WOOL_COLORS[random.nextInt(WOOL_COLORS.length)]);
     }
 
     public void remove(Player player)

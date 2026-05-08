@@ -24,6 +24,10 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.ServicePriority;
 
 public class AdminList extends FreedomService
@@ -52,6 +56,7 @@ public class AdminList extends FreedomService
     }
     private final Map<String, Admin> nameTable = Maps.newHashMap();
     private final Map<String, Admin> ipTable = Maps.newHashMap();
+    private final Set<Player> onlineAdminPlayers = Sets.newHashSet();
     //
     private final File configFile;
     private YamlConfiguration config;
@@ -200,7 +205,7 @@ public class AdminList extends FreedomService
         FLog.info("Loaded " + allAdmins.size() + " admins from YAML (" + nameTable.size() + " active, " + ipTable.size() + " IPs)");
     }
 
-    public void save()
+    public synchronized void save()
     {
         if (usingSql)
         {
@@ -210,6 +215,19 @@ public class AdminList extends FreedomService
         {
             saveToYaml();
         }
+    }
+
+    /**
+     * Persist admin records on a worker thread. Use this on the hot login path
+     */
+    public void saveAsync()
+    {
+        if (!plugin.isEnabled())
+        {
+            save();
+            return;
+        }
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, this::save);
     }
     
     /**
@@ -333,8 +351,8 @@ public class AdminList extends FreedomService
                 {
                     // Add the new IP if we have to
                     admin.addIp(ip);
-                    save();
-                    updateTables();
+                    ipTable.put(ip, admin);
+                    saveAsync();
                 }
                 return admin;
             }
@@ -347,9 +365,18 @@ public class AdminList extends FreedomService
         if (admin != null)
         {
             // Set the new username
+            String oldKey = admin.getName().toLowerCase();
             admin.setName(player.getName());
-            save();
-            updateTables();
+            String newKey = admin.getName().toLowerCase();
+            if (!oldKey.equals(newKey))
+            {
+                nameTable.remove(oldKey);
+                if (admin.isActive())
+                {
+                    nameTable.put(newKey, admin);
+                }
+            }
+            saveAsync();
         }
 
         return null;
@@ -394,7 +421,7 @@ public class AdminList extends FreedomService
 
         admin.setLastLogin(new Date());
         admin.setName(player.getName());
-        save();
+        saveAsync();
     }
 
     public boolean isAdminImpostor(Player player)
@@ -549,6 +576,7 @@ public class AdminList extends FreedomService
         nameTable.clear();
         ipTable.clear();
         uuidTable.clear();
+        onlineAdminPlayers.clear();
 
         for (Admin admin : allAdmins.values())
         {
@@ -573,6 +601,15 @@ public class AdminList extends FreedomService
 
         }
 
+        // Re-populate online-admin cache from currently-online players.
+        for (Player online : Bukkit.getOnlinePlayers())
+        {
+            if (isAdmin(online))
+            {
+                onlineAdminPlayers.add(online);
+            }
+        }
+
         plugin.wm.adminworld.wipeAccessCache();
     }
     
@@ -592,6 +629,27 @@ public class AdminList extends FreedomService
     public Set<String> getAdminIps()
     {
         return ipTable.keySet();
+    }
+
+    public Set<Player> getOnlineAdmins()
+    {
+        return onlineAdminPlayers;
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPlayerJoin(PlayerJoinEvent event)
+    {
+        final Player player = event.getPlayer();
+        if (isAdmin(player))
+        {
+            onlineAdminPlayers.add(player);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPlayerQuit(PlayerQuitEvent event)
+    {
+        onlineAdminPlayers.remove(event.getPlayer());
     }
 
     public void deactivateOldEntries(boolean verbose)

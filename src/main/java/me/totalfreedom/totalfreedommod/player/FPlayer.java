@@ -23,6 +23,7 @@ public class FPlayer
 {
 
     public static final long AUTO_PURGE_TICKS = 5L * 60L * 20L;
+    private static final long COUNTER_WINDOW_MS = 1000L;
 
     @Getter
     private final TotalFreedomMod plugin;
@@ -40,8 +41,11 @@ public class FPlayer
     @Getter
     private double fuckoffRadius = 0;
     private int messageCount = 0;
+    private long messageCountWindowStart = 0L;
     private int totalBlockDestroy = 0;
+    private long totalBlockDestroyWindowStart = 0L;
     private int totalBlockPlace = 0;
+    private long totalBlockPlaceWindowStart = 0L;
     private int freecamDestroyCount = 0;
     private int freecamPlaceCount = 0;
     @Getter
@@ -140,31 +144,52 @@ public class FPlayer
     public void resetMsgCount()
     {
         this.messageCount = 0;
+        this.messageCountWindowStart = System.currentTimeMillis();
     }
 
     public int incrementAndGetMsgCount()
     {
+        final long now = System.currentTimeMillis();
+        if (now - messageCountWindowStart > COUNTER_WINDOW_MS)
+        {
+            messageCount = 0;
+            messageCountWindowStart = now;
+        }
         return this.messageCount++;
     }
 
     public int incrementAndGetBlockDestroyCount()
     {
+        final long now = System.currentTimeMillis();
+        if (now - totalBlockDestroyWindowStart > COUNTER_WINDOW_MS)
+        {
+            totalBlockDestroy = 0;
+            totalBlockDestroyWindowStart = now;
+        }
         return this.totalBlockDestroy++;
     }
 
     public void resetBlockDestroyCount()
     {
         this.totalBlockDestroy = 0;
+        this.totalBlockDestroyWindowStart = System.currentTimeMillis();
     }
 
     public int incrementAndGetBlockPlaceCount()
     {
+        final long now = System.currentTimeMillis();
+        if (now - totalBlockPlaceWindowStart > COUNTER_WINDOW_MS)
+        {
+            totalBlockPlace = 0;
+            totalBlockPlaceWindowStart = now;
+        }
         return this.totalBlockPlace++;
     }
 
     public void resetBlockPlaceCount()
     {
         this.totalBlockPlace = 0;
+        this.totalBlockPlaceWindowStart = System.currentTimeMillis();
     }
 
     public int incrementAndGetFreecamDestroyCount()
