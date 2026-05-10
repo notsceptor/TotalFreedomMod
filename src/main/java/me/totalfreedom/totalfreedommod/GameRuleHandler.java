@@ -72,9 +72,15 @@ public class GameRuleHandler extends FreedomService
                 world.setGameRuleValue(gameRuleName, gameRuleValue);
                 if (gameRuleEntry.getKey() == GameRule.DO_DAYLIGHT_CYCLE && !gameRuleEntry.getValue())
                 {
-                    long time = world.getTime();
-                    time -= time % 24000;
-                    world.setTime(time + 24000 + 6000);
+                    try
+                    {
+                        long time = world.getTime();
+                        time -= time % 24000;
+                        world.setTime(time + 24000 + 6000);
+                    }
+                    catch (IllegalArgumentException ignored)
+                    {
+                    }
                 }
             }
 
