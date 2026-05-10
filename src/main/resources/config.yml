@@ -250,6 +250,8 @@ protectarea:
 
 # WorldEdit settings
 worldedit:
+  enabled: true
+
   # Maximum limit non-admins can set for their WorldEdit operations
   # Set to -1 for no limit.
   limit_max: 10000
