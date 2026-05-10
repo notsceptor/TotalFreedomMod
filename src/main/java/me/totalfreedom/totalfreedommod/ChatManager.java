@@ -35,6 +35,9 @@ public class ChatManager extends FreedomService
     private PermissionService vaultPermissionProvider = null;
     private boolean essentialsChatInstalled = false;
 
+    private String cachedRawFormat = null;
+    private String cachedTranslatedFormat = null;
+
     public ChatManager(TotalFreedomMod plugin)
     {
         super(plugin);
@@ -236,36 +239,36 @@ public class ChatManager extends FreedomService
 		String suffix = getPlayerSuffix(player);
 		String worldName = player.getWorld().getName();
 
-		String formatTemplate = ConfigEntry.VAULT_CHAT_FORMAT.getString();
+		final String formatTemplate = getTranslatedChatFormat();
 
-		// Default format if not configured
-		if (formatTemplate == null || formatTemplate.isEmpty()) {
-			formatTemplate = "{PREFIX}<{DISPLAYNAME}> {MESSAGE}";
-		}
-
-		formatTemplate = ChatColor.translateAlternateColorCodes('&', formatTemplate);
-
-		// Placeholders
-		final String finalTemplate = formatTemplate;
-		final String finalPrefix = prefix;
-		final String finalSuffix = suffix;
-		final String finalWorld = worldName;
-
-		event.renderer((source, sourceDisplayName, msg, viewer) ->
-			buildRenderedMessage(sourceDisplayName, msg, finalTemplate, finalPrefix, finalSuffix, finalWorld));
-	}
-
-	private Component buildRenderedMessage(Component sourceDisplayName, Component message,
-		String template, String prefix, String suffix, String worldName) {
-
-		String resolved = template
+		final String resolvedTemplate = formatTemplate
 			.replace("{PREFIX}", prefix)
 			.replace("{SUFFIX}", suffix)
 			.replace("{WORLD}", worldName)
 			.replace("{GROUP}", "");
+		final int dnIdx = resolvedTemplate.indexOf("{DISPLAYNAME}");
+		final int msgIdx = resolvedTemplate.indexOf("{MESSAGE}");
 
-		int dnIdx = resolved.indexOf("{DISPLAYNAME}");
-		int msgIdx = resolved.indexOf("{MESSAGE}");
+		event.renderer((source, sourceDisplayName, msg, viewer) ->
+			buildRenderedMessage(sourceDisplayName, msg, resolvedTemplate, dnIdx, msgIdx));
+	}
+
+	private String getTranslatedChatFormat()
+	{
+		String raw = ConfigEntry.VAULT_CHAT_FORMAT.getString();
+		if (raw == null || raw.isEmpty()) {
+			raw = "{PREFIX}<{DISPLAYNAME}> {MESSAGE}";
+		}
+		if (raw == cachedRawFormat || raw.equals(cachedRawFormat)) {
+			return cachedTranslatedFormat;
+		}
+		cachedRawFormat = raw;
+		cachedTranslatedFormat = ChatColor.translateAlternateColorCodes('&', raw);
+		return cachedTranslatedFormat;
+	}
+
+	private Component buildRenderedMessage(Component sourceDisplayName, Component message,
+		String resolved, int dnIdx, int msgIdx) {
 
 		if (dnIdx < 0 && msgIdx < 0) {
 			return legacySection(resolved).append(message);

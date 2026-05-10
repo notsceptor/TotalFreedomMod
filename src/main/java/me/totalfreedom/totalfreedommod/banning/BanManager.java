@@ -157,7 +157,7 @@ public class BanManager extends FreedomService
         return Collections.unmodifiableCollection(nameBans.values());
     }
 
-    public void saveAll()
+    public synchronized void saveAll()
     {
         // Remove expired
         updateViews();
@@ -170,6 +170,26 @@ public class BanManager extends FreedomService
         {
             saveAllToYaml();
         }
+    }
+
+    public void saveAllAsync()
+    {
+        if (!plugin.isEnabled())
+        {
+            saveAll();
+            return;
+        }
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, this::saveAll);
+    }
+
+    private void saveBanToSqlAsync(Ban ban)
+    {
+        if (!plugin.isEnabled())
+        {
+            saveBanToSql(ban);
+            return;
+        }
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> saveBanToSql(ban));
     }
     
     /**
@@ -282,8 +302,12 @@ public class BanManager extends FreedomService
             if (usingSql)
             {
                 removeBanFromSql(ban);
+                updateViews();
             }
-            saveAll();
+            else
+            {
+                saveAllAsync();
+            }
         }
 
         return ban;
@@ -299,8 +323,12 @@ public class BanManager extends FreedomService
             if (usingSql)
             {
                 removeBanFromSql(ban);
+                updateViews();
             }
-            saveAll();
+            else
+            {
+                saveAllAsync();
+            }
         }
 
         return ban;
@@ -322,11 +350,11 @@ public class BanManager extends FreedomService
         {
             if (usingSql)
             {
-                saveBanToSql(ban);
+                saveBanToSqlAsync(ban);
             }
             else
             {
-                saveAll();
+                saveAllAsync();
             }
             updateViews();
             return true;
@@ -389,8 +417,12 @@ public class BanManager extends FreedomService
             if (usingSql)
             {
                 removeBanFromSql(ban);
+                updateViews();
             }
-            saveAll();
+            else
+            {
+                saveAllAsync();
+            }
             return true;
         }
 

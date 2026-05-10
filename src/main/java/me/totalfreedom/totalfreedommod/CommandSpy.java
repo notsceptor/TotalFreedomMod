@@ -32,9 +32,9 @@ public class CommandSpy extends FreedomService
             return;
         }
 
-        for (Player player : server.getOnlinePlayers())
+        for (Player player : plugin.al.getOnlineAdmins())
         {
-            if (plugin.al.isAdmin(player) && plugin.pl.getPlayer(player).cmdspyEnabled())
+            if (plugin.pl.getPlayer(player).cmdspyEnabled())
             {
                 FUtil.playerMsg(player, event.getPlayer().getName() + ": " + event.getMessage());
             }

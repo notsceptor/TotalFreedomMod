@@ -65,16 +65,38 @@ public class PlayerList extends FreedomService
     {
         for (PlayerData data : dataMap.values())
         {
-            YamlConfiguration config = getConfig(data);
-            data.saveTo(config);
-            try
+            saveOne(data);
+        }
+    }
+
+    public void saveAsync()
+    {
+        if (!plugin.isEnabled())
+        {
+            save();
+            return;
+        }
+        final java.util.List<PlayerData> snapshot = new java.util.ArrayList<>(dataMap.values());
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () ->
+        {
+            for (PlayerData data : snapshot)
             {
-                config.save(getConfigFile(data.getUsername().toLowerCase()));
+                saveOne(data);
             }
-            catch (IOException ex)
-            {
-                FLog.severe("Could not save player data for " + data.getUsername());
-            }
+        });
+    }
+
+    private void saveOne(PlayerData data)
+    {
+        final YamlConfiguration config = getConfig(data);
+        data.saveTo(config);
+        try
+        {
+            config.save(getConfigFile(data.getUsername().toLowerCase()));
+        }
+        catch (IOException ex)
+        {
+            FLog.severe("Could not save player data for " + data.getUsername());
         }
     }
 
@@ -181,15 +203,13 @@ public class PlayerList extends FreedomService
         }
 
         // Only store data if the player is online
-        for (String ip : data.getIps())
+        final Player onlinePlayer = Bukkit.getPlayerExact(data.getUsername());
+        if (onlinePlayer != null)
         {
-            for (Player onlinePlayer : Bukkit.getOnlinePlayers())
+            final String onlineIp = onlinePlayer.getAddress().getAddress().getHostAddress();
+            if (data.getIps().contains(onlineIp))
             {
-                if (onlinePlayer.getAddress().getAddress().getHostAddress().equals(ip))
-                {
-                    dataMap.put(ip, data);
-                    return data;
-                }
+                dataMap.put(onlineIp, data);
             }
         }
 
@@ -201,7 +221,12 @@ public class PlayerList extends FreedomService
     {
         final String ip = event.getPlayer().getAddress().getAddress().getHostAddress();
         playerMap.remove(ip);
-        dataMap.remove(ip);
+        final PlayerData data = dataMap.remove(ip);
+
+        if (data != null && plugin.isEnabled())
+        {
+            plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> saveOne(data));
+        }
     }
 
     public Collection<FPlayer> getLoadedPlayers()

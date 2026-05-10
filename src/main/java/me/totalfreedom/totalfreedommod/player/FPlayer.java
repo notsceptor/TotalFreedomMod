@@ -92,14 +92,7 @@ public class FPlayer
 
         if (player == null)
         {
-            for (Player onlinePlayer : Bukkit.getOnlinePlayers())
-            {
-                if (onlinePlayer.getAddress().getAddress().getHostAddress().equals(ip))
-                {
-                    player = onlinePlayer;
-                    break;
-                }
-            }
+            player = Bukkit.getPlayerExact(name);
         }
 
         return player;

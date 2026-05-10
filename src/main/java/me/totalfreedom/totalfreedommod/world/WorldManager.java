@@ -79,19 +79,9 @@ public class WorldManager extends FreedomService
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onPlayerMove(PlayerMoveEvent event)
     {
-        final Location from = event.getFrom();
-        final Location to = event.getTo();
-
-        try
+        if (!event.hasChangedPosition())
         {
-            if (from.getWorld() == to.getWorld() && from.distanceSquared(to) < (0.0002 * 0.0002))
-            {
-                // If player just rotated, but didn't move, don't process this event.
-                return;
-            }
-        }
-        catch (IllegalArgumentException ex)
-        {
+            return;
         }
 
         adminworld.validateMovement(event);

@@ -60,59 +60,62 @@ public class TabList extends FreedomService
             return;
         }
         final Player player = event.getPlayer();
+        final CycleContext ctx = newCycleContext();
         // Delay 1 tick so all other MONITOR-priority join handlers finish first.
-        plugin.getServer().getScheduler().runTaskLater(plugin, () -> applyToPlayer(player, buildHeader(), buildFooter()), 1L);
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> applyToPlayer(player, ctx), 1L);
     }
 
     private void updateAll()
     {
-        final Component header = buildHeader();
-        final Component footer = buildFooter();
+        final CycleContext ctx = newCycleContext();
         for (Player player : server.getOnlinePlayers())
         {
-            applyToPlayer(player, header, footer);
+            applyToPlayer(player, ctx);
         }
     }
 
-    private void applyToPlayer(Player player, Component header, Component footer)
+    private CycleContext newCycleContext()
+    {
+        final CycleContext ctx = new CycleContext();
+        ctx.header = AdventureUtil.legacyToComponent(ConfigEntry.TABLIST_HEADER.getString());
+        ctx.footer = AdventureUtil.legacyToComponent(ConfigEntry.TABLIST_FOOTER.getString());
+        ctx.playerComponentTemplate = ConfigEntry.TABLIST_PLAYER_COMPONENT.getString();
+        ctx.afkTag = ConfigEntry.TABLIST_AFK_TAG.getString();
+        String nickIndicator = ConfigEntry.TABLIST_DISPLAY_NICKNAME_PREFIX.getString();
+        ctx.nicknameIndicator = nickIndicator != null ? nickIndicator : "";
+        ctx.essentialsEnabled = plugin.esb.isEssentialsEnabled();
+        return ctx;
+    }
+
+    private void applyToPlayer(Player player, CycleContext ctx)
     {
         if (!player.isOnline())
         {
             return;
         }
-        player.sendPlayerListHeaderAndFooter(header, footer);
-        player.playerListName(buildPlayerListName(player));
+        player.sendPlayerListHeaderAndFooter(ctx.header, ctx.footer);
+        player.playerListName(buildPlayerListName(player, ctx));
     }
 
-    private Component buildHeader()
-    {
-        return AdventureUtil.legacyToComponent(ConfigEntry.TABLIST_HEADER.getString());
-    }
-
-    private Component buildFooter()
-    {
-        return AdventureUtil.legacyToComponent(ConfigEntry.TABLIST_FOOTER.getString());
-    }
-
-    private Component buildPlayerListName(Player player)
+    private Component buildPlayerListName(Player player, CycleContext ctx)
     {
         // ${prefix} — rank tag / custom tag, same logic as chat prefix
         String prefix = plugin.cm.buildPlayerPrefix(player);
 
         // ${afk_tag} — AFK indicator (empty if not AFK or Essentials unavailable)
         String afkTag = "";
-        if (plugin.esb.isAfk(player.getName()))
+        if (ctx.essentialsEnabled && plugin.esb.isAfk(player.getName()))
         {
-            afkTag = ConfigEntry.TABLIST_AFK_TAG.getString();
+            afkTag = ctx.afkTag;
         }
 
         // ${display_name} — nickname (with optional prepended indicator) or plain real name
-        String displayName = resolveDisplayName(player);
+        String displayName = resolveDisplayName(player, ctx);
 
         // ${name} — plain real username, no color applied
         String name = player.getName();
 
-        String resolved = ConfigEntry.TABLIST_PLAYER_COMPONENT.getString()
+        String resolved = ctx.playerComponentTemplate
                 .replace("${prefix}", prefix)
                 .replace("${afk_tag}", afkTag)
                 .replace("${display_name}", displayName)
@@ -123,22 +126,27 @@ public class TabList extends FreedomService
 
     // Returns the player's display name for the tab list:
     // Essentials may return § codes in the nickname; these are normalised to & for legacyToComponent.
-    private String resolveDisplayName(Player player)
+    private String resolveDisplayName(Player player, CycleContext ctx)
     {
-        if (plugin.esb.isEssentialsEnabled())
+        if (ctx.essentialsEnabled)
         {
             String nickname = plugin.esb.getNickname(player.getName());
             if (nickname != null && !nickname.isEmpty()
                     && !nickname.equalsIgnoreCase(player.getName()))
             {
-                String nicknameIndicator = ConfigEntry.TABLIST_DISPLAY_NICKNAME_PREFIX.getString();
-                if (nicknameIndicator == null)
-                {
-                    nicknameIndicator = "";
-                }
-                return nicknameIndicator + nickname.replace('§', '&');
+                return ctx.nicknameIndicator + nickname.replace('§', '&');
             }
         }
         return player.getName();
+    }
+
+    private static final class CycleContext
+    {
+        Component header;
+        Component footer;
+        String playerComponentTemplate;
+        String afkTag;
+        String nicknameIndicator;
+        boolean essentialsEnabled;
     }
 }
