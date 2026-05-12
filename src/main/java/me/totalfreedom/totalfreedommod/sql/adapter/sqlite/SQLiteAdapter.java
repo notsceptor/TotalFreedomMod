@@ -133,10 +133,21 @@ public class SQLiteAdapter extends DatabaseAdapter
                 rank TEXT NOT NULL,
                 active INTEGER DEFAULT 1,
                 last_login TEXT,
-                login_message TEXT
+                login_message TEXT,
+                custom_rank TEXT
             )
             """;
         statementHandler.executeUpdate(sql);
+
+        // Migration for existing tables
+        try
+        {
+            statementHandler.executeUpdate("ALTER TABLE admins ADD COLUMN custom_rank TEXT");
+        }
+        catch (SQLException ignored)
+        {
+            // Column already exists or table doesn't exist yet (handled by CREATE TABLE IF NOT EXISTS)
+        }
 
         // Create indexes
         statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_admins_username ON admins(username)");

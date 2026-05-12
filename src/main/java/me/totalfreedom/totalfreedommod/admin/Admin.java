@@ -24,6 +24,7 @@ public class Admin implements ConfigLoadable, ConfigSavable, Validatable
     private String name;
     private boolean active = true;
     private Rank rank = Rank.SUPER_ADMIN;
+    private String customRankId = null;
     private final List<String> ips = Lists.newArrayList();
     private Date lastLogin = new Date();
     private String loginMessage = null;
@@ -51,6 +52,7 @@ public class Admin implements ConfigLoadable, ConfigSavable, Validatable
                 .append("- Last Login: ").append(FUtil.dateToString(lastLogin)).append("\n")
                 .append("- Custom Login Message: ").append(loginMessage).append("\n")
                 .append("- Rank: ").append(rank.getName()).append("\n")
+                .append("- Custom Rank: ").append(customRankId != null ? customRankId : "none").append("\n")
                 .append("- Is Active: ").append(active);
 
         return output.toString();
@@ -75,6 +77,7 @@ public class Admin implements ConfigLoadable, ConfigSavable, Validatable
         ips.addAll(cs.getStringList("ips"));
         lastLogin = FUtil.stringToDate(cs.getString("last_login"));
         loginMessage = cs.getString("login_message", null);
+        customRankId = cs.getString("custom_rank", null);
     }
 
     @Override
@@ -87,6 +90,7 @@ public class Admin implements ConfigLoadable, ConfigSavable, Validatable
         cs.set("ips", Lists.newArrayList(ips));
         cs.set("last_login", FUtil.dateToString(lastLogin));
         cs.set("login_message", loginMessage);
+        cs.set("custom_rank", customRankId);
     }
 
     public boolean isAtLeast(Rank pRank)
@@ -143,6 +147,16 @@ public class Admin implements ConfigLoadable, ConfigSavable, Validatable
     public Rank getRank()
     {
         return rank;
+    }
+
+    public String getCustomRankId()
+    {
+        return customRankId;
+    }
+
+    public void setCustomRankId(String customRankId)
+    {
+        this.customRankId = customRankId;
     }
 
     public String getName()

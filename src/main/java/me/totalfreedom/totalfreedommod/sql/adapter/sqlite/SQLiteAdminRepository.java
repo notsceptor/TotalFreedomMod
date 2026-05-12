@@ -37,8 +37,8 @@ public class SQLiteAdminRepository implements AdminRepository
     public int insert(UUID uuid, Admin admin) throws SQLException
     {
         String sql = """
-            INSERT INTO admins (uuid, username, rank, active, last_login, login_message)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO admins (uuid, username, rank, active, last_login, login_message, custom_rank)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             """;
 
         try (PreparedStatement stmt = statementHandler.prepareStatement(sql,
@@ -47,7 +47,8 @@ public class SQLiteAdminRepository implements AdminRepository
                 admin.getRank().toString(),
                 admin.isActive() ? 1 : 0,
                 FUtil.dateToString(admin.getLastLogin()),
-                admin.getLoginMessage()))
+                admin.getLoginMessage(),
+                admin.getCustomRankId()))
         {
             stmt.executeUpdate();
 
@@ -94,7 +95,7 @@ public class SQLiteAdminRepository implements AdminRepository
         Map<String, Admin> admins = new HashMap<>();
         Map<Integer, Admin> adminById = new HashMap<>();
 
-        String sql = "SELECT id, uuid, username, rank, active, last_login, login_message FROM admins";
+        String sql = "SELECT id, uuid, username, rank, active, last_login, login_message, custom_rank FROM admins";
         try (ResultSet rs = statementHandler.executeQuery(sql))
         {
             while (rs.next())
@@ -105,6 +106,7 @@ public class SQLiteAdminRepository implements AdminRepository
                 boolean active = rs.getInt("active") == 1;
                 String lastLoginStr = rs.getString("last_login");
                 String loginMessage = rs.getString("login_message");
+                String customRankId = rs.getString("custom_rank");
 
                 String configKey = username.toLowerCase();
                 Admin admin = new Admin(configKey);
@@ -113,6 +115,7 @@ public class SQLiteAdminRepository implements AdminRepository
                 admin.setActive(active);
                 admin.setLastLogin(FUtil.stringToDate(lastLoginStr));
                 admin.setLoginMessage(loginMessage);
+                admin.setCustomRankId(customRankId);
 
                 UUID dbUuid = FUtil.parseUuid(rs.getString("uuid"));
                 if (dbUuid != null)
@@ -147,7 +150,7 @@ public class SQLiteAdminRepository implements AdminRepository
     @Override
     public Admin findByUuid(UUID uuid) throws SQLException
     {
-        String sql = "SELECT id, uuid, username, rank, active, last_login, login_message FROM admins WHERE uuid = ?";
+        String sql = "SELECT id, uuid, username, rank, active, last_login, login_message, custom_rank FROM admins WHERE uuid = ?";
         try (PreparedStatement stmt = statementHandler.prepareStatement(sql, uuid.toString());
              ResultSet rs = stmt.executeQuery())
         {
@@ -162,7 +165,7 @@ public class SQLiteAdminRepository implements AdminRepository
     @Override
     public Admin findByUsername(String username) throws SQLException
     {
-        String sql = "SELECT id, uuid, username, rank, active, last_login, login_message FROM admins WHERE LOWER(username) = LOWER(?)";
+        String sql = "SELECT id, uuid, username, rank, active, last_login, login_message, custom_rank FROM admins WHERE LOWER(username) = LOWER(?)";
         try (PreparedStatement stmt = statementHandler.prepareStatement(sql, username);
              ResultSet rs = stmt.executeQuery())
         {
@@ -178,7 +181,7 @@ public class SQLiteAdminRepository implements AdminRepository
     public Admin findByIp(String ip) throws SQLException
     {
         String sql = """
-            SELECT a.id, a.uuid, a.username, a.rank, a.active, a.last_login, a.login_message
+            SELECT a.id, a.uuid, a.username, a.rank, a.active, a.last_login, a.login_message, a.custom_rank
             FROM admins a
             INNER JOIN admin_ips ai ON a.id = ai.admin_id
             WHERE ai.ip = ?
@@ -280,7 +283,7 @@ public class SQLiteAdminRepository implements AdminRepository
     {
         String sql = """
             UPDATE admins
-            SET username = ?, rank = ?, active = ?, last_login = ?, login_message = ?
+            SET username = ?, rank = ?, active = ?, last_login = ?, login_message = ?, custom_rank = ?
             WHERE uuid = ?
             """;
 
@@ -290,6 +293,7 @@ public class SQLiteAdminRepository implements AdminRepository
                 admin.isActive() ? 1 : 0,
                 FUtil.dateToString(admin.getLastLogin()),
                 admin.getLoginMessage(),
+                admin.getCustomRankId(),
                 uuid.toString());
 
         return rows > 0;
@@ -470,6 +474,7 @@ public class SQLiteAdminRepository implements AdminRepository
         boolean active = rs.getInt("active") == 1;
         String lastLoginStr = rs.getString("last_login");
         String loginMessage = rs.getString("login_message");
+        String customRankId = rs.getString("custom_rank");
 
         String configKey = username.toLowerCase();
         Admin admin = new Admin(configKey);
@@ -478,6 +483,7 @@ public class SQLiteAdminRepository implements AdminRepository
         admin.setActive(active);
         admin.setLastLogin(FUtil.stringToDate(lastLoginStr));
         admin.setLoginMessage(loginMessage);
+        admin.setCustomRankId(customRankId);
 
         UUID dbUuid = FUtil.parseUuid(rs.getString("uuid"));
         if (dbUuid != null)

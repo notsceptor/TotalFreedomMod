@@ -464,7 +464,20 @@ public class RankManager extends FreedomService
         Admin admin = plugin.al.getAdmin(player);
         if (admin != null && admin.isActive())
         {
-            // Get the custom rank for this admin
+            // Try custom rank ID assigned to the admin first
+            if (admin.getCustomRankId() != null)
+            {
+                CustomRank custom = getCustomRank(admin.getCustomRankId());
+                if (custom != null)
+                {
+                    if (hasCustomRankPermission(custom, permission))
+                    {
+                        return true;
+                    }
+                }
+            }
+            
+            // Fallback to custom rank derived from legacy rank
             CustomRank customRank = getCustomRankForLegacy(admin.getRank());
             if (customRank != null)
             {
@@ -1029,6 +1042,16 @@ public class RankManager extends FreedomService
         {
             CustomRank ownerRank = getCustomRank("owner");
             if (ownerRank != null) return ownerRank;
+        }
+
+        Admin admin = plugin.al.getAdmin(player);
+        if (admin != null && admin.isActive() && admin.getCustomRankId() != null)
+        {
+            CustomRank custom = getCustomRank(admin.getCustomRankId());
+            if (custom != null)
+            {
+                return custom;
+            }
         }
 
         CustomRank customRank = getCustomRankForLegacy(rank);

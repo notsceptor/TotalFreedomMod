@@ -153,6 +153,7 @@ public class AdminList extends FreedomService
             fixed.setActive(admin.isActive());
             fixed.setLastLogin(admin.getLastLogin());
             fixed.setLoginMessage(admin.getLoginMessage());
+            fixed.setCustomRankId(admin.getCustomRankId());
             fixed.addIps(admin.getIps());
             return fixed;
         }

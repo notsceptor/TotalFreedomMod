@@ -2,6 +2,7 @@ package me.totalfreedom.totalfreedommod.command;
 
 import java.util.Arrays;
 import java.util.List;
+import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.rank.CustomRank;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.rank.RankManager;
@@ -15,7 +16,7 @@ import org.bukkit.entity.Player;
 
 @CommandPermissions(level = Rank.SENIOR_ADMIN, source = SourceType.BOTH, permission = "tfm.manage.ranks")
 @CommandParameters(description = "Configure custom ranks with an interactive menu.",
-        usage = "/<command> [list | create | edit <rank> | delete <rank> | set <rank> <property> [value] | reload | save]",
+        usage = "/<command> [list | create | edit <rank> | delete <rank> | set <rank> <property> [value] | setrank <player> <rank> | reload | save]",
         aliases = "rankconf,rankcfg")
 public class Command_rankconfig extends FreedomCommand
 {
@@ -58,6 +59,9 @@ public class Command_rankconfig extends FreedomCommand
 
             case "set":
                 return handleSet(sender, playerSender, args);
+
+            case "setrank":
+                return handleSetRank(sender, args);
 
             case "reload":
                 return handleReload(sender);
@@ -524,6 +528,64 @@ public class Command_rankconfig extends FreedomCommand
     {
         plugin.rm.saveRanks();
         msg("Ranks saved to file.", NamedTextColor.GREEN);
+        return true;
+    }
+
+    private boolean handleSetRank(CommandSender sender, String[] args)
+    {
+        if (args.length < 3)
+        {
+            msg("Usage: /rankconfig setrank <player> <rank>", NamedTextColor.RED);
+            return true;
+        }
+
+        Player target = getPlayer(args[1]);
+        if (target == null)
+        {
+            msg("Player not found: " + args[1], NamedTextColor.RED);
+            return true;
+        }
+
+        String rankId = args[2].toLowerCase();
+        if (rankId.equalsIgnoreCase("none") || rankId.equalsIgnoreCase("clear"))
+        {
+            Admin admin = plugin.al.getAdmin(target);
+            if (admin != null)
+            {
+                admin.setCustomRankId(null);
+                plugin.al.save();
+                msg("Cleared custom rank for " + target.getName(), NamedTextColor.GREEN);
+            }
+            else
+            {
+                msg("Player is not an admin, no custom rank to clear.", NamedTextColor.RED);
+            }
+            return true;
+        }
+
+        if (!plugin.rm.hasCustomRank(rankId))
+        {
+            msg("Rank not found: " + rankId, NamedTextColor.RED);
+            return true;
+        }
+
+        Admin admin = plugin.al.getAdmin(target);
+        if (admin == null)
+        {
+            msg("Player must be an admin to have a custom rank assigned.", NamedTextColor.RED);
+            msg("Add them to the admin list first using /saconfig add " + target.getName(), NamedTextColor.GRAY);
+            return true;
+        }
+
+        admin.setCustomRankId(rankId);
+        plugin.al.save();
+        
+        CustomRank rank = plugin.rm.getCustomRank(rankId);
+        msg(Component.text("Set " + target.getName() + "'s custom rank to: ").color(NamedTextColor.GREEN)
+                .append(rank.getColoredTag())
+                .append(Component.text(" " + rank.getName()).color(rank.getColor())));
+        
+        FUtil.adminAction(sender.getName(), "Set " + target.getName() + "'s custom rank to " + rank.getName(), false);
         return true;
     }
 
