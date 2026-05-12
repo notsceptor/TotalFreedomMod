@@ -10,8 +10,8 @@ import java.util.Map;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.util.FUtil;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.commons.lang3.StringUtils;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -234,15 +234,15 @@ public class RollbackManager extends FreedomService
             return;
         }
 
-        FUtil.playerMsg(player, "Block edits at ("
-                + ChatColor.WHITE + "x" + location.getBlockX()
-                + ", y" + location.getBlockY()
-                + ", z" + location.getBlockZ()
-                + ChatColor.BLUE + ")" + ChatColor.WHITE + ":", ChatColor.BLUE);
+        FUtil.playerMsg(player, net.kyori.adventure.text.Component.text("Block edits at (", NamedTextColor.BLUE)
+                .append(net.kyori.adventure.text.Component.text(
+                        "x" + location.getBlockX() + ", y" + location.getBlockY() + ", z" + location.getBlockZ(),
+                        NamedTextColor.WHITE))
+                .append(net.kyori.adventure.text.Component.text("):", NamedTextColor.BLUE)));
         for (RollbackEntry entry : entries)
         {
-            FUtil.playerMsg(player, " - " + ChatColor.BLUE + entry.author + " " + entry.getType() + " "
-                    + StringUtils.capitalize(entry.getMaterial().toString().toLowerCase()) + (entry.data == 0 ? "" : ":" + entry.data));
+            FUtil.playerMsg(player, " - " + entry.author + " " + entry.getType() + " "
+                    + StringUtils.capitalize(entry.getMaterial().toString().toLowerCase()) + (entry.data == 0 ? "" : ":" + entry.data), NamedTextColor.BLUE);
         }
     }
 

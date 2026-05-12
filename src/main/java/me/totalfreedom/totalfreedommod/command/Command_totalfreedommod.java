@@ -5,7 +5,8 @@ import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.config.MainConfig;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FLog;
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -54,23 +55,21 @@ public class Command_totalfreedommod extends FreedomCommand
         }
 
         TotalFreedomMod.BuildProperties build = TotalFreedomMod.build;
-        msg("TotalFreedomMod for 'Total Freedom', the original all-op server.", ChatColor.GOLD);
-        msg("Running on " + ConfigEntry.SERVER_NAME.getString() + ".", ChatColor.GOLD);
-        msg("Created by Madgeek1450 and Prozza.", ChatColor.GOLD);
-        msg(String.format("Version "
-                + ChatColor.BLUE + "%s - %s Build %s " + ChatColor.GOLD + "("
-                + ChatColor.BLUE + "%s" + ChatColor.GOLD + ")",
-                build.codename,
-                build.version,
-                build.number,
-                build.head), ChatColor.GOLD);
-        msg(String.format("Compiled "
-                + ChatColor.BLUE + "%s" + ChatColor.GOLD + " by "
-                + ChatColor.BLUE + "%s",
-                build.date,
-                build.author), ChatColor.GOLD);
-        msg("Visit " + ChatColor.AQUA + "https://github.com/tfreedomorg/totalfreedommod"
-                + ChatColor.GREEN + " for more information.", ChatColor.GREEN);
+        msg("TotalFreedomMod for 'Total Freedom', the original all-op server.", NamedTextColor.GOLD);
+        msg("Running on " + ConfigEntry.SERVER_NAME.getString() + ".", NamedTextColor.GOLD);
+        msg("Created by Madgeek1450 and Prozza.", NamedTextColor.GOLD);
+        msg(Component.text("Version ", NamedTextColor.GOLD)
+                .append(Component.text(build.codename + " - " + build.version + " Build " + build.number + " ", NamedTextColor.BLUE))
+                .append(Component.text("(", NamedTextColor.GOLD))
+                .append(Component.text(build.head, NamedTextColor.BLUE))
+                .append(Component.text(")", NamedTextColor.GOLD)));
+        msg(Component.text("Compiled ", NamedTextColor.GOLD)
+                .append(Component.text(build.date, NamedTextColor.BLUE))
+                .append(Component.text(" by ", NamedTextColor.GOLD))
+                .append(Component.text(build.author, NamedTextColor.BLUE)));
+        msg(Component.text("Visit ", NamedTextColor.GREEN)
+                .append(Component.text("https://github.com/tfreedomorg/totalfreedommod", NamedTextColor.AQUA))
+                .append(Component.text(" for more information.", NamedTextColor.GREEN)));
 
         return true;
     }

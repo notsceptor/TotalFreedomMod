@@ -2,8 +2,9 @@ package me.totalfreedom.totalfreedommod.command;
 
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -34,7 +35,7 @@ public class Command_mobpurge extends FreedomCommand
             World world = Bukkit.getWorld(args[0]);
             if (world == null)
             {
-                msg("World \"" + args[0] + "\" not found.", ChatColor.RED);
+                msg("World \"" + args[0] + "\" not found.", NamedTextColor.RED);
                 return true;
             }
             int batchSize = DEFAULT_BATCH_SIZE;
@@ -67,19 +68,19 @@ public class Command_mobpurge extends FreedomCommand
                 }
                 catch (NumberFormatException e)
                 {
-                    msg("Invalid batch size. Using " + DEFAULT_BATCH_SIZE + ".", ChatColor.GRAY);
+                    msg("Invalid batch size. Using " + DEFAULT_BATCH_SIZE + ".", NamedTextColor.GRAY);
                 }
             }
             if (chunkX != null && chunkZ != null)
             {
                 FUtil.adminAction(sender.getName(), "Starting mob purge in world " + world.getName() + " chunk (" + chunkX + "," + chunkZ + ") (" + batchSize + " per tick)", true);
                 purgeMobsBatchedForChunk(plugin, world, chunkX, chunkZ, batchSize, sender);
-                msg("Batched mob purge started for chunk (" + chunkX + "," + chunkZ + "). You will be notified when done.", ChatColor.GRAY);
+                msg("Batched mob purge started for chunk (" + chunkX + "," + chunkZ + "). You will be notified when done.", NamedTextColor.GRAY);
                 return true;
             }
             FUtil.adminAction(sender.getName(), "Starting mob purge in world " + world.getName() + " (" + batchSize + " per tick)", true);
             purgeMobsBatched(plugin, world, batchSize, sender);
-            msg("Mob purge started. You will be notified when done.", ChatColor.GRAY);
+            msg("Mob purge started. You will be notified when done.", NamedTextColor.GRAY);
             return true;
         }
 
@@ -208,7 +209,7 @@ public class Command_mobpurge extends FreedomCommand
     {
         if (notify != null)
         {
-            notify.sendMessage(ChatColor.GRAY + "[MobPurge] World \"" + worldName + "\" chunk (" + chunkX + "," + chunkZ + "): " + total + " mobs removed.");
+            notify.sendMessage(Component.text("[MobPurge] World \"" + worldName + "\" chunk (" + chunkX + "," + chunkZ + "): " + total + " mobs removed.", NamedTextColor.GRAY));
         }
     }
 
@@ -229,10 +230,10 @@ public class Command_mobpurge extends FreedomCommand
     {
         if (notify != null)
         {
-            notify.sendMessage(ChatColor.GRAY + "[MobPurge] World \"" + worldName + "\": " + total + " mobs removed.");
+            notify.sendMessage(Component.text("[MobPurge] World \"" + worldName + "\": " + total + " mobs removed.", NamedTextColor.GRAY));
             if (suggestReload)
             {
-                notify.sendMessage(ChatColor.GRAY + "[MobPurge] No entities in loaded chunks. Run again after spawn area loaded, or have a player enter the world so more chunks load, then run again.");
+                notify.sendMessage(Component.text("[MobPurge] No entities in loaded chunks. Run again after spawn area loaded, or have a player enter the world so more chunks load, then run again.", NamedTextColor.GRAY));
             }
         }
     }

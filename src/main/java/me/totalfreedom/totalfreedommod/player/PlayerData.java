@@ -24,22 +24,6 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
     @Getter
     @Setter
     private long lastJoinUnix;
-    
-    // Manual getters/setters - Lombok @Getter/@Setter not processing reliably
-    public String getUsername()
-    {
-        return username;
-    }
-    
-    public void setFirstJoinUnix(long firstJoinUnix)
-    {
-        this.firstJoinUnix = firstJoinUnix;
-    }
-    
-    public void setLastJoinUnix(long lastJoinUnix)
-    {
-        this.lastJoinUnix = lastJoinUnix;
-    }
     private final List<String> ips = Lists.newArrayList();
 
     public PlayerData(Player player)

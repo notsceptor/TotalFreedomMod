@@ -3,12 +3,14 @@ package me.totalfreedom.totalfreedommod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FUtil;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.server.ServerListPingEvent;
 
+@SuppressWarnings("deprecation")
 public class ServerPing extends FreedomService
 {
 
@@ -34,25 +36,25 @@ public class ServerPing extends FreedomService
 
         if (plugin.bm.isIpBanned(ip))
         {
-            event.setMotd(ChatColor.RED + "You are banned.");
+            event.setMotd(AdventureUtil.componentToLegacySection(Component.text("You are banned.", NamedTextColor.RED)));
             return;
         }
 
         if (ConfigEntry.ADMIN_ONLY_MODE.getBoolean())
         {
-            event.setMotd(ChatColor.RED + "Server is closed.");
+            event.setMotd(AdventureUtil.componentToLegacySection(Component.text("Server is closed.", NamedTextColor.RED)));
             return;
         }
 
         if (Bukkit.hasWhitelist())
         {
-            event.setMotd(ChatColor.RED + "Whitelist enabled.");
+            event.setMotd(AdventureUtil.componentToLegacySection(Component.text("Whitelist enabled.", NamedTextColor.RED)));
             return;
         }
 
         if (Bukkit.getOnlinePlayers().size() >= Bukkit.getMaxPlayers())
         {
-            event.setMotd(ChatColor.RED + "Server is full.");
+            event.setMotd(AdventureUtil.componentToLegacySection(Component.text("Server is full.", NamedTextColor.RED)));
             return;
         }
 
@@ -68,14 +70,14 @@ public class ServerPing extends FreedomService
         }
 
         // Colorful MOTD
-        final StringBuilder motd = new StringBuilder();
+        Component motd = Component.empty();
         for (String word : baseMotd.split(" "))
         {
-            ChatColor color = AdventureUtil.namedTextColorToChatColor(FUtil.randomChatColor());
-            motd.append(color != null ? color : ChatColor.WHITE).append(word).append(" ");
+            NamedTextColor color = FUtil.randomChatColor();
+            motd = motd.append(Component.text(word + " ", color != null ? color : NamedTextColor.WHITE));
         }
 
-        event.setMotd(motd.toString().trim());
+        event.setMotd(AdventureUtil.componentToLegacySection(motd).trim());
     }
 
 }

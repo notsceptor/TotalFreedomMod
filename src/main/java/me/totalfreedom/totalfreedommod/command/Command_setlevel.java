@@ -1,7 +1,7 @@
 package me.totalfreedom.totalfreedommod.command;
 
 import me.totalfreedom.totalfreedommod.rank.Rank;
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -36,13 +36,13 @@ public class Command_setlevel extends FreedomCommand
         }
         catch (NumberFormatException ex)
         {
-            msg("Invalid level.", ChatColor.RED);
+            msg("Invalid level.", NamedTextColor.RED);
             return true;
         }
 
         playerSender.setLevel(new_level);
 
-        msg("You have been set to level " + Integer.toString(new_level), ChatColor.AQUA);
+        msg("You have been set to level " + Integer.toString(new_level), NamedTextColor.AQUA);
 
         return true;
     }

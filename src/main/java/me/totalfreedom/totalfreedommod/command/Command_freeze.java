@@ -3,7 +3,7 @@ package me.totalfreedom.totalfreedommod.command;
 import me.totalfreedom.totalfreedommod.freeze.FreezeData;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -33,7 +33,7 @@ public class Command_freeze extends FreedomCommand
             {
                 if (!isAdmin(player))
                 {
-                    msg(player, "You have been frozen due to rulebreakers, you will be unfrozen soon.", ChatColor.RED);
+                    msg(player, "You have been frozen due to rulebreakers, you will be unfrozen soon.", NamedTextColor.RED);
                 }
             }
             msg("Players are now frozen.");
@@ -52,7 +52,7 @@ public class Command_freeze extends FreedomCommand
 
         if (player == null)
         {
-            msg(FreedomCommand.PLAYER_NOT_FOUND, ChatColor.RED);
+            msg(FreedomCommand.PLAYER_NOT_FOUND, NamedTextColor.RED);
             return true;
         }
 
@@ -60,7 +60,7 @@ public class Command_freeze extends FreedomCommand
         fd.setFrozen(!fd.isFrozen());
 
         msg(player.getName() + " has been " + (fd.isFrozen() ? "frozen" : "unfrozen") + ".");
-        msg(player, "You have been " + (fd.isFrozen() ? "frozen" : "unfrozen") + ".", ChatColor.AQUA);
+        msg(player, "You have been " + (fd.isFrozen() ? "frozen" : "unfrozen") + ".", NamedTextColor.AQUA);
 
         return true;
     }

@@ -7,6 +7,7 @@ import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.ChatColor;
 
 @Getter
+@SuppressWarnings("deprecation")
 public enum Rank implements Displayable
 {
 

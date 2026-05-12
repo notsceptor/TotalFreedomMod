@@ -3,8 +3,8 @@ package me.totalfreedom.totalfreedommod.command;
 import java.util.Arrays;
 import java.util.List;
 import me.totalfreedom.totalfreedommod.rank.Rank;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.commons.lang3.StringUtils;
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -32,13 +32,13 @@ public class Command_wildcard extends FreedomCommand
         Command runCmd = server.getCommandMap().getCommand(args[0]);
         if (runCmd == null)
         {
-            msg("Unknown command: " + args[0], ChatColor.RED);
+            msg("Unknown command: " + args[0], NamedTextColor.RED);
             return true;
         }
 
         if (BLOCKED_COMMANDS.contains(runCmd.getName()))
         {
-            msg("Did you really think that was going to work?", ChatColor.RED);
+            msg("Did you really think that was going to work?", NamedTextColor.RED);
             return true;
         }
 

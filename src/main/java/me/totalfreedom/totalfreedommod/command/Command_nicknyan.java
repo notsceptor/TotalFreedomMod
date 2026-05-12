@@ -6,7 +6,6 @@ import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -34,7 +33,7 @@ public class Command_nicknyan extends FreedomCommand
         Component colorized = FUtil.colorize(args[0].trim());
         final String nickPlain = AdventureUtil.stripColor(AdventureUtil.componentToLegacy(colorized));
 
-        if (!nickPlain.matches("^[a-zA-Z_0-9" + ChatColor.COLOR_CHAR + "]+$"))
+        if (!nickPlain.matches("^[a-zA-Z_0-9\u00A7]+$"))
         {
             msg("That nickname contains invalid characters.");
             return true;

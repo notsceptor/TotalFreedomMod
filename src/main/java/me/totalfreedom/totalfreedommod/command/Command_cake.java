@@ -2,8 +2,10 @@ package me.totalfreedom.totalfreedommod.command;
 
 import java.util.Random;
 import me.totalfreedom.totalfreedommod.rank.Rank;
+import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -22,17 +24,16 @@ public class Command_cake extends FreedomCommand
     @Override
     public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
     {
-        final StringBuilder output = new StringBuilder();
-
-        final String[] words = CAKE_LYRICS.split(" ");
-        for (final String word : words)
+        final StringBuilder legacy = new StringBuilder();
+        for (final String word : CAKE_LYRICS.split(" "))
         {
-            output.append(ChatColor.COLOR_CHAR).append(Integer.toHexString(1 + random.nextInt(14))).append(word).append(" ");
+            legacy.append('&').append(Integer.toHexString(1 + random.nextInt(14))).append(word).append(' ');
         }
 
         final ItemStack heldItem = new ItemStack(Material.CAKE);
         final ItemMeta heldItemMeta = heldItem.getItemMeta();
-        heldItemMeta.setDisplayName((new StringBuilder()).append(ChatColor.WHITE).append("The ").append(ChatColor.DARK_GRAY).append("Lie").toString());
+        heldItemMeta.displayName(Component.text("The ", NamedTextColor.WHITE)
+                .append(Component.text("Lie", NamedTextColor.DARK_GRAY)));
         heldItem.setItemMeta(heldItemMeta);
 
         for (final Player player : server.getOnlinePlayers())
@@ -45,7 +46,7 @@ public class Command_cake extends FreedomCommand
             
         }
 
-        FUtil.bcastMsg(output.toString());
+        FUtil.bcastMsg(AdventureUtil.legacyToComponent(legacy.toString()));
 
         return true;
     }

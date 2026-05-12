@@ -5,8 +5,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FLog;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.commons.lang.math.DoubleRange;
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -56,7 +56,7 @@ public class Command_health extends FreedomCommand
                         @Override
                         public void run()
                         {
-                            ChatColor tpsColor = TPS_RANGE.containsDouble(ticksPerSecond) ? ChatColor.GREEN : ChatColor.RED;
+                            NamedTextColor tpsColor = TPS_RANGE.containsDouble(ticksPerSecond) ? NamedTextColor.GREEN : NamedTextColor.RED;
                             msg("Ticks per second: " + ticksPerSecond, tpsColor);
                         }
                     }.runTask(plugin);

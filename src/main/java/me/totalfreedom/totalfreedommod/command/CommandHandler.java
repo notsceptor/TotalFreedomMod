@@ -10,7 +10,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.util.FLog;
-import org.bukkit.ChatColor;
 import org.bukkit.command.CommandExecutor;
 
 /**
@@ -26,9 +25,9 @@ public class CommandHandler<T extends TotalFreedomMod>
     private final T plugin;
     private final Map<String, CommandExecutor> executors;
     private String commandClassPrefix = "Command_";
-    private String permissionMessage = ChatColor.RED + "You do not have permission to use this command.";
-    private String onlyConsoleMessage = ChatColor.RED + "This command can only be used from the console.";
-    private String onlyPlayerMessage = ChatColor.RED + "This command can only be used by players.";
+    private String permissionMessage = "\u00A7cYou do not have permission to use this command.";
+    private String onlyConsoleMessage = "\u00A7cThis command can only be used from the console.";
+    private String onlyPlayerMessage = "\u00A7cThis command can only be used by players.";
     private CommandExecutorFactory executorFactory;
 
     public CommandHandler(T plugin)

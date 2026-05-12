@@ -1,7 +1,7 @@
 package me.totalfreedom.totalfreedommod.command;
 
 import me.totalfreedom.totalfreedommod.rank.Rank;
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.command.Command;
@@ -34,7 +34,7 @@ public class Command_spawnmob extends FreedomCommand
 
         if (type == null)
         {
-            msg("Unknown entity type: " + args[0], ChatColor.RED);
+            msg("Unknown entity type: " + args[0], NamedTextColor.RED);
             return true;
         }
 
@@ -53,14 +53,14 @@ public class Command_spawnmob extends FreedomCommand
             }
             catch (NumberFormatException nfex)
             {
-                msg("Invalid amount: " + args[1], ChatColor.RED);
+                msg("Invalid amount: " + args[1], NamedTextColor.RED);
                 return true;
             }
         }
 
         if (amount > 10 || amount < 1)
         {
-            msg("Invalid amount: " + args[1] + ". Must be 1-10.", ChatColor.RED);
+            msg("Invalid amount: " + args[1] + ". Must be 1-10.", NamedTextColor.RED);
             return true;
         }
 

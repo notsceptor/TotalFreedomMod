@@ -19,13 +19,14 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+@SuppressWarnings("deprecation")
 public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod>
 {
 
-    public static final String YOU_ARE_OP = ChatColor.YELLOW + "You are now op!";
-    public static final String YOU_ARE_NOT_OP = ChatColor.YELLOW + "You are no longer op!";
+    public static final String YOU_ARE_OP = "\u00A7eYou are now op!";
+    public static final String YOU_ARE_NOT_OP = "\u00A7eYou are no longer op!";
     public static final String NOT_FROM_CONSOLE = "This command may not be used from the console.";
-    public static final String PLAYER_NOT_FOUND = ChatColor.GRAY + "Player not found!";
+    public static final String PLAYER_NOT_FOUND = "\u00A77Player not found!";
     //
     @Getter
     private final CommandParameters params;
@@ -65,7 +66,7 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
         {
             FLog.severe("Uncaught exception executing command: " + command.getName());
             FLog.severe(ex);
-            msg("Command error: " + (ex.getMessage() == null ? "Unknown cause" : ex.getMessage()), ChatColor.RED);
+            msg("Command error: " + (ex.getMessage() == null ? "Unknown cause" : ex.getMessage()), NamedTextColor.RED);
             return true;
         }
     }

@@ -2,8 +2,9 @@ package me.totalfreedom.totalfreedommod.command;
 
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.Command;
-import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -17,7 +18,7 @@ public class Command_disguisetoggle extends FreedomCommand
     {
         if (!plugin.ldb.isPluginEnabled())
         {
-            msg(ChatColor.RED + "LibsDisguises is not enabled.");
+            msg(Component.text("LibsDisguises is not enabled.", NamedTextColor.RED));
             return true;
         }
 

@@ -3,7 +3,8 @@ package me.totalfreedom.totalfreedommod.command;
 import me.totalfreedom.totalfreedommod.rank.Displayable;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -49,28 +50,21 @@ public class Command_rank extends FreedomCommand
         return true;
     }
 
-    public String message(Player player)
+    public Component message(Player player)
     {
         Displayable display = plugin.rm.getDisplay(player);
         Rank rank = plugin.rm.getRank(player);
 
-        StringBuilder sb = new StringBuilder();
-        sb
-                .append(ChatColor.AQUA)
-                .append(player.getName())
-                .append(" is ")
-                .append(AdventureUtil.componentToLegacySection(display.getColoredLoginMessage()));
+        Component result = Component.text(player.getName() + " is ", NamedTextColor.AQUA)
+                .append(display.getColoredLoginMessage());
 
         if (rank != display)
         {
-            sb
-                    .append(ChatColor.AQUA)
-                    .append(" (")
-                    .append(AdventureUtil.componentToLegacySection(rank.getColoredName()))
-                    .append(ChatColor.AQUA)
-                    .append(')');
+            result = result.append(Component.text(" (", NamedTextColor.AQUA))
+                    .append(rank.getColoredName())
+                    .append(Component.text(")", NamedTextColor.AQUA));
         }
 
-        return sb.toString();
+        return result;
     }
 }

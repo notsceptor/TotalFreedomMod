@@ -1,9 +1,10 @@
 package me.totalfreedom.totalfreedommod.command;
 
 import me.totalfreedom.totalfreedommod.rank.Rank;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -33,21 +34,21 @@ public class Command_warn extends FreedomCommand
         {
             if (player.equals(playerSender))
             {
-                msg(ChatColor.RED + "Please, don't try to warn yourself.");
+                msg("Please, don't try to warn yourself.", NamedTextColor.RED);
                 return true;
             }
         }
 
         if (plugin.al.isAdmin(player))
         {
-            msg(ChatColor.RED + "You can not warn admins");
+            msg("You can not warn admins", NamedTextColor.RED);
             return true;
         }
 
         String warnReason = StringUtils.join(ArrayUtils.subarray(args, 1, args.length), " ");
 
-        msg(player, ChatColor.RED + "[WARNING] You received a warning: " + warnReason);
-        msg(ChatColor.GREEN + "You have successfully warned " + player.getName());
+        msg(player, Component.text("[WARNING] You received a warning: " + warnReason, NamedTextColor.RED));
+        msg("You have successfully warned " + player.getName(), NamedTextColor.GREEN);
 
         plugin.pl.getPlayer(player).incrementWarnings();
 

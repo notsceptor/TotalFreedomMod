@@ -2,8 +2,8 @@ package me.totalfreedom.totalfreedommod.command;
 
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -22,7 +22,7 @@ public class Command_entitywipe extends FreedomCommand
             World world = Bukkit.getWorld(args[0]);
             if (world == null)
             {
-                msg("World \"" + args[0] + "\" not found.", ChatColor.RED);
+                msg("World \"" + args[0] + "\" not found.", NamedTextColor.RED);
                 return true;
             }
             FUtil.adminAction(sender.getName(), "Removing entities in world " + world.getName(), true);

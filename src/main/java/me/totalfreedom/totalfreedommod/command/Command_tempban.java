@@ -5,6 +5,7 @@ import java.util.Date;
 import me.totalfreedom.totalfreedommod.banning.Ban;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
+import net.kyori.adventure.text.Component;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Location;
@@ -70,7 +71,7 @@ public class Command_tempban extends FreedomCommand
 
         plugin.bm.addBan(Ban.forPlayer(player, sender, expires, reason));
 
-        player.kickPlayer(sender.getName() + " - " + message.toString());
+        player.kick(Component.text(sender.getName() + " - " + message.toString()));
 
         return true;
     }

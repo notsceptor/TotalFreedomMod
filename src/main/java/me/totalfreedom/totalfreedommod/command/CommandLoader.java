@@ -5,7 +5,6 @@ import lombok.Getter;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.util.FLog;
-import org.bukkit.ChatColor;
 
 @SuppressWarnings("UnstableApiUsage")
 public class CommandLoader extends FreedomService
@@ -32,9 +31,9 @@ public class CommandLoader extends FreedomService
 
         handler.setExecutorFactory(new FreedomCommandExecutor.FreedomExecutorFactory(plugin));
         handler.setCommandClassPrefix("Command_");
-        handler.setPermissionMessage(ChatColor.RED + "You do not have permission to use this command.");
-        handler.setOnlyConsoleMessage(ChatColor.RED + "This command can only be used from the console.");
-        handler.setOnlyPlayerMessage(ChatColor.RED + "This command can only be used by players.");
+        handler.setPermissionMessage("\u00A7cYou do not have permission to use this command.");
+        handler.setOnlyConsoleMessage("\u00A7cThis command can only be used from the console.");
+        handler.setOnlyPlayerMessage("\u00A7cThis command can only be used by players.");
 
         int loaded = handler.loadFrom(FreedomCommand.class.getPackage());
         FLog.info("Loaded " + loaded + " commands.");

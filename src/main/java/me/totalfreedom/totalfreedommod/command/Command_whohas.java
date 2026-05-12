@@ -3,8 +3,8 @@ package me.totalfreedom.totalfreedommod.command;
 import java.util.ArrayList;
 import java.util.List;
 import me.totalfreedom.totalfreedommod.rank.Rank;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.commons.lang3.StringUtils;
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -30,7 +30,7 @@ public class Command_whohas extends FreedomCommand
 
         if (material == null)
         {
-            msg("Invalid block: " + materialName, ChatColor.RED);
+            msg("Invalid block: " + materialName, NamedTextColor.RED);
             return true;
         }
 

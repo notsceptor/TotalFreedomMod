@@ -23,8 +23,9 @@ import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -162,7 +163,7 @@ public final class WorldEditHook implements Listener
 
         if (targetName != null && !targetName.equalsIgnoreCase(player.getName()))
         {
-            player.sendMessage(ChatColor.RED + "Only admins can change the limit for other players!");
+            player.sendMessage(Component.text("Only admins can change the limit for other players!", NamedTextColor.RED));
             event.setCancelled(true);
             return;
         }
@@ -180,16 +181,16 @@ public final class WorldEditHook implements Listener
             {
                 player.setOp(false);
                 FUtil.bcastMsg(player.getName() + " tried to set their WorldEdit limit to "
-                    + limit + " and has been de-opped", ChatColor.RED);
+                    + limit + " and has been de-opped", NamedTextColor.RED);
             }
             else
             {
                 FUtil.bcastMsg(player.getName() + " tried to set their WorldEdit limit to "
-                    + limit, ChatColor.RED);
+                    + limit, NamedTextColor.RED);
             }
             event.setCancelled(true);
-            player.sendMessage(ChatColor.RED + "You cannot set your limit higher than "
-                + maxLimit + " or to -1!");
+            player.sendMessage(Component.text("You cannot set your limit higher than "
+                + maxLimit + " or to -1!", NamedTextColor.RED));
         }
     }
 
@@ -247,7 +248,7 @@ public final class WorldEditHook implements Listener
 
                 if (plugin.pa.isInProtectedArea(minV, maxV, world.getName()))
                 {
-                    bukkitPlayer.sendMessage(ChatColor.RED + "The region that you selected contained a protected area. Selection cleared.");
+                    bukkitPlayer.sendMessage(Component.text("The region that you selected contained a protected area. Selection cleared.", NamedTextColor.RED));
                     session.getRegionSelector(wePlayer.getWorld()).clear();
                     lastSelections.remove(uuid);
                 }
@@ -339,7 +340,7 @@ public final class WorldEditHook implements Listener
             final Vector max = new Vector(maxPos.x(), maxPos.y(), maxPos.z());
             if (plugin.pa.isInProtectedArea(min, max, world.getName()))
             {
-                bukkitPlayer.sendMessage(ChatColor.RED + "You cannot perform WorldEdit operations in a protected area!");
+                bukkitPlayer.sendMessage(Component.text("You cannot perform WorldEdit operations in a protected area!", NamedTextColor.RED));
                 return true;
             }
             return false;

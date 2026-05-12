@@ -146,6 +146,22 @@ public class AdventureUtil
     }
 
     /**
+     * Translates ampersand (&) color codes to legacy section (§) codes.
+     * Replacement for ChatColor.translateAlternateColorCodes('&', text).
+     *
+     * @param text The text containing &-codes
+     * @return Text with section (§) color codes
+     */
+    public static String translateAlternateColorCodes(String text)
+    {
+        if (text == null)
+        {
+            return "";
+        }
+        return LEGACY_SECTION.serialize(LEGACY_AMPERSAND.deserialize(text));
+    }
+
+    /**
      * Translates alternate color codes (e.g., &a) to Component.
      * Replacement for ChatColor.translateAlternateColorCodes()
      *

@@ -15,8 +15,10 @@ import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.ConfigInterfaces.ConfigLoadable;
 import me.totalfreedom.totalfreedommod.util.ConfigInterfaces.ConfigSavable;
 import me.totalfreedom.totalfreedommod.util.ConfigInterfaces.Validatable;
+import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
@@ -43,29 +45,14 @@ public class Ban implements ConfigLoadable, ConfigSavable, Validatable
     @Getter
     @Setter
     private String by = null;
-    
-    // Manual getters - Lombok @Getter not processing reliably
-    public List<String> getIps()
-    {
-        return ips;
-    }
-    
-    public String getUsername()
-    {
-        return username;
-    }
-    
-    public long getExpiryUnix()
-    {
-        return expiryUnix;
-    }
-    
-    public void setReason(String reason)
-    {
-        this.reason = reason;
-    }
-    
-    // Alias methods for SQL repository compatibility
+    @Getter
+    @Setter
+    private String reason = null; // Unformatted, &[0-9,a-f] instead of ChatColor
+    @Getter
+    @Setter
+    private long expiryUnix = -1;
+
+    // SQL repository alias accessors
     public String getBannedBy()
     {
         return by;
@@ -94,13 +81,6 @@ public class Ban implements ConfigLoadable, ConfigSavable, Validatable
             ips.addAll(newIps);
         }
     }
-    
-    @Getter
-    @Setter
-    private String reason = null; // Unformatted, &[0-9,a-f] instead of ChatColor
-    @Getter
-    @Setter
-    private long expiryUnix = -1;
 
     public Ban()
     {
@@ -227,33 +207,35 @@ public class Ban implements ConfigLoadable, ConfigSavable, Validatable
         return hasExpiry() && expiryUnix < FUtil.getUnixTime();
     }
 
-    public String bakeKickMessage()
+    public Component bakeKickMessage()
     {
-        final StringBuilder message = new StringBuilder(ChatColor.GOLD + "You");
-
-        message.append(!hasUsername() ? "r IP address is" : " are").append(" temporarily banned from this server.");
-        message.append("\nAppeal at ").append(ChatColor.BLUE)
-                .append(ConfigEntry.SERVER_BAN_URL.getString());
+        Component message = Component.text("You" + (!hasUsername() ? "r IP address is" : " are")
+                + " temporarily banned from this server.", NamedTextColor.GOLD)
+                .append(Component.text("\nAppeal at ", NamedTextColor.GOLD))
+                .append(Component.text(ConfigEntry.SERVER_BAN_URL.getString(), NamedTextColor.BLUE));
 
         if (reason != null)
         {
-            message.append("\n").append(ChatColor.RED).append("Reason: ").append(ChatColor.GOLD)
-                    .append(ChatColor.translateAlternateColorCodes('&', reason));
+            message = message
+                    .append(Component.text("\nReason: ", NamedTextColor.RED))
+                    .append(AdventureUtil.translateAlternateColorCodes('&', reason).colorIfAbsent(NamedTextColor.GOLD));
         }
 
         if (by != null)
         {
-            message.append("\n").append(ChatColor.RED).append("Banned by: ").append(ChatColor.GOLD)
-                    .append(by);
+            message = message
+                    .append(Component.text("\nBanned by: ", NamedTextColor.RED))
+                    .append(Component.text(by, NamedTextColor.GOLD));
         }
 
         if (getExpiryUnix() != 0)
         {
-            message.append("\n").append(ChatColor.RED).append("Expires: ").append(ChatColor.GOLD)
-                    .append(DATE_FORMAT.format(FUtil.getUnixDate(expiryUnix)));
+            message = message
+                    .append(Component.text("\nExpires: ", NamedTextColor.RED))
+                    .append(Component.text(DATE_FORMAT.format(FUtil.getUnixDate(expiryUnix)), NamedTextColor.GOLD));
         }
 
-        return message.toString();
+        return message;
     }
 
     @Override

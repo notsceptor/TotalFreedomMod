@@ -6,7 +6,8 @@ import lombok.Setter;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FSync;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -25,17 +26,6 @@ public class LoginProcess extends FreedomService
     @Getter
     @Setter
     private boolean lockdownEnabled = false;
-    
-    // Manual getter/setter - Lombok @Getter/@Setter not processing reliably
-    public boolean isLockdownEnabled()
-    {
-        return lockdownEnabled;
-    }
-    
-    public void setLockdownEnabled(boolean lockdownEnabled)
-    {
-        this.lockdownEnabled = lockdownEnabled;
-    }
 
     public LoginProcess(TotalFreedomMod plugin)
     {
@@ -136,7 +126,7 @@ public class LoginProcess extends FreedomService
                 {
                     if (!plugin.al.isAdmin(onlinePlayer))
                     {
-                        onlinePlayer.kickPlayer("You have been kicked to free up room for an admin.");
+                        onlinePlayer.kick(net.kyori.adventure.text.Component.text("You have been kicked to free up room for an admin."));
                         count--;
                     }
 
@@ -205,12 +195,12 @@ public class LoginProcess extends FreedomService
         {
             if (ConfigEntry.ADMIN_ONLY_MODE.getBoolean())
             {
-                player.sendMessage(ChatColor.RED + "Server is currently closed to non-superadmins.");
+                player.sendMessage(Component.text("Server is currently closed to non-superadmins.", NamedTextColor.RED));
             }
 
             if (lockdownEnabled)
             {
-                FUtil.playerMsg(player, "Warning: Server is currenty in lockdown-mode, new players will not be able to join!", ChatColor.RED);
+                FUtil.playerMsg(player, "Warning: Server is currenty in lockdown-mode, new players will not be able to join!", NamedTextColor.RED);
             }
         }, 20L);
     }

@@ -5,8 +5,8 @@ import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.commons.lang3.StringUtils;
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -28,7 +28,7 @@ public class Command_saconfig extends FreedomCommand
         {
             case "list":
             {
-                msg("Superadmins: " + StringUtils.join(plugin.al.getAdminNames(), ", "), ChatColor.GOLD);
+                msg("Superadmins: " + StringUtils.join(plugin.al.getAdminNames(), ", "), NamedTextColor.GOLD);
 
                 return true;
             }
@@ -40,7 +40,7 @@ public class Command_saconfig extends FreedomCommand
 
                 FUtil.adminAction(sender.getName(), "Cleaning admin list", true);
                 plugin.al.deactivateOldEntries(true);
-                msg("Superadmins: " + StringUtils.join(plugin.al.getAdminNames(), ", "), ChatColor.GOLD);
+                msg("Superadmins: " + StringUtils.join(plugin.al.getAdminNames(), ", "), NamedTextColor.GOLD);
 
                 return true;
             }
@@ -81,7 +81,7 @@ public class Command_saconfig extends FreedomCommand
 
                 if (!rank.isAtLeast(Rank.SUPER_ADMIN))
                 {
-                    msg("Rank must be superadmin or higher.", ChatColor.RED);
+                    msg("Rank must be superadmin or higher.", NamedTextColor.RED);
                     return true;
                 }
 

@@ -2,7 +2,8 @@ package me.totalfreedom.totalfreedommod.command;
 
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -17,11 +18,11 @@ public class Command_wipeflatlands extends FreedomCommand
     {
         plugin.sf.setSavedFlag("do_wipe_flatlands", true);
 
-        FUtil.bcastMsg("Server is going offline for flatlands wipe.", ChatColor.GRAY);
+        FUtil.bcastMsg("Server is going offline for flatlands wipe.", NamedTextColor.GRAY);
 
         for (Player player : server.getOnlinePlayers())
         {
-            player.kickPlayer("Server is going offline for flatlands wipe, come back in a few minutes.");
+            player.kick(Component.text("Server is going offline for flatlands wipe, come back in a few minutes."));
         }
 
         server.shutdown();

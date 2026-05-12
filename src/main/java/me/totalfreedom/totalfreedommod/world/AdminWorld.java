@@ -11,7 +11,6 @@ import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
@@ -22,6 +21,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerMoveEvent;
 
+@SuppressWarnings("deprecation")
 public final class AdminWorld extends CustomWorld
 {
 
@@ -78,10 +78,10 @@ public final class AdminWorld extends CustomWorld
         org.bukkit.block.Sign welcomeSign = (org.bukkit.block.Sign) welcomeSignBlock.getState();
 
         String[] lines = {
-            ChatColor.GREEN + "AdminWorld",
-            ChatColor.DARK_GRAY + "---",
-            ChatColor.YELLOW + "Spawn Point",
-            ChatColor.DARK_GRAY + "---"
+            "\u00A7aAdminWorld",
+            "\u00A78---",
+            "\u00A7eSpawn Point",
+            "\u00A78---"
         };
 
         org.bukkit.block.sign.SignSide front = welcomeSign.getSide(org.bukkit.block.sign.Side.FRONT);

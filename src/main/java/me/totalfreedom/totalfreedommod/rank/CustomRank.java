@@ -21,6 +21,7 @@ import org.bukkit.configuration.ConfigurationSection;
  */
 @Getter
 @Setter
+@SuppressWarnings("deprecation")
 public class CustomRank implements Displayable, Comparable<CustomRank>
 {
     /**
@@ -471,7 +472,7 @@ public class CustomRank implements Displayable, Comparable<CustomRank>
         {
             return "";
         }
-        return org.bukkit.ChatColor.translateAlternateColorCodes('&', prefix);
+        return AdventureUtil.translateAlternateColorCodes(prefix);
     }
     
     public String getInheritFrom()

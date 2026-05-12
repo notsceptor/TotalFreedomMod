@@ -8,8 +8,9 @@ import java.util.Map;
 import me.totalfreedom.totalfreedommod.banning.Ban;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
 
@@ -75,10 +76,10 @@ public class AutoEject extends FreedomService
                 cal.add(Calendar.MINUTE, 5);
                 final Date expires = cal.getTime();
 
-                FUtil.bcastMsg(ChatColor.RED + player.getName() + " has been banned for 5 minutes.");
+                FUtil.bcastMsg(player.getName() + " has been banned for 5 minutes.", NamedTextColor.RED);
 
                 plugin.bm.addBan(Ban.forPlayer(player, Bukkit.getConsoleSender(), expires, kickMessage));
-                player.kickPlayer(kickMessage);
+                player.kick(Component.text(kickMessage));
 
                 break;
             }
@@ -88,19 +89,19 @@ public class AutoEject extends FreedomService
                 c.add(Calendar.MINUTE, 10);
                 final Date expires = c.getTime();
 
-                FUtil.bcastMsg(ChatColor.RED + player.getName() + " has been banned for 10 minutes.");
+                FUtil.bcastMsg(player.getName() + " has been banned for 10 minutes.", NamedTextColor.RED);
 
                 plugin.bm.addBan(Ban.forPlayer(player, Bukkit.getConsoleSender(), expires, kickMessage));
-                player.kickPlayer(kickMessage);
+                player.kick(Component.text(kickMessage));
                 break;
             }
             case STRIKE_THREE:
             {
                 plugin.bm.addBan(Ban.forPlayerFuzzy(player, Bukkit.getConsoleSender(), null, kickMessage));
 
-                FUtil.bcastMsg(ChatColor.RED + player.getName() + " has been banned.");
+                FUtil.bcastMsg(player.getName() + " has been banned.", NamedTextColor.RED);
 
-                player.kickPlayer(kickMessage);
+                player.kick(Component.text(kickMessage));
                 break;
             }
         }

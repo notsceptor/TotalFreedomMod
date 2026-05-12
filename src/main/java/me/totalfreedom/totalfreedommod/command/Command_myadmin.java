@@ -4,8 +4,9 @@ import java.util.Arrays;
 import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.commons.lang3.StringUtils;
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -45,7 +46,7 @@ public class Command_myadmin extends FreedomCommand
             target = getAdmin(targetPlayer);
             if (target == null)
             {
-                msg("That player is not admin", ChatColor.RED);
+                msg("That player is not admin", NamedTextColor.RED);
                 return true;
             }
 
@@ -143,7 +144,8 @@ public class Command_myadmin extends FreedomCommand
                 FUtil.adminAction(sender.getName(), "Setting personal login message" + (init == null ? "" : " for " + targetPlayer.getName()), false);
                 target.setLoginMessage(msg);
                 msg((init == null ? "Your" : targetPlayer.getName() + "'s") + " login message is now: ");
-                msg("> " + ChatColor.AQUA + targetPlayer.getName() + " is " + target.getLoginMessage().replace('&', '§'));
+                msg(Component.text("> ").append(Component.text(targetPlayer.getName() + " is ", NamedTextColor.AQUA))
+                        .append(me.totalfreedom.totalfreedommod.util.AdventureUtil.legacyToComponent(target.getLoginMessage())));
                 plugin.al.save();
                 plugin.al.updateTables();
                 return true;

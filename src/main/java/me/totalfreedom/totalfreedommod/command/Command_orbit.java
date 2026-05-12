@@ -3,7 +3,7 @@ package me.totalfreedom.totalfreedommod.command;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.GameMode;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -28,7 +28,7 @@ public class Command_orbit extends FreedomCommand
 
         if (player == null)
         {
-            msg(FreedomCommand.PLAYER_NOT_FOUND, ChatColor.RED);
+            msg(FreedomCommand.PLAYER_NOT_FOUND, NamedTextColor.RED);
             return true;
         }
 
@@ -51,7 +51,7 @@ public class Command_orbit extends FreedomCommand
             }
             catch (NumberFormatException ex)
             {
-                msg(ex.getMessage(), ChatColor.RED);
+                msg(ex.getMessage(), NamedTextColor.RED);
                 return true;
             }
         }

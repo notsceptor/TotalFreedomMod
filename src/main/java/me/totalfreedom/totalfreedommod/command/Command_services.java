@@ -2,7 +2,7 @@ package me.totalfreedom.totalfreedommod.command;
 
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.ServiceChecker.ServiceCheckCallback;
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -15,7 +15,7 @@ public class Command_services extends FreedomCommand
     @Override
     public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
     {
-        msg("Checking Mojang/Microsoft services...", ChatColor.YELLOW);
+        msg("Checking Mojang/Microsoft services...", NamedTextColor.YELLOW);
 
         plugin.sc.checkServicesAsync(new ServiceCheckCallback()
         {
@@ -24,12 +24,12 @@ public class Command_services extends FreedomCommand
             {
                 if (success)
                 {
-                    msg("Service Status:", ChatColor.GREEN);
-                    msg(status, ChatColor.WHITE);
+                    msg("Service Status:", NamedTextColor.GREEN);
+                    msg(status, NamedTextColor.WHITE);
                 }
                 else
                 {
-                    msg(status, ChatColor.RED);
+                    msg(status, NamedTextColor.RED);
                 }
             }
         });

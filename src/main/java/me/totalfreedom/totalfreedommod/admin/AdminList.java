@@ -43,17 +43,6 @@ public class AdminList extends FreedomService
     
     // UUID-based lookup table
     private final Map<UUID, Admin> uuidTable = Maps.newHashMap();
-    
-    // Manual getters - Lombok @Getter not processing reliably
-    public Map<String, Admin> getAllAdmins()
-    {
-        return allAdmins;
-    }
-    
-    public Set<Admin> getActiveAdmins()
-    {
-        return activeAdmins;
-    }
     private final Map<String, Admin> nameTable = Maps.newHashMap();
     private final Map<String, Admin> ipTable = Maps.newHashMap();
     private final Set<Player> onlineAdminPlayers = Sets.newHashSet();

@@ -2,7 +2,8 @@ package me.totalfreedom.totalfreedommod.blocking;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -51,7 +52,7 @@ public class PotionBlocker extends FreedomService
         {
             if (thrower.getLocation().distanceSquared(player.getLocation()) < POTION_BLOCK_RADIUS_SQUARED)
             {
-                thrower.sendMessage(ChatColor.RED + "You cannot use splash potions close to other players.");
+                thrower.sendMessage(Component.text("You cannot use splash potions close to other players.", NamedTextColor.RED));
                 event.setCancelled(true);
                 return;
             }
