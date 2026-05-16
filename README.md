@@ -10,7 +10,7 @@ This plugin was originally coded by StevenLawson (Madgeek1450), with Jerom van d
 
 Since then, the plugin has been widely adopted by numerous servers in order to fully create the experience of a freedom server.  This repository seeks to bring that traditional server experience into the modern era by updating TotalFreedomMod to be compatible with newer versions of Minecraft servers.
 
-As of current, TotalFreedomMod is compatible with Paper 1.21.11-R0.1-SNAPSHOT (last tested on 1.21.11-54-main@6da8af7). It may work on older versions and/or server types, however there has been no testing performed to this end.
+As of current, TotalFreedomMod is compatible with Paper 26.1.2 (last tested on 26.1.2-61-main@8dea6f1). It may work on older versions and/or server types, however there has been no testing performed to this end.
 
 ### Hard dependencies
 As of TotalFreedomMod 6.1.3, the plugin requires [JLine3](https://github.com/jline/jline3) and [Log4j2](https://github.com/apache/logging-log4j2) to compile, but they are not required at runtime.  The plugin requires no external dependencies in order to run.

@@ -95,13 +95,15 @@ public class SshConsoleShellFactory implements ShellFactory
 
             try
             {
-                // Build a JLine terminal from the SSH I/O streams
-                terminal = TerminalBuilder.builder()
-                        .name("TFM-SSH")
-                        .type("xterm-256color")
-                        .streams(in, out)
-                        .system(false)
-                        .build();
+                // Bypass JLine 3's TerminalBuilder and SPI provider resolution entirely.
+                String termType = env.getEnv().getOrDefault(Environment.ENV_TERM, "xterm-256color");
+                terminal = new org.jline.terminal.impl.ExternalTerminal(
+                        "TFM-SSH",
+                        termType,
+                        in,
+                        out,
+                        java.nio.charset.StandardCharsets.UTF_8
+                );
 
                 // Build a LineReader with tab completion
                 lineReader = LineReaderBuilder.builder()
