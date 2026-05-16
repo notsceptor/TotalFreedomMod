@@ -381,6 +381,16 @@ httpd:
   port: 28966
   public_folder: ./public_html
 
+# SSH server
+ssh:
+  enabled: false
+  port: 2222
+  # Authentication mode: "password", "key", or "both"
+  auth_mode: password
+  # Password for SSH access (used when auth_mode is "password" or "both")
+  password: ""
+  max_failed_attempts: 3
+
 # Inactivity Auto-Kick (Requires Essentials)
 autokick:
   enabled: true

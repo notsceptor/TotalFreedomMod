@@ -30,6 +30,12 @@ public enum ConfigEntry
     HTTPD_PORT(Integer.class, "httpd.port"),
     HTTPD_PUBLIC_FOLDER(String.class, "httpd.public_folder"),
     //
+    SSH_ENABLED(Boolean.class, "ssh.enabled"),
+    SSH_PORT(Integer.class, "ssh.port"),
+    SSH_AUTH_MODE(String.class, "ssh.auth_mode"),
+    SSH_PASSWORD(String.class, "ssh.password"),
+    SSH_MAX_FAILED_ATTEMPTS(Integer.class, "ssh.max_failed_attempts"),
+    //
     SERVER_COLORFUL_MOTD(Boolean.class, "server.colorful_motd"),
     SERVER_NAME(String.class, "server.name"),
     SERVER_ADDRESS(String.class, "server.address"),
