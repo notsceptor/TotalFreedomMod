@@ -10,7 +10,6 @@ import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.commons.lang3.StringUtils;
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -126,7 +125,7 @@ public class Command_tag extends FreedomCommand
                 Component colorizedTag = FUtil.colorize(StringUtils.replaceEachRepeatedly(StringUtils.strip(inputTag),
                         new String[]
                         {
-                            "" + ChatColor.COLOR_CHAR, "&k"
+                            "\u00A7", "&k"
                         },
                         new String[]
                         {

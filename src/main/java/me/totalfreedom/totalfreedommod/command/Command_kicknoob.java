@@ -2,7 +2,8 @@ package me.totalfreedom.totalfreedommod.command;
 
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -21,7 +22,7 @@ public class Command_kicknoob extends FreedomCommand
         {
             if (!plugin.al.isAdmin(player))
             {
-                player.kickPlayer(ChatColor.RED + "All non-superadmins were kicked by " + sender.getName() + ".");
+                player.kick(Component.text("All non-superadmins were kicked by " + sender.getName() + ".", NamedTextColor.RED));
             }
         }
 

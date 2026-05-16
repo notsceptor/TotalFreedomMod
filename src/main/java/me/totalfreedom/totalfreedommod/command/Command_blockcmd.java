@@ -3,7 +3,7 @@ package me.totalfreedom.totalfreedommod.command;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -51,7 +51,7 @@ public class Command_blockcmd extends FreedomCommand
 
                 counter += 1;
                 plugin.pl.getPlayer(player).setCommandsBlocked(true);
-                msg(player, "Your commands have been blocked by an admin.", ChatColor.RED);
+                msg(player, "Your commands have been blocked by an admin.", NamedTextColor.RED);
             }
 
             msg("Blocked commands for " + counter + " players.");

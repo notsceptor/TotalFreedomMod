@@ -6,9 +6,10 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import me.totalfreedom.totalfreedommod.rank.Rank;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -47,7 +48,7 @@ public class Command_nickfilter extends FreedomCommand
 
                         if (player == null)
                         {
-                            sender.sendMessage(ChatColor.GRAY + "Can't find player by nickname: " + displayName);
+                            sender.sendMessage(Component.text("Can't find player by nickname: " + displayName, NamedTextColor.GRAY));
                             return true;
                         }
                     }

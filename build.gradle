@@ -1,6 +1,7 @@
 plugins {
     id 'java'
     id 'com.gorylenko.gradle-git-properties' version '2.5.7'
+    id 'com.gradleup.shadow' version '9.3.0'
 }
 
 group = 'me.totalfreedom'
@@ -43,10 +44,11 @@ dependencies {
     compileOnly 'net.milkbowl.vault:VaultUnlockedAPI:2.16'
     compileOnly('com.sk89q.worldedit:worldedit-bukkit:7.3.10') { transitive = false }
     compileOnly('com.sk89q.worldedit:worldedit-core:7.3.10') { transitive = false }
-    
-    implementation('com.github.TotalFreedom:BukkitTelnet:4.5-pre1') {
-        exclude group: 'org.spigotmc', module: 'spigot-api'
-    }
+
+    implementation 'org.apache.sshd:sshd-core:2.17.1'
+
+    compileOnly 'org.jline:jline:3.28.0'
+    compileOnly 'org.apache.logging.log4j:log4j-core:2.24.3'
 }
 
 configurations.all {
@@ -156,5 +158,14 @@ jar {
     archiveBaseName = 'TotalFreedomMod'
     archiveVersion = project.version
     destinationDirectory = file('build/libs')
+    enabled = false
+}
+
+shadowJar {
+    archiveBaseName = 'TotalFreedomMod'
+    archiveVersion = project.version
+    archiveClassifier = ''
+    destinationDirectory = file('build/libs')
+    relocate 'org.apache.sshd', 'me.totalfreedom.libs.sshd'
 }
 

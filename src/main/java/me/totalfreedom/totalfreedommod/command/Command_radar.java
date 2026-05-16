@@ -5,7 +5,8 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import me.totalfreedom.totalfreedommod.rank.Rank;
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -39,13 +40,15 @@ public class Command_radar extends FreedomCommand
 
         if (radar_data.isEmpty())
         {
-            msg("You are the only player in this world. (" + ChatColor.GREEN + "Forever alone..." + ChatColor.YELLOW + ")", ChatColor.YELLOW); //lol
+            msg(Component.text("You are the only player in this world. (", NamedTextColor.YELLOW)
+                    .append(Component.text("Forever alone...", NamedTextColor.GREEN))
+                    .append(Component.text(")", NamedTextColor.YELLOW))); //lol
             return true;
         }
 
         Collections.sort(radar_data, new TFM_RadarData());
 
-        msg("People nearby in " + playerSenderos.getWorld().getName() + ":", ChatColor.YELLOW);
+        msg("People nearby in " + playerSenderos.getWorld().getName() + ":", NamedTextColor.YELLOW);
 
         int countmax = 5;
         if (args.length == 1)
@@ -63,7 +66,7 @@ public class Command_radar extends FreedomCommand
         {
             msg(String.format("%s - %d",
                     i.player.getName(),
-                    Math.round(i.distance)), ChatColor.YELLOW);
+                    Math.round(i.distance)), NamedTextColor.YELLOW);
 
             if (--countmax <= 0)
             {

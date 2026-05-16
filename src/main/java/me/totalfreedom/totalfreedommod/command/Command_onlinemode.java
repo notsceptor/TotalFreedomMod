@@ -2,7 +2,7 @@ package me.totalfreedom.totalfreedommod.command;
 
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -17,8 +17,8 @@ public class Command_onlinemode extends FreedomCommand
     {
         if (args.length < 1)
         {
-            msg("Server is currently running with 'online-mode=" + (server.getOnlineMode() ? "true" : "false") + "'.", ChatColor.WHITE);
-            msg("\"/onlinemode on\" and \"/onlinemode off\" can be used to change online mode from the console.", ChatColor.WHITE);
+            msg("Server is currently running with 'online-mode=" + (server.getOnlineMode() ? "true" : "false") + "'.", NamedTextColor.WHITE);
+            msg("\"/onlinemode on\" and \"/onlinemode off\" can be used to change online mode from the console.", NamedTextColor.WHITE);
         }
         else
         {

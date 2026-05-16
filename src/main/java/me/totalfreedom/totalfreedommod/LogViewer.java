@@ -10,8 +10,9 @@ import java.util.List;
 import java.util.Map;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.commons.lang3.StringUtils;
-import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -58,7 +59,7 @@ public class LogViewer extends FreedomService
                 {
                     if (sender != null)
                     {
-                        sender.sendMessage(ChatColor.YELLOW + "Connecting...");
+                        sender.sendMessage(Component.text("Connecting...", NamedTextColor.YELLOW));
                     }
 
                     final String key = SecureCodeGenerator.generateCode(20);
@@ -109,16 +110,17 @@ public class LogViewer extends FreedomService
                                             FLog.severe(ex);
                                         }
 
-                                        sender.sendMessage(ChatColor.GREEN + "Open this link to verify your logviewer registration:\n" + ChatColor.DARK_GREEN + link);
+                                        sender.sendMessage(Component.text("Open this link to verify your logviewer registration:\n", NamedTextColor.GREEN)
+                                                .append(Component.text(link == null ? "" : link, NamedTextColor.DARK_GREEN)));
                                     }
                                     else
                                     {
-                                        sender.sendMessage(ChatColor.GREEN + "Logviewer access revoked successfully.");
+                                        sender.sendMessage(Component.text("Logviewer access revoked successfully.", NamedTextColor.GREEN));
                                     }
                                 }
                                 else
                                 {
-                                    sender.sendMessage(ChatColor.RED + "Error contacting logs registration server.");
+                                    sender.sendMessage(Component.text("Error contacting logs registration server.", NamedTextColor.RED));
                                 }
                             }
                         }.runTask(plugin);

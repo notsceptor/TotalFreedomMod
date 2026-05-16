@@ -5,8 +5,8 @@ import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import static me.totalfreedom.totalfreedommod.util.FUtil.playerMsg;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -136,7 +136,7 @@ public class WorldManager extends FreedomService
 
         if (player.getWorld().getName().equalsIgnoreCase(targetWorld))
         {
-            playerMsg(player, "Going to main world.", ChatColor.GRAY);
+            playerMsg(player, "Going to main world.", NamedTextColor.GRAY);
             player.teleport(Bukkit.getWorlds().get(0).getSpawnLocation());
             return;
         }
@@ -145,13 +145,13 @@ public class WorldManager extends FreedomService
         {
             if (world.getName().equalsIgnoreCase(targetWorld))
             {
-                playerMsg(player, "Going to world: " + targetWorld, ChatColor.GRAY);
+                playerMsg(player, "Going to world: " + targetWorld, NamedTextColor.GRAY);
                 player.teleport(world.getSpawnLocation());
                 return;
             }
         }
 
-        playerMsg(player, "World " + targetWorld + " not found.", ChatColor.GRAY);
+        playerMsg(player, "World " + targetWorld + " not found.", NamedTextColor.GRAY);
     }
 
 }

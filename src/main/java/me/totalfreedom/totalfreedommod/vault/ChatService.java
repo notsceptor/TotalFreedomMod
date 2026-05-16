@@ -7,7 +7,6 @@ import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import net.kyori.adventure.text.Component;
 import net.milkbowl.vault.chat.Chat;
 import net.milkbowl.vault.permission.Permission;
-import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 
@@ -55,7 +54,7 @@ public class ChatService extends Chat {
 			String configPrefix = getConfigPrefix(display);
 			if (configPrefix != null && !configPrefix.isEmpty()) {
 				// Convert & color codes to § codes
-				rankPrefix = ChatColor.translateAlternateColorCodes('&', configPrefix);
+				rankPrefix = AdventureUtil.translateAlternateColorCodes(configPrefix);
 			} else {
 				// Fall back to default rank tag
 				Component coloredTag = display.getColoredTag();
@@ -75,7 +74,7 @@ public class ChatService extends Chat {
 			// Replace {TAG} placeholder with actual tag value
 			formattedTag = tagTemplate.replace("{TAG}", customTag);
 			// Convert & color codes to § codes
-			formattedTag = ChatColor.translateAlternateColorCodes('&', formattedTag);
+			formattedTag = AdventureUtil.translateAlternateColorCodes(formattedTag);
 		}
 		
 		if (!enforcePrefix) {

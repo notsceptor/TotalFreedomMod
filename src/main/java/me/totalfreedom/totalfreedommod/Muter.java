@@ -6,8 +6,9 @@ import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FSync;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.commons.lang3.StringUtils;
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -51,7 +52,7 @@ public class Muter extends FreedomService
             return;
         }
 
-        FSync.playerMsg(event.getPlayer(), ChatColor.RED + "You are muted, STFU! - You will be unmuted in 5 minutes.");
+        FSync.playerMsg(event.getPlayer(), "You are muted, STFU! - You will be unmuted in 5 minutes.");
         event.setCancelled(true);
     }
 
@@ -89,7 +90,7 @@ public class Muter extends FreedomService
 
         if (MUTE_COMMANDS.contains(cmdName))
         {
-            player.sendMessage(ChatColor.RED + "That command is blocked while you are muted.");
+            player.sendMessage(Component.text("That command is blocked while you are muted.", NamedTextColor.RED));
             event.setCancelled(true);
             return;
         }
@@ -97,7 +98,7 @@ public class Muter extends FreedomService
         // TODO: Should this go here?
         if (ConfigEntry.ENABLE_PREPROCESS_LOG.getBoolean())
         {
-            FLog.info(String.format("[PREPROCESS_COMMAND] %s(%s): %s", player.getName(), ChatColor.stripColor(player.getDisplayName()), message), true);
+            FLog.info(String.format("[PREPROCESS_COMMAND] %s(%s): %s", player.getName(), me.totalfreedom.totalfreedommod.util.AdventureUtil.stripColor(player.getDisplayName()), message), true);
         }
     }
 

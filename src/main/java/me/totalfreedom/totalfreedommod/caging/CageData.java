@@ -24,17 +24,6 @@ public class CageData
     private Material outerMaterial = Material.GLASS;
     @Getter
     private Material innerMaterial = Material.AIR;
-    
-    // Manual getters - Lombok @Getter not processing reliably
-    public boolean isCaged()
-    {
-        return caged;
-    }
-    
-    public Location getLocation()
-    {
-        return location;
-    }
 
     public CageData(FPlayer player)
     {

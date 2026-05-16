@@ -3,7 +3,7 @@ package me.totalfreedom.totalfreedommod.blocking.command;
 import lombok.Getter;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -20,22 +20,6 @@ public class CommandBlockerEntry
     private final String subCommand;
     @Getter
     private final String message;
-    
-    // Manual getters - Lombok @Getter not processing
-    public CommandBlockerRank getRank()
-    {
-        return rank;
-    }
-    
-    public String getCommand()
-    {
-        return command;
-    }
-    
-    public String getSubCommand()
-    {
-        return subCommand;
-    }
 
     public CommandBlockerEntry(CommandBlockerRank rank, CommandBlockerAction action, String command, String message)
     {
@@ -56,13 +40,13 @@ public class CommandBlockerEntry
         if (action == CommandBlockerAction.BLOCK_AND_EJECT && sender instanceof Player)
         {
             TotalFreedomMod.plugin().ae.autoEject((Player) sender, "You used a prohibited command: " + command);
-            FUtil.bcastMsg(sender.getName() + " was automatically kicked for using harmful commands.", ChatColor.RED);
+            FUtil.bcastMsg(sender.getName() + " was automatically kicked for using harmful commands.", NamedTextColor.RED);
             return;
         }
 
         if (action == CommandBlockerAction.BLOCK_UNKNOWN)
         {
-            FUtil.playerMsg(sender, "Unknown command. Type \"help\" for help.", ChatColor.RESET);
+            FUtil.playerMsg(sender, "Unknown command. Type \"help\" for help.", NamedTextColor.WHITE);
             return;
         }
 

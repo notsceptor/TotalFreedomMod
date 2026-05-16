@@ -4,7 +4,8 @@ import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -62,7 +63,7 @@ public class FreedomCommandExecutor implements CommandExecutor
                     String usage = freedomCommand.getParams().usage();
                     if (usage != null && !usage.isEmpty())
                     {
-                        sender.sendMessage(ChatColor.RED + "Usage: " + usage.replace("<command>", label));
+                        sender.sendMessage(Component.text("Usage: " + usage.replace("<command>", label), NamedTextColor.RED));
                     }
                 }
             }
@@ -71,7 +72,7 @@ public class FreedomCommandExecutor implements CommandExecutor
         {
             FLog.severe("Unhandled command exception: " + label);
             FLog.severe(ex);
-            sender.sendMessage(ChatColor.RED + "Unhandled Command Error: " + label);
+            sender.sendMessage(Component.text("Unhandled Command Error: " + label, NamedTextColor.RED));
         }
     }
 
@@ -90,7 +91,7 @@ public class FreedomCommandExecutor implements CommandExecutor
         {
             FLog.severe("Unhandled command exception: " + command.getName());
             FLog.severe(ex);
-            sender.sendMessage(ChatColor.RED + "Unhandled Command Error: " + command.getName());
+            sender.sendMessage(Component.text("Unhandled Command Error: " + command.getName(), NamedTextColor.RED));
             return true;
         }
     }

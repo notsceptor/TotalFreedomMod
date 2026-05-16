@@ -8,7 +8,8 @@ import me.totalfreedom.totalfreedommod.freeze.FreezeData;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -74,7 +75,7 @@ public class Command_gadmin extends FreedomCommand
         final GadminMode mode = GadminMode.findMode(args[0].toLowerCase());
         if (mode == null)
         {
-            msg("Invalid mode: " + args[0], ChatColor.RED);
+            msg("Invalid mode: " + args[0], NamedTextColor.RED);
             return true;
         }
 
@@ -86,11 +87,10 @@ public class Command_gadmin extends FreedomCommand
             while (it.hasNext())
             {
                 final Player player = it.next();
-                String listMsg = ChatColor.GRAY + String.format("[ %s ] : [ %s ] - %s",
+                msg(Component.text(String.format("[ %s ] : [ %s ] - %s",
                         player.getName(),
                         AdventureUtil.stripColor(AdventureUtil.componentToLegacy(player.displayName())),
-                        getPlayerHash(player));
-                msg(listMsg);
+                        getPlayerHash(player)), NamedTextColor.GRAY));
             }
             return true;
         }
@@ -114,7 +114,7 @@ public class Command_gadmin extends FreedomCommand
 
         if (target == null)
         {
-            msg("Invalid player hash: " + args[1], ChatColor.RED);
+            msg("Invalid player hash: " + args[1], NamedTextColor.RED);
             return true;
         }
 
@@ -123,7 +123,7 @@ public class Command_gadmin extends FreedomCommand
             case KICK:
             {
                 FUtil.adminAction(sender.getName(), String.format("Kicking: %s.", target.getName()), false);
-                target.kickPlayer("Kicked by Administrator");
+                target.kick(Component.text("Kicked by Administrator"));
 
                 break;
             }
@@ -131,7 +131,7 @@ public class Command_gadmin extends FreedomCommand
             {
                 FUtil.adminAction(sender.getName(), String.format("Banning Name: %s.", target.getName()), true);
                 plugin.bm.addBan(Ban.forPlayerName(target, sender, null, null));
-                target.kickPlayer("Username banned by Administrator.");
+                target.kick(Component.text("Username banned by Administrator."));
 
                 break;
             }
@@ -146,7 +146,7 @@ public class Command_gadmin extends FreedomCommand
                 FUtil.adminAction(sender.getName(), String.format("Banning IP: %s.", ip), true);
                 plugin.bm.addBan(Ban.forPlayerIp(ip, sender, null, null));
 
-                target.kickPlayer("IP address banned by Administrator.");
+                target.kick(Component.text("IP address banned by Administrator."));
 
                 break;
             }
@@ -162,7 +162,7 @@ public class Command_gadmin extends FreedomCommand
 
                 plugin.bm.addBan(Ban.forPlayer(target, sender));
 
-                target.kickPlayer("IP and username banned by Administrator.");
+                target.kick(Component.text("IP and username banned by Administrator."));
 
                 break;
             }
@@ -194,7 +194,7 @@ public class Command_gadmin extends FreedomCommand
                 fd.setFrozen(!fd.isFrozen());
 
                 msg(target.getName() + " has been " + (fd.isFrozen() ? "frozen" : "unfrozen") + ".");
-                msg(target, "You have been " + (fd.isFrozen() ? "frozen" : "unfrozen") + ".", ChatColor.AQUA);
+                msg(target, "You have been " + (fd.isFrozen() ? "frozen" : "unfrozen") + ".", NamedTextColor.AQUA);
 
                 break;
             }

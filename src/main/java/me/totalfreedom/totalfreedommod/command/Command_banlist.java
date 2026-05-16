@@ -2,7 +2,8 @@ package me.totalfreedom.totalfreedommod.command;
 
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -23,7 +24,7 @@ public class Command_banlist extends FreedomCommand
 
                 FUtil.adminAction(sender.getName(), "Purging the ban list", true);
                 int amount = plugin.bm.purge();
-                sender.sendMessage(ChatColor.GRAY + "Purged " + amount + " player bans.");
+                sender.sendMessage(Component.text("Purged " + amount + " player bans.", NamedTextColor.GRAY));
 
                 return true;
 

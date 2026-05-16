@@ -4,8 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.commons.lang3.StringUtils;
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -34,7 +35,7 @@ public class Command_potion extends FreedomCommand
                         potionEffectTypeNames.add(potion_effect_type.getName());
                     }
                 }
-                msg("Potion effect types: " + StringUtils.join(potionEffectTypeNames, ", "), ChatColor.AQUA);
+                msg("Potion effect types: " + StringUtils.join(potionEffectTypeNames, ", "), NamedTextColor.AQUA);
             }
             else if (args[0].equalsIgnoreCase("clearall"))
             {
@@ -62,7 +63,7 @@ public class Command_potion extends FreedomCommand
 
                     if (target == null)
                     {
-                        msg(FreedomCommand.PLAYER_NOT_FOUND, ChatColor.RED);
+                        msg(FreedomCommand.PLAYER_NOT_FOUND, NamedTextColor.RED);
                         return true;
                     }
                 }
@@ -86,7 +87,7 @@ public class Command_potion extends FreedomCommand
                     target.removePotionEffect(potion_effect.getType());
                 }
 
-                msg("Cleared all active potion effects " + (!target.equals(playerSender) ? "from player " + target.getName() + "." : "from yourself."), ChatColor.AQUA);
+                msg("Cleared all active potion effects " + (!target.equals(playerSender) ? "from player " + target.getName() + "." : "from yourself."), NamedTextColor.AQUA);
             }
             else
             {
@@ -106,7 +107,7 @@ public class Command_potion extends FreedomCommand
 
                     if (target == null)
                     {
-                        msg(FreedomCommand.PLAYER_NOT_FOUND, ChatColor.RED);
+                        msg(FreedomCommand.PLAYER_NOT_FOUND, NamedTextColor.RED);
                         return true;
                     }
                 }
@@ -128,7 +129,7 @@ public class Command_potion extends FreedomCommand
                 PotionEffectType potion_effect_type = PotionEffectType.getByName(args[1]);
                 if (potion_effect_type == null)
                 {
-                    sender.sendMessage(ChatColor.AQUA + "Invalid potion effect type.");
+                    sender.sendMessage(Component.text("Invalid potion effect type.", NamedTextColor.AQUA));
                     return true;
                 }
 
@@ -140,7 +141,7 @@ public class Command_potion extends FreedomCommand
                 }
                 catch (NumberFormatException ex)
                 {
-                    msg("Invalid potion duration.", ChatColor.RED);
+                    msg("Invalid potion duration.", NamedTextColor.RED);
                     return true;
                 }
 
@@ -152,7 +153,7 @@ public class Command_potion extends FreedomCommand
                 }
                 catch (NumberFormatException ex)
                 {
-                    msg("Invalid potion amplifier.", ChatColor.RED);
+                    msg("Invalid potion amplifier.", NamedTextColor.RED);
                     return true;
                 }
 
@@ -162,7 +163,7 @@ public class Command_potion extends FreedomCommand
                         "Added potion effect: " + new_effect.getType().getName()
                         + ", Duration: " + new_effect.getDuration()
                         + ", Amplifier: " + new_effect.getAmplifier()
-                        + (!target.equals(playerSender) ? " to player " + target.getName() + "." : " to yourself."), ChatColor.AQUA);
+                        + (!target.equals(playerSender) ? " to player " + target.getName() + "." : " to yourself."), NamedTextColor.AQUA);
 
                 return true;
             }

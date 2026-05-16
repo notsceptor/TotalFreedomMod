@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.commons.lang3.StringUtils;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -35,7 +35,7 @@ public class Command_ro extends FreedomCommand
 
             if (fromMaterial == null || fromMaterial == Material.AIR || !fromMaterial.isBlock())
             {
-                msg("Invalid material: " + materialName, ChatColor.RED);
+                msg("Invalid material: " + materialName, NamedTextColor.RED);
                 return true;
             }
 
@@ -51,7 +51,7 @@ public class Command_ro extends FreedomCommand
             }
             catch (NumberFormatException ex)
             {
-                msg("Invalid radius: " + args[1], ChatColor.RED);
+                msg("Invalid radius: " + args[1], NamedTextColor.RED);
                 return true;
             }
         }

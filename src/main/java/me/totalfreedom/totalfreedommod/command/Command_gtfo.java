@@ -3,9 +3,10 @@ package me.totalfreedom.totalfreedommod.command;
 import me.totalfreedom.totalfreedommod.banning.Ban;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.command.Command;
@@ -30,7 +31,7 @@ public class Command_gtfo extends FreedomCommand
 
         if (player == null)
         {
-            msg(FreedomCommand.PLAYER_NOT_FOUND, ChatColor.RED);
+            msg(FreedomCommand.PLAYER_NOT_FOUND, NamedTextColor.RED);
             return true;
         }
 
@@ -40,7 +41,7 @@ public class Command_gtfo extends FreedomCommand
             reason = StringUtils.join(ArrayUtils.subarray(args, 1, args.length), " ");
         }
 
-        FUtil.bcastMsg(player.getName() + " has been a VERY naughty, naughty boy.", ChatColor.RED);
+        FUtil.bcastMsg(player.getName() + " has been a VERY naughty, naughty boy.", NamedTextColor.RED);
 
         // Undo WorldEdits
         try
@@ -77,23 +78,19 @@ public class Command_gtfo extends FreedomCommand
         String ip = FUtil.getFuzzyIp(player.getAddress().getAddress().getHostAddress());
 
         // Broadcast
-        final StringBuilder bcast = new StringBuilder()
-                .append(ChatColor.RED)
-                .append("Banning: ")
-                .append(player.getName())
-                .append(", IP: ")
-                .append(ip);
+        Component bcast = Component.text("Banning: " + player.getName() + ", IP: " + ip, NamedTextColor.RED);
         if (reason != null)
         {
-            bcast.append(" - Reason: ").append(ChatColor.YELLOW).append(reason);
+            bcast = bcast.append(Component.text(" - Reason: ", NamedTextColor.RED))
+                    .append(Component.text(reason, NamedTextColor.YELLOW));
         }
-        FUtil.bcastMsg(bcast.toString());
+        FUtil.bcastMsg(bcast);
 
         // Ban player
         plugin.bm.addBan(Ban.forPlayerFuzzy(player, sender, null, reason));
 
         // Kick player
-        player.kickPlayer(ChatColor.RED + "GTFO");
+        player.kick(Component.text("GTFO", NamedTextColor.RED));
 
         return true;
     }

@@ -2,9 +2,10 @@ package me.totalfreedom.totalfreedommod.command;
 
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -34,21 +35,21 @@ public class Command_report extends FreedomCommand
         {
             if (player.equals(playerSender))
             {
-                msg(ChatColor.RED + "Please, don't try to report yourself.");
+                msg(Component.text("Please, don't try to report yourself.", NamedTextColor.RED));
                 return true;
             }
         }
 
         if (plugin.al.isAdmin(player))
         {
-            msg(ChatColor.RED + "You can not report an admin.");
+            msg(Component.text("You can not report an admin.", NamedTextColor.RED));
             return true;
         }
 
         String report = StringUtils.join(ArrayUtils.subarray(args, 1, args.length), " ");
         plugin.cm.reportAction(playerSender, player, report);
 
-        msg(ChatColor.GREEN + "Thank you, your report has been successfully logged.");
+        msg(Component.text("Thank you, your report has been successfully logged.", NamedTextColor.GREEN));
 
         return true;
     }

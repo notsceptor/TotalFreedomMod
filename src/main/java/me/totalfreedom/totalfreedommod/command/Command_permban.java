@@ -1,7 +1,7 @@
 package me.totalfreedom.totalfreedommod.command;
 
 import me.totalfreedom.totalfreedommod.rank.Rank;
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -24,7 +24,7 @@ public class Command_permban extends FreedomCommand
             return false;
         }
 
-        msg("Reloading permban list...", ChatColor.RED);
+        msg("Reloading permban list...", NamedTextColor.RED);
         plugin.pm.reload();
         msg("Reloaded permban list.");
         msg(plugin.pm.getPermbannedIps().size() + " IPs and "

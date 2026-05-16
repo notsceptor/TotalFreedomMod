@@ -27,27 +27,6 @@ public class Jumppads extends FreedomService
     @Getter
     @Setter
     private double strength = 0.4;
-    
-    // Manual getters/setters - Lombok @Getter/@Setter not processing reliably
-    public JumpPadMode getMode()
-    {
-        return mode;
-    }
-    
-    public void setMode(JumpPadMode mode)
-    {
-        this.mode = mode;
-    }
-    
-    public double getStrength()
-    {
-        return strength;
-    }
-    
-    public void setStrength(double strength)
-    {
-        this.strength = strength;
-    }
 
     public Jumppads(TotalFreedomMod plugin)
     {

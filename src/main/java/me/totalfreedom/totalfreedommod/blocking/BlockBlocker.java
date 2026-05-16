@@ -5,7 +5,8 @@ import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -49,7 +50,7 @@ public class BlockBlocker extends FreedomService
                 else
                 {
                     player.getInventory().setItem(player.getInventory().getHeldItemSlot(), new ItemStack(Material.COOKIE, 1));
-                    player.sendMessage(ChatColor.GRAY + "Lava placement is currently disabled.");
+                    player.sendMessage(Component.text("Lava placement is currently disabled.", NamedTextColor.GRAY));
 
                     event.setCancelled(true);
                 }
@@ -66,7 +67,7 @@ public class BlockBlocker extends FreedomService
                 else
                 {
                     player.getInventory().setItem(player.getInventory().getHeldItemSlot(), new ItemStack(Material.COOKIE, 1));
-                    player.sendMessage(ChatColor.GRAY + "Water placement is currently disabled.");
+                    player.sendMessage(Component.text("Water placement is currently disabled.", NamedTextColor.GRAY));
 
                     event.setCancelled(true);
                 }
@@ -83,7 +84,7 @@ public class BlockBlocker extends FreedomService
                 else
                 {
                     player.getInventory().setItem(player.getInventory().getHeldItemSlot(), new ItemStack(Material.COOKIE, 1));
-                    player.sendMessage(ChatColor.GRAY + "Fire placement is currently disabled.");
+                    player.sendMessage(Component.text("Fire placement is currently disabled.", NamedTextColor.GRAY));
 
                     event.setCancelled(true);
                 }
@@ -101,7 +102,7 @@ public class BlockBlocker extends FreedomService
                 {
                     player.getInventory().setItem(player.getInventory().getHeldItemSlot(), new ItemStack(Material.COOKIE, 1));
 
-                    player.sendMessage(ChatColor.GRAY + "TNT is currently disabled.");
+                    player.sendMessage(Component.text("TNT is currently disabled.", NamedTextColor.GRAY));
                     event.setCancelled(true);
                 }
                 break;
@@ -109,7 +110,7 @@ public class BlockBlocker extends FreedomService
             case STRUCTURE_BLOCK:
             case STRUCTURE_VOID:
             {
-                player.sendMessage(ChatColor.GRAY + "Structure blocks are disabled.");
+                player.sendMessage(Component.text("Structure blocks are disabled.", NamedTextColor.GRAY));
 
                 event.setCancelled(true);
                 break;

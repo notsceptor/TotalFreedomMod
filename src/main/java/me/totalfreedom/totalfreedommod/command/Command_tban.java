@@ -3,8 +3,9 @@ package me.totalfreedom.totalfreedommod.command;
 import me.totalfreedom.totalfreedommod.banning.Ban;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.commons.lang.StringUtils;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -55,8 +56,7 @@ public class Command_tban extends FreedomCommand
         FUtil.adminAction(sender.getName(), "Tempbanning: " + player.getName() + " for 5 minutes.", true);
         plugin.bm.addBan(Ban.forPlayer(player, sender, FUtil.parseDateOffset("5m"), reason));
 
-        String kickMsg = ChatColor.RED + "You have been temporarily banned for five minutes. Please read totalfreedom.me for more info.";
-        player.kickPlayer(kickMsg);
+        player.kick(Component.text("You have been temporarily banned for five minutes. Please read totalfreedom.me for more info.", NamedTextColor.RED));
 
         return true;
     }

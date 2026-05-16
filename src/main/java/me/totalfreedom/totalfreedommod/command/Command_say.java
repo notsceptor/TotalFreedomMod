@@ -2,8 +2,9 @@ package me.totalfreedom.totalfreedommod.command;
 
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.commons.lang3.StringUtils;
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -27,11 +28,11 @@ public class Command_say extends FreedomCommand
         {
             if (message.equalsIgnoreCase("WARNING: Server is restarting, you will be kicked"))
             {
-                FUtil.bcastMsg("Server is going offline.", ChatColor.GRAY);
+                FUtil.bcastMsg("Server is going offline.", NamedTextColor.GRAY);
 
                 for (Player player : server.getOnlinePlayers())
                 {
-                    player.kickPlayer("Server is going offline, come back in about 20 seconds.");
+                    player.kick(Component.text("Server is going offline, come back in about 20 seconds."));
                 }
 
                 server.shutdown();
@@ -40,7 +41,7 @@ public class Command_say extends FreedomCommand
             }
         }
 
-        FUtil.bcastMsg(String.format("[Server:%s] %s", sender.getName(), message), ChatColor.LIGHT_PURPLE);
+        FUtil.bcastMsg(String.format("[Server:%s] %s", sender.getName(), message), NamedTextColor.LIGHT_PURPLE);
 
         return true;
     }

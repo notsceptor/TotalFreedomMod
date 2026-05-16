@@ -4,7 +4,8 @@ import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.banning.Ban;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.GameMode;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -33,7 +34,7 @@ public class Command_doom extends FreedomCommand
         }
 
         FUtil.adminAction(sender.getName(), "Casting oblivion over " + player.getName(), true);
-        FUtil.bcastMsg(player.getName() + " will be completely obliviated!", ChatColor.RED);
+        FUtil.bcastMsg(player.getName() + " will be completely obliviated!", NamedTextColor.RED);
 
         final String ip = player.getAddress().getAddress().getHostAddress().trim();
 
@@ -86,7 +87,7 @@ public class Command_doom extends FreedomCommand
         {
             FUtil.adminAction(sender.getName(), "Banning " + player.getName() + ", IP: " + ip, true);
             player.getWorld().createExplosion(player.getLocation(), 0F, false);
-            player.kickPlayer(ChatColor.RED + "FUCKOFF, and get your shit together!");
+            player.kick(Component.text("FUCKOFF, and get your shit together!", NamedTextColor.RED));
         }, 3L * 20L);
 
         return true;

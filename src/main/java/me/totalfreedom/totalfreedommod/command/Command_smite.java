@@ -1,10 +1,10 @@
 package me.totalfreedom.totalfreedommod.command;
 
 import me.totalfreedom.totalfreedommod.rank.Rank;
-import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FUtil;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.commons.lang3.StringUtils;
-import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -50,11 +50,11 @@ public class Command_smite extends FreedomCommand
 
     public static void smite(Player player, String reason)
     {
-        FUtil.bcastMsg(player.getName() + " has been a naughty, naughty boy.", ChatColor.RED);
+        FUtil.bcastMsg(player.getName() + " has been a naughty, naughty boy.", NamedTextColor.RED);
 
         if (reason != null)
         {
-            FUtil.bcastMsg("  Reason: " + reason, ChatColor.YELLOW);
+            FUtil.bcastMsg("  Reason: " + reason, NamedTextColor.YELLOW);
         }
 
         // Deop
@@ -83,8 +83,8 @@ public class Command_smite extends FreedomCommand
 
         if (reason != null)
         {
-            String smiteMsg = ChatColor.RED + "You've been smitten. Reason: " + ChatColor.YELLOW + reason;
-            player.sendMessage(AdventureUtil.legacyToComponent(smiteMsg));
+            player.sendMessage(Component.text("You've been smitten. Reason: ", NamedTextColor.RED)
+                    .append(Component.text(reason, NamedTextColor.YELLOW)));
         }
     }
 }

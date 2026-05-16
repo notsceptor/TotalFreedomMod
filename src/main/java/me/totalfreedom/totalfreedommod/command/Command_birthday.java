@@ -2,7 +2,7 @@ package me.totalfreedom.totalfreedommod.command;
 
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.advancement.Advancement;
@@ -60,7 +60,7 @@ public class Command_birthday extends FreedomCommand
             }
         }
 
-        FUtil.bcastMsg(player.getName() + " Happy Birthday!", ChatColor.AQUA);
+        FUtil.bcastMsg(player.getName() + " Happy Birthday!", NamedTextColor.AQUA);
         return true;
     }
 }

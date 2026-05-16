@@ -6,9 +6,10 @@ import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.config.MainConfig;
 import me.totalfreedom.totalfreedommod.rank.Rank;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -33,7 +34,7 @@ public class Command_ov extends FreedomCommand
             }
             catch (Exception ignored)
             {
-                msg(ChatColor.WHITE + "Unknown command. Type \"help\" for help.");
+                msg(Component.text("Unknown command. Type \"help\" for help.", NamedTextColor.WHITE));
                 return true;
             }
         }

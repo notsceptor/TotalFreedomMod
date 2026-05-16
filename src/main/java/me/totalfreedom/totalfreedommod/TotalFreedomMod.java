@@ -29,6 +29,7 @@ import me.totalfreedom.totalfreedommod.fun.Jumppads;
 import me.totalfreedom.totalfreedommod.fun.Landminer;
 import me.totalfreedom.totalfreedommod.fun.MP44;
 import me.totalfreedom.totalfreedommod.httpd.HTTPDaemon;
+import me.totalfreedom.totalfreedommod.ssh.SshDaemon;
 import me.totalfreedom.totalfreedommod.player.PlayerList;
 import me.totalfreedom.totalfreedommod.rank.RankManager;
 import me.totalfreedom.totalfreedommod.rollback.RollbackManager;
@@ -100,6 +101,7 @@ public class TotalFreedomMod extends JavaPlugin
     public Jumppads jp; // Jumppads - Jump pad functionality
     public Trailer tr; // Trailer - Trailer functionality
     public HTTPDaemon hd; // HTTPDaemon - HTTP server for web interface
+    public SshDaemon sd; // SshDaemon - SSH server for remote console access
     public ServiceChecker sc; // ServiceChecker - Checks Mojang service status
     public TabList tl; // TabList - Customizable tab list header, footer, and player names
     //
@@ -211,6 +213,10 @@ public class TotalFreedomMod extends JavaPlugin
 
         // HTTPD
         hd = services.registerService(HTTPDaemon.class);
+
+        // SSH
+        sd = services.registerService(SshDaemon.class);
+
         sc = services.registerService(ServiceChecker.class);
         tl = services.registerService(TabList.class);
         services.start();

@@ -6,7 +6,8 @@ import java.net.URL;
 import java.net.URLConnection;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FLog;
-import org.bukkit.ChatColor;
+import me.totalfreedom.totalfreedommod.util.AdventureUtil;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -50,7 +51,9 @@ public class Command_premium extends FreedomCommand
                     try ( // Read the response
                             BufferedReader in = new BufferedReader(new InputStreamReader(urlConnection.getInputStream())))
                     {
-                        message = (!"PREMIUM".equalsIgnoreCase(in.readLine()) ? ChatColor.RED + "No" : ChatColor.DARK_GREEN + "Yes");
+                        message = (!"PREMIUM".equalsIgnoreCase(in.readLine())
+                                ? AdventureUtil.componentToLegacySection(net.kyori.adventure.text.Component.text("No", NamedTextColor.RED))
+                                : AdventureUtil.componentToLegacySection(net.kyori.adventure.text.Component.text("Yes", NamedTextColor.DARK_GREEN)));
                     }
 
                     if (!plugin.isEnabled())
@@ -71,7 +74,7 @@ public class Command_premium extends FreedomCommand
                 catch (Exception ex)
                 {
                     FLog.severe(ex);
-                    msg("There was an error querying the mojang server.", ChatColor.RED);
+                    msg("There was an error querying the mojang server.", NamedTextColor.RED);
                 }
             }
         }.runTaskAsynchronously(plugin);

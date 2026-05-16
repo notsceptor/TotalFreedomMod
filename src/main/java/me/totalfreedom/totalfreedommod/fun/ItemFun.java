@@ -8,6 +8,7 @@ import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.util.FUtil;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Sound;
@@ -70,13 +71,12 @@ public class ItemFun extends FreedomService
 
                 if (!plugin.al.isSeniorAdmin(player))
                 {
-                    final StringBuilder msg = new StringBuilder();
-                    final char[] chars = ("You are a clown.").toCharArray();
-                    for (char c : chars)
+                    Component clownMsg = Component.empty();
+                    for (char c : "You are a clown.".toCharArray())
                     {
-                        msg.append(FUtil.randomChatColor()).append(c);
+                        clownMsg = clownMsg.append(Component.text(String.valueOf(c)).color(FUtil.randomChatColor()));
                     }
-                    player.sendMessage(msg.toString());
+                    player.sendMessage(clownMsg);
 
                     player.getEquipment().getItemInMainHand().setType(Material.POTATO);
                     break;

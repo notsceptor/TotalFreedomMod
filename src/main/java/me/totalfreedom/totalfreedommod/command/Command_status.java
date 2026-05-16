@@ -3,7 +3,7 @@ package me.totalfreedom.totalfreedommod.command;
 import java.util.HashMap;
 import java.util.Map;
 import me.totalfreedom.totalfreedommod.rank.Rank;
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -29,14 +29,14 @@ public class Command_status extends FreedomCommand
     @Override
     public boolean run(final CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
     {
-        msg("For information about TotalFreedomMod, try /tfm", ChatColor.GREEN); // Temporary
+        msg("For information about TotalFreedomMod, try /tfm", NamedTextColor.GREEN); // Temporary
 
-        msg("Server is currently running with 'online-mode=" + (server.getOnlineMode() ? "true" : "false") + "'.", ChatColor.YELLOW);
-        msg("Loaded worlds:", ChatColor.BLUE);
+        msg("Server is currently running with 'online-mode=" + (server.getOnlineMode() ? "true" : "false") + "'.", NamedTextColor.YELLOW);
+        msg("Loaded worlds:", NamedTextColor.BLUE);
         int i = 0;
         for (World world : server.getWorlds())
         {
-            msg(String.format("World %d: %s - %d players.", i++, world.getName(), world.getPlayers().size()), ChatColor.BLUE);
+            msg(String.format("World %d: %s - %d players.", i++, world.getName(), world.getPlayers().size()), NamedTextColor.BLUE);
         }
 
         return true;

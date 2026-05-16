@@ -1,8 +1,9 @@
 package me.totalfreedom.totalfreedommod.command;
 
 import me.totalfreedom.totalfreedommod.rank.Rank;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.commons.lang3.StringUtils;
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -31,9 +32,14 @@ public class Command_plugincontrol extends FreedomCommand
                 for (Plugin serverPlugin : pm.getPlugins())
                 {
                     final String version = serverPlugin.getDescription().getVersion();
-                    msg(ChatColor.GRAY + "- " + (serverPlugin.isEnabled() ? ChatColor.GREEN : ChatColor.RED) + serverPlugin.getName()
-                            + ChatColor.GOLD + (version != null && !version.isEmpty() ? " v" + version : "") + " by "
-                            + StringUtils.join(serverPlugin.getDescription().getAuthors(), ", "));
+                    Component line = Component.text("- ", NamedTextColor.GRAY)
+                            .append(Component.text(serverPlugin.getName(),
+                                    serverPlugin.isEnabled() ? NamedTextColor.GREEN : NamedTextColor.RED))
+                            .append(Component.text(
+                                    (version != null && !version.isEmpty() ? " v" + version : "") + " by "
+                                            + StringUtils.join(serverPlugin.getDescription().getAuthors(), ", "),
+                                    NamedTextColor.GOLD));
+                    msg(line);
                 }
 
                 return true;

@@ -4,7 +4,7 @@ import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.util.FSync;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -44,7 +44,7 @@ public class AntiSpam extends FreedomService
         // Check for spam
         if (playerdata.incrementAndGetMsgCount() > MSG_PER_CYCLE)
         {
-            FSync.bcastMsg(player.getName() + " was automatically kicked for spamming chat.", ChatColor.RED);
+            FSync.bcastMsg(player.getName() + " was automatically kicked for spamming chat.", NamedTextColor.RED);
             FSync.autoEject(player, "Kicked for spamming chat.");
 
             playerdata.resetMsgCount();
@@ -75,14 +75,14 @@ public class AntiSpam extends FreedomService
 
         if (fPlayer.allCommandsBlocked())
         {
-            FUtil.playerMsg(player, "Your commands have been blocked by an admin.", ChatColor.RED);
+            FUtil.playerMsg(player, "Your commands have been blocked by an admin.", NamedTextColor.RED);
             event.setCancelled(true);
             return;
         }
 
         if (fPlayer.incrementAndGetMsgCount() > MSG_PER_CYCLE)
         {
-            FUtil.bcastMsg(player.getName() + " was automatically kicked for spamming commands.", ChatColor.RED);
+            FUtil.bcastMsg(player.getName() + " was automatically kicked for spamming commands.", NamedTextColor.RED);
             plugin.ae.autoEject(player, "Kicked for spamming commands.");
 
             fPlayer.resetMsgCount();

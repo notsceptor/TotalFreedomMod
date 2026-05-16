@@ -2,8 +2,9 @@ package me.totalfreedom.totalfreedommod.command;
 
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.commons.lang3.StringUtils;
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -30,7 +31,7 @@ public class Command_kick extends FreedomCommand
 
         if (isAdmin(player))
         {
-            msg("Admins can not be kicked", ChatColor.RED);
+            msg("Admins can not be kicked", NamedTextColor.RED);
             return true;
         }
 
@@ -40,13 +41,15 @@ public class Command_kick extends FreedomCommand
             reason = StringUtils.join(args, " ", 1, args.length);
         }
 
-        StringBuilder builder = new StringBuilder()
-                .append(ChatColor.RED).append("You have been kicked from the server.")
-                .append("\n").append(ChatColor.RED).append("Kicked by: ").append(ChatColor.GOLD).append(sender.getName());
+        Component kickMessage = Component.text("You have been kicked from the server.", NamedTextColor.RED)
+                .append(Component.text("\nKicked by: ", NamedTextColor.RED))
+                .append(Component.text(sender.getName(), NamedTextColor.GOLD));
 
         if (reason != null)
         {
-            builder.append("\n").append(ChatColor.RED).append("Reason: ").append(ChatColor.GOLD).append(reason);
+            kickMessage = kickMessage
+                    .append(Component.text("\nReason: ", NamedTextColor.RED))
+                    .append(Component.text(reason, NamedTextColor.GOLD));
             FUtil.adminAction(sender.getName(), "Kicking " + player.getName() + " - Reason: " + reason, true);
         }
         else
@@ -54,7 +57,7 @@ public class Command_kick extends FreedomCommand
             FUtil.adminAction(sender.getName(), "Kicking " + player.getName(), true);
         }
 
-        player.kickPlayer(builder.toString());
+        player.kick(kickMessage);
         return true;
     }
 

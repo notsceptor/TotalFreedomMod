@@ -2,7 +2,7 @@ package me.totalfreedom.totalfreedommod.command;
 
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -46,7 +46,7 @@ public class Command_op extends FreedomCommand
             else
             {
                 msg("That player is not online.");
-                msg("You don't have permissions to OP offline players.", ChatColor.YELLOW);
+                msg("You don't have permissions to OP offline players.", NamedTextColor.YELLOW);
                 return true;
             }
         }

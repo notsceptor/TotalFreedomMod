@@ -20,7 +20,6 @@ import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.server.PluginEnableEvent;
-import org.bukkit.ChatColor;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.ServicePriority;
 import net.milkbowl.vault.chat.Chat;
@@ -174,7 +173,7 @@ public class ChatManager extends FreedomService
 		} else {
 			message = stripColorCodesSelectively(message, allowColors, allowSpecial);
 			if (allowColors || allowSpecial) {
-				message = ChatColor.translateAlternateColorCodes('&', message);
+				message = AdventureUtil.translateAlternateColorCodes(message);
 			}
 		}
 
@@ -263,7 +262,7 @@ public class ChatManager extends FreedomService
 			return cachedTranslatedFormat;
 		}
 		cachedRawFormat = raw;
-		cachedTranslatedFormat = ChatColor.translateAlternateColorCodes('&', raw);
+		cachedTranslatedFormat = AdventureUtil.translateAlternateColorCodes(raw);
 		return cachedTranslatedFormat;
 	}
 
@@ -366,7 +365,7 @@ public class ChatManager extends FreedomService
 		// Get configurable prefix for this rank/title
 		String configPrefix = getConfigPrefix(display);
 		if (configPrefix != null && !configPrefix.isEmpty()) {
-			return ChatColor.translateAlternateColorCodes('&', configPrefix);
+			return AdventureUtil.translateAlternateColorCodes(configPrefix);
 		}
 
 		// Fall back to default rank tag
@@ -446,7 +445,7 @@ public class ChatManager extends FreedomService
 			String configPrefix = getConfigPrefix(display);
 			if (configPrefix != null && !configPrefix.isEmpty())
 			{
-				rankPrefix = ChatColor.translateAlternateColorCodes('&', configPrefix);
+				rankPrefix = AdventureUtil.translateAlternateColorCodes(configPrefix);
 			}
 			else
 			{
@@ -469,7 +468,7 @@ public class ChatManager extends FreedomService
 			{
 				tagTemplate = "&7{TAG} ";
 			}
-			formattedTag = ChatColor.translateAlternateColorCodes('&', tagTemplate).replace("{TAG}", customTag);
+			formattedTag = AdventureUtil.translateAlternateColorCodes(tagTemplate).replace("{TAG}", customTag);
 		}
 
 		String result;

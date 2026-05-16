@@ -4,8 +4,8 @@ import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.commons.lang3.StringUtils;
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -36,7 +36,7 @@ public class Command_tossmob extends FreedomCommand
             if ("off".equals(args[0]))
             {
                 playerData.disableMobThrower();
-                msg("MobThrower is disabled.", ChatColor.GREEN);
+                msg("MobThrower is disabled.", NamedTextColor.GREEN);
                 return true;
             }
 
@@ -50,7 +50,7 @@ public class Command_tossmob extends FreedomCommand
                         sb.append(" ").append(loop.name());
                     }
                 }
-                msg("Supported mobs: " + sb.toString().trim(), ChatColor.GREEN);
+                msg("Supported mobs: " + sb.toString().trim(), NamedTextColor.GREEN);
                 return true;
             }
 
@@ -65,8 +65,8 @@ public class Command_tossmob extends FreedomCommand
 
             if (type == null)
             {
-                msg(args[0] + " is not a supported mob type. Using a pig instead.", ChatColor.RED);
-                msg("By the way, you can type /tossmob list to see all possible mobs.", ChatColor.RED);
+                msg(args[0] + " is not a supported mob type. Using a pig instead.", NamedTextColor.RED);
+                msg("By the way, you can type /tossmob list to see all possible mobs.", NamedTextColor.RED);
                 type = EntityType.PIG;
             }
         }
@@ -93,9 +93,9 @@ public class Command_tossmob extends FreedomCommand
         }
 
         playerData.enableMobThrower(type, speed);
-        msg("MobThrower is enabled. Creature: " + type + " - Speed: " + speed + ".", ChatColor.GREEN);
-        msg("Left click while holding a " + Material.BONE.toString() + " to throw mobs!", ChatColor.GREEN);
-        msg("Type '/tossmob off' to disable.  -By Madgeek1450", ChatColor.GREEN);
+        msg("MobThrower is enabled. Creature: " + type + " - Speed: " + speed + ".", NamedTextColor.GREEN);
+        msg("Left click while holding a " + Material.BONE.toString() + " to throw mobs!", NamedTextColor.GREEN);
+        msg("Type '/tossmob off' to disable.  -By Madgeek1450", NamedTextColor.GREEN);
 
         playerSender.getEquipment().setItemInMainHand(new ItemStack(Material.BONE, 1));
 

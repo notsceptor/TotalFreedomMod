@@ -7,7 +7,6 @@ import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import org.apache.commons.io.FileUtils;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
@@ -15,6 +14,7 @@ import org.bukkit.WorldType;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
+@SuppressWarnings("deprecation")
 public class Flatlands extends CustomWorld
 {
 
@@ -56,10 +56,10 @@ public class Flatlands extends CustomWorld
         org.bukkit.block.Sign welcomeSign = (org.bukkit.block.Sign) welcomeSignBlock.getState();
 
         String[] lines = {
-            ChatColor.GREEN + "Flatlands",
-            ChatColor.DARK_GRAY + "---",
-            ChatColor.YELLOW + "Spawn Point",
-            ChatColor.DARK_GRAY + "---"
+            "\u00A7aFlatlands",
+            "\u00A78---",
+            "\u00A7eSpawn Point",
+            "\u00A78---"
         };
 
         org.bukkit.block.sign.SignSide front = welcomeSign.getSide(org.bukkit.block.sign.Side.FRONT);

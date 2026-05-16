@@ -4,8 +4,9 @@ import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import org.apache.commons.lang3.ArrayUtils;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.commons.lang3.StringUtils;
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -115,7 +116,7 @@ public class Command_stfu extends FreedomCommand
             playerdata.setMuted(false);
             msg("Unmuted " + player.getName());
 
-            msg(player, ChatColor.RED + "You have been unmuted.");
+            msg(player, Component.text("You have been unmuted.", NamedTextColor.RED));
         }
         else
         {
@@ -135,11 +136,11 @@ public class Command_stfu extends FreedomCommand
 
             if (reason != null)
             {
-                msg(player, ChatColor.RED + "You have been muted. Reason: " + reason);
+                msg(player, Component.text("You have been muted. Reason: " + reason, NamedTextColor.RED));
             }
             else
             {
-                msg(player, ChatColor.RED + "You have been muted.");
+                msg(player, Component.text("You have been muted.", NamedTextColor.RED));
             }
 
             msg("Muted " + player.getName());

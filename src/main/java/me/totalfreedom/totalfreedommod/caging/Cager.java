@@ -4,7 +4,7 @@ import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -84,7 +84,7 @@ public class Cager extends FreedomService
         if (outOfCage)
         {
             player.getPlayer().teleport(cageLoc.subtract(0, 0.1, 0));
-            FUtil.playerMsg(player.getPlayer(), "You may not leave your cage.", ChatColor.RED);
+            FUtil.playerMsg(player.getPlayer(), "You may not leave your cage.", NamedTextColor.RED);
             cage.regenerate();
         }
     }

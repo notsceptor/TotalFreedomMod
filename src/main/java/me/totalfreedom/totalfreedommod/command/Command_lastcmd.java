@@ -2,7 +2,7 @@ package me.totalfreedom.totalfreedommod.command;
 
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.rank.Rank;
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -37,7 +37,7 @@ public class Command_lastcmd extends FreedomCommand
             {
                 lastCommand = "(none)";
             }
-            msg(player.getName() + " - Last Command: " + lastCommand, ChatColor.GRAY);
+            msg(player.getName() + " - Last Command: " + lastCommand, NamedTextColor.GRAY);
         }
 
         return true;

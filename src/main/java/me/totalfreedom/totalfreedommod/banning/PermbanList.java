@@ -14,8 +14,9 @@ import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import java.io.File;
 import java.io.IOException;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.ChatColor;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
@@ -35,17 +36,6 @@ public class PermbanList extends FreedomService
     
     // Flag to track if SQL is available
     private boolean usingSql = false;
-    
-    // Manual getters - Lombok @Getter not processing reliably
-    public Set<String> getPermbannedIps()
-    {
-        return permbannedIps;
-    }
-    
-    public Set<String> getPermbannedNames()
-    {
-        return permbannedNames;
-    }
 
     public PermbanList(TotalFreedomMod plugin)
     {
@@ -255,9 +245,9 @@ public class PermbanList extends FreedomService
             if (FUtil.fuzzyIpMatch(testIp, ip, 4))
             {
                 event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER,
-                        ChatColor.RED + "Your IP address is permanently banned from this server.\n"
-                        + "Release procedures are available at\n"
-                        + ChatColor.GOLD + ConfigEntry.SERVER_PERMBAN_URL.getString());
+                        Component.text("Your IP address is permanently banned from this server.\n"
+                                + "Release procedures are available at\n", NamedTextColor.RED)
+                                .append(Component.text(ConfigEntry.SERVER_PERMBAN_URL.getString(), NamedTextColor.GOLD)));
                 return;
             }
         }
@@ -268,9 +258,9 @@ public class PermbanList extends FreedomService
             if (testPlayer.equalsIgnoreCase(username))
             {
                 event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER,
-                        ChatColor.RED + "Your username is permanently banned from this server.\n"
-                        + "Release procedures are available at\n"
-                        + ChatColor.GOLD + ConfigEntry.SERVER_PERMBAN_URL.getString());
+                        Component.text("Your username is permanently banned from this server.\n"
+                                + "Release procedures are available at\n", NamedTextColor.RED)
+                                .append(Component.text(ConfigEntry.SERVER_PERMBAN_URL.getString(), NamedTextColor.GOLD)));
                 return;
             }
         }

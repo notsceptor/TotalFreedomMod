@@ -3,7 +3,7 @@ package me.totalfreedom.totalfreedommod.command;
 import me.totalfreedom.totalfreedommod.fun.Jumppads;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -25,9 +25,9 @@ public class Command_jumppads extends FreedomCommand
         {
             if (args[0].equalsIgnoreCase("info"))
             {
-                msg("Jumppads: " + (plugin.jp.getMode().isOn() ? "Enabled" : "Disabled"), ChatColor.BLUE);
-                msg("Sideways: " + (plugin.jp.getMode() == Jumppads.JumpPadMode.NORMAL_AND_SIDEWAYS ? "Enabled" : "Disabled"), ChatColor.BLUE);
-                msg("Strength: " + (plugin.jp.getStrength() * 10 - 1), ChatColor.BLUE);
+                msg("Jumppads: " + (plugin.jp.getMode().isOn() ? "Enabled" : "Disabled"), NamedTextColor.BLUE);
+                msg("Sideways: " + (plugin.jp.getMode() == Jumppads.JumpPadMode.NORMAL_AND_SIDEWAYS ? "Enabled" : "Disabled"), NamedTextColor.BLUE);
+                msg("Strength: " + (plugin.jp.getStrength() * 10 - 1), NamedTextColor.BLUE);
                 return true;
             }
 
