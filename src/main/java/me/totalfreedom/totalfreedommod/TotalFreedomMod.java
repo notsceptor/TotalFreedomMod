@@ -259,7 +259,6 @@ public class TotalFreedomMod extends JavaPlugin
     @Override
     public void onDisable()
     {
-        instance = null;
         // Stop services and bridges (check for null in case initialization failed)
         if (bridges != null)
         {
@@ -273,6 +272,7 @@ public class TotalFreedomMod extends JavaPlugin
         getServer().getScheduler().cancelTasks(this);
 
         FLog.info("Plugin disabled");
+        instance = null;
     }
 
     public static class BuildProperties

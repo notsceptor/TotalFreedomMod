@@ -32,7 +32,7 @@ public class SshDaemon extends FreedomService {
         String authMode = ConfigEntry.SSH_AUTH_MODE.getString().toLowerCase();
 
         File dataFolder = plugin.getDataFolder();
-        File authorizedKeysDir = new File(dataFolder, "auth_keys");
+        File authorizedKeysDir = new File(dataFolder, "ssh_auth_keys");
         if (!authorizedKeysDir.exists()) {
             authorizedKeysDir.mkdirs();
         }

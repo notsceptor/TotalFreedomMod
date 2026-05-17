@@ -14,7 +14,7 @@ import org.apache.sshd.server.session.ServerSession;
 
 /**
  * Authenticates SSH users via public key.
- * Keys are stored in the auth_keys/ directory under the plugin data folder.
+ * Keys are stored in the ssh_auth_keys/ directory under the plugin data folder.
  * Each file is named after the username (no extension) and contains one or more
  * OpenSSH-format authorized_keys entries (ssh-rsa, ssh-ed25519, ecdsa-sha2-*,
  * etc.).
@@ -33,7 +33,7 @@ public class SshPublicKeyAuthenticator implements PublickeyAuthenticator {
 
         if (!keyFile.exists()) {
             FLog.warning("SSH public key auth failed for '" + username
-                    + "': no authorized_keys file found. Create plugins/TotalFreedomMod/auth_keys/"
+                    + "': no authorized_keys file found. Create plugins/TotalFreedomMod/ssh_auth_keys/"
                     + username + " with the user's public key.");
             return false;
         }
