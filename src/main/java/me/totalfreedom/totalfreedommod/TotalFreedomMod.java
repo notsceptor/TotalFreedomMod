@@ -82,6 +82,7 @@ public class TotalFreedomMod extends JavaPlugin
     public BanManager bm; // BanManager - Manages player bans
     public PermbanList pm; // PermbanList - Manages permanent ban list
     public ProtectArea pa; // ProtectArea - Manages protected areas and spawnpoints
+    public SpawnManager sm; // SpawnManager - Handles configured spawn behavior
     public GameRuleHandler gr; // GameRuleHandler - Manages game rules
     public RollbackManager rb; // RollbackManager - Handles rollback operations
     public CommandSpy cs; // CommandSpy - Logs and monitors command usage
@@ -186,6 +187,7 @@ public class TotalFreedomMod extends JavaPlugin
         bm = services.registerService(BanManager.class);
         pm = services.registerService(PermbanList.class);
         pa = services.registerService(ProtectArea.class);
+        sm = services.registerService(SpawnManager.class);
         gr = services.registerService(GameRuleHandler.class);
         services.registerService(me.totalfreedom.totalfreedommod.disguise.DisallowedDisguises.class);
 

@@ -411,6 +411,19 @@ auto_op:
   # Interval in ticks (20 ticks = 1 second) for persistent monitor to check players
   monitor_interval: 300
 
+# Spawn manager (used in lieu of EssentialsSpawn)
+spawn:
+  world: flatlands
+  x: 0.0
+  y: 0.0
+  z: 0.0
+  yaw: 0.0
+  pitch: 0.0
+  send_player:
+    # Valid options: always, first_join, never
+    on_join: first_join
+    on_respawn: true
+
 # Players with access to the overlord command
 overlord_ips:
   - 176.56.237.227

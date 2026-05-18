@@ -65,6 +65,7 @@ non_op:
     - tfm.player.radar
     - tfm.player.rank
     - tfm.player.setlever
+    - tfm.player.spawn
     - tfm.player.list
     - tfm.world.ender
     - tfm.world.flatlands

@@ -79,6 +79,15 @@ public enum ConfigEntry
     AUTO_OP_PERSISTENT_MONITOR(Boolean.class, "auto_op.persistent_monitor"),
     AUTO_OP_MONITOR_INTERVAL(Integer.class, "auto_op.monitor_interval"),
     //
+    SPAWN_WORLD(String.class, "spawn.world"),
+    SPAWN_X(Double.class, "spawn.x"),
+    SPAWN_Y(Double.class, "spawn.y"),
+    SPAWN_Z(Double.class, "spawn.z"),
+    SPAWN_YAW(Double.class, "spawn.yaw"),
+    SPAWN_PITCH(Double.class, "spawn.pitch"),
+    SPAWN_SEND_ON_JOIN(String.class, "spawn.send_player.on_join"),
+    SPAWN_SEND_ON_RESPAWN(Boolean.class, "spawn.send_player.on_respawn"),
+    //
     LOGS_SECRET(String.class, "logs.secret"),
     LOGS_URL(String.class, "logs.url"),
     //

@@ -252,6 +252,31 @@ public class MainConfig extends PluginComponent<TotalFreedomMod>
         entries.put(entry, value);
     }
 
+    public void save()
+    {
+        try
+        {
+            YamlConfiguration config = new YamlConfiguration();
+            File configFile = getConfigFile();
+
+            if (configFile.exists())
+            {
+                config.load(configFile);
+            }
+
+            for (ConfigEntry entry : ConfigEntry.values())
+            {
+                config.set(entry.getConfigName(), entries.get(entry));
+            }
+
+            config.save(configFile);
+        }
+        catch (IOException | InvalidConfigurationException ex)
+        {
+            FLog.severe(ex);
+        }
+    }
+
     private void copyDefaultConfig(File targetFile)
     {
         if (targetFile.exists())
