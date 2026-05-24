@@ -29,6 +29,7 @@ public enum ConfigEntry
     HTTPD_ENABLED(Boolean.class, "httpd.enabled"),
     HTTPD_PORT(Integer.class, "httpd.port"),
     HTTPD_PUBLIC_FOLDER(String.class, "httpd.public_folder"),
+    HTTPD_SCHEM_FOLDER(String.class, "httpd.schem_folder"),
     //
     SSH_ENABLED(Boolean.class, "ssh.enabled"),
     SSH_PORT(Integer.class, "ssh.port"),

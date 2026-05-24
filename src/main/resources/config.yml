@@ -213,7 +213,6 @@ disable:
   entity_spam: false
   entity_spam_max: 750
 
-
 # Enable misc. features
 landmines_enabled: false
 mp44_enabled: false
@@ -386,6 +385,8 @@ httpd:
   enabled: false
   port: 28966
   public_folder: ./public_html
+  # Folder schematics are served from. Leave blank to auto-detect
+  schem_folder: ''
 
 # SSH server
 ssh:
