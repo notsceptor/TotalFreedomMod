@@ -206,6 +206,12 @@ preprocess_log: true
 disable:
   night: true
   weather: true
+  spawners: false
+  spawner_place: false
+  portal_create: false
+  pistons: false
+  entity_spam: false
+  entity_spam_max: 750
 
 
 # Enable misc. features

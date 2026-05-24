@@ -3,8 +3,14 @@ package me.totalfreedom.totalfreedommod.blocking;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
+import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.Boat;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.FallingBlock;
+import org.bukkit.entity.Hanging;
+import org.bukkit.entity.Item;
+import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Projectile;
 import org.bukkit.entity.Tameable;
 import org.bukkit.event.EventHandler;
@@ -12,14 +18,19 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.block.BlockBurnEvent;
 import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.BlockIgniteEvent;
+import org.bukkit.event.block.BlockPistonExtendEvent;
+import org.bukkit.event.block.BlockPistonRetractEvent;
 import org.bukkit.event.block.LeavesDecayEvent;
 import org.bukkit.event.entity.EntityCombustEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.entity.EntitySpawnEvent;
 import org.bukkit.event.entity.ExplosionPrimeEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
+import org.bukkit.event.entity.SpawnerSpawnEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
+import org.bukkit.event.world.PortalCreateEvent;
 
 public class EventBlocker extends FreedomService
 {
@@ -167,6 +178,69 @@ public class EventBlocker extends FreedomService
     public void onLeavesDecay(LeavesDecayEvent event)
     {
         event.setCancelled(true);
+    }
+
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onSpawnerSpawn(SpawnerSpawnEvent event)
+    {
+        if (ConfigEntry.DISABLE_SPAWNERS.getBoolean())
+        {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onPortalCreate(PortalCreateEvent event)
+    {
+        if (ConfigEntry.DISABLE_PORTAL_CREATE.getBoolean())
+        {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onPistonExtend(BlockPistonExtendEvent event)
+    {
+        if (ConfigEntry.DISABLE_PISTONS.getBoolean())
+        {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onPistonRetract(BlockPistonRetractEvent event)
+    {
+        if (ConfigEntry.DISABLE_PISTONS.getBoolean())
+        {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.NORMAL)
+    public void onEntitySpawn(EntitySpawnEvent event)
+    {
+        if (!ConfigEntry.DISABLE_ENTITY_SPAM.getBoolean())
+        {
+            return;
+        }
+
+        final Entity entity = event.getEntity();
+        final boolean spammy = entity instanceof Item
+                || entity instanceof ArmorStand
+                || entity instanceof Hanging
+                || entity instanceof Minecart
+                || entity instanceof Boat
+                || entity instanceof FallingBlock;
+        if (!spammy)
+        {
+            return;
+        }
+
+        final int max = ConfigEntry.DISABLE_ENTITY_SPAM_MAX.getInteger();
+        if (max > 0 && event.getLocation().getWorld().getEntities().size() > max)
+        {
+            event.setCancelled(true);
+        }
     }
 
 }

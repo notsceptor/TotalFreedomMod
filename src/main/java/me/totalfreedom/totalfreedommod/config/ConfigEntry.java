@@ -50,6 +50,12 @@ public enum ConfigEntry
     //
     DISABLE_NIGHT(Boolean.class, "disable.night"),
     DISABLE_WEATHER(Boolean.class, "disable.weather"),
+    DISABLE_SPAWNERS(Boolean.class, "disable.spawners"),
+    DISABLE_SPAWNER_PLACE(Boolean.class, "disable.spawner_place"),
+    DISABLE_PORTAL_CREATE(Boolean.class, "disable.portal_create"),
+    DISABLE_PISTONS(Boolean.class, "disable.pistons"),
+    DISABLE_ENTITY_SPAM(Boolean.class, "disable.entity_spam"),
+    DISABLE_ENTITY_SPAM_MAX(Integer.class, "disable.entity_spam_max"),
     //
     ENABLE_PREPROCESS_LOG(Boolean.class, "preprocess_log"),
     ENABLE_PET_PROTECT(Boolean.class, "petprotect.enabled"),

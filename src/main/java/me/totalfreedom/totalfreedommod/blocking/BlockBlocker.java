@@ -107,6 +107,16 @@ public class BlockBlocker extends FreedomService
                 }
                 break;
             }
+            case SPAWNER:
+            {
+                if (ConfigEntry.DISABLE_SPAWNER_PLACE.getBoolean())
+                {
+                    player.sendMessage(Component.text("Spawners are currently disabled.", NamedTextColor.GRAY));
+
+                    event.setCancelled(true);
+                }
+                break;
+            }
             case STRUCTURE_BLOCK:
             case STRUCTURE_VOID:
             {
