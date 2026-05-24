@@ -35,6 +35,8 @@ public class AdminList extends FreedomService
 
     public static final String CONFIG_FILENAME = "admins.yml";
 
+    private static final long LAST_LOGIN_DEBOUNCE_MS = 5L * 60L * 1000L;
+
     @Getter
     private final Map<String, Admin> allAdmins = Maps.newHashMap(); // Includes disabled admins
     // Only active admins below
@@ -409,9 +411,18 @@ public class AdminList extends FreedomService
             return;
         }
 
-        admin.setLastLogin(new Date());
+        final Date now = new Date();
+        final Date then = admin.getLastLogin();
+        final boolean debounce = then != null
+                && (now.getTime() - then.getTime()) < LAST_LOGIN_DEBOUNCE_MS;
+
+        admin.setLastLogin(now);
         admin.setName(player.getName());
-        saveAsync();
+
+        if (!debounce)
+        {
+            saveAsync();
+        }
     }
 
     public boolean isAdminImpostor(Player player)
