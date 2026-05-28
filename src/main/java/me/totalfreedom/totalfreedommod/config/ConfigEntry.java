@@ -79,6 +79,17 @@ public enum ConfigEntry
     NUKE_MONITOR_COUNT_PLACE(Integer.class, "nukemonitor.count_place"),
     NUKE_MONITOR_RANGE(Double.class, "nukemonitor.range"),
     //
+    ANTISPAM_ENABLED(Boolean.class, "antispam.enabled"),
+    ANTISPAM_LIMIT(Integer.class, "antispam.limit"),
+    ANTISPAM_TIME_WINDOW(Integer.class, "antispam.time_window"),
+    //
+    AUTOEJECT_ENABLED(Boolean.class, "autoeject.enabled"),
+    AUTOEJECT_PERSIST(Boolean.class, "autoeject.persist"),
+    AUTOEJECT_TIME_WINDOW(Integer.class, "autoeject.time_window"),
+    AUTOEJECT_STRIKE_ONE_TIMEOUT(Integer.class, "autoeject.strike_one.timeout"),
+    AUTOEJECT_STRIKE_TWO_TIMEOUT(Integer.class, "autoeject.strike_two.timeout"),
+    AUTOEJECT_STRIKE_THREE_TIMEOUT(Integer.class, "autoeject.strike_three.timeout"),
+    //
     AUTOKICK_THRESHOLD(Double.class, "autokick.threshold"),
     AUTOKICK_TIME(Integer.class, "autokick.time"),
     //

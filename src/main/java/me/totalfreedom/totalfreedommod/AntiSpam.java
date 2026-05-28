@@ -1,22 +1,19 @@
 package me.totalfreedom.totalfreedommod;
 
+import io.papermc.paper.event.player.AsyncChatEvent;
+import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.util.FSync;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
-import io.papermc.paper.event.player.AsyncChatEvent;
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 
 public class AntiSpam extends FreedomService
 {
-
-    public static final int MSG_PER_CYCLE = 8;
-    public static final int TICKS_PER_CYCLE = 2 * 10;
 
     public AntiSpam(TotalFreedomMod plugin)
     {
@@ -33,16 +30,31 @@ public class AntiSpam extends FreedomService
     {
     }
 
+    private static boolean enabled()
+    {
+        final Boolean v = ConfigEntry.ANTISPAM_ENABLED.getBoolean();
+        return v == null || v;
+    }
+
+    private static int limit()
+    {
+        final Integer v = ConfigEntry.ANTISPAM_LIMIT.getInteger();
+        return v == null ? 8 : v;
+    }
+
     @EventHandler(priority = EventPriority.LOW)
     public void onAsyncPlayerChat(AsyncChatEvent event)
     {
+        if (!enabled())
+        {
+            return;
+        }
         final Player player = event.getPlayer();
-        String message = PlainTextComponentSerializer.plainText().serialize(event.message()).trim();
+        final String message = PlainTextComponentSerializer.plainText().serialize(event.message()).trim();
 
         final FPlayer playerdata = plugin.pl.getPlayerSync(player);
 
-        // Check for spam
-        if (playerdata.incrementAndGetMsgCount() > MSG_PER_CYCLE)
+        if (playerdata.incrementAndGetMsgCount() > limit())
         {
             FSync.bcastMsg(player.getName() + " was automatically kicked for spamming chat.", NamedTextColor.RED);
             FSync.autoEject(player, "Kicked for spamming chat.");
@@ -53,9 +65,7 @@ public class AntiSpam extends FreedomService
             return;
         }
 
-        // Check for message repeat
-        if (me.totalfreedom.totalfreedommod.config.ConfigEntry.VAULT_CHAT_PREVENT_SPAM.getBoolean() && playerdata.getLastMessage().equalsIgnoreCase(message))
-
+        if (ConfigEntry.VAULT_CHAT_PREVENT_SPAM.getBoolean() && playerdata.getLastMessage().equalsIgnoreCase(message))
         {
             FSync.playerMsg(player, "Please do not repeat messages.");
             event.setCancelled(true);
@@ -68,7 +78,11 @@ public class AntiSpam extends FreedomService
     @EventHandler(priority = EventPriority.LOW)
     public void onPlayerCommandPreprocess(PlayerCommandPreprocessEvent event)
     {
-        String command = event.getMessage();
+        if (!enabled())
+        {
+            return;
+        }
+        final String command = event.getMessage();
         final Player player = event.getPlayer();
         final FPlayer fPlayer = plugin.pl.getPlayer(player);
         fPlayer.setLastCommand(command);
@@ -80,7 +94,7 @@ public class AntiSpam extends FreedomService
             return;
         }
 
-        if (fPlayer.incrementAndGetMsgCount() > MSG_PER_CYCLE)
+        if (fPlayer.incrementAndGetMsgCount() > limit())
         {
             FUtil.bcastMsg(player.getName() + " was automatically kicked for spamming commands.", NamedTextColor.RED);
             plugin.ae.autoEject(player, "Kicked for spamming commands.");

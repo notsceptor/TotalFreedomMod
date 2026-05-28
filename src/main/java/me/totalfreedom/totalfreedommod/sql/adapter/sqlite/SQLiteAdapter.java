@@ -7,6 +7,7 @@ import me.totalfreedom.totalfreedommod.sql.adapter.AdminRepository;
 import me.totalfreedom.totalfreedommod.sql.adapter.BanRepository;
 import me.totalfreedom.totalfreedommod.sql.adapter.DatabaseAdapter;
 import me.totalfreedom.totalfreedommod.sql.adapter.PermbanRepository;
+import me.totalfreedom.totalfreedommod.sql.adapter.StrikeRepository;
 import me.totalfreedom.totalfreedommod.util.FLog;
 
 import java.sql.SQLException;
@@ -24,6 +25,7 @@ public class SQLiteAdapter extends DatabaseAdapter
     private SQLiteAdminRepository adminRepository;
     private SQLiteBanRepository banRepository;
     private SQLitePermbanRepository permbanRepository;
+    private SQLiteStrikeRepository strikeRepository;
 
     public SQLiteAdapter(TotalFreedomMod plugin, ConnectionHandler connectionHandler, StatementHandler statementHandler)
     {
@@ -107,6 +109,7 @@ public class SQLiteAdapter extends DatabaseAdapter
         createBanIpsTable();
         createPermbansTable();
         createPermbanIpsTable();
+        createStrikesTable();
 
         FLog.info("[SQLite] Database migrations complete.");
     }
@@ -235,6 +238,20 @@ public class SQLiteAdapter extends DatabaseAdapter
         statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_permban_ips_ip ON permban_ips(ip)");
     }
 
+    private void createStrikesTable() throws SQLException
+    {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS strikes (
+                ip TEXT PRIMARY KEY,
+                strike_count INTEGER NOT NULL DEFAULT 0,
+                last_strike_unix INTEGER NOT NULL DEFAULT 0,
+                last_username TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+            """;
+        statementHandler.executeUpdate(sql);
+    }
+
     // ============================================
     // Repository Getters
     // ============================================
@@ -267,5 +284,15 @@ public class SQLiteAdapter extends DatabaseAdapter
             permbanRepository = new SQLitePermbanRepository(plugin, statementHandler);
         }
         return permbanRepository;
+    }
+
+    @Override
+    public StrikeRepository getStrikeRepository()
+    {
+        if (strikeRepository == null)
+        {
+            strikeRepository = new SQLiteStrikeRepository(plugin, statementHandler);
+        }
+        return strikeRepository;
     }
 }

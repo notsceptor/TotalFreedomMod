@@ -9,6 +9,7 @@ import java.util.Properties;
 import me.totalfreedom.totalfreedommod.admin.AdminList;
 import me.totalfreedom.totalfreedommod.banning.BanManager;
 import me.totalfreedom.totalfreedommod.banning.PermbanList;
+import me.totalfreedom.totalfreedommod.banning.StrikeList;
 import me.totalfreedom.totalfreedommod.blocking.BlockBlocker;
 import me.totalfreedom.totalfreedommod.blocking.EventBlocker;
 import me.totalfreedom.totalfreedommod.blocking.InteractBlocker;
@@ -30,6 +31,7 @@ import me.totalfreedom.totalfreedommod.fun.Landminer;
 import me.totalfreedom.totalfreedommod.fun.MP44;
 import me.totalfreedom.totalfreedommod.httpd.HTTPDaemon;
 import me.totalfreedom.totalfreedommod.ssh.SshDaemon;
+import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.player.PlayerList;
 import me.totalfreedom.totalfreedommod.rank.RankManager;
 import me.totalfreedom.totalfreedommod.rollback.RollbackManager;
@@ -81,6 +83,7 @@ public class TotalFreedomMod extends JavaPlugin
     public ChatManager cm; // ChatManager - Manages chat formatting and admin chat
     public BanManager bm; // BanManager - Manages player bans
     public PermbanList pm; // PermbanList - Manages permanent ban list
+    public StrikeList sl; // StrikeList - Tracks per-IP AutoEject strike counts
     public ProtectArea pa; // ProtectArea - Manages protected areas and spawnpoints
     public SpawnManager sm; // SpawnManager - Handles configured spawn behavior
     public GameRuleHandler gr; // GameRuleHandler - Manages game rules
@@ -153,6 +156,7 @@ public class TotalFreedomMod extends JavaPlugin
 
         config = new MainConfig(this);
         config.load();
+        FPlayer.refreshConfig();
 
         // Start services
         services = new ServiceManager<>(this);
@@ -186,6 +190,7 @@ public class TotalFreedomMod extends JavaPlugin
         cm = services.registerService(ChatManager.class);
         bm = services.registerService(BanManager.class);
         pm = services.registerService(PermbanList.class);
+        sl = services.registerService(StrikeList.class);
         pa = services.registerService(ProtectArea.class);
         sm = services.registerService(SpawnManager.class);
         gr = services.registerService(GameRuleHandler.class);

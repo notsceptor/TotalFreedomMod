@@ -8,6 +8,7 @@ import me.totalfreedom.totalfreedommod.sql.adapter.AdminRepository;
 import me.totalfreedom.totalfreedommod.sql.adapter.BanRepository;
 import me.totalfreedom.totalfreedommod.sql.adapter.DatabaseAdapter;
 import me.totalfreedom.totalfreedommod.sql.adapter.PermbanRepository;
+import me.totalfreedom.totalfreedommod.sql.adapter.StrikeRepository;
 import me.totalfreedom.totalfreedommod.util.FLog;
 
 import java.sql.SQLException;
@@ -194,6 +195,15 @@ public class FreedomDatabase extends FreedomService
             throw new IllegalStateException("Database not initialized");
         }
         return adapter.getPermbanRepository();
+    }
+
+    public StrikeRepository getStrikeRepository()
+    {
+        if (adapter == null)
+        {
+            throw new IllegalStateException("Database not initialized");
+        }
+        return adapter.getStrikeRepository();
     }
 
     /**

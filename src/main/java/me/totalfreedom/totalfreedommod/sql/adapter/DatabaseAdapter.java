@@ -74,6 +74,11 @@ public abstract class DatabaseAdapter
      */
     public abstract PermbanRepository getPermbanRepository();
 
+    /**
+     * Get the strike repository for this database type.
+     */
+    public abstract StrikeRepository getStrikeRepository();
+
     // ============================================
     // SQL Dialect Methods (override for differences)
     // ============================================

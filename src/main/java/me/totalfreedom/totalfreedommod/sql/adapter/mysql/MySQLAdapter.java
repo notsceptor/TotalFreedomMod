@@ -7,6 +7,7 @@ import me.totalfreedom.totalfreedommod.sql.adapter.AdminRepository;
 import me.totalfreedom.totalfreedommod.sql.adapter.BanRepository;
 import me.totalfreedom.totalfreedommod.sql.adapter.DatabaseAdapter;
 import me.totalfreedom.totalfreedommod.sql.adapter.PermbanRepository;
+import me.totalfreedom.totalfreedommod.sql.adapter.StrikeRepository;
 import me.totalfreedom.totalfreedommod.util.FLog;
 
 import java.sql.SQLException;
@@ -26,6 +27,7 @@ public class MySQLAdapter extends DatabaseAdapter
     private MySQLAdminRepository adminRepository;
     private MySQLBanRepository banRepository;
     private MySQLPermbanRepository permbanRepository;
+    private MySQLStrikeRepository strikeRepository;
 
     public MySQLAdapter(TotalFreedomMod plugin, ConnectionHandler connectionHandler, StatementHandler statementHandler)
     {
@@ -107,6 +109,7 @@ public class MySQLAdapter extends DatabaseAdapter
         createBanIpsTable();
         createPermbansTable();
         createPermbanIpsTable();
+        createStrikesTable();
 
         FLog.info("[MySQL] Database migrations complete.");
     }
@@ -220,6 +223,20 @@ public class MySQLAdapter extends DatabaseAdapter
         statementHandler.executeUpdate(sql);
     }
 
+    private void createStrikesTable() throws SQLException
+    {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS `strikes` (
+                `ip` VARCHAR(45) PRIMARY KEY,
+                `strike_count` INT NOT NULL DEFAULT 0,
+                `last_strike_unix` BIGINT NOT NULL DEFAULT 0,
+                `last_username` VARCHAR(16),
+                `created_at` DATETIME DEFAULT NOW()
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """;
+        statementHandler.executeUpdate(sql);
+    }
+
     // ============================================
     // Repository Getters
     // ============================================
@@ -252,5 +269,15 @@ public class MySQLAdapter extends DatabaseAdapter
             permbanRepository = new MySQLPermbanRepository(plugin, statementHandler);
         }
         return permbanRepository;
+    }
+
+    @Override
+    public StrikeRepository getStrikeRepository()
+    {
+        if (strikeRepository == null)
+        {
+            strikeRepository = new MySQLStrikeRepository(plugin, statementHandler);
+        }
+        return strikeRepository;
     }
 }

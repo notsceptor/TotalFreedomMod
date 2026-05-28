@@ -7,6 +7,7 @@ import me.totalfreedom.totalfreedommod.sql.adapter.AdminRepository;
 import me.totalfreedom.totalfreedommod.sql.adapter.BanRepository;
 import me.totalfreedom.totalfreedommod.sql.adapter.DatabaseAdapter;
 import me.totalfreedom.totalfreedommod.sql.adapter.PermbanRepository;
+import me.totalfreedom.totalfreedommod.sql.adapter.StrikeRepository;
 import me.totalfreedom.totalfreedommod.util.FLog;
 
 import java.sql.SQLException;
@@ -25,6 +26,7 @@ public class PostgreSQLAdapter extends DatabaseAdapter
     private PostgreSQLAdminRepository adminRepository;
     private PostgreSQLBanRepository banRepository;
     private PostgreSQLPermbanRepository permbanRepository;
+    private PostgreSQLStrikeRepository strikeRepository;
 
     public PostgreSQLAdapter(TotalFreedomMod plugin, ConnectionHandler connectionHandler, StatementHandler statementHandler)
     {
@@ -114,6 +116,7 @@ public class PostgreSQLAdapter extends DatabaseAdapter
         createBanIpsTable();
         createPermbansTable();
         createPermbanIpsTable();
+        createStrikesTable();
 
         FLog.info("[PostgreSQL] Database migrations complete.");
     }
@@ -228,6 +231,20 @@ public class PostgreSQLAdapter extends DatabaseAdapter
         statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_permban_ips_ip ON \"permban_ips\"(\"ip\")");
     }
 
+    private void createStrikesTable() throws SQLException
+    {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS "strikes" (
+                "ip" VARCHAR(45) PRIMARY KEY,
+                "strike_count" INTEGER NOT NULL DEFAULT 0,
+                "last_strike_unix" BIGINT NOT NULL DEFAULT 0,
+                "last_username" VARCHAR(16),
+                "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            """;
+        statementHandler.executeUpdate(sql);
+    }
+
     // ============================================
     // Repository Getters
     // ============================================
@@ -260,5 +277,15 @@ public class PostgreSQLAdapter extends DatabaseAdapter
             permbanRepository = new PostgreSQLPermbanRepository(plugin, statementHandler);
         }
         return permbanRepository;
+    }
+
+    @Override
+    public StrikeRepository getStrikeRepository()
+    {
+        if (strikeRepository == null)
+        {
+            strikeRepository = new PostgreSQLStrikeRepository(plugin, statementHandler);
+        }
+        return strikeRepository;
     }
 }

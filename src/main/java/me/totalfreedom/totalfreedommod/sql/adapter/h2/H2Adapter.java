@@ -7,9 +7,11 @@ import me.totalfreedom.totalfreedommod.sql.adapter.AdminRepository;
 import me.totalfreedom.totalfreedommod.sql.adapter.BanRepository;
 import me.totalfreedom.totalfreedommod.sql.adapter.DatabaseAdapter;
 import me.totalfreedom.totalfreedommod.sql.adapter.PermbanRepository;
+import me.totalfreedom.totalfreedommod.sql.adapter.StrikeRepository;
 import me.totalfreedom.totalfreedommod.sql.adapter.mysql.MySQLAdminRepository;
 import me.totalfreedom.totalfreedommod.sql.adapter.mysql.MySQLBanRepository;
 import me.totalfreedom.totalfreedommod.sql.adapter.mysql.MySQLPermbanRepository;
+import me.totalfreedom.totalfreedommod.sql.adapter.mysql.MySQLStrikeRepository;
 import me.totalfreedom.totalfreedommod.util.FLog;
 
 import java.sql.SQLException;
@@ -27,6 +29,7 @@ public class H2Adapter extends DatabaseAdapter
     private MySQLAdminRepository adminRepository;
     private MySQLBanRepository banRepository;
     private MySQLPermbanRepository permbanRepository;
+    private MySQLStrikeRepository strikeRepository;
 
     public H2Adapter(TotalFreedomMod plugin, ConnectionHandler connectionHandler, StatementHandler statementHandler)
     {
@@ -109,6 +112,7 @@ public class H2Adapter extends DatabaseAdapter
         createBanIpsTable();
         createPermbansTable();
         createPermbanIpsTable();
+        createStrikesTable();
 
         FLog.info("[H2] Database migrations complete.");
     }
@@ -226,6 +230,20 @@ public class H2Adapter extends DatabaseAdapter
         try { statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_permban_ips_ip ON \"permban_ips\"(\"ip\")"); } catch (SQLException ignored) {}
     }
 
+    private void createStrikesTable() throws SQLException
+    {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS "strikes" (
+                "ip" VARCHAR(45) PRIMARY KEY,
+                "strike_count" INT NOT NULL DEFAULT 0,
+                "last_strike_unix" BIGINT NOT NULL DEFAULT 0,
+                "last_username" VARCHAR(16),
+                "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP()
+            )
+            """;
+        statementHandler.executeUpdate(sql);
+    }
+
     // ============================================
     // Repository Getters
     // H2 is MySQL-compatible, so we reuse MySQL repositories
@@ -259,5 +277,15 @@ public class H2Adapter extends DatabaseAdapter
             permbanRepository = new MySQLPermbanRepository(plugin, statementHandler);
         }
         return permbanRepository;
+    }
+
+    @Override
+    public StrikeRepository getStrikeRepository()
+    {
+        if (strikeRepository == null)
+        {
+            strikeRepository = new MySQLStrikeRepository(plugin, statementHandler);
+        }
+        return strikeRepository;
     }
 }

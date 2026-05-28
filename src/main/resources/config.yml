@@ -196,6 +196,34 @@ nukemonitor:
   count_place: 40
   range: 10.0
 
+# Anti-spam rate limiting for chat and commands.
+# Exceeding `limit` within `time_window` triggers AutoEject.
+antispam:
+  enabled: true
+  limit: 15
+  # Milliseconds (ms) after which a player's spam count resets.
+  time_window: 1000
+
+# AutoEject runs when AntiSpam, AntiNuke or a blocked command action trips.
+# Strikes are stored according to the player's IP address.
+autoeject:
+  # When false, the spam/etc still gets cancelled; no punishment happens.
+  enabled: true
+  # Whether to retain strikes after restart; false is server memory only.
+  persist: false
+  # Hours of no new strikes after which a player's strike count resets.
+  # 0 = strikes stay until manually cleared.
+  time_window: 24
+  strike_one:
+    # Minutes in length the player is banned.
+    # 0 = kick only, no ban
+    # -1 = permanent ban (GTFO!)
+    timeout: 0
+  strike_two:
+    timeout: 5
+  strike_three:
+    timeout: 10
+
 freecam_trigger_count: 10
 explosive_radius: 4.0
 

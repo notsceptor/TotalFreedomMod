@@ -24,6 +24,16 @@ public class FPlayer
 
     public static final long AUTO_PURGE_TICKS = 5L * 60L * 20L;
     private static final long COUNTER_WINDOW_MS = 1000L;
+    private static volatile long msgCounterWindowMs = 1000L;
+
+    public static void refreshConfig()
+    {
+        final Integer window = ConfigEntry.ANTISPAM_TIME_WINDOW.getInteger();
+        if (window != null && window > 0)
+        {
+            msgCounterWindowMs = window;
+        }
+    }
 
     @Getter
     private final TotalFreedomMod plugin;
@@ -143,7 +153,7 @@ public class FPlayer
     public int incrementAndGetMsgCount()
     {
         final long now = System.currentTimeMillis();
-        if (now - messageCountWindowStart > COUNTER_WINDOW_MS)
+        if (now - messageCountWindowStart > msgCounterWindowMs)
         {
             messageCount = 0;
             messageCountWindowStart = now;
