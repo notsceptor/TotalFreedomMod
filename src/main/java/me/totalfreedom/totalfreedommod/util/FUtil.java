@@ -467,7 +467,7 @@ public class FUtil
     // UUID Utilities
     // ============================================
 
-    private static final String MOJANG_API_URL = "https://api.mojang.com/users/profiles/minecraft/";
+    private static final String MOJANG_API_URL = "https://api.minecraftservices.com/minecraft/profile/lookup/name/";
     private static final Map<String, UUID> UUID_CACHE = new HashMap<>();
 
     /**

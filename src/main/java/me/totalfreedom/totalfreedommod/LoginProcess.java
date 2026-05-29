@@ -3,6 +3,7 @@ package me.totalfreedom.totalfreedommod;
 import java.util.regex.Pattern;
 import lombok.Getter;
 import lombok.Setter;
+import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FSync;
 import me.totalfreedom.totalfreedommod.util.FUtil;
@@ -49,7 +50,16 @@ public class LoginProcess extends FreedomService
     public void onPlayerPreLogin(AsyncPlayerPreLoginEvent event)
     {
         final String ip = event.getAddress().getHostAddress().trim();
-        final boolean isAdmin = plugin.al.getEntryByIp(ip) != null;
+        final boolean isAdmin;
+        if (ConfigEntry.ADMINLIST_USE_UUID_ONLY.getBoolean())
+        {
+            final Admin uuidAdmin = plugin.al.getAdminByUuid(event.getUniqueId());
+            isAdmin = uuidAdmin != null && uuidAdmin.isActive();
+        }
+        else
+        {
+            isAdmin = plugin.al.getEntryByIp(ip) != null;
+        }
 
         // Check if the player is already online
         for (Player onlinePlayer : server.getOnlinePlayers())
@@ -111,7 +121,16 @@ public class LoginProcess extends FreedomService
 
         // Check if player is admin
         // Not safe to use TFM_Util.isSuperAdmin(player) because player.getAddress() will return a null until after player login.
-        final boolean isAdmin = plugin.al.getEntryByIp(ip) != null;
+        final boolean isAdmin;
+        if (ConfigEntry.ADMINLIST_USE_UUID_ONLY.getBoolean())
+        {
+            final Admin uuidAdmin = plugin.al.getAdminByUuid(player.getUniqueId());
+            isAdmin = uuidAdmin != null && uuidAdmin.isActive();
+        }
+        else
+        {
+            isAdmin = plugin.al.getEntryByIp(ip) != null;
+        }
 
         // Validation below this point
         if (isAdmin) // Player is superadmin

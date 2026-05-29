@@ -14,6 +14,7 @@ import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.rank.Rank;
+import java.nio.charset.StandardCharsets;
 import me.totalfreedom.totalfreedommod.sql.adapter.AdminRepository;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
@@ -97,6 +98,57 @@ public class AdminList extends FreedomService
         {
             loadFromYaml();
         }
+
+        if (ConfigEntry.ADMINLIST_USE_UUID_ONLY.getBoolean())
+        {
+            getMissingUuids();
+        }
+    }
+
+    /**
+     * Best-effort UUID backfill for admin records loaded without a stored UUID.
+     */
+    private void getMissingUuids()
+    {
+        int resolved = 0;
+        int offlineDerived = 0;
+        boolean mojangLookup = ConfigEntry.ADMINLIST_MOJANG_UUID_LOOKUP.getBoolean();
+
+        for (Admin admin : allAdmins.values())
+        {
+            if (admin.getUuid() != null)
+            {
+                continue;
+            }
+
+            UUID uuid = FUtil.usernameToUuid(admin.getName());
+            if (uuid != null)
+            {
+                resolved++;
+            }
+            else
+            {
+                uuid = UUID.nameUUIDFromBytes(("OfflinePlayer:" + admin.getName().toLowerCase()).getBytes(StandardCharsets.UTF_8));
+                offlineDerived++;
+            }
+            admin.setUuid(uuid);
+        }
+
+        if (resolved + offlineDerived == 0)
+        {
+            return;
+        }
+
+        FLog.info("UUID backfill: " + resolved + " resolved via Mojang, " + offlineDerived + " offline-derived");
+        if (offlineDerived > 0 && !mojangLookup)
+        {
+            FLog.warning("use_uuid_only is enabled but mojang_uuid_lookup is disabled; "
+                    + offlineDerived + " admin record(s) fell back to offline-derived UUIDs and "
+                    + "will not match premium accounts on login");
+        }
+
+        updateTables();
+        saveAsync();
     }
     
     /**
@@ -328,6 +380,29 @@ public class AdminList extends FreedomService
 
     public Admin getAdmin(Player player)
     {
+        if (ConfigEntry.ADMINLIST_USE_UUID_ONLY.getBoolean())
+        {
+            Admin uuidAdmin = uuidTable.get(player.getUniqueId());
+            if (uuidAdmin == null || !uuidAdmin.isActive())
+            {
+                return null;
+            }
+            // Rewrite the stored display name if Mojang has changed it.
+            if (!uuidAdmin.getName().equalsIgnoreCase(player.getName()))
+            {
+                String oldKey = uuidAdmin.getName().toLowerCase();
+                uuidAdmin.setName(player.getName());
+                String newKey = uuidAdmin.getName().toLowerCase();
+                if (!oldKey.equals(newKey))
+                {
+                    nameTable.remove(oldKey);
+                    nameTable.put(newKey, uuidAdmin);
+                }
+                saveAsync();
+            }
+            return uuidAdmin;
+        }
+
         // Find admin
         String ip = player.getAddress().getAddress().getHostAddress();
         Admin admin = getEntryByName(player.getName());

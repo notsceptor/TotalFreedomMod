@@ -48,6 +48,7 @@ public enum ConfigEntry
     ADMINLIST_CLEAN_THESHOLD_HOURS(Integer.class, "adminlist.clean_threshold_hours"),
     ADMINLIST_CONSOLE_IS_SENIOR(Boolean.class, "adminlist.console_is_senior"),
     ADMINLIST_MOJANG_UUID_LOOKUP(Boolean.class, "adminlist.mojang_uuid_lookup"),
+    ADMINLIST_USE_UUID_ONLY(Boolean.class, "adminlist.use_uuid_only"),
     //
     DISABLE_NIGHT(Boolean.class, "disable.night"),
     DISABLE_WEATHER(Boolean.class, "disable.weather"),

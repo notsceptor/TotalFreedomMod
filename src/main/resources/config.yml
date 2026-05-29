@@ -35,8 +35,13 @@ adminlist:
 
   # When true (default), TFM resolves unknown usernames to premium UUIDs via Mojang's public HTTP API
   # when saving admins or migrating data. Set to false only on networks with no outbound access or a
-  # policy against Mojang calls; premium UUIDs must then be set manually or admins added while online,
+  # policy against Mojang calls; premium UUIDs must then be set manually or admins added while online.
   mojang_uuid_lookup: true
+
+  # When true, admin identity is matched strictly by UUID.  Otherwise, when false (default), the
+  # stored admin username is silently rewritten when a new user joins from a known admin IP.
+  # This is only intended for setups where a proxy server is already taking care of pre-auth.
+  use_uuid_only: false
 
 # ForceIP configuration
 forceip:
@@ -196,7 +201,7 @@ nukemonitor:
   count_place: 40
   range: 10.0
 
-# Anti-spam rate limiting for chat and commands.
+# AntiSpam rate limiting for chat and commands.
 # Exceeding `limit` within `time_window` triggers AutoEject.
 antispam:
   enabled: true
