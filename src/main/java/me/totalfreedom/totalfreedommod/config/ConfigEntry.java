@@ -132,6 +132,7 @@ public enum ConfigEntry
     FAMOUS_PLAYERS(List.class, "famous_players"),
     OVERLORD_IPS(List.class, "overlord_ips"),
     NOADMIN_IPS(List.class, "noadmin_ips"),
+    MASK_IPS(Boolean.class, "mask_ips"),
     ADMIN_ONLY_MODE(Boolean.class, "admin_only_mode"),
     AUTO_ENTITY_WIPE(Boolean.class, "auto_wipe"),
     DISGUISES_FORBIDDEN_TYPES(List.class, "disguises.forbidden_types"),

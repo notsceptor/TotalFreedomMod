@@ -24,6 +24,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -390,6 +391,24 @@ public class FUtil
         }
 
         return ip;
+    }
+
+    public static String sanitizeIp(CommandSender sender, String ip)
+    {
+        if (ip == null || ip.isEmpty())
+        {
+            return ip;
+        }
+        if (!ConfigEntry.MASK_IPS.getBoolean())
+        {
+            return ip;
+        }
+        if (sender != null && TotalFreedomMod.plugin().rm != null
+                && TotalFreedomMod.plugin().rm.hasPermission(sender, "tfm.manage.showips"))
+        {
+            return ip;
+        }
+        return getFuzzyIp(ip);
     }
 
     //getField: Borrowed from WorldEdit

@@ -113,6 +113,7 @@ super_admin:
     - tfm.admin.adminchat
     - tfm.admin.announce
     - tfm.admin.ban
+    - tfm.admin.baninfo
     - tfm.admin.banlist
     - tfm.admin.blockcmd
     - tfm.admin.cage

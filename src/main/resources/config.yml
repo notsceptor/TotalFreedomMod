@@ -383,6 +383,10 @@ famous_players:
 noadmin_ips:
   - 167.114.97.16
 
+# When true, IP addresses shown by TFM commands are masked (e.g. 192.168.*.*).
+# The permission node `tfm.manage.showips` overrides this.
+mask_ips: false
+
 # Pet Protect - Prevent tamed pets from being killed.
 petprotect:
   enabled: true

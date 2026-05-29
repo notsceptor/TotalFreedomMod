@@ -1,5 +1,9 @@
 package me.totalfreedom.totalfreedommod.command;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.TreeSet;
+import me.totalfreedom.totalfreedommod.banning.Ban;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
@@ -9,7 +13,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 @CommandPermissions(level = Rank.OP, source = SourceType.BOTH, permission = "tfm.admin.banlist")
-@CommandParameters(description = "Shows all banned player names. Superadmins may optionally use 'purge' to clear the list.", usage = "/<command> [purge]")
+@CommandParameters(description = "Shows all banned players and IP addresses. Superadmins may optionally use 'purge' to clear the list.", usage = "/<command> [purge]")
 public class Command_banlist extends FreedomCommand
 {
 
@@ -27,16 +31,76 @@ public class Command_banlist extends FreedomCommand
                 sender.sendMessage(Component.text("Purged " + amount + " player bans.", NamedTextColor.GRAY));
 
                 return true;
-
             }
 
             return false;
         }
 
-        msg(plugin.bm.getAllBans().size() + " player bans ("
-                + plugin.bm.getUsernameBans().size() + " usernames, "
-                + plugin.bm.getIpBans().size() + " IPs)");
-
+        getBanList(sender);
         return true;
+    }
+
+    private void getBanList(CommandSender sender)
+    {
+        // Player bans: Bans that have a username.
+        List<String> playerNames = new ArrayList<>();
+        for (Ban ban : plugin.bm.getUsernameBans())
+        {
+            if (ban.hasUsername())
+            {
+                playerNames.add(ban.getUsername());
+            }
+        }
+        playerNames.sort(String.CASE_INSENSITIVE_ORDER);
+
+        // IP-only bans: Bans with at least one IP and no username.
+        TreeSet<String> ipOnly = new TreeSet<>();
+        for (Ban ban : plugin.bm.getIpBans())
+        {
+            if (!ban.hasUsername())
+            {
+                for (String ip : ban.getIps())
+                {
+                    ipOnly.add(FUtil.sanitizeIp(sender, ip));
+                }
+            }
+        }
+
+        // Permbans: usernames from PermbanList.
+        List<String> permbanNames = new ArrayList<>(plugin.pm.getPermbannedNames());
+        permbanNames.sort(String.CASE_INSENSITIVE_ORDER);
+
+        if (playerNames.isEmpty() && ipOnly.isEmpty() && permbanNames.isEmpty())
+        {
+            msg("No bans on record.", NamedTextColor.GRAY);
+            return;
+        }
+
+        if (!playerNames.isEmpty())
+        {
+            msg(buildSection("Player bans: ", NamedTextColor.RED, playerNames));
+        }
+        if (!ipOnly.isEmpty())
+        {
+            msg(buildSection("IP bans: ", NamedTextColor.GOLD, new ArrayList<>(ipOnly)));
+        }
+        if (!permbanNames.isEmpty())
+        {
+            msg(buildSection("Permbans: ", NamedTextColor.DARK_RED, permbanNames));
+        }
+    }
+
+    private Component buildSection(String header, NamedTextColor headerColor, List<String> entries)
+    {
+        Component line = Component.text(header).color(headerColor);
+        for (int i = 0; i < entries.size(); i++)
+        {
+            if (i > 0)
+            {
+                line = line.append(Component.text(", ").color(NamedTextColor.WHITE));
+            }
+            line = line.append(Component.text(entries.get(i)).color(NamedTextColor.WHITE));
+        }
+        return line;
     }
 }
