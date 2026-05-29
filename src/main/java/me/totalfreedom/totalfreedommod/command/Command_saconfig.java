@@ -1,12 +1,18 @@
 package me.totalfreedom.totalfreedommod.command;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
 import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
+import me.totalfreedom.totalfreedommod.rank.CustomRank;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
+import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import org.apache.commons.lang3.StringUtils;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -28,8 +34,7 @@ public class Command_saconfig extends FreedomCommand
         {
             case "list":
             {
-                msg("Superadmins: " + StringUtils.join(plugin.al.getAdminNames(), ", "), NamedTextColor.GOLD);
-
+                getAdminList();
                 return true;
             }
 
@@ -40,8 +45,7 @@ public class Command_saconfig extends FreedomCommand
 
                 FUtil.adminAction(sender.getName(), "Cleaning admin list", true);
                 plugin.al.deactivateOldEntries(true);
-                msg("Superadmins: " + StringUtils.join(plugin.al.getAdminNames(), ", "), NamedTextColor.GOLD);
-
+                getAdminList();
                 return true;
             }
 
@@ -236,6 +240,66 @@ public class Command_saconfig extends FreedomCommand
             {
                 return false;
             }
+        }
+    }
+
+    private void getAdminList()
+    {
+        if (plugin.al.getActiveAdmins().isEmpty())
+        {
+            msg("No active admins.", NamedTextColor.GRAY);
+            return;
+        }
+
+        Map<Rank, List<Admin>> byRank = new EnumMap<>(Rank.class);
+        for (Admin admin : plugin.al.getActiveAdmins())
+        {
+            byRank.computeIfAbsent(admin.getRank(), r -> new ArrayList<>()).add(admin);
+        }
+
+        List<Rank> order = new ArrayList<>();
+        for (Rank r : Rank.values())
+        {
+            if (r.isAdmin() && !r.isConsole())
+            {
+                order.add(r);
+            }
+        }
+        order.sort(Comparator.comparingInt(Rank::getLevel).reversed());
+
+        for (Rank rank : order)
+        {
+            List<Admin> bucket = byRank.get(rank);
+            if (bucket == null || bucket.isEmpty())
+            {
+                continue;
+            }
+
+            bucket.sort(Comparator.comparing(a -> a.getName().toLowerCase()));
+
+            Component line = Component.text(rank.getName() + "s: ").color(rank.getColor());
+            for (int i = 0; i < bucket.size(); i++)
+            {
+                if (i > 0)
+                {
+                    line = line.append(Component.text(", ").color(NamedTextColor.WHITE));
+                }
+                Admin admin = bucket.get(i);
+                CustomRank customRank = admin.getCustomRankId() == null
+                        ? null
+                        : plugin.rm.getCustomRank(admin.getCustomRankId());
+                if (customRank != null)
+                {
+                    line = line.append(customRank.getColoredTag())
+                            .append(Component.text(" "))
+                            .append(Component.text(admin.getName()).color(NamedTextColor.WHITE));
+                }
+                else
+                {
+                    line = line.append(Component.text(admin.getName()).color(NamedTextColor.WHITE));
+                }
+            }
+            msg(line);
         }
     }
 

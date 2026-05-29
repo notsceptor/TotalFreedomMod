@@ -31,7 +31,7 @@ adminlist:
 
   # Give the default CONSOLE senior admin privileges.
   # Handy in development environments.
-  console_is_senior: true
+  console_is_senior: false
 
   # When true (default), TFM resolves unknown usernames to premium UUIDs via Mojang's public HTTP API
   # when saving admins or migrating data. Set to false only on networks with no outbound access or a
