@@ -180,29 +180,8 @@ senior_admin:
     - tfm.admin.senior.*
     - tfm.admin.telnet.*
     - tfm.manage.*
-
-telnet_console:
-  name: Telnet Console
-  abbreviation: Console
-  prefix: "&8[&5Console&8] "
-  level: 5
-  color: dark_green
-  determiner: a
-  admin: true
-  console_only: true
-  inherit: telnet_admin
-
-senior_console:
-  name: Senior Console
-  abbreviation: Console
-  prefix: "&8[&5Console&8] "
-  level: 6
-  color: light_purple
-  determiner: a
-  admin: true
-  console_only: true
-  permissions:
-    - tfm.*
+    - tfm.manage.ssh
+    - tfm.manage.telnet
 
 developer:
   name: Developer

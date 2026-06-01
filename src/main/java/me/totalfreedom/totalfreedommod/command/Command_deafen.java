@@ -8,7 +8,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-@CommandPermissions(level = Rank.SENIOR_ADMIN, source = SourceType.BOTH, blockHostConsole = true, permission = "tfm.admin.senior.deafen")
+@CommandPermissions(level = Rank.SENIOR_ADMIN, source = SourceType.BOTH, permission = "tfm.admin.senior.deafen")
 @CommandParameters(description = "Make some noise.", usage = "/<command>")
 public class Command_deafen extends FreedomCommand
 {

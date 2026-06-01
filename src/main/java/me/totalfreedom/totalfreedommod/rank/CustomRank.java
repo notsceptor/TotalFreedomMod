@@ -73,16 +73,6 @@ public class CustomRank implements Displayable, Comparable<CustomRank>
     private Set<String> permissions = new HashSet<>();
     
     /**
-     * ID of the console variant rank (if any).
-     */
-    private String consoleVariantId = null;
-    
-    /**
-     * ID of the player variant rank (if this is a console rank).
-     */
-    private String playerVariantId = null;
-    
-    /**
      * Custom prefix string for chat display (e.g., "&8[&6SrA&8] ").
      */
     private String prefix = null;
@@ -127,22 +117,7 @@ public class CustomRank implements Displayable, Comparable<CustomRank>
         custom.setColor(rank.getColor());
         custom.setAdmin(rank.isAdmin());
         custom.setConsoleOnly(rank.isConsole());
-        
-        // Set up console/player variants
-        if (rank.hasConsoleVariant())
-        {
-            Rank consoleVar = rank.getConsoleVariant();
-            if (consoleVar != rank)
-            {
-                custom.setConsoleVariantId(consoleVar.name().toLowerCase());
-            }
-        }
-        Rank playerVar = rank.getPlayerVariant();
-        if (playerVar != null && playerVar != rank)
-        {
-            custom.setPlayerVariantId(playerVar.name().toLowerCase());
-        }
-        
+
         return custom;
     }
     
@@ -161,8 +136,6 @@ public class CustomRank implements Displayable, Comparable<CustomRank>
         
         this.admin = cs.getBoolean("admin", false);
         this.consoleOnly = cs.getBoolean("console_only", false);
-        this.consoleVariantId = cs.getString("console_variant", null);
-        this.playerVariantId = cs.getString("player_variant", null);
         this.prefix = cs.getString("prefix", null);
         this.inheritFrom = cs.getString("inherit", null);
         
@@ -187,8 +160,6 @@ public class CustomRank implements Displayable, Comparable<CustomRank>
         cs.set("color", color.toString());
         cs.set("admin", admin);
         cs.set("console_only", consoleOnly);
-        cs.set("console_variant", consoleVariantId);
-        cs.set("player_variant", playerVariantId);
         cs.set("prefix", prefix);
         cs.set("inherit", inheritFrom);
         cs.set("permissions", permissions.isEmpty() ? null : permissions.stream().toList());
@@ -444,16 +415,6 @@ public class CustomRank implements Displayable, Comparable<CustomRank>
     public Set<String> getPermissions()
     {
         return permissions;
-    }
-    
-    public String getConsoleVariantId()
-    {
-        return consoleVariantId;
-    }
-    
-    public String getPlayerVariantId()
-    {
-        return playerVariantId;
     }
     
     public String getPrefix()

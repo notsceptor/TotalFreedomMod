@@ -1,6 +1,7 @@
 package me.totalfreedom.totalfreedommod.command;
 
 import me.totalfreedom.totalfreedommod.rank.Rank;
+import me.totalfreedom.totalfreedommod.ssh.SshDispatchContext;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -24,7 +25,7 @@ public class Command_say extends FreedomCommand
 
         String message = StringUtils.join(args, " ");
 
-        if (senderIsConsole && FUtil.isFromHostConsole(sender.getName()))
+        if (senderIsConsole && !SshDispatchContext.isActive())
         {
             if (message.equalsIgnoreCase("WARNING: Server is restarting, you will be kicked"))
             {

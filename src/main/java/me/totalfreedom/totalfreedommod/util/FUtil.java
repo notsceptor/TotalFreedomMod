@@ -339,11 +339,6 @@ public class FUtil
         }
     }
 
-    public static boolean isFromHostConsole(String senderName)
-    {
-        return ConfigEntry.HOST_SENDER_NAMES.getList().contains(senderName.toLowerCase());
-    }
-
     public static boolean fuzzyIpMatch(String a, String b, int octets)
     {
         boolean match = true;
@@ -393,6 +388,10 @@ public class FUtil
         return ip;
     }
 
+    /**
+     * Returns the IP masked to the form "192.168.*.*" when {@code mask_ips} is enabled
+     * in config and the sender lacks {@code tfm.manage.showips}, otherwise returns IP unchanged.
+     */
     public static String sanitizeIp(CommandSender sender, String ip)
     {
         if (ip == null || ip.isEmpty())

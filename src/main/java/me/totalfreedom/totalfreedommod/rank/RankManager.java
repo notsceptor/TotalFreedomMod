@@ -17,6 +17,8 @@ import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
+import me.totalfreedom.totalfreedommod.ssh.SshDispatchContext;
+import me.totalfreedom.totalfreedommod.ssh.SshSession;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FLog;
@@ -451,12 +453,27 @@ public class RankManager extends FreedomService
      */
     public boolean hasPermission(CommandSender sender, String permission)
     {
-        // Console always has all permissions
         if (!(sender instanceof Player))
         {
-            return true;
+            String boundRankId = plugin.csr.getRankIdForSender(sender.getName());
+            if (boundRankId != null && plugin.rm != null)
+            {
+                CustomRank boundCustom = plugin.rm.getCustomRank(boundRankId);
+                if (boundCustom != null && hasCustomRankPermission(boundCustom, permission))
+                {
+                    return true;
+                }
+            }
+
+            Rank rank = getRank(sender);
+            CustomRank customRank = getCustomRankForLegacy(rank);
+            if (customRank != null && hasCustomRankPermission(customRank, permission))
+            {
+                return true;
+            }
+            return checkLegacyPermission(rank, permission);
         }
-        
+
         Player player = (Player) sender;
         
         // Check if admin
@@ -1064,29 +1081,42 @@ public class RankManager extends FreedomService
             return getRank((Player) sender);
         }
 
-        // CONSOLE?
-        if (sender.getName().equals("CONSOLE"))
+        SshSession ssh = SshDispatchContext.getActiveSession();
+        if (ssh != null)
         {
-            return ConfigEntry.ADMINLIST_CONSOLE_IS_SENIOR.getBoolean() ? Rank.SENIOR_CONSOLE : Rank.TELNET_CONSOLE;
+            if (ConfigEntry.SSH_INHERIT_RANK.getBoolean() && ssh.isPublicKeyAuth())
+            {
+                Admin admin = plugin.al.getEntryByName(ssh.getUsername());
+                if (admin != null)
+                {
+                    return admin.getRank();
+                }
+            }
+            Rank fallback = plugin.csr.getRankForSender("ssh");
+            return fallback != null ? fallback : Rank.NON_OP;
         }
 
-        // Console admin, get by name
         Admin admin = plugin.al.getEntryByName(sender.getName());
-
-        // Unknown console: RCON?
-        if (admin == null)
+        if (admin != null)
         {
-            return Rank.SENIOR_CONSOLE;
+            return admin.getRank();
         }
 
-        Rank rank = admin.getRank();
-
-        // Get console
-        if (rank.hasConsoleVariant())
+        Rank rank = plugin.csr.getRankForSender(sender.getName());
+        if (rank != null)
         {
-            rank = rank.getConsoleVariant();
+            return rank;
         }
-        return rank;
+        String boundRankId = plugin.csr.getRankIdForSender(sender.getName());
+        if (boundRankId != null && plugin.rm != null)
+        {
+            CustomRank custom = plugin.rm.getCustomRank(boundRankId);
+            if (custom != null)
+            {
+                return Rank.SUPER_ADMIN;
+            }
+        }
+        return Rank.NON_OP;
     }
 
     public Rank getRank(Player player)

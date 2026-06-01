@@ -51,6 +51,7 @@ public class SshPublicKeyAuthenticator implements PublickeyAuthenticator {
                     PublicKey authorizedKey = entry.resolvePublicKey(null, PublicKeyEntryResolver.FAILING);
 
                     if (key.equals(authorizedKey)) {
+                        session.setAttribute(SshDaemon.AUTH_METHOD_KEY, SshAuthMethod.PUBLIC_KEY);
                         FLog.info("SSH public key login successful for user: " + username);
                         return true;
                     }

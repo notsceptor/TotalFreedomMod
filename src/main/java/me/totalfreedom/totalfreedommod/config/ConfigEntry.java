@@ -36,6 +36,9 @@ public enum ConfigEntry
     SSH_AUTH_MODE(String.class, "ssh.auth_mode"),
     SSH_PASSWORD(String.class, "ssh.password"),
     SSH_MAX_FAILED_ATTEMPTS(Integer.class, "ssh.max_failed_attempts"),
+    SSH_SHOW_USER(Boolean.class, "ssh.show_user"),
+    SSH_USER_PREFIX(String.class, "ssh.user_prefix"),
+    SSH_INHERIT_RANK(Boolean.class, "ssh.inherit_rank"),
     //
     SERVER_COLORFUL_MOTD(Boolean.class, "server.colorful_motd"),
     SERVER_NAME(String.class, "server.name"),
@@ -46,7 +49,6 @@ public enum ConfigEntry
     SERVER_PERMBAN_URL(String.class, "server.permban_url"),
     //
     ADMINLIST_CLEAN_THESHOLD_HOURS(Integer.class, "adminlist.clean_threshold_hours"),
-    ADMINLIST_CONSOLE_IS_SENIOR(Boolean.class, "adminlist.console_is_senior"),
     ADMINLIST_MOJANG_UUID_LOOKUP(Boolean.class, "adminlist.mojang_uuid_lookup"),
     ADMINLIST_USE_UUID_ONLY(Boolean.class, "adminlist.use_uuid_only"),
     //
@@ -128,7 +130,7 @@ public enum ConfigEntry
     BLOCK_SERVER_COMMANDS_BLOCKED_SUBSTRINGS(List.class, "server_command_blocker.blocked_substrings"),
     BLOCK_SERVER_COMMANDS_LOG_THROTTLED_WARNINGS(Boolean.class, "server_command_blocker.log_throttled_warnings"),
     BLOCK_SERVER_COMMANDS_LOG_INTERVAL_TICKS(Integer.class, "server_command_blocker.log_interval_ticks"),
-    HOST_SENDER_NAMES(List.class, "host_sender_names"),
+    HOST_SENDERS(List.class, "host_senders"),
     FAMOUS_PLAYERS(List.class, "famous_players"),
     OVERLORD_IPS(List.class, "overlord_ips"),
     NOADMIN_IPS(List.class, "noadmin_ips"),

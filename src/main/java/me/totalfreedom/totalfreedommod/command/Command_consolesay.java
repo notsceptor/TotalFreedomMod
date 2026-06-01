@@ -1,6 +1,7 @@
 package me.totalfreedom.totalfreedommod.command;
 
 import me.totalfreedom.totalfreedommod.rank.Rank;
+import me.totalfreedom.totalfreedommod.ssh.SshDispatchContext;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.command.Command;
@@ -17,7 +18,14 @@ public class Command_consolesay extends FreedomCommand
     {
         if (args.length > 0)
         {
-            FUtil.bcastMsg(String.format("§7[CONSOLE]§f<§c%s§f> %s", sender.getName(), StringUtils.join(args, " ")));
+            if (SshDispatchContext.isActive())
+            {
+                FUtil.bcastMsg(String.format("§f<§c%s§f> %s", sender.getName(), StringUtils.join(args, " ")));
+            }
+            else
+            {
+                FUtil.bcastMsg(String.format("§7[CONSOLE]§f<§c%s§f> %s", sender.getName(), StringUtils.join(args, " ")));
+            }
         }
         return true;
     }
