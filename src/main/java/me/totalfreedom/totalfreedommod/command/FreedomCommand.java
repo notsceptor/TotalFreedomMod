@@ -7,7 +7,9 @@ import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FLog;
-import me.totalfreedom.totalfreedommod.util.FUtil;
+import me.totalfreedom.totalfreedommod.ssh.AttributedConsoleSender;
+import me.totalfreedom.totalfreedommod.ssh.SshDispatchContext;
+import me.totalfreedom.totalfreedommod.ssh.SshSession;
 import java.util.ArrayList;
 import java.util.List;
 import me.totalfreedom.totalfreedommod.command.AbstractCommandBase;
@@ -51,11 +53,12 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
     @Override
     public final boolean runCommand(final CommandSender sender, final Command command, final String label, final String[] args)
     {
-        setVariables(sender, command, label, args);
+        CommandSender effectiveSender = resolveSender(sender);
+        setVariables(effectiveSender, command, label, args);
 
         try
         {
-            return run(sender, playerSender, command, label, args, isConsole());
+            return run(effectiveSender, playerSender, command, label, args, isConsole());
         }
         catch (CommandFailException ex)
         {
@@ -73,6 +76,16 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
 
     protected abstract boolean run(final CommandSender sender, final Player playerSender, final Command cmd, final String commandLabel, final String[] args, final boolean senderIsConsole);
 
+    private static CommandSender resolveSender(CommandSender raw)
+    {
+        SshSession session = SshDispatchContext.getActiveSession();
+        if (session != null && !(raw instanceof Player))
+        {
+            return new AttributedConsoleSender(raw, session.getDisplayName());
+        }
+        return raw;
+    }
+
     protected void checkConsole()
     {
         if (!isConsole())
@@ -86,14 +99,6 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
         if (isConsole())
         {
             throw new CommandFailException(getHandler().getOnlyPlayerMessage());
-        }
-    }
-
-    protected void checkNotHostConsole()
-    {
-        if (isConsole() && FUtil.isFromHostConsole(sender.getName()))
-        {
-            throw new CommandFailException("This command can not be used from the host console.");
         }
     }
 

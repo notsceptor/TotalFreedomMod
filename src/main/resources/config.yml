@@ -29,10 +29,6 @@ adminlist:
   # The amount of hours after which admins may be removed from the admin list
   clean_threshold_hours: 167
 
-  # Give the default CONSOLE senior admin privileges.
-  # Handy in development environments.
-  console_is_senior: false
-
   # When true (default), TFM resolves unknown usernames to premium UUIDs via Mojang's public HTTP API
   # when saving admins or migrating data. Set to false only on networks with no outbound access or a
   # policy against Mojang calls; premium UUIDs must then be set manually or admins added while online.
@@ -297,12 +293,19 @@ worldedit:
   # De-op players who try to set their limit higher than allowed
   deop_on_limit_abuse: false
 
-# Host Sender Names - Names that indicate automated services or host-based consoles you want to block from using some commands.
-# Make sure these are all lower-case.
-host_sender_names:
-  - rcon
-  - remotebukkit
-  - console
+# Host senders — binds automated services or host-based consoles to an admin rank.
+#
+# Format: '<rank_id>:<sender_name>'. Sender names are case-insensitive.
+#
+# If enabled, public key SSH bypasses this in favor of the admin's rank (see ssh.inherit_rank).
+# The `super_admin:ssh` entry dictates that password-authenticated SSH sessions will receive Super
+# Admin.
+#
+host_senders:
+  - 'super_admin:rcon'
+  - 'super_admin:remotebukkit'
+  - 'super_admin:ssh'
+  - 'senior_admin:console'
 
 # Announcer
 announcer:
@@ -434,6 +437,20 @@ ssh:
   # Password for SSH access (used when auth_mode is "password" or "both")
   password: ""
   max_failed_attempts: 3
+
+  # When true, SSH commands are sent under a cosmetic wrapper with the admin's username
+  # instead of the `CONSOLE` sender.
+  show_user: false
+
+  # Prefix prepended to the cosmetic name of the sender (e.g. ssh@Prozza).
+  user_prefix: "SSH@"
+
+  # When true, commands dispatched via SSH will run at the permission level of the user's
+  # admin rank rather than the host_senders whitelist (see above).
+  #
+  # The session must be authenticated via public key (see ssh.auth_mode).
+  # This is required because the password does not bind a username to an identity.
+  inherit_rank: false
 
 # Inactivity Auto-Kick (Requires Essentials)
 autokick:

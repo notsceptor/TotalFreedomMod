@@ -38,6 +38,7 @@ public class Command_totalfreedommod extends FreedomCommand
 
             plugin.config.load();
             FPlayer.refreshConfig();
+            plugin.csr.load();
             plugin.services.stop();
             plugin.services.start();
 

@@ -6,7 +6,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-@CommandPermissions(level = Rank.SUPER_ADMIN, source = SourceType.BOTH, blockHostConsole = true, permission = "tfm.admin.deop")
+@CommandPermissions(level = Rank.SUPER_ADMIN, source = SourceType.BOTH, permission = "tfm.admin.deop")
 @CommandParameters(description = "Deop everyone on the server.", usage = "/<command>")
 public class Command_deopall extends FreedomCommand
 {

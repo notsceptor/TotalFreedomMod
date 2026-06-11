@@ -20,11 +20,6 @@ public @interface CommandPermissions
     SourceType source();
 
     /**
-     * Whether to block execution from the host console.
-     */
-    boolean blockHostConsole() default false;
-    
-    /**
      * TFM internal permission string required to use this command.
      * This is checked via RankManager.hasPermission() which uses the
      * custom rank permission system (NOT Bukkit permission nodes).

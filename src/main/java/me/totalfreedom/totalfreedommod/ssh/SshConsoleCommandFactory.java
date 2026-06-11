@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import org.apache.sshd.server.Environment;
 import org.apache.sshd.server.ExitCallback;
@@ -77,12 +78,26 @@ public class SshConsoleCommandFactory implements CommandFactory
         {
             String username = env.getEnv().get(Environment.ENV_USER);
 
+            final SshSession session;
+            if (ConfigEntry.SSH_SHOW_USER.getBoolean())
+            {
+                SshAuthMethod method = channel.getSession().getAttribute(SshDaemon.AUTH_METHOD_KEY);
+                session = SshSession.create(
+                        username,
+                        ConfigEntry.SSH_USER_PREFIX.getString(),
+                        method);
+            }
+            else
+            {
+                session = null;
+            }
+
             try
             {
                 Bukkit.getScheduler().runTask(plugin, () ->
                 {
                     FLog.info("[SSH: " + username + "] " + command);
-                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
+                    SshDispatchContext.dispatch(session, command);
                 });
             }
             catch (Exception e)

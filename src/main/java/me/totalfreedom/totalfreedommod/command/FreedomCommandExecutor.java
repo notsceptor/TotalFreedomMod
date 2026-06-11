@@ -1,9 +1,11 @@
 package me.totalfreedom.totalfreedommod.command;
 
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.totalfreedommod.rank.CustomRank;
 import me.totalfreedom.totalfreedommod.rank.Rank;
+import me.totalfreedom.totalfreedommod.ssh.SshDispatchContext;
+import me.totalfreedom.totalfreedommod.ssh.SshSession;
 import me.totalfreedom.totalfreedommod.util.FLog;
-import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.Command;
@@ -111,13 +113,28 @@ public class FreedomCommandExecutor implements CommandExecutor
         }
 
         // Block host console
-        if (FUtil.isFromHostConsole(sender.getName()) && perms.blockHostConsole())
+        SshSession ssh = SshDispatchContext.getActiveSession();
+        if (ssh != null)
         {
-            if (sendMsg)
+            if (ssh.isPublicKeyAuth() && !plugin.rm.hasPermission(sender, "tfm.manage.ssh"))
             {
-                sender.sendMessage(handler.getPermissionMessage());
+                if (sendMsg)
+                {
+                    sender.sendMessage(Component.text("You do not have permission to run commands via SSH.", NamedTextColor.RED));
+                }
+                return false;
             }
-            return false;
+        }
+        else if (!(sender instanceof Player) && plugin.al.getEntryByName(sender.getName()) != null)
+        {
+            if (!plugin.rm.hasPermission(sender, "tfm.manage.telnet"))
+            {
+                if (sendMsg)
+                {
+                    sender.sendMessage(Component.text("You do not have permission to run commands via telnet.", NamedTextColor.RED));
+                }
+                return false;
+            }
         }
 
         final Player player = sender instanceof Player ? (Player) sender : null;
@@ -169,7 +186,17 @@ public class FreedomCommandExecutor implements CommandExecutor
 
         // Console permissions
         Rank rank = plugin.rm.getRank(sender);
-        boolean result = rank.isAtLeast(perms.level());
+        String boundRankId = plugin.csr.getRankIdForSender(sender.getName());
+        CustomRank boundCustom = boundRankId != null ? plugin.rm.getCustomRank(boundRankId) : null;
+        boolean result;
+        if (boundCustom != null)
+        {
+            result = boundCustom.isAtLeast(perms.level());
+        }
+        else
+        {
+            result = rank.isAtLeast(perms.level());
+        }
         if (!result && sendMsg)
         {
             sender.sendMessage(handler.getPermissionMessage());

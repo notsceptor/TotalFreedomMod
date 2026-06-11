@@ -25,7 +25,7 @@ public class Command_spawnmob extends FreedomCommand
         EntityType type = null;
         for (EntityType loop : EntityType.values())
         {
-            if (loop.getName().equalsIgnoreCase(args[0]))
+            if (loop.name().equalsIgnoreCase(args[0]))
             {
                 type = loop;
                 break;
@@ -40,7 +40,7 @@ public class Command_spawnmob extends FreedomCommand
 
         if (!type.isSpawnable() || !type.isAlive())
         {
-            msg("Can not spawn entity type: " + type.getName());
+            msg("Can not spawn entity type: " + type.name());
             return true;
         }
 
@@ -66,7 +66,7 @@ public class Command_spawnmob extends FreedomCommand
 
         Location l = playerSender.getLocation();
         World w = playerSender.getWorld();
-        msg("Spawning " + amount + " of " + type.getName());
+        msg("Spawning " + amount + " of " + type.name());
 
         for (int i = 0; i < amount; i++)
         {

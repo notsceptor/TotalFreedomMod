@@ -33,6 +33,7 @@ import me.totalfreedom.totalfreedommod.httpd.HTTPDaemon;
 import me.totalfreedom.totalfreedommod.ssh.SshDaemon;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.player.PlayerList;
+import me.totalfreedom.totalfreedommod.rank.ConsoleSenderRegistry;
 import me.totalfreedom.totalfreedommod.rank.RankManager;
 import me.totalfreedom.totalfreedommod.rollback.RollbackManager;
 import me.totalfreedom.totalfreedommod.sql.FreedomDatabase;
@@ -68,6 +69,7 @@ public class TotalFreedomMod extends JavaPlugin
     public LogViewer lv; // LogViewer - HTTP-based log viewing interface
     public AdminList al; // AdminList - Manages admin list and permissions
     public RankManager rm; // RankManager - Handles player ranks and display
+    public ConsoleSenderRegistry csr; // ConsoleSenderRegistry - Maps console senders to appropriate rank
     public CommandLoader cl; // CommandLoader - Loads and registers commands
     public CommandBlocker cb; // CommandBlocker - Blocks specific commands
     public EventBlocker eb; // EventBlocker - Blocks various game events
@@ -172,8 +174,12 @@ public class TotalFreedomMod extends JavaPlugin
         
         // Run YAML to SQL migrations after database and admin list are ready
         runYamlMigrations();
-        
+
         rm = services.registerService(RankManager.class);
+
+        // Console sender whitelist — loaded after RankManager so custom rank ids resolve.
+        csr = new ConsoleSenderRegistry(this);
+        csr.load();
         cl = services.registerService(CommandLoader.class);
         cb = services.registerService(CommandBlocker.class);
         eb = services.registerService(EventBlocker.class);

@@ -55,6 +55,7 @@ public class Command_saconfig extends FreedomCommand
 
                 FUtil.adminAction(sender.getName(), "Reloading the admin list", true);
                 plugin.al.load();
+                plugin.csr.load();
                 msg("Admin list reloaded!");
                 return true;
             }
@@ -62,8 +63,7 @@ public class Command_saconfig extends FreedomCommand
             case "setrank":
             {
                 checkConsole();
-                checkNotHostConsole();
-                checkRank(Rank.SENIOR_CONSOLE);
+                checkRank(Rank.SENIOR_ADMIN);
 
                 if (args.length < 3)
                 {

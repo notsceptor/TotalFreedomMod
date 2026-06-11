@@ -5,8 +5,8 @@ import java.util.List;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.rank.Displayable;
 import me.totalfreedom.totalfreedommod.rank.Rank;
+import me.totalfreedom.totalfreedommod.ssh.SshDispatchContext;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
-import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.commons.lang3.StringUtils;
@@ -36,7 +36,7 @@ public class Command_list extends FreedomCommand
             return false;
         }
 
-        if (FUtil.isFromHostConsole(sender.getName()))
+        if (senderIsConsole && !SshDispatchContext.isActive())
         {
             final List<String> names = new ArrayList<>();
             for (Player player : server.getOnlinePlayers())

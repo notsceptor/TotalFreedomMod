@@ -7,6 +7,7 @@ import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
+import org.apache.sshd.common.AttributeRepository;
 import org.apache.sshd.server.SshServer;
 import org.apache.sshd.server.keyprovider.SimpleGeneratorHostKeyProvider;
 
@@ -14,6 +15,12 @@ import org.apache.sshd.server.keyprovider.SimpleGeneratorHostKeyProvider;
  * SSH daemon service for TotalFreedomMod.
  */
 public class SshDaemon extends FreedomService {
+
+    /**
+     * Session attribute key recording how a given SSH session authenticated.
+     */
+    public static final AttributeRepository.AttributeKey<SshAuthMethod> AUTH_METHOD_KEY =
+            new AttributeRepository.AttributeKey<>();
 
     private SshServer sshd;
     private int port;

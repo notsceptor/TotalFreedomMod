@@ -17,7 +17,9 @@ public enum Rank implements Displayable
     SUPER_ADMIN("a", "Super Admin", Type.ADMIN, "SA", NamedTextColor.AQUA),
     TELNET_ADMIN("a", "Telnet Admin", Type.ADMIN, "STA", NamedTextColor.DARK_GREEN),
     SENIOR_ADMIN("a", "Senior Admin", Type.ADMIN, "SrA", NamedTextColor.GOLD),
+    @Deprecated
     TELNET_CONSOLE("the", "Console", Type.ADMIN_CONSOLE, "Console", NamedTextColor.DARK_PURPLE),
+    @Deprecated
     SENIOR_CONSOLE("the", "Console", Type.ADMIN_CONSOLE, "Console", NamedTextColor.DARK_PURPLE);
     private final Type type;
     private final String name;
@@ -124,11 +126,13 @@ public enum Rank implements Displayable
         return colorLegacy;
     }
 
+    @Deprecated
     public boolean hasConsoleVariant()
     {
         return getConsoleVariant() != null;
     }
 
+    @Deprecated
     public Rank getConsoleVariant()
     {
         switch (this)
@@ -144,6 +148,7 @@ public enum Rank implements Displayable
         }
     }
 
+    @Deprecated
     public Rank getPlayerVariant()
     {
         switch (this)

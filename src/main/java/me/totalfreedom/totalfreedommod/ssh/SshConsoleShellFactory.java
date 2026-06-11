@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.Logger;
@@ -58,6 +59,8 @@ public class SshConsoleShellFactory implements ShellFactory
         private Terminal terminal;
         private LineReader lineReader;
         private SshLogAppender logAppender;
+        // Captured at start() so dispatch in run() doesn't need ChannelSession.
+        private SshSession sshSession;
 
         public SshConsoleShell(TotalFreedomMod plugin)
         {
@@ -116,8 +119,21 @@ public class SshConsoleShellFactory implements ShellFactory
                 logAppender.start();
                 ((Logger) LogManager.getRootLogger()).addAppender(logAppender);
 
-                // Start the reader thread
                 String username = env.getEnv().get(Environment.ENV_USER);
+                SshAuthMethod method = channel.getSession().getAttribute(SshDaemon.AUTH_METHOD_KEY);
+                if (ConfigEntry.SSH_SHOW_USER.getBoolean())
+                {
+                    sshSession = SshSession.create(
+                            username,
+                            ConfigEntry.SSH_USER_PREFIX.getString(),
+                            method);
+                }
+                else
+                {
+                    sshSession = null;
+                }
+
+                // Start the reader thread
                 thread = new Thread(this, "SSHD ConsoleShell " + username);
                 thread.setDaemon(true);
                 thread.start();
@@ -204,7 +220,7 @@ public class SshConsoleShellFactory implements ShellFactory
                     Bukkit.getScheduler().runTask(plugin, () ->
                     {
                         FLog.info("[SSH: " + username + "] " + cmd);
-                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
+                        SshDispatchContext.dispatch(sshSession, cmd);
                     });
                 }
             }

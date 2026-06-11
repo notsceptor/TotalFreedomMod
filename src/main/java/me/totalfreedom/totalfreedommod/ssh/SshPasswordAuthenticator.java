@@ -30,6 +30,7 @@ public class SshPasswordAuthenticator implements PasswordAuthenticator
         if (configPassword.equals(password))
         {
             failCounts.remove(session);
+            session.setAttribute(SshDaemon.AUTH_METHOD_KEY, SshAuthMethod.PASSWORD);
             FLog.info("SSH login successful for user: " + username);
             return true;
         }
