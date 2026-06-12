@@ -64,7 +64,7 @@ public class DiscordCommands extends ListenerAdapter
         UUID adminUuid = bridge.consumePendingLink(code);
         if (adminUuid == null)
         {
-            event.reply("That code is unknown or expired. Run `/discordlink` in-game to get a fresh one.")
+            event.reply("That code is unknown or expired. Run `/link` in-game to get a fresh one.")
                     .setEphemeral(true).queue();
             return;
         }

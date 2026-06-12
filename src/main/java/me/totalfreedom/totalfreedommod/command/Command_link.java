@@ -9,7 +9,7 @@ import org.bukkit.entity.Player;
 
 @CommandPermissions(level = Rank.SUPER_ADMIN, source = SourceType.ONLY_IN_GAME, permission = "tfm.admin.discordlink")
 @CommandParameters(description = "Generate a one-time code for admins to link their Discord account.", usage = "/<command>")
-public class Command_discordlink extends FreedomCommand
+public class Command_link extends FreedomCommand
 {
 
     @Override

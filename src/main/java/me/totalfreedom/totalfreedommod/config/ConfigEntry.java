@@ -40,6 +40,16 @@ public enum ConfigEntry
     SSH_USER_PREFIX(String.class, "ssh.user_prefix"),
     SSH_INHERIT_RANK(Boolean.class, "ssh.inherit_rank"),
     //
+    DISCORD_ENABLED(Boolean.class, "discord.enabled"),
+    DISCORD_TOKEN(String.class, "discord.token"),
+    DISCORD_GUILD_ID(String.class, "discord.guild_id"),
+    DISCORD_PUBLIC_CHANNEL_ID(String.class, "discord.public_channel_id"),
+    DISCORD_CONSOLE_CHANNEL_ID(String.class, "discord.console_channel_id"),
+    DISCORD_CHAT_FORMAT(String.class, "discord.chat_format"),
+    DISCORD_CHANNEL_FORMAT(String.class, "discord.channel_format"),
+    DISCORD_CONSOLE_FLUSH(Integer.class, "discord.console_flush"),
+    DISCORD_LINK_CODE_TTL(Integer.class, "discord.link_code_ttl"),
+    //
     SERVER_COLORFUL_MOTD(Boolean.class, "server.colorful_motd"),
     SERVER_NAME(String.class, "server.name"),
     SERVER_ADDRESS(String.class, "server.address"),

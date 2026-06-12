@@ -306,6 +306,37 @@ host_senders:
   - 'super_admin:remotebukkit'
   - 'super_admin:ssh'
   - 'senior_admin:console'
+  - 'senior_admin:discord'
+
+# Discord bridge — relays in-game chat to a Discord channel and exposes a
+# console channel for admins to read server output and execute commands.
+#
+discord:
+  enabled: false
+
+  # Discord API bot token
+  token: ''
+
+  # ID string of the guild (server) the bot operates in
+  guild_id: ''
+
+  # ID for the public chat relay channel
+  public_channel_id: ''
+
+  # ID for the admin console channel
+  console_channel_id: ''
+
+  # Format applied to Discord messages broadcast into in-game chat.
+  chat_format: '&9[Discord] &r{user}&7: &f{message}'
+
+  # Format applied to in-game chat posted into the Discord public channel.
+  channel_format: '**{player}**: {message}'
+
+  # Console-channel log flush interval, in milliseconds (ms).
+  console_flush: 1500
+
+  # How long an in-game /link code remains valid before expiring, in seconds.
+  link_code_ttl: 300
 
 # Announcer
 announcer:

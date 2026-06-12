@@ -30,12 +30,12 @@ public class DiscordChatRelay extends ListenerAdapter
 
     public void sendPlayerChatToDiscord(String playerName, String message)
     {
-        TextChannel channel = bridge.getChatChannel();
+        TextChannel channel = bridge.getPublicChannel();
         if (channel == null)
         {
             return;
         }
-        String template = ConfigEntry.DISCORD_DISCORD_FORMAT.getString();
+        String template = ConfigEntry.DISCORD_CHANNEL_FORMAT.getString();
         if (template == null || template.isBlank())
         {
             template = "**{player}**: {message}";
@@ -56,7 +56,7 @@ public class DiscordChatRelay extends ListenerAdapter
         {
             return;
         }
-        TextChannel channel = bridge.getChatChannel();
+        TextChannel channel = bridge.getPublicChannel();
         if (channel == null || !event.isFromGuild())
         {
             return;
@@ -72,7 +72,7 @@ public class DiscordChatRelay extends ListenerAdapter
             return;
         }
 
-        String template = ConfigEntry.DISCORD_INGAME_FORMAT.getString();
+        String template = ConfigEntry.DISCORD_CHAT_FORMAT.getString();
         if (template == null || template.isBlank())
         {
             template = "&9[Discord] &r{user}&7: &f{message}";

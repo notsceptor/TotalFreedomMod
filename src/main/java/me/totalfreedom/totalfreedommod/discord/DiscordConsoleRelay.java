@@ -51,7 +51,7 @@ public class DiscordConsoleRelay extends ListenerAdapter
         {
             return;
         }
-        Integer flushConfig = ConfigEntry.DISCORD_CONSOLE_FLUSH_MS.getInteger();
+        Integer flushConfig = ConfigEntry.DISCORD_CONSOLE_FLUSH.getInteger();
         int flushMs = flushConfig == null || flushConfig < 250 ? 1500 : flushConfig;
         long ticks = Math.max(1L, flushMs / 50L);
 

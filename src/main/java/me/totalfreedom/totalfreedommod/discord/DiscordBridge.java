@@ -34,7 +34,7 @@ public class DiscordBridge extends FreedomService
 
     private JDA jda;
     private Guild guild;
-    private TextChannel chatChannel;
+    private TextChannel publicChannel;
     private TextChannel consoleChannel;
 
     private DiscordChatRelay chatRelay;
@@ -70,7 +70,7 @@ public class DiscordBridge extends FreedomService
             return;
         }
 
-        Integer ttl = ConfigEntry.DISCORD_LINK_CODE_TTL_SECONDS.getInteger();
+        Integer ttl = ConfigEntry.DISCORD_LINK_CODE_TTL.getInteger();
         linkCodeTtlSeconds = ttl == null || ttl <= 0 ? 300 : ttl;
 
         try
@@ -104,7 +104,7 @@ public class DiscordBridge extends FreedomService
             return;
         }
 
-        chatChannel = resolveChannel(ConfigEntry.DISCORD_CHAT_CHANNEL_ID.getString(), "chat_channel_id");
+        publicChannel = resolveChannel(ConfigEntry.DISCORD_PUBLIC_CHANNEL_ID.getString(), "public_channel_id");
         consoleChannel = resolveChannel(ConfigEntry.DISCORD_CONSOLE_CHANNEL_ID.getString(), "console_channel_id");
 
         commands = new DiscordCommands(plugin, this);
@@ -115,7 +115,7 @@ public class DiscordBridge extends FreedomService
 
         guild.updateCommands().addCommands(
                 Commands.slash("list", "Show online players."),
-                Commands.slash("link", "Redeem a /discordlink code from in-game.")
+                Commands.slash("link", "Redeem an in-game /link code.")
                         .addOption(OptionType.STRING, "code", "The 8-char code shown in-game.", true),
                 Commands.slash("unlink", "Remove your existing Discord ↔ admin link.")
         ).queue(
@@ -130,7 +130,7 @@ public class DiscordBridge extends FreedomService
                 20L * 60L, 20L * 60L);
 
         FLog.info("[Discord] Bridge ready. Guild: " + guild.getName()
-                + " | chat: " + (chatChannel == null ? "(none)" : chatChannel.getName())
+                + " | public: " + (publicChannel == null ? "(none)" : publicChannel.getName())
                 + " | console: " + (consoleChannel == null ? "(none)" : consoleChannel.getName()));
     }
 
@@ -150,7 +150,7 @@ public class DiscordBridge extends FreedomService
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onAsyncChat(AsyncChatEvent event)
     {
-        if (chatRelay == null || chatChannel == null)
+        if (chatRelay == null || publicChannel == null)
         {
             return;
         }
@@ -202,9 +202,9 @@ public class DiscordBridge extends FreedomService
         return jda;
     }
 
-    public TextChannel getChatChannel()
+    public TextChannel getPublicChannel()
     {
-        return chatChannel;
+        return publicChannel;
     }
 
     public TextChannel getConsoleChannel()
