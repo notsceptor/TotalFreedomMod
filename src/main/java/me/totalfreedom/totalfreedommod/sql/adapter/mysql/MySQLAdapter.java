@@ -6,6 +6,7 @@ import me.totalfreedom.totalfreedommod.sql.StatementHandler;
 import me.totalfreedom.totalfreedommod.sql.adapter.AdminRepository;
 import me.totalfreedom.totalfreedommod.sql.adapter.BanRepository;
 import me.totalfreedom.totalfreedommod.sql.adapter.DatabaseAdapter;
+import me.totalfreedom.totalfreedommod.sql.adapter.DiscordLinkRepository;
 import me.totalfreedom.totalfreedommod.sql.adapter.PermbanRepository;
 import me.totalfreedom.totalfreedommod.sql.adapter.StrikeRepository;
 import me.totalfreedom.totalfreedommod.util.FLog;
@@ -28,6 +29,7 @@ public class MySQLAdapter extends DatabaseAdapter
     private MySQLBanRepository banRepository;
     private MySQLPermbanRepository permbanRepository;
     private MySQLStrikeRepository strikeRepository;
+    private MySQLDiscordLinkRepository discordLinkRepository;
 
     public MySQLAdapter(TotalFreedomMod plugin, ConnectionHandler connectionHandler, StatementHandler statementHandler)
     {
@@ -110,6 +112,7 @@ public class MySQLAdapter extends DatabaseAdapter
         createPermbansTable();
         createPermbanIpsTable();
         createStrikesTable();
+        createDiscordLinksTable();
 
         FLog.info("[MySQL] Database migrations complete.");
     }
@@ -237,6 +240,19 @@ public class MySQLAdapter extends DatabaseAdapter
         statementHandler.executeUpdate(sql);
     }
 
+    private void createDiscordLinksTable() throws SQLException
+    {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS `discord_links` (
+                `id` INT AUTO_INCREMENT PRIMARY KEY,
+                `admin_uuid` VARCHAR(36) NOT NULL UNIQUE,
+                `discord_user_id` VARCHAR(32) NOT NULL UNIQUE,
+                `linked_at` DATETIME NOT NULL DEFAULT NOW()
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """;
+        statementHandler.executeUpdate(sql);
+    }
+
     // ============================================
     // Repository Getters
     // ============================================
@@ -279,5 +295,15 @@ public class MySQLAdapter extends DatabaseAdapter
             strikeRepository = new MySQLStrikeRepository(plugin, statementHandler);
         }
         return strikeRepository;
+    }
+
+    @Override
+    public DiscordLinkRepository getDiscordLinkRepository()
+    {
+        if (discordLinkRepository == null)
+        {
+            discordLinkRepository = new MySQLDiscordLinkRepository(plugin, statementHandler);
+        }
+        return discordLinkRepository;
     }
 }

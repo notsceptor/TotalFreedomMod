@@ -25,7 +25,7 @@ public class Command_say extends FreedomCommand
 
         String message = StringUtils.join(args, " ");
 
-        if (senderIsConsole && !SshDispatchContext.isActive())
+        if (senderIsConsole && !RemoteDispatchContext.isActive())
         {
             if (message.equalsIgnoreCase("WARNING: Server is restarting, you will be kicked"))
             {

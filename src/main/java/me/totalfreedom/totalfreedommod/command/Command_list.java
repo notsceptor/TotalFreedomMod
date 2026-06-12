@@ -36,7 +36,7 @@ public class Command_list extends FreedomCommand
             return false;
         }
 
-        if (senderIsConsole && !SshDispatchContext.isActive())
+        if (senderIsConsole && !RemoteDispatchContext.isActive())
         {
             msg(PlayerListUtil.buildPlainList(), NamedTextColor.WHITE);
             return true;

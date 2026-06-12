@@ -17,8 +17,8 @@ import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
-import me.totalfreedom.totalfreedommod.ssh.SshDispatchContext;
-import me.totalfreedom.totalfreedommod.ssh.SshSession;
+import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchContext;
+import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchSession;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FLog;
@@ -1081,16 +1081,34 @@ public class RankManager extends FreedomService
             return getRank((Player) sender);
         }
 
-        SshSession ssh = SshDispatchContext.getActiveSession();
-        if (ssh != null)
+        RemoteDispatchSession dispatch = RemoteDispatchContext.getActiveSession();
+        if (dispatch != null)
         {
-            if (ConfigEntry.SSH_INHERIT_RANK.getBoolean() && ssh.isPublicKeyAuth())
+            if (dispatch.getChannel() == RemoteDispatchSession.Channel.SSH)
             {
-                Admin admin = plugin.al.getEntryByName(ssh.getUsername());
-                if (admin != null)
+                if (ConfigEntry.SSH_INHERIT_RANK.getBoolean() && dispatch.isIdentified())
                 {
-                    return admin.getRank();
+                    Admin admin = plugin.al.getEntryByName(dispatch.getUsername());
+                    if (admin != null)
+                    {
+                        return admin.getRank();
+                    }
                 }
+                Rank fallback = plugin.csr.getRankForSender("ssh");
+                return fallback != null ? fallback : Rank.NON_OP;
+            }
+            if (dispatch.getChannel() == RemoteDispatchSession.Channel.DISCORD)
+            {
+                if (dispatch.isIdentified())
+                {
+                    Admin admin = plugin.al.getEntryByName(dispatch.getUsername());
+                    if (admin != null)
+                    {
+                        return admin.getRank();
+                    }
+                }
+                Rank fallback = plugin.csr.getRankForSender("discord");
+                return fallback != null ? fallback : Rank.NON_OP;
             }
             Rank fallback = plugin.csr.getRankForSender("ssh");
             return fallback != null ? fallback : Rank.NON_OP;
