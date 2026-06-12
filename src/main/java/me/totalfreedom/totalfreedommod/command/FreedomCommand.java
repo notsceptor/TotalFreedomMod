@@ -7,9 +7,9 @@ import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FLog;
+import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchContext;
+import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchSession;
 import me.totalfreedom.totalfreedommod.ssh.AttributedConsoleSender;
-import me.totalfreedom.totalfreedommod.ssh.SshDispatchContext;
-import me.totalfreedom.totalfreedommod.ssh.SshSession;
 import java.util.ArrayList;
 import java.util.List;
 import me.totalfreedom.totalfreedommod.command.AbstractCommandBase;
@@ -78,7 +78,7 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
 
     private static CommandSender resolveSender(CommandSender raw)
     {
-        SshSession session = SshDispatchContext.getActiveSession();
+        RemoteDispatchSession session = RemoteDispatchContext.getActiveSession();
         if (session != null && !(raw instanceof Player))
         {
             return new AttributedConsoleSender(raw, session.getDisplayName());

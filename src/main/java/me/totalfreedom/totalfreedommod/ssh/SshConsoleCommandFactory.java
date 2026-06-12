@@ -5,6 +5,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
+import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchContext;
+import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchSession;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import org.apache.sshd.server.Environment;
 import org.apache.sshd.server.ExitCallback;
@@ -78,14 +80,17 @@ public class SshConsoleCommandFactory implements CommandFactory
         {
             String username = env.getEnv().get(Environment.ENV_USER);
 
-            final SshSession session;
+            final RemoteDispatchSession session;
             if (ConfigEntry.SSH_SHOW_USER.getBoolean())
             {
                 SshAuthMethod method = channel.getSession().getAttribute(SshDaemon.AUTH_METHOD_KEY);
-                session = SshSession.create(
+                String prefix = ConfigEntry.SSH_USER_PREFIX.getString();
+                String displayName = (prefix == null ? "" : prefix) + username;
+                session = new RemoteDispatchSession(
+                        RemoteDispatchSession.Channel.SSH,
                         username,
-                        ConfigEntry.SSH_USER_PREFIX.getString(),
-                        method);
+                        displayName,
+                        method == SshAuthMethod.PUBLIC_KEY);
             }
             else
             {
@@ -97,7 +102,7 @@ public class SshConsoleCommandFactory implements CommandFactory
                 Bukkit.getScheduler().runTask(plugin, () ->
                 {
                     FLog.info("[SSH: " + username + "] " + command);
-                    SshDispatchContext.dispatch(session, command);
+                    RemoteDispatchContext.dispatch(session, command);
                 });
             }
             catch (Exception e)

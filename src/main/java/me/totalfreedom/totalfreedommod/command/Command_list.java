@@ -5,11 +5,11 @@ import java.util.List;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.rank.Displayable;
 import me.totalfreedom.totalfreedommod.rank.Rank;
-import me.totalfreedom.totalfreedommod.ssh.SshDispatchContext;
+import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchContext;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
+import me.totalfreedom.totalfreedommod.util.PlayerListUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import org.apache.commons.lang3.StringUtils;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -38,12 +38,7 @@ public class Command_list extends FreedomCommand
 
         if (senderIsConsole && !SshDispatchContext.isActive())
         {
-            final List<String> names = new ArrayList<>();
-            for (Player player : server.getOnlinePlayers())
-            {
-                names.add(player.getName());
-            }
-            msg("There are " + names.size() + "/" + server.getMaxPlayers() + " players online:\n" + StringUtils.join(names, ", "), NamedTextColor.WHITE);
+            msg(PlayerListUtil.buildPlainList(), NamedTextColor.WHITE);
             return true;
         }
 

@@ -3,8 +3,8 @@ package me.totalfreedom.totalfreedommod.command;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.rank.CustomRank;
 import me.totalfreedom.totalfreedommod.rank.Rank;
-import me.totalfreedom.totalfreedommod.ssh.SshDispatchContext;
-import me.totalfreedom.totalfreedommod.ssh.SshSession;
+import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchContext;
+import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchSession;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -112,17 +112,30 @@ public class FreedomCommandExecutor implements CommandExecutor
             return true;
         }
 
-        // Block host console
-        SshSession ssh = SshDispatchContext.getActiveSession();
-        if (ssh != null)
+        // Channel-eligibility check for per-user-identified non-player senders.
+        RemoteDispatchSession dispatch = RemoteDispatchContext.getActiveSession();
+        if (dispatch != null)
         {
-            if (ssh.isPublicKeyAuth() && !plugin.rm.hasPermission(sender, "tfm.manage.ssh"))
+            if (dispatch.isIdentified())
             {
-                if (sendMsg)
+                String permNode = switch (dispatch.getChannel())
                 {
-                    sender.sendMessage(Component.text("You do not have permission to run commands via SSH.", NamedTextColor.RED));
+                    case SSH -> "tfm.manage.ssh";
+                    case DISCORD -> "tfm.manage.discord";
+                };
+                String channelLabel = switch (dispatch.getChannel())
+                {
+                    case SSH -> "SSH";
+                    case DISCORD -> "Discord";
+                };
+                if (!plugin.rm.hasPermission(sender, permNode))
+                {
+                    if (sendMsg)
+                    {
+                        sender.sendMessage(Component.text("You do not have permission to run commands via " + channelLabel + ".", NamedTextColor.RED));
+                    }
+                    return false;
                 }
-                return false;
             }
         }
         else if (!(sender instanceof Player) && plugin.al.getEntryByName(sender.getName()) != null)
