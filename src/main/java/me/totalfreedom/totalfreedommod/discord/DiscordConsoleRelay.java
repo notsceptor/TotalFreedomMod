@@ -101,9 +101,9 @@ public class DiscordConsoleRelay extends ListenerAdapter
             while (!pendingLines.isEmpty())
             {
                 String line = pendingLines.peekFirst();
-                // Reserve 8 chars for the ```\n ... \n``` wrapper.
+                // Reserve 12 chars for the ```ansi\n ... \n``` wrapper.
                 int candidate = chunk.length() + line.length() + 1;
-                if (candidate > DISCORD_MAX_MESSAGE_LENGTH - 8)
+                if (candidate > DISCORD_MAX_MESSAGE_LENGTH - 12)
                 {
                     break;
                 }
@@ -125,7 +125,7 @@ public class DiscordConsoleRelay extends ListenerAdapter
         {
             return;
         }
-        String body = "```\n" + chunk + "\n```";
+        String body = "```ansi\n" + chunk + "\n```";
         channel.sendMessage(body).queue(
                 null,
                 err -> FLog.warning("[Discord] Console flush failed: " + err.getMessage())

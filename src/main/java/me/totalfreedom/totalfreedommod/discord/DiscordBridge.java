@@ -20,10 +20,13 @@ import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
 import net.dv8tion.jda.api.utils.cache.CacheFlag;
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import net.kyori.adventure.audience.Audience;
+import net.kyori.adventure.text.Component;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -114,10 +117,10 @@ public class DiscordBridge extends FreedomService
         jda.addEventListener(commands, chatRelay, consoleRelay);
 
         guild.updateCommands().addCommands(
-                Commands.slash("list", "Show online players."),
-                Commands.slash("link", "Redeem an in-game /link code.")
-                        .addOption(OptionType.STRING, "code", "The 8-char code shown in-game.", true),
-                Commands.slash("unlink", "Remove your existing Discord ↔ admin link.")
+                Commands.slash("list", "Show a list of players on the server."),
+                Commands.slash("link", "Link your Minecraft account by entering a code from the in-game /link command.")
+                        .addOption(OptionType.STRING, "code", "The 8-character code shown in-game.", true),
+                Commands.slash("unlink", "Unlink your Minecraft account from your current Discord account.")
         ).queue(
                 ok -> FLog.info("[Discord] Registered slash commands on guild " + guild.getName() + "."),
                 err -> FLog.warning("[Discord] Failed to register slash commands: " + err.getMessage())
@@ -128,6 +131,14 @@ public class DiscordBridge extends FreedomService
         // Periodic cleanup of expired pending link codes.
         plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, this::cleanupPendingLinks,
                 20L * 60L, 20L * 60L);
+
+        plugin.getServer().getScheduler().runTask(plugin, () ->
+        {
+            if (chatRelay != null && publicChannel != null)
+            {
+                chatRelay.sendSystemMessageToDiscord(getConfiguredMessage(ConfigEntry.DISCORD_SERVER_STARTUP_MESSAGE));
+            }
+        });
 
         FLog.info("[Discord] Bridge ready. Guild: " + guild.getName()
                 + " | public: " + (publicChannel == null ? "(none)" : publicChannel.getName())
@@ -142,12 +153,18 @@ public class DiscordBridge extends FreedomService
             consoleRelay.detachAppender();
         }
 
+        if (chatRelay != null && publicChannel != null)
+        {
+            chatRelay.sendSystemMessageToDiscordNow(getConfiguredMessage(ConfigEntry.DISCORD_SERVER_SHUTDOWN_MESSAGE),
+                    5L, TimeUnit.SECONDS);
+        }
+
         shutdownJdaQuietly();
 
         pendingLinks.clear();
     }
 
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onAsyncChat(AsyncChatEvent event)
     {
         if (chatRelay == null || publicChannel == null)
@@ -155,8 +172,51 @@ public class DiscordBridge extends FreedomService
             return;
         }
         Player player = event.getPlayer();
-        String text = PlainTextComponentSerializer.plainText().serialize(event.message());
-        chatRelay.sendPlayerChatToDiscord(player.getName(), text);
+        Component rendered;
+        try
+        {
+            rendered = event.renderer().render(player, player.displayName(), event.message(), Audience.empty());
+        }
+        catch (Exception ex)
+        {
+            FLog.warning("[Discord] Chat renderer threw, falling back to plain: " + ex.getMessage());
+            rendered = Component.text(player.getName() + ": ").append(event.message());
+        }
+        chatRelay.sendPlayerChatToDiscord(rendered);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPlayerJoin(PlayerJoinEvent event)
+    {
+        sendPlayerStatusMessage(event.getPlayer().getName(), ConfigEntry.DISCORD_PLAYER_JOIN_MESSAGE);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPlayerQuit(PlayerQuitEvent event)
+    {
+        sendPlayerStatusMessage(event.getPlayer().getName(), ConfigEntry.DISCORD_PLAYER_LEAVE_MESSAGE);
+    }
+
+    private void sendPlayerStatusMessage(String playerName, ConfigEntry configEntry)
+    {
+        if (chatRelay == null || publicChannel == null)
+        {
+            return;
+        }
+
+        String template = getConfiguredMessage(configEntry);
+        if (template == null)
+        {
+            return;
+        }
+
+        chatRelay.sendSystemMessageToDiscord(template.replace("{player}", playerName));
+    }
+
+    private String getConfiguredMessage(ConfigEntry configEntry)
+    {
+        String message = configEntry.getString();
+        return message == null || message.isBlank() ? null : message;
     }
 
     private TextChannel resolveChannel(String id, String configKey)

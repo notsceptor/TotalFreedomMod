@@ -330,13 +330,20 @@ discord:
   chat_format: '&9[Discord] &r{user}&7: &f{message}'
 
   # Format applied to in-game chat posted into the Discord public channel.
-  channel_format: '**{player}**: {message}'
+  channel_format: '{message}'
 
   # Console-channel log flush interval, in milliseconds (ms).
   console_flush: 1500
 
   # How long an in-game /link code remains valid before expiring, in seconds.
   link_code_ttl: 300
+
+  # Messages posted to the public relay for server and player events.
+  messages:
+    server_startup: '***Server is now online.***'
+    server_shutdown: '***Server is shutting down.***'
+    player_join: '*{player} has joined the game.*'
+    player_leave: '*{player} has left the game.*'
 
 # Announcer
 announcer:

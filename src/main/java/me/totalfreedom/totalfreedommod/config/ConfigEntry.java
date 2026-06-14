@@ -49,6 +49,10 @@ public enum ConfigEntry
     DISCORD_CHANNEL_FORMAT(String.class, "discord.channel_format"),
     DISCORD_CONSOLE_FLUSH(Integer.class, "discord.console_flush"),
     DISCORD_LINK_CODE_TTL(Integer.class, "discord.link_code_ttl"),
+    DISCORD_SERVER_STARTUP_MESSAGE(String.class, "discord.messages.server_startup"),
+    DISCORD_SERVER_SHUTDOWN_MESSAGE(String.class, "discord.messages.server_shutdown"),
+    DISCORD_PLAYER_JOIN_MESSAGE(String.class, "discord.messages.player_join"),
+    DISCORD_PLAYER_LEAVE_MESSAGE(String.class, "discord.messages.player_leave"),
     //
     SERVER_COLORFUL_MOTD(Boolean.class, "server.colorful_motd"),
     SERVER_NAME(String.class, "server.name"),
