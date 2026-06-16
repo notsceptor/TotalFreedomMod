@@ -293,6 +293,10 @@ worldedit:
   # De-op players who try to set their limit higher than allowed
   deop_on_limit_abuse: false
 
+  # Maximum WorldEdit selection volume (block count) for non-admins.
+  # Set to -1 to disable the cap entirely.
+  max_selection_volume: 1000000
+
 # Host senders — binds automated services or host-based consoles to an admin rank.
 #
 # Format: '<rank_id>:<sender_name>'. Sender names are case-insensitive.

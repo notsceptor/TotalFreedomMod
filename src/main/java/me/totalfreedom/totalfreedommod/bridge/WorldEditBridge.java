@@ -87,45 +87,26 @@ public class WorldEditBridge extends FreedomService
 
     public void undo(Player player, int count)
     {
-        try
+        if (hook != null)
         {
-            Object session = getPlayerSession(player);
-            if (session != null)
-            {
-                final Object bukkitPlayer = getBukkitPlayer(player);
-                if (bukkitPlayer != null)
-                {
-                    java.lang.reflect.Method getBlockBagMethod = session.getClass().getMethod("getBlockBag", bukkitPlayer.getClass().getSuperclass());
-                    Object blockBag = getBlockBagMethod.invoke(session, bukkitPlayer);
-
-                    java.lang.reflect.Method undoMethod = null;
-                    for (java.lang.reflect.Method m : session.getClass().getMethods())
-                    {
-                        if (m.getName().equals("undo") && m.getParameterCount() == 2)
-                        {
-                            undoMethod = m;
-                            break;
-                        }
-                    }
-
-                    if (undoMethod != null)
-                    {
-                        for (int i = 0; i < count; i++)
-                        {
-                            undoMethod.invoke(session, blockBag, bukkitPlayer);
-                        }
-                    }
-                }
-            }
+            hook.undo(player, count);
         }
-        catch (Exception ex)
+    }
+
+    public void refreshBypassNegation(Player player)
+    {
+        if (hook != null)
         {
-            FLog.severe(ex);
+            hook.refreshBypassNegation(player);
         }
     }
 
     public void setLimit(Player player, int limit)
     {
+        if (hook != null)
+        {
+            hook.setPlayerLimit(player.getUniqueId(), limit);
+        }
         try
         {
             final Object session = getPlayerSession(player);
@@ -176,22 +157,4 @@ public class WorldEditBridge extends FreedomService
         }
     }
 
-    private Object getBukkitPlayer(Player player)
-    {
-        final Plugin wep = getWorldEditPlugin();
-        if (wep == null)
-        {
-            return null;
-        }
-        try
-        {
-            java.lang.reflect.Method wrapPlayerMethod = wep.getClass().getMethod("wrapPlayer", Player.class);
-            return wrapPlayerMethod.invoke(wep, player);
-        }
-        catch (Exception ex)
-        {
-            FLog.severe(ex);
-            return null;
-        }
-    }
 }

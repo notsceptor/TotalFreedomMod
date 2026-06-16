@@ -548,9 +548,10 @@ public class AdminList extends FreedomService
             }
         }
 
+        refreshWorldEditBypassForAdmin(admin);
         return true;
     }
-    
+
     /**
      * Save a single admin to SQL database.
      */
@@ -616,9 +617,39 @@ public class AdminList extends FreedomService
             }
         }
 
+        refreshWorldEditBypassForAdmin(admin);
         return true;
     }
-    
+
+    private void refreshWorldEditBypassForAdmin(Admin admin)
+    {
+        if (plugin.web == null)
+        {
+            return;
+        }
+        try
+        {
+            org.bukkit.entity.Player online = null;
+            final UUID uuid = admin.getUuid();
+            if (uuid != null)
+            {
+                online = plugin.getServer().getPlayer(uuid);
+            }
+            if (online == null && admin.getName() != null)
+            {
+                online = plugin.getServer().getPlayerExact(admin.getName());
+            }
+            if (online != null)
+            {
+                plugin.web.refreshBypassNegation(online);
+            }
+        }
+        catch (Throwable t)
+        {
+            FLog.warning("Failed to refresh WorldEdit bypass negation: " + t.getMessage());
+        }
+    }
+
     /**
      * Remove admin from SQL database.
      */

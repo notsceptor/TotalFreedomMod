@@ -90,6 +90,7 @@ public enum ConfigEntry
     WORLDEDIT_ENABLED(Boolean.class, "worldedit.enabled"),
     WORLDEDIT_LIMIT_MAX(Integer.class, "worldedit.limit_max"),
     WORLDEDIT_DEOP_ON_LIMIT_ABUSE(Boolean.class, "worldedit.deop_on_limit_abuse"),
+    WORLDEDIT_MAX_SELECTION_VOLUME(Integer.class, "worldedit.max_selection_volume"),
     //
     NUKE_MONITOR_ENABLED(Boolean.class, "nukemonitor.enabled"),
     NUKE_MONITOR_COUNT_BREAK(Integer.class, "nukemonitor.count_break"),

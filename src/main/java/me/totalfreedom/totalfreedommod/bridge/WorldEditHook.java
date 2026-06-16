@@ -4,6 +4,7 @@ import com.google.common.eventbus.Subscribe;
 import com.sk89q.worldedit.EditSession;
 import com.sk89q.worldedit.IncompleteRegionException;
 import com.sk89q.worldedit.LocalSession;
+import com.sk89q.worldedit.MaxChangedBlocksException;
 import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.WorldEditException;
 import com.sk89q.worldedit.bukkit.WorldEditPlugin;
@@ -15,8 +16,13 @@ import com.sk89q.worldedit.regions.Region;
 import com.sk89q.worldedit.session.SessionManager;
 import com.sk89q.worldedit.world.block.BlockStateHolder;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
@@ -33,7 +39,9 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.permissions.PermissionAttachment;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 
@@ -48,8 +56,23 @@ public final class WorldEditHook implements Listener
     private static final Pattern LIMIT_COMMAND = Pattern.compile(
         "^/(?:limit|/limit)\\s+(\\d+|-1)(?:\\s+(.+))?$", Pattern.CASE_INSENSITIVE);
 
+    private static final String[] BYPASS_NODES = {
+        "fawe.bypass",
+        "fawe.bypass.regions",
+        "fawe.limit.unlimited",
+        "fawe.admin",
+        "worldedit.limit.unrestricted"
+    };
+
+    private static final Set<String> SIZE_SENSITIVE_LABELS = Set.of(
+        "copy", "cut", "paste", "stack", "set", "replace", "regen",
+        "sphere", "cyl", "pyramid", "smooth", "hsphere", "hcyl", "hpyramid"
+    );
+
     private final TotalFreedomMod plugin;
     private final Map<UUID, RegionSnapshot> lastSelections = new HashMap<>();
+    private final Map<UUID, Integer> playerLimits = new ConcurrentHashMap<>();
+    private final Map<UUID, PermissionAttachment> bypassAttachments = new HashMap<>();
 
     private BukkitTask selectionPollTask;
     private Object editSessionSubscriber;
@@ -88,15 +111,29 @@ public final class WorldEditHook implements Listener
                 {
                     return;
                 }
-                event.setExtent(new ProtectedAreaExtent(
-                    event.getExtent(),
-                    (com.sk89q.worldedit.entity.Player) event.getActor(),
-                    event.getWorld()));
+                final com.sk89q.worldedit.entity.Player wePlayer =
+                    (com.sk89q.worldedit.entity.Player) event.getActor();
+
+                Extent wrapped = new ProtectedAreaExtent(event.getExtent(), wePlayer, event.getWorld());
+
+                final Player bukkitPlayer = Bukkit.getPlayer(wePlayer.getUniqueId());
+                if (bukkitPlayer != null && !plugin.al.isAdmin(bukkitPlayer))
+                {
+                    wrapped = new LimitExtent(wrapped, wePlayer.getUniqueId(), getLimitFor(wePlayer.getUniqueId()));
+                }
+
+                event.setExtent(wrapped);
             }
         };
         WorldEdit.getInstance().getEventBus().register(editSessionSubscriber);
 
         selectionPollTask = Bukkit.getScheduler().runTaskTimer(plugin, this::pollSelections, 1L, 1L);
+
+        // Catch up on already-online players (covers /reload and the 20-tick attach delay).
+        for (Player online : Bukkit.getOnlinePlayers())
+        {
+            refreshBypassNegation(online);
+        }
 
         FLog.info("WorldEdit hook registered.");
     }
@@ -133,6 +170,69 @@ public final class WorldEditHook implements Listener
         // lets the subscriber be GC'd once the bus releases it on shutdown.
         editSessionSubscriber = null;
         lastSelections.clear();
+
+        for (Map.Entry<UUID, PermissionAttachment> e : bypassAttachments.entrySet())
+        {
+            try
+            {
+                e.getValue().remove();
+            }
+            catch (Throwable ignored)
+            {
+            }
+        }
+        bypassAttachments.clear();
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onPlayerJoin(PlayerJoinEvent event)
+    {
+        refreshBypassNegation(event.getPlayer());
+    }
+
+    public void refreshBypassNegation(Player player)
+    {
+        if (player == null || !player.isOnline())
+        {
+            return;
+        }
+        final UUID uuid = player.getUniqueId();
+        final boolean shouldNegate = !plugin.al.isAdmin(player);
+        final PermissionAttachment existing = bypassAttachments.get(uuid);
+
+        if (!shouldNegate)
+        {
+            if (existing != null)
+            {
+                try
+                {
+                    existing.remove();
+                }
+                catch (Throwable ignored)
+                {
+                }
+                bypassAttachments.remove(uuid);
+            }
+            return;
+        }
+
+        if (existing != null)
+        {
+            return;
+        }
+        try
+        {
+            final PermissionAttachment att = player.addAttachment(plugin);
+            for (String node : BYPASS_NODES)
+            {
+                att.setPermission(node, false);
+            }
+            bypassAttachments.put(uuid, att);
+        }
+        catch (Throwable t)
+        {
+            FLog.warning("Failed to apply WorldEdit bypass negation for " + player.getName() + ": " + t.getMessage());
+        }
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
@@ -191,13 +291,184 @@ public final class WorldEditHook implements Listener
             event.setCancelled(true);
             player.sendMessage(Component.text("You cannot set your limit higher than "
                 + maxLimit + " or to -1!", NamedTextColor.RED));
+            return;
         }
+
+        setPlayerLimit(player.getUniqueId(), limit);
     }
 
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event)
     {
-        lastSelections.remove(event.getPlayer().getUniqueId());
+        final UUID uuid = event.getPlayer().getUniqueId();
+        lastSelections.remove(uuid);
+        playerLimits.remove(uuid);
+        final PermissionAttachment att = bypassAttachments.remove(uuid);
+        if (att != null)
+        {
+            try
+            {
+                att.remove();
+            }
+            catch (Throwable ignored)
+            {
+            }
+        }
+    }
+
+    public void setPlayerLimit(UUID uuid, int limit)
+    {
+        final Integer maxLimitObj = ConfigEntry.WORLDEDIT_LIMIT_MAX.getInteger();
+        final int maxLimit = (maxLimitObj == null) ? -1 : maxLimitObj;
+        if (limit < 0)
+        {
+            return;
+        }
+        final int effective = (maxLimit < 0) ? limit : Math.min(limit, maxLimit);
+        playerLimits.put(uuid, effective);
+    }
+
+    public int getLimitFor(UUID uuid)
+    {
+        final Integer maxLimitObj = ConfigEntry.WORLDEDIT_LIMIT_MAX.getInteger();
+        final int fallback = (maxLimitObj == null) ? Integer.MAX_VALUE : maxLimitObj;
+        final Integer stored = playerLimits.get(uuid);
+        return (stored == null) ? fallback : stored;
+    }
+
+    /**
+     * @return the configured max selection volume, or -1 if disabled / unset.
+     */
+    private static long getMaxSelectionVolume()
+    {
+        final Integer raw = ConfigEntry.WORLDEDIT_MAX_SELECTION_VOLUME.getInteger();
+        if (raw == null || raw <= 0)
+        {
+            return -1L;
+        }
+        return raw.longValue();
+    }
+
+    /**
+     * Strip leading slashes and any `worldedit:` / `fawe:` namespace prefix,
+     * lowercased. Used to match command labels against {@link #SIZE_SENSITIVE_LABELS}.
+     */
+    private static String normalizeCommandLabel(String firstToken)
+    {
+        int i = 0;
+        while (i < firstToken.length() && firstToken.charAt(i) == '/')
+        {
+            i++;
+        }
+        String s = firstToken.substring(i).toLowerCase(Locale.ROOT);
+        final int colon = s.indexOf(':');
+        if (colon >= 0)
+        {
+            s = s.substring(colon + 1);
+        }
+        return s;
+    }
+
+    /**
+     * Runs at LOWEST priority so we cancel before WorldEdit allocates a
+     * clipboard / region copy from {@code region.getVolume()}.
+     */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onSizeSensitiveCommand(PlayerCommandPreprocessEvent event)
+    {
+        final long cap = getMaxSelectionVolume();
+        if (cap <= 0)
+        {
+            return;
+        }
+        final String msg = event.getMessage();
+        if (msg == null || msg.isEmpty())
+        {
+            return;
+        }
+        final int sp = msg.indexOf(' ');
+        final String firstToken = (sp < 0) ? msg : msg.substring(0, sp);
+        final String label = normalizeCommandLabel(firstToken);
+        if (!SIZE_SENSITIVE_LABELS.contains(label))
+        {
+            return;
+        }
+
+        final Player player = event.getPlayer();
+        if (plugin.al.isAdmin(player))
+        {
+            return;
+        }
+        if (worldEditPlugin == null)
+        {
+            return;
+        }
+
+        try
+        {
+            final com.sk89q.worldedit.entity.Player wePlayer = worldEditPlugin.wrapPlayer(player);
+            final LocalSession session = WorldEdit.getInstance().getSessionManager().get(wePlayer);
+            final Region region;
+            try
+            {
+                region = session.getSelection(wePlayer.getWorld());
+            }
+            catch (IncompleteRegionException ex)
+            {
+                return;
+            }
+            final long volume = region.getVolume();
+            if (volume <= cap)
+            {
+                return;
+            }
+
+            event.setCancelled(true);
+            player.sendMessage(Component.text(
+                "Your WorldEdit selection (" + volume + " blocks) exceeds the max of "
+                    + cap + ". Operation blocked.",
+                NamedTextColor.RED));
+            FLog.warning("Blocked oversized WorldEdit op from " + player.getName()
+                + " (volume=" + volume + ", cap=" + cap + "): " + msg);
+            try
+            {
+                session.getRegionSelector(wePlayer.getWorld()).clear();
+                lastSelections.remove(player.getUniqueId());
+            }
+            catch (Throwable ignored)
+            {
+            }
+        }
+        catch (Throwable t)
+        {
+        }
+    }
+
+    /**
+     * Roll back the last {@code count} WorldEdit operations from {@code player}.
+     */
+    public void undo(Player player, int count)
+    {
+        if (worldEditPlugin == null || player == null || count <= 0)
+        {
+            return;
+        }
+        try
+        {
+            final com.sk89q.worldedit.entity.Player wePlayer = worldEditPlugin.wrapPlayer(player);
+            final LocalSession session = WorldEdit.getInstance().getSessionManager().get(wePlayer);
+            for (int i = 0; i < count; i++)
+            {
+                if (session.undo(null, wePlayer) == null)
+                {
+                    break;
+                }
+            }
+        }
+        catch (Throwable t)
+        {
+            FLog.severe(t);
+        }
     }
 
     private void pollSelections()
@@ -236,6 +507,22 @@ public final class WorldEditHook implements Listener
                 }
 
                 lastSelections.put(uuid, snap);
+
+                final long cap = getMaxSelectionVolume();
+                if (cap > 0)
+                {
+                    final long volume = region.getVolume();
+                    if (volume > cap)
+                    {
+                        bukkitPlayer.sendMessage(Component.text(
+                            "Your WorldEdit selection (" + volume + " blocks) exceeds the max of "
+                                + cap + ". Selection cleared.",
+                            NamedTextColor.RED));
+                        session.getRegionSelector(wePlayer.getWorld()).clear();
+                        lastSelections.remove(uuid);
+                        continue;
+                    }
+                }
 
                 final World world = Bukkit.getWorld(wePlayer.getWorld().getName());
                 if (world == null)
@@ -344,6 +631,46 @@ public final class WorldEditHook implements Listener
                 return true;
             }
             return false;
+        }
+    }
+
+    private final class LimitExtent extends AbstractDelegateExtent
+    {
+
+        private final UUID uuid;
+        private final int limit;
+        private final AtomicInteger count = new AtomicInteger();
+        private final AtomicBoolean warned = new AtomicBoolean();
+
+        LimitExtent(Extent parent, UUID uuid, int limit)
+        {
+            super(parent);
+            this.uuid = uuid;
+            this.limit = limit;
+        }
+
+        @Override
+        public <T extends BlockStateHolder<T>> boolean setBlock(BlockVector3 pos, T block)
+            throws WorldEditException
+        {
+            if (count.incrementAndGet() > limit)
+            {
+                if (warned.compareAndSet(false, true))
+                {
+                    Bukkit.getScheduler().runTask(plugin, () ->
+                    {
+                        final Player p = Bukkit.getPlayer(uuid);
+                        if (p != null)
+                        {
+                            p.sendMessage(Component.text(
+                                "WorldEdit limit reached (" + limit + " blocks). Operation halted.",
+                                NamedTextColor.RED));
+                        }
+                    });
+                }
+                throw new MaxChangedBlocksException(limit);
+            }
+            return super.setBlock(pos, block);
         }
     }
 
