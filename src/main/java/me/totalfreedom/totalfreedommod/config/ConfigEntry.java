@@ -53,6 +53,7 @@ public enum ConfigEntry
     DISCORD_SERVER_SHUTDOWN_MESSAGE(String.class, "discord.messages.server_shutdown"),
     DISCORD_PLAYER_JOIN_MESSAGE(String.class, "discord.messages.player_join"),
     DISCORD_PLAYER_LEAVE_MESSAGE(String.class, "discord.messages.player_leave"),
+    DISCORD_PLUGIN_RELOAD_MESSAGE(String.class, "discord.messages.reload"),
     //
     SERVER_COLORFUL_MOTD(Boolean.class, "server.colorful_motd"),
     SERVER_NAME(String.class, "server.name"),

@@ -1206,6 +1206,10 @@ public class RankManager extends FreedomService
                     .color(NamedTextColor.AQUA)
                     .append(Rank.IMPOSTOR.getColoredLoginMessage());
             FUtil.bcastMsg(impostorMsg);
+            if (plugin.db != null)
+            {
+                plugin.db.relayLoginMessage(impostorMsg);
+            }
 
             Component warningMsg = Component.text("Warning: " + player.getName() + " has been flagged as an impostor and has been frozen!")
                     .color(NamedTextColor.RED);
@@ -1243,6 +1247,10 @@ public class RankManager extends FreedomService
                     .color(NamedTextColor.AQUA)
                     .append(loginMsg);
             FUtil.bcastMsg(broadcastMsg);
+            if (plugin.db != null)
+            {
+                plugin.db.relayLoginMessage(broadcastMsg);
+            }
 
             // setTag expects String, convert Component to legacy with § codes for chat format
             String tagLegacy = AdventureUtil.componentToLegacySection(display.getColoredTag());

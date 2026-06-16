@@ -162,6 +162,11 @@ public class TotalFreedomMod extends JavaPlugin
         config.load();
         FPlayer.refreshConfig();
 
+        ConfigConverter configConverter = new ConfigConverter(this);
+        configConverter.convertRanksYaml();
+        config.load();
+        FPlayer.refreshConfig();
+
         // Start services
         services = new ServiceManager<>(this);
         si = services.registerService(ServerInterface.class);
@@ -173,7 +178,9 @@ public class TotalFreedomMod extends JavaPlugin
         wm = services.registerService(WorldManager.class);
         lv = services.registerService(LogViewer.class);
         al = services.registerService(AdminList.class);
-        
+
+        configConverter.convertAdminConsoleRanks();
+
         // Run YAML to SQL migrations after database and admin list are ready
         runYamlMigrations();
 

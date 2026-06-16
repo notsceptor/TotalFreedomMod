@@ -3,6 +3,7 @@ package me.totalfreedom.totalfreedommod.command;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.config.MainConfig;
+import me.totalfreedom.totalfreedommod.discord.DiscordBridge;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FLog;
@@ -39,8 +40,16 @@ public class Command_totalfreedommod extends FreedomCommand
             plugin.config.load();
             FPlayer.refreshConfig();
             plugin.csr.load();
-            plugin.services.stop();
-            plugin.services.start();
+            DiscordBridge.reloading = true;
+            try
+            {
+                plugin.services.stop();
+                plugin.services.start();
+            }
+            finally
+            {
+                DiscordBridge.reloading = false;
+            }
 
             final String message = String.format("%s v%s reloaded.",
                     TotalFreedomMod.pluginName,

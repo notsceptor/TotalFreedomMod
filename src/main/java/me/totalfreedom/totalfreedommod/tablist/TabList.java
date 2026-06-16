@@ -35,6 +35,8 @@ public class TabList extends FreedomService
         long interval = ConfigEntry.TABLIST_UPDATE_INTERVAL.getInteger();
         updateTask = plugin.getServer().getScheduler()
                 .runTaskTimer(plugin, this::updateAll, interval, interval);
+
+        updateAll();
     }
 
     @Override

@@ -35,6 +35,8 @@ import org.jetbrains.annotations.NotNull;
 public class DiscordBridge extends FreedomService
 {
 
+    public static volatile boolean reloading = false;
+
     private JDA jda;
     private Guild guild;
     private TextChannel publicChannel;
@@ -55,6 +57,8 @@ public class DiscordBridge extends FreedomService
     @Override
     protected void onStart()
     {
+        final boolean wasReloading = reloading;
+
         if (!Boolean.TRUE.equals(ConfigEntry.DISCORD_ENABLED.getBoolean()))
         {
             return;
@@ -136,7 +140,10 @@ public class DiscordBridge extends FreedomService
         {
             if (chatRelay != null && publicChannel != null)
             {
-                chatRelay.sendSystemMessageToDiscord(getConfiguredMessage(ConfigEntry.DISCORD_SERVER_STARTUP_MESSAGE));
+                ConfigEntry entry = wasReloading
+                        ? ConfigEntry.DISCORD_PLUGIN_RELOAD_MESSAGE
+                        : ConfigEntry.DISCORD_SERVER_STARTUP_MESSAGE;
+                chatRelay.sendSystemMessageToDiscord(getConfiguredMessage(entry));
             }
         });
 
@@ -153,7 +160,7 @@ public class DiscordBridge extends FreedomService
             consoleRelay.detachAppender();
         }
 
-        if (chatRelay != null && publicChannel != null)
+        if (chatRelay != null && publicChannel != null && !reloading)
         {
             chatRelay.sendSystemMessageToDiscordNow(getConfiguredMessage(ConfigEntry.DISCORD_SERVER_SHUTDOWN_MESSAGE),
                     5L, TimeUnit.SECONDS);
@@ -211,6 +218,24 @@ public class DiscordBridge extends FreedomService
         }
 
         chatRelay.sendSystemMessageToDiscord(template.replace("{player}", playerName));
+    }
+
+    public void relayLoginMessage(Component message)
+    {
+        if (message == null)
+        {
+            return;
+        }
+        if (chatRelay == null || publicChannel == null)
+        {
+            return;
+        }
+        String rendered = DiscordMarkdown.render(message);
+        if (rendered.isBlank())
+        {
+            return;
+        }
+        chatRelay.sendSystemMessageToDiscord(rendered);
     }
 
     private String getConfiguredMessage(ConfigEntry configEntry)

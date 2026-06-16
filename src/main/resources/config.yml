@@ -348,6 +348,7 @@ discord:
     server_shutdown: '***Server is shutting down.***'
     player_join: '*{player} has joined the game.*'
     player_leave: '*{player} has left the game.*'
+    reload: '***TotalFreedomMod has been reloaded.***'
 
 # Announcer
 announcer:
