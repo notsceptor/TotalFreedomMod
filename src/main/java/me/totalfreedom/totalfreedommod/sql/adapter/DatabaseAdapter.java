@@ -79,6 +79,11 @@ public abstract class DatabaseAdapter
      */
     public abstract StrikeRepository getStrikeRepository();
 
+    /**
+     * Get the Discord link repository for this database type.
+     */
+    public abstract DiscordLinkRepository getDiscordLinkRepository();
+
     // ============================================
     // SQL Dialect Methods (override for differences)
     // ============================================

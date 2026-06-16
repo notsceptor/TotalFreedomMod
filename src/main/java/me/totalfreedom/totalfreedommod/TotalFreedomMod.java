@@ -24,6 +24,7 @@ import me.totalfreedom.totalfreedommod.caging.Cager;
 import me.totalfreedom.totalfreedommod.command.CommandLoader;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.config.MainConfig;
+import me.totalfreedom.totalfreedommod.discord.DiscordBridge;
 import me.totalfreedom.totalfreedommod.freeze.Freezer;
 import me.totalfreedom.totalfreedommod.fun.ItemFun;
 import me.totalfreedom.totalfreedommod.fun.Jumppads;
@@ -108,6 +109,7 @@ public class TotalFreedomMod extends JavaPlugin
     public Trailer tr; // Trailer - Trailer functionality
     public HTTPDaemon hd; // HTTPDaemon - HTTP server for web interface
     public SshDaemon sd; // SshDaemon - SSH server for remote console access
+    public DiscordBridge db; // DiscordBridge - Built-in Discord chat/console relay
     public ServiceChecker sc; // ServiceChecker - Checks Mojang service status
     public TabList tl; // TabList - Customizable tab list header, footer, and player names
     //
@@ -160,6 +162,11 @@ public class TotalFreedomMod extends JavaPlugin
         config.load();
         FPlayer.refreshConfig();
 
+        ConfigConverter configConverter = new ConfigConverter(this);
+        configConverter.convertRanksYaml();
+        config.load();
+        FPlayer.refreshConfig();
+
         // Start services
         services = new ServiceManager<>(this);
         si = services.registerService(ServerInterface.class);
@@ -171,7 +178,9 @@ public class TotalFreedomMod extends JavaPlugin
         wm = services.registerService(WorldManager.class);
         lv = services.registerService(LogViewer.class);
         al = services.registerService(AdminList.class);
-        
+
+        configConverter.convertAdminConsoleRanks();
+
         // Run YAML to SQL migrations after database and admin list are ready
         runYamlMigrations();
 
@@ -229,6 +238,9 @@ public class TotalFreedomMod extends JavaPlugin
 
         // SSH
         sd = services.registerService(SshDaemon.class);
+
+        // Discord
+        db = services.registerService(DiscordBridge.class);
 
         sc = services.registerService(ServiceChecker.class);
         tl = services.registerService(TabList.class);

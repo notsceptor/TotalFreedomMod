@@ -5,6 +5,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
+import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchContext;
+import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchSession;
+import me.totalfreedom.totalfreedommod.util.CallbackLogAppender;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.Logger;
@@ -58,9 +61,9 @@ public class SshConsoleShellFactory implements ShellFactory
 
         private Terminal terminal;
         private LineReader lineReader;
-        private SshLogAppender logAppender;
+        private CallbackLogAppender logAppender;
         // Captured at start() so dispatch in run() doesn't need ChannelSession.
-        private SshSession sshSession;
+        private RemoteDispatchSession sshSession;
 
         public SshConsoleShell(TotalFreedomMod plugin)
         {
@@ -115,7 +118,14 @@ public class SshConsoleShellFactory implements ShellFactory
                         .build();
 
                 // Attach a log appender so server logs stream to this session
-                logAppender = new SshLogAppender("SshLogAppender-" + env.getEnv().get(Environment.ENV_USER), terminal);
+                final Terminal sessionTerminal = terminal;
+                logAppender = new CallbackLogAppender(
+                        "SshLogAppender-" + env.getEnv().get(Environment.ENV_USER),
+                        (line, level) ->
+                        {
+                            sessionTerminal.writer().println(line);
+                            sessionTerminal.writer().flush();
+                        });
                 logAppender.start();
                 ((Logger) LogManager.getRootLogger()).addAppender(logAppender);
 
@@ -123,10 +133,13 @@ public class SshConsoleShellFactory implements ShellFactory
                 SshAuthMethod method = channel.getSession().getAttribute(SshDaemon.AUTH_METHOD_KEY);
                 if (ConfigEntry.SSH_SHOW_USER.getBoolean())
                 {
-                    sshSession = SshSession.create(
+                    String prefix = ConfigEntry.SSH_USER_PREFIX.getString();
+                    String displayName = (prefix == null ? "" : prefix) + username;
+                    sshSession = new RemoteDispatchSession(
+                            RemoteDispatchSession.Channel.SSH,
                             username,
-                            ConfigEntry.SSH_USER_PREFIX.getString(),
-                            method);
+                            displayName,
+                            method == SshAuthMethod.PUBLIC_KEY);
                 }
                 else
                 {
@@ -220,7 +233,7 @@ public class SshConsoleShellFactory implements ShellFactory
                     Bukkit.getScheduler().runTask(plugin, () ->
                     {
                         FLog.info("[SSH: " + username + "] " + cmd);
-                        SshDispatchContext.dispatch(sshSession, cmd);
+                        RemoteDispatchContext.dispatch(sshSession, cmd);
                     });
                 }
             }

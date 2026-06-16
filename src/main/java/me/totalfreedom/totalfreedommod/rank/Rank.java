@@ -17,8 +17,14 @@ public enum Rank implements Displayable
     SUPER_ADMIN("a", "Super Admin", Type.ADMIN, "SA", NamedTextColor.AQUA),
     TELNET_ADMIN("a", "Telnet Admin", Type.ADMIN, "STA", NamedTextColor.DARK_GREEN),
     SENIOR_ADMIN("a", "Senior Admin", Type.ADMIN, "SrA", NamedTextColor.GOLD),
+    /**
+     * @deprecated use {@link #TELNET_ADMIN} directly; console-class senders now resolve to admin ranks via {@code ConsoleSenderRegistry}.
+     */
     @Deprecated
     TELNET_CONSOLE("the", "Console", Type.ADMIN_CONSOLE, "Console", NamedTextColor.DARK_PURPLE),
+    /**
+     * @deprecated use {@link #SENIOR_ADMIN} directly; console-class senders now resolve to admin ranks via {@code ConsoleSenderRegistry}.
+     */
     @Deprecated
     SENIOR_CONSOLE("the", "Console", Type.ADMIN_CONSOLE, "Console", NamedTextColor.DARK_PURPLE);
     private final Type type;

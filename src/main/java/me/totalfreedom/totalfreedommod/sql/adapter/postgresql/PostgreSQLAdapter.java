@@ -6,6 +6,7 @@ import me.totalfreedom.totalfreedommod.sql.StatementHandler;
 import me.totalfreedom.totalfreedommod.sql.adapter.AdminRepository;
 import me.totalfreedom.totalfreedommod.sql.adapter.BanRepository;
 import me.totalfreedom.totalfreedommod.sql.adapter.DatabaseAdapter;
+import me.totalfreedom.totalfreedommod.sql.adapter.DiscordLinkRepository;
 import me.totalfreedom.totalfreedommod.sql.adapter.PermbanRepository;
 import me.totalfreedom.totalfreedommod.sql.adapter.StrikeRepository;
 import me.totalfreedom.totalfreedommod.util.FLog;
@@ -27,6 +28,7 @@ public class PostgreSQLAdapter extends DatabaseAdapter
     private PostgreSQLBanRepository banRepository;
     private PostgreSQLPermbanRepository permbanRepository;
     private PostgreSQLStrikeRepository strikeRepository;
+    private PostgreSQLDiscordLinkRepository discordLinkRepository;
 
     public PostgreSQLAdapter(TotalFreedomMod plugin, ConnectionHandler connectionHandler, StatementHandler statementHandler)
     {
@@ -117,6 +119,7 @@ public class PostgreSQLAdapter extends DatabaseAdapter
         createPermbansTable();
         createPermbanIpsTable();
         createStrikesTable();
+        createDiscordLinksTable();
 
         FLog.info("[PostgreSQL] Database migrations complete.");
     }
@@ -245,6 +248,19 @@ public class PostgreSQLAdapter extends DatabaseAdapter
         statementHandler.executeUpdate(sql);
     }
 
+    private void createDiscordLinksTable() throws SQLException
+    {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS "discord_links" (
+                "id" SERIAL PRIMARY KEY,
+                "admin_uuid" VARCHAR(36) NOT NULL UNIQUE,
+                "discord_user_id" VARCHAR(32) NOT NULL UNIQUE,
+                "linked_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+            """;
+        statementHandler.executeUpdate(sql);
+    }
+
     // ============================================
     // Repository Getters
     // ============================================
@@ -287,5 +303,15 @@ public class PostgreSQLAdapter extends DatabaseAdapter
             strikeRepository = new PostgreSQLStrikeRepository(plugin, statementHandler);
         }
         return strikeRepository;
+    }
+
+    @Override
+    public DiscordLinkRepository getDiscordLinkRepository()
+    {
+        if (discordLinkRepository == null)
+        {
+            discordLinkRepository = new PostgreSQLDiscordLinkRepository(plugin, statementHandler);
+        }
+        return discordLinkRepository;
     }
 }

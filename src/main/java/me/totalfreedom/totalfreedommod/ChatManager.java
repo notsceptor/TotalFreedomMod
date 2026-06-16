@@ -149,6 +149,24 @@ public class ChatManager extends FreedomService
 
 	@Override
 	protected void onStop() {
+		if (vaultChatProvider != null) {
+			try {
+				server.getServicesManager().unregister(Chat.class, vaultChatProvider);
+			} catch (Exception ex) {
+				FLog.warning("Failed to unregister Vault chat provider: " + ex.getMessage());
+			}
+			vaultChatProvider = null;
+		}
+		if (vaultPermissionProvider != null) {
+			try {
+				server.getServicesManager().unregister(Permission.class, vaultPermissionProvider);
+			} catch (Exception ex) {
+				FLog.warning("Failed to unregister Vault permission provider: " + ex.getMessage());
+			}
+			vaultPermissionProvider = null;
+		}
+		cachedRawFormat = null;
+		cachedTranslatedFormat = null;
 	}
 
 	@EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)

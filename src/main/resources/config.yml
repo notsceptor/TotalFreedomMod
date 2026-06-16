@@ -293,6 +293,10 @@ worldedit:
   # De-op players who try to set their limit higher than allowed
   deop_on_limit_abuse: false
 
+  # Maximum WorldEdit selection volume (block count) for non-admins.
+  # Set to -1 to disable the cap entirely.
+  max_selection_volume: 1000000
+
 # Host senders — binds automated services or host-based consoles to an admin rank.
 #
 # Format: '<rank_id>:<sender_name>'. Sender names are case-insensitive.
@@ -306,6 +310,45 @@ host_senders:
   - 'super_admin:remotebukkit'
   - 'super_admin:ssh'
   - 'senior_admin:console'
+  - 'senior_admin:discord'
+
+# Discord bridge — relays in-game chat to a Discord channel and exposes a
+# console channel for admins to read server output and execute commands.
+#
+discord:
+  enabled: false
+
+  # Discord API bot token
+  token: ''
+
+  # ID string of the guild (server) the bot operates in
+  guild_id: ''
+
+  # ID for the public chat relay channel
+  public_channel_id: ''
+
+  # ID for the admin console channel
+  console_channel_id: ''
+
+  # Format applied to Discord messages broadcast into in-game chat.
+  chat_format: '&9[Discord] &r{user}&7: &f{message}'
+
+  # Format applied to in-game chat posted into the Discord public channel.
+  channel_format: '{message}'
+
+  # Console-channel log flush interval, in milliseconds (ms).
+  console_flush: 1500
+
+  # How long an in-game /link code remains valid before expiring, in seconds.
+  link_code_ttl: 300
+
+  # Messages posted to the public relay for server and player events.
+  messages:
+    server_startup: '***Server is now online.***'
+    server_shutdown: '***Server is shutting down.***'
+    player_join: '*{player} has joined the game.*'
+    player_leave: '*{player} has left the game.*'
+    reload: '***TotalFreedomMod has been reloaded.***'
 
 # Announcer
 announcer:

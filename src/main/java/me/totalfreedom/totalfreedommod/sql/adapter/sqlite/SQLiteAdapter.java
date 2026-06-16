@@ -6,6 +6,7 @@ import me.totalfreedom.totalfreedommod.sql.StatementHandler;
 import me.totalfreedom.totalfreedommod.sql.adapter.AdminRepository;
 import me.totalfreedom.totalfreedommod.sql.adapter.BanRepository;
 import me.totalfreedom.totalfreedommod.sql.adapter.DatabaseAdapter;
+import me.totalfreedom.totalfreedommod.sql.adapter.DiscordLinkRepository;
 import me.totalfreedom.totalfreedommod.sql.adapter.PermbanRepository;
 import me.totalfreedom.totalfreedommod.sql.adapter.StrikeRepository;
 import me.totalfreedom.totalfreedommod.util.FLog;
@@ -26,6 +27,7 @@ public class SQLiteAdapter extends DatabaseAdapter
     private SQLiteBanRepository banRepository;
     private SQLitePermbanRepository permbanRepository;
     private SQLiteStrikeRepository strikeRepository;
+    private SQLiteDiscordLinkRepository discordLinkRepository;
 
     public SQLiteAdapter(TotalFreedomMod plugin, ConnectionHandler connectionHandler, StatementHandler statementHandler)
     {
@@ -110,6 +112,7 @@ public class SQLiteAdapter extends DatabaseAdapter
         createPermbansTable();
         createPermbanIpsTable();
         createStrikesTable();
+        createDiscordLinksTable();
 
         FLog.info("[SQLite] Database migrations complete.");
     }
@@ -252,6 +255,19 @@ public class SQLiteAdapter extends DatabaseAdapter
         statementHandler.executeUpdate(sql);
     }
 
+    private void createDiscordLinksTable() throws SQLException
+    {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS discord_links (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                admin_uuid TEXT NOT NULL UNIQUE,
+                discord_user_id TEXT NOT NULL UNIQUE,
+                linked_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+            """;
+        statementHandler.executeUpdate(sql);
+    }
+
     // ============================================
     // Repository Getters
     // ============================================
@@ -294,5 +310,15 @@ public class SQLiteAdapter extends DatabaseAdapter
             strikeRepository = new SQLiteStrikeRepository(plugin, statementHandler);
         }
         return strikeRepository;
+    }
+
+    @Override
+    public DiscordLinkRepository getDiscordLinkRepository()
+    {
+        if (discordLinkRepository == null)
+        {
+            discordLinkRepository = new SQLiteDiscordLinkRepository(plugin, statementHandler);
+        }
+        return discordLinkRepository;
     }
 }

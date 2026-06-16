@@ -70,17 +70,48 @@ public class Command_saconfig extends FreedomCommand
                     return false;
                 }
 
-                Rank rank = Rank.findRank(args[2]);
-                if (rank == null)
-                {
-                    msg("Unknown rank: " + rank);
-                    return true;
-                }
+                final String rankInput = args[2];
+                final CustomRank custom = plugin.rm != null ? plugin.rm.getCustomRank(rankInput) : null;
+                final Rank rank;
+                final String displayName;
 
-                if (rank.isConsole())
+                if (custom != null)
                 {
-                    msg("You cannot set players to a console rank");
-                    return true;
+                    if (custom.isConsoleOnly())
+                    {
+                        msg("You cannot set players to a console rank");
+                        return true;
+                    }
+                    if (!custom.isAdmin())
+                    {
+                        msg("Rank '" + custom.getName() + "' is not an admin rank.", NamedTextColor.RED);
+                        return true;
+                    }
+                    rank = resolveLegacyTier(custom);
+                    if (rank == null)
+                    {
+                        msg("Rank '" + custom.getName() + "' has no legacy tier; set or inherit from super_admin, telnet_admin, or senior_admin.", NamedTextColor.RED);
+                        return true;
+                    }
+                    displayName = custom.getName();
+                }
+                else
+                {
+                    try
+                    {
+                        rank = Rank.valueOf(rankInput.toUpperCase());
+                    }
+                    catch (IllegalArgumentException ex)
+                    {
+                        msg("Unknown rank: " + rankInput, NamedTextColor.RED);
+                        return true;
+                    }
+                    if (rank.isConsole())
+                    {
+                        msg("You cannot set players to a console rank");
+                        return true;
+                    }
+                    displayName = rank.getName();
                 }
 
                 if (!rank.isAtLeast(Rank.SUPER_ADMIN))
@@ -96,12 +127,13 @@ public class Command_saconfig extends FreedomCommand
                     return true;
                 }
 
-                FUtil.adminAction(sender.getName(), "Setting " + admin.getName() + "'s rank to " + rank.getName(), true);
+                FUtil.adminAction(sender.getName(), "Setting " + admin.getName() + "'s rank to " + displayName, true);
 
                 admin.setRank(rank);
+                admin.setCustomRankId(custom != null ? custom.getId() : null);
                 plugin.al.save();
 
-                msg("Set " + admin.getName() + "'s rank to " + rank.getName());
+                msg("Set " + admin.getName() + "'s rank to " + displayName);
                 return true;
             }
 
@@ -301,6 +333,30 @@ public class Command_saconfig extends FreedomCommand
             }
             msg(line);
         }
+    }
+
+    private Rank resolveLegacyTier(CustomRank custom)
+    {
+        CustomRank current = custom;
+        int safety = 32;
+        while (current != null && safety-- > 0)
+        {
+            try
+            {
+                return Rank.valueOf(current.getId().toUpperCase());
+            }
+            catch (IllegalArgumentException ignored)
+            {
+            }
+
+            String parentId = current.getInheritFrom();
+            if (parentId == null)
+            {
+                return null;
+            }
+            current = plugin.rm.getCustomRank(parentId);
+        }
+        return null;
     }
 
 }

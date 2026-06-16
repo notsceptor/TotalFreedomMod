@@ -9,13 +9,13 @@ import java.util.List;
 import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.admin.AdminList;
 import me.totalfreedom.totalfreedommod.banning.PermbanList;
+import me.totalfreedom.totalfreedommod.config.MainConfig;
 import me.totalfreedom.totalfreedommod.rank.Rank;
+import me.totalfreedom.totalfreedommod.rank.RankManager;
 import me.totalfreedom.totalfreedommod.util.FLog;
-import java.io.File;
-import java.io.IOException;
 import me.totalfreedom.totalfreedommod.framework.PluginComponent;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.YamlConfiguration;
 
 public class ConfigConverter extends PluginComponent<TotalFreedomMod>
 {
@@ -92,6 +92,105 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
         FLog.info("Conversion complete!");
     }
 
+    /**
+     * Removes some of the unused console variant keys/ranks from ranks.yml.
+     */
+    public void convertRanksYaml()
+    {
+        File ranksFile = new File(plugin.getDataFolder(), RankManager.RANKS_FILENAME);
+        if (!ranksFile.exists())
+        {
+            return;
+        }
+
+        YamlConfiguration yaml = YamlConfiguration.loadConfiguration(ranksFile);
+        boolean changed = false;
+
+        for (String key : yaml.getKeys(false))
+        {
+            ConfigurationSection section = yaml.getConfigurationSection(key);
+            if (section == null)
+            {
+                continue;
+            }
+            if (section.contains("console_variant"))
+            {
+                section.set("console_variant", null);
+                changed = true;
+            }
+            if (section.contains("player_variant"))
+            {
+                section.set("player_variant", null);
+                changed = true;
+            }
+        }
+
+        if (yaml.contains("telnet_console"))
+        {
+            yaml.set("telnet_console", null);
+            changed = true;
+        }
+        if (yaml.contains("senior_console"))
+        {
+            yaml.set("senior_console", null);
+            changed = true;
+        }
+
+        if (!changed)
+        {
+            return;
+        }
+
+        try
+        {
+            yaml.save(ranksFile);
+            FLog.info("Stripped deprecated console variant fields from ranks.yml.");
+        }
+        catch (IOException ex)
+        {
+            FLog.severe("Could not save migrated ranks.yml");
+            FLog.severe(ex);
+        }
+    }
+
+    /**
+     * Remap admins still assigned to deprecated {@code *_CONSOLE} legacy ranks.
+     */
+    public void convertAdminConsoleRanks()
+    {
+        if (plugin.al == null)
+        {
+            return;
+        }
+
+        int migrated = 0;
+        for (Admin admin : plugin.al.getAllAdmins().values())
+        {
+            Rank rank = admin.getRank();
+            Rank newRank = null;
+            if (rank == Rank.TELNET_CONSOLE)
+            {
+                newRank = Rank.TELNET_ADMIN;
+            }
+            else if (rank == Rank.SENIOR_CONSOLE)
+            {
+                newRank = Rank.SENIOR_ADMIN;
+            }
+            if (newRank != null)
+            {
+                admin.setRank(newRank);
+                migrated++;
+                FLog.info("Remapped admin '" + admin.getName() + "' from " + rank.name() + " to " + newRank.name());
+            }
+        }
+
+        if (migrated > 0)
+        {
+            plugin.al.save();
+            FLog.info("Remapped " + migrated + " admin(s) from deprecated console ranks.");
+        }
+    }
+
     private void convertSuperadmins(File oldFile)
     {
         if (!oldFile.exists() || !oldFile.isFile())
@@ -100,7 +199,6 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
             return;
         }
 
-        // Convert old admin list
         YamlConfiguration oldYaml = YamlConfiguration.loadConfiguration(oldFile);
 
         ConfigurationSection admins = oldYaml.getConfigurationSection("admins");

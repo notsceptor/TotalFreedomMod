@@ -205,28 +205,41 @@ public class CommandBlocker extends FreedomService
             return;
         }
 
+        if (isCommandBlocked(rawCommand, sender, false, true))
+        {
+            event.setCancelled(true);
+            logThrottledBlock(sender, rawCommand);
+            return;
+        }
+
         if (!matchesServerCommandBlocklist(rawCommand))
         {
             return;
         }
 
         event.setCancelled(true);
+        logThrottledBlock(sender, rawCommand);
+    }
 
-        if (Boolean.TRUE.equals(ConfigEntry.BLOCK_SERVER_COMMANDS_LOG_THROTTLED_WARNINGS.getBoolean()))
+    private void logThrottledBlock(CommandSender sender, String rawCommand)
+    {
+        if (!Boolean.TRUE.equals(ConfigEntry.BLOCK_SERVER_COMMANDS_LOG_THROTTLED_WARNINGS.getBoolean()))
         {
-            blockedServerCommandsSinceLastWarning++;
+            return;
+        }
 
-            final long intervalTicks = Math.max(1, ConfigEntry.BLOCK_SERVER_COMMANDS_LOG_INTERVAL_TICKS.getInteger());
-            final long nowTick = server.getCurrentTick();
-            if (lastServerCommandBlockWarningTick == 0L || nowTick - lastServerCommandBlockWarningTick >= intervalTicks)
-            {
-                FLog.warning("[TFM] Blocked " + blockedServerCommandsSinceLastWarning
-                        + " server-side command(s) from " + sender.getClass().getSimpleName()
-                        + " (\"" + sender.getName() + "\"). Last: " + rawCommand);
+        blockedServerCommandsSinceLastWarning++;
 
-                lastServerCommandBlockWarningTick = nowTick;
-                blockedServerCommandsSinceLastWarning = 0L;
-            }
+        final long intervalTicks = Math.max(1, ConfigEntry.BLOCK_SERVER_COMMANDS_LOG_INTERVAL_TICKS.getInteger());
+        final long nowTick = server.getCurrentTick();
+        if (lastServerCommandBlockWarningTick == 0L || nowTick - lastServerCommandBlockWarningTick >= intervalTicks)
+        {
+            FLog.warning("[TFM] Blocked " + blockedServerCommandsSinceLastWarning
+                    + " server-side command(s) from " + sender.getClass().getSimpleName()
+                    + " (\"" + sender.getName() + "\"). Last: " + rawCommand);
+
+            lastServerCommandBlockWarningTick = nowTick;
+            blockedServerCommandsSinceLastWarning = 0L;
         }
     }
 
@@ -257,10 +270,15 @@ public class CommandBlocker extends FreedomService
 
     public boolean isCommandBlocked(String command, CommandSender sender)
     {
-        return isCommandBlocked(command, sender, false);
+        return isCommandBlocked(command, sender, false, false);
     }
 
     public boolean isCommandBlocked(String command, CommandSender sender, boolean doAction)
+    {
+        return isCommandBlocked(command, sender, doAction, false);
+    }
+
+    public boolean isCommandBlocked(String command, CommandSender sender, boolean doAction, boolean ignoreRank)
     {
         if (command == null || command.isEmpty())
         {
@@ -337,7 +355,7 @@ public class CommandBlocker extends FreedomService
             }
         }
 
-        if (entry.getRank().hasPermission(sender))
+        if (!ignoreRank && entry.getRank().hasPermission(sender))
         {
             return false;
         }

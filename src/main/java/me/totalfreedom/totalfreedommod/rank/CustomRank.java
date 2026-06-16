@@ -302,7 +302,11 @@ public class CustomRank implements Displayable, Comparable<CustomRank>
     {
         if (cachedColoredTag == null)
         {
-            if (abbreviation == null || abbreviation.isEmpty())
+            if (prefix != null && !prefix.isEmpty())
+            {
+                cachedColoredTag = AdventureUtil.legacyToComponent(prefix.trim());
+            }
+            else if (abbreviation == null || abbreviation.isEmpty())
             {
                 cachedColoredTag = Component.empty();
             }
@@ -318,7 +322,7 @@ public class CustomRank implements Displayable, Comparable<CustomRank>
                 {
                     abbrevComponent = Component.text(abbreviation).color(color);
                 }
-                
+
                 cachedColoredTag = Component.text("[")
                         .color(NamedTextColor.DARK_GRAY)
                         .append(abbrevComponent)
