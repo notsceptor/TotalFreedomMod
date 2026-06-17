@@ -2,16 +2,19 @@ package me.totalfreedom.totalfreedommod.blocking.command;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.totalfreedommod.blocking.command.CommandBlockerEntry.PatternToken;
+import me.totalfreedom.totalfreedommod.blocking.command.CommandBlockerEntry.TokenType;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import org.apache.commons.lang3.StringUtils;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandMap;
 import org.bukkit.command.BlockCommandSender;
@@ -30,11 +33,15 @@ public class CommandBlocker extends FreedomService
 
     private final Pattern flagPattern = Pattern.compile("(:([0-9]){5,})");
     //
-    private final Map<String, CommandBlockerEntry> entryList = Maps.newHashMap();
+    private final Map<String, List<CommandBlockerEntry>> entriesByBaseCommand = Maps.newHashMap();
     private final List<String> unknownCommands = Lists.newArrayList();
     private List<String> serverCommandBlockedSubstrings = Lists.newArrayList();
     private long lastServerCommandBlockWarningTick = 0L;
     private long blockedServerCommandsSinceLastWarning = 0L;
+
+    private static final Comparator<CommandBlockerEntry> MOST_SPECIFIC_FIRST =
+            Comparator.<CommandBlockerEntry>comparingInt(CommandBlockerEntry::literalTokenCount).reversed()
+                    .thenComparing(Comparator.<CommandBlockerEntry>comparingInt(CommandBlockerEntry::patternTokenCount).reversed());
 
     public CommandBlocker(TotalFreedomMod plugin)
     {
@@ -50,12 +57,12 @@ public class CommandBlocker extends FreedomService
     @Override
     protected void onStop()
     {
-        entryList.clear();
+        entriesByBaseCommand.clear();
     }
 
     public void load()
     {
-        entryList.clear();
+        entriesByBaseCommand.clear();
         unknownCommands.clear();
         loadServerCommandBlockerConfig();
 
@@ -68,6 +75,7 @@ public class CommandBlocker extends FreedomService
 
         @SuppressWarnings("unchecked")
         List<String> blockedCommands = (List<String>) ConfigEntry.BLOCKED_COMMANDS.getList();
+        int loadedCount = 0;
         for (String rawEntry : blockedCommands)
         {
             final String[] parts = rawEntry.split(":");
@@ -79,26 +87,41 @@ public class CommandBlocker extends FreedomService
 
             final CommandBlockerRank rank = CommandBlockerRank.fromToken(parts[0]);
             final CommandBlockerAction action = CommandBlockerAction.fromToken(parts[1]);
-            String commandName = parts[2].toLowerCase().substring(1);
+            String commandSpec = parts[2].toLowerCase().substring(1);
             final String message = (parts.length > 3 ? parts[3] : null);
 
-            if (rank == null || action == null || commandName == null || commandName.isEmpty())
+            if (rank == null || action == null || commandSpec == null || commandSpec.isEmpty())
             {
                 FLog.warning("Invalid command blocker entry: " + rawEntry);
                 continue;
             }
 
-            final String[] commandParts = commandName.split(" ");
-            String subCommand = null;
-            if (commandParts.length > 1)
+            final String[] specParts = commandSpec.split("\\s+");
+            String commandName = specParts[0];
+
+            final List<PatternToken> patternTokens = new ArrayList<>();
+            boolean malformed = false;
+            for (int i = 1; i < specParts.length; i++)
             {
-                commandName = commandParts[0];
-                subCommand = StringUtils.join(commandParts, " ", 1, commandParts.length).trim().toLowerCase();
+                if (specParts[i].isEmpty())
+                {
+                    continue;
+                }
+                PatternToken token = PatternToken.of(specParts[i]);
+                if (token.type == TokenType.MULTI && i != specParts.length - 1)
+                {
+                    FLog.warning("Invalid command blocker entry (\"{*}\" may only appear as the last token): " + rawEntry);
+                    malformed = true;
+                    break;
+                }
+                patternTokens.add(token);
+            }
+            if (malformed)
+            {
+                continue;
             }
 
             final Command command = commandMap.getCommand(commandName);
-
-            // Obtain command from alias
             if (command == null)
             {
                 unknownCommands.add(commandName);
@@ -108,28 +131,30 @@ public class CommandBlocker extends FreedomService
                 commandName = command.getName().toLowerCase();
             }
 
-            String entryKey = subCommand != null ? commandName + " " + subCommand : commandName;
-
-            if (entryList.containsKey(entryKey))
-            {
-                FLog.warning("Not blocking: /" + entryKey + " - Duplicate entry exists!");
-                continue;
-            }
-
-            final CommandBlockerEntry blockedCommandEntry = new CommandBlockerEntry(rank, action, commandName, subCommand, message);
-            entryList.put(entryKey, blockedCommandEntry);
+            final CommandBlockerEntry blockedCommandEntry = new CommandBlockerEntry(rank, action, commandName, patternTokens, message);
+            registerEntry(commandName, blockedCommandEntry);
 
             if (command != null)
             {
                 for (String alias : command.getAliases())
                 {
-                    String aliasKey = subCommand != null ? alias.toLowerCase() + " " + subCommand : alias.toLowerCase();
-                    entryList.put(aliasKey, blockedCommandEntry);
+                    registerEntry(alias.toLowerCase(), blockedCommandEntry);
                 }
             }
+            loadedCount++;
         }
 
-        FLog.info("Loaded " + blockedCommands.size() + " blocked commands (" + (blockedCommands.size() - unknownCommands.size()) + " known).");
+        for (List<CommandBlockerEntry> bucket : entriesByBaseCommand.values())
+        {
+            bucket.sort(MOST_SPECIFIC_FIRST);
+        }
+
+        FLog.info("Loaded " + loadedCount + " blocked commands (" + (loadedCount - unknownCommands.size()) + " known).");
+    }
+
+    private void registerEntry(String baseCommand, CommandBlockerEntry entry)
+    {
+        entriesByBaseCommand.computeIfAbsent(baseCommand, k -> new ArrayList<>()).add(entry);
     }
 
     private void loadServerCommandBlockerConfig()
@@ -290,7 +315,11 @@ public class CommandBlocker extends FreedomService
         command = command.startsWith("/") ? command.substring(1) : command;
 
         // Check for plugin specific commands
-        final String[] commandParts = command.split(" ");
+        final String[] commandParts = command.split("\\s+");
+        if (commandParts.length == 0 || commandParts[0].isEmpty())
+        {
+            return false;
+        }
         if (commandParts[0].contains(":"))
         {
             if (doAction)
@@ -314,55 +343,38 @@ public class CommandBlocker extends FreedomService
             return true;
         }
 
-        // Obtain sub command, if it exists
-        String subCommand = null;
-        if (commandParts.length > 1)
-        {
-            subCommand = StringUtils.join(commandParts, " ", 1, commandParts.length).toLowerCase();
-        }
-
-        // Obtain entry
-        CommandBlockerEntry entry = null;
-        
-        // Try from full subcommand to single argument
-        if (subCommand != null)
-        {
-            String[] subParts = subCommand.split(" ");
-            for (int i = subParts.length; i >= 1 && entry == null; i--)
-            {
-                String partialKey = commandParts[0] + " " + StringUtils.join(subParts, " ", 0, i);
-                entry = entryList.get(partialKey);
-            }
-        }
-        
-        // Fall back to base command only (for entries without subcommands)
-        if (entry == null)
-        {
-            entry = entryList.get(commandParts[0]);
-        }
-        
-        if (entry == null)
+        final List<CommandBlockerEntry> bucket = entriesByBaseCommand.get(commandParts[0]);
+        if (bucket == null || bucket.isEmpty())
         {
             return false;
         }
 
-        // Validate sub command
-        if (entry.getSubCommand() != null)
+        final String[] inputArgs = new String[commandParts.length - 1];
+        System.arraycopy(commandParts, 1, inputArgs, 0, inputArgs.length);
+
+        CommandBlockerEntry match = null;
+        for (CommandBlockerEntry candidate : bucket)
         {
-            if (subCommand == null || !subCommand.startsWith(entry.getSubCommand()))
+            if (candidate.matches(inputArgs))
             {
-                return false;
+                match = candidate;
+                break;
             }
         }
 
-        if (!ignoreRank && entry.getRank().hasPermission(sender))
+        if (match == null)
+        {
+            return false;
+        }
+
+        if (!ignoreRank && match.getRank().hasPermission(sender))
         {
             return false;
         }
 
         if (doAction)
         {
-            entry.doActions(sender);
+            match.doActions(sender);
         }
 
         return true;

@@ -56,6 +56,32 @@ public final class WorldEditHook implements Listener
     private static final Pattern LIMIT_COMMAND = Pattern.compile(
         "^/(?:limit|/limit)\\s+(\\d+|-1)(?:\\s+(.+))?$", Pattern.CASE_INSENSITIVE);
 
+    private static final Map<String, Integer> RADIUS_COMMANDS = new HashMap<>();
+
+    static
+    {
+        RADIUS_COMMANDS.put("replacenear", 0);
+        RADIUS_COMMANDS.put("drain", 0);
+        RADIUS_COMMANDS.put("fixwater", 0);
+        RADIUS_COMMANDS.put("fixlava", 0);
+        RADIUS_COMMANDS.put("snow", 0);
+        RADIUS_COMMANDS.put("thaw", 0);
+        RADIUS_COMMANDS.put("ex", 0);
+        RADIUS_COMMANDS.put("butcher", 0);
+        RADIUS_COMMANDS.put("removeabove", 0);
+        RADIUS_COMMANDS.put("removebelow", 0);
+        RADIUS_COMMANDS.put("forestgen", 0);
+        RADIUS_COMMANDS.put("forest", 0);
+        RADIUS_COMMANDS.put("pumpkins", 0);
+        // Radius is the second arg (after a pattern/type).
+        RADIUS_COMMANDS.put("sphere", 1);
+        RADIUS_COMMANDS.put("hsphere", 1);
+        RADIUS_COMMANDS.put("cyl", 1);
+        RADIUS_COMMANDS.put("hcyl", 1);
+        RADIUS_COMMANDS.put("pyramid", 1);
+        RADIUS_COMMANDS.put("removenear", 1);
+    }
+
     private static final String[] BYPASS_NODES = {
         "fawe.bypass",
         "fawe.bypass.regions",
@@ -238,6 +264,11 @@ public final class WorldEditHook implements Listener
     @EventHandler(priority = EventPriority.LOWEST)
     public void onPlayerCommand(PlayerCommandPreprocessEvent event)
     {
+        if (checkRadiusCommand(event))
+        {
+            return;
+        }
+
         final Matcher m = LIMIT_COMMAND.matcher(event.getMessage());
         if (!m.matches())
         {
@@ -334,6 +365,87 @@ public final class WorldEditHook implements Listener
         final int fallback = (maxLimitObj == null) ? Integer.MAX_VALUE : maxLimitObj;
         final Integer stored = playerLimits.get(uuid);
         return (stored == null) ? fallback : stored;
+    }
+
+    private boolean checkRadiusCommand(PlayerCommandPreprocessEvent event)
+    {
+        final Integer maxObj = ConfigEntry.WORLDEDIT_RADIUS_MAX.getInteger();
+        if (maxObj == null || maxObj < 0)
+        {
+            return false;
+        }
+        final int max = maxObj;
+
+        final Player player = event.getPlayer();
+        if (plugin.al.isAdmin(player))
+        {
+            return false;
+        }
+
+        String msg = event.getMessage();
+        if (msg.length() < 2 || msg.charAt(0) != '/')
+        {
+            return false;
+        }
+        msg = msg.substring(1);
+        if (msg.charAt(0) == '/')
+        {
+            msg = msg.substring(1);
+        }
+        final String[] tokens = msg.trim().split("\\s+");
+        if (tokens.length == 0 || tokens[0].isEmpty())
+        {
+            return false;
+        }
+
+        final String cmd = tokens[0].toLowerCase();
+        final Integer argIdxObj = RADIUS_COMMANDS.get(cmd);
+        if (argIdxObj == null)
+        {
+            return false;
+        }
+        final int radiusTokenIdx = 1 + argIdxObj;
+        if (tokens.length <= radiusTokenIdx)
+        {
+            return false;
+        }
+
+        final int radius = parseRadius(tokens[radiusTokenIdx]);
+        if (radius < 0 || radius <= max)
+        {
+            return false;
+        }
+
+        event.setCancelled(true);
+        player.sendMessage(Component.text(
+            "WorldEdit radius capped at " + max + " for non-admins. Requested: " + radius + ".",
+            NamedTextColor.RED));
+        return true;
+    }
+
+    private static int parseRadius(String token)
+    {
+        if (token == null || token.isEmpty())
+        {
+            return -1;
+        }
+        int max = -1;
+        for (String part : token.split(","))
+        {
+            try
+            {
+                final int v = Integer.parseInt(part.trim());
+                if (v > max)
+                {
+                    max = v;
+                }
+            }
+            catch (NumberFormatException ignored)
+            {
+                return -1;
+            }
+        }
+        return max;
     }
 
     /**

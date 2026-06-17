@@ -93,6 +93,10 @@ allow:
 #   - 'n:b:/mail sendall:&4You can't send mails to everyone!'
 #   - 's:a:/stop'
 #   - 'n:b:/ban:_'
+#   - 's:b:/clear {*}:_'           # allow "/clear" but block "/clear <anything>"
+#   - 's:b:/clear inventory {*}:_' # allow "/clear inventory" but block "/clear inventory <x>"
+#   - 's:b:/clear {?} {*}:_'       # allow "/clear" and "/clear x" but block "/clear x y..."
+#   - 's:b:/give {?} bedrock {*}:_'# block "/give <player> bedrock <anything>"
 #
 blocked_commands:
     # Disabled commands
@@ -296,6 +300,11 @@ worldedit:
   # Maximum WorldEdit selection volume (block count) for non-admins.
   # Set to -1 to disable the cap entirely.
   max_selection_volume: 1000000
+
+  # Maximum radius non-admins may pass to radius-based WorldEdit commands
+  # (//replacenear, //sphere, //cyl, //drain, //butcher, //forestgen, etc.).
+  # Set to -1 to disable the cap entirely.
+  radius_max: 100
 
 # Host senders — binds automated services or host-based consoles to an admin rank.
 #
