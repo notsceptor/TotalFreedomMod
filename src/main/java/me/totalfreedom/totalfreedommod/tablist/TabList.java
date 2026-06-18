@@ -36,7 +36,7 @@ public class TabList extends FreedomService
         updateTask = plugin.getServer().getScheduler()
                 .runTaskTimer(plugin, this::updateAll, interval, interval);
 
-        updateAll();
+        server.getScheduler().runTask(plugin, this::updateAll);
     }
 
     @Override
