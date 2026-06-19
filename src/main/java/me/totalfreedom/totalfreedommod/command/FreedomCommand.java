@@ -88,7 +88,8 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
             final List<String> items = Arrays.stream(ci.pattern().split(" ")).map(it -> {
                 if (it.startsWith("<") && it.endsWith(">"))
                     return it.endsWith("..>") ? VARIABLE_LENGTH_ARGUMENT_PATTERN : SIMPLE_ARGUMENT_PATTERN;
-                return it;
+                // Ensure regex metacharacters are escaped
+                return it.replaceAll("[\\W]", "\\\\$0");
             }).collect(Collectors.toCollection(ArrayList::new));
 
             // Determine if the ending parameter has an ellipsis
@@ -104,8 +105,11 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
                 continue;
             }
 
+            // Construct the final regular expression pattern
+            final String regex = String.format("^%s$", StringUtils.join(items, " "));
+
             // Create the pattern to match against
-            final Pattern pattern = Pattern.compile(String.format("^%s$", StringUtils.join(items, " ")));
+            final Pattern pattern = Pattern.compile(regex);
 
             // Insert into the map
             dispatchMap.put(pattern, new CommandDispatchTargetMeta(pattern, method, ellipsis));
