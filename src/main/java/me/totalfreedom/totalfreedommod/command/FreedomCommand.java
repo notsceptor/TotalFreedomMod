@@ -156,7 +156,8 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
                 });
         }
     
-        try {
+        try
+        {
             // Invoke the function with the arguments
             FLog.debug(String.format("For command %s: chose dispatch function %s with arguments: %s", commandName, cd.method.getName(), passedArgs));
             final Object ret = cd.method.invoke(this, passedArgs.toArray());
@@ -165,15 +166,21 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
             FLog.warning(String.format("Command %s's pattern handler for the arguments \"%s\" does not return a boolean value",
                 commandName,
                 joinedArgs));
-        } catch (IllegalAccessException e) {
+        }
+        catch (IllegalAccessException e)
+        {
             FLog.warning(String.format("Command %s's pattern handler for the arguments \"%s\" is inaccessible by the dispatcher",
                 commandName,
                 joinedArgs));
-        } catch (IllegalArgumentException e) {
+        }
+        catch (IllegalArgumentException e)
+        {
             FLog.warning(String.format("Command %s's pattern handler for the arguments \"%s\" does not have the correct prototype for the pattern",
                 commandName,
                 joinedArgs));
-        } catch (InvocationTargetException e) {
+        }
+        catch (InvocationTargetException e)
+        {
             FLog.severe(String.format("Exception in pattern handler for command %s:", commandName));
             FLog.severe(e);
         }
