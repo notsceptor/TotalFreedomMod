@@ -21,258 +21,232 @@ import org.bukkit.entity.Player;
 @CommandParameters(description = "Manage admins.", usage = "/<command> <list | clean | reload | | setrank <username> <rank> | <add | remove | info> <username>>")
 public class Command_saconfig extends FreedomCommand
 {
+    @CommandDispatchTarget(pattern = "setrank <username> <rankInput>")
+    public boolean setRank(CommandContext ctx, String username, String rankInput)
+    {
+        checkConsole();
+        checkRank(Rank.SENIOR_ADMIN);
+
+        final CustomRank custom = plugin.rm != null ? plugin.rm.getCustomRank(rankInput) : null;
+        final Rank rank;
+        final String displayName;
+
+        if (custom != null)
+        {
+            if (custom.isConsoleOnly())
+            {
+                msg("You cannot set players to a console rank");
+                return true;
+            }
+            if (!custom.isAdmin())
+            {
+                msg("Rank '" + custom.getName() + "' is not an admin rank.", NamedTextColor.RED);
+                return true;
+            }
+            rank = resolveLegacyTier(custom);
+            if (rank == null)
+            {
+                msg("Rank '" + custom.getName() + "' has no legacy tier; set or inherit from super_admin, telnet_admin, or senior_admin.", NamedTextColor.RED);
+                return true;
+            }
+            displayName = custom.getName();
+        }
+        else
+        {
+            try
+            {
+                rank = Rank.valueOf(rankInput.toUpperCase());
+            }
+            catch (IllegalArgumentException ex)
+            {
+                msg("Unknown rank: " + rankInput, NamedTextColor.RED);
+                return true;
+            }
+            if (rank.isConsole())
+            {
+                msg("You cannot set players to a console rank");
+                return true;
+            }
+            displayName = rank.getName();
+        }
+
+        if (!rank.isAtLeast(Rank.SUPER_ADMIN))
+        {
+            msg("Rank must be superadmin or higher.", NamedTextColor.RED);
+            return true;
+        }
+
+        Admin admin = plugin.al.getEntryByName(username);
+        if (admin == null)
+        {
+            msg("Unknown admin: " + username);
+            return true;
+        }
+
+        FUtil.adminAction(sender.getName(), "Setting " + admin.getName() + "'s rank to " + displayName, true);
+
+        admin.setRank(rank);
+        admin.setCustomRankId(custom != null ? custom.getId() : null);
+        plugin.al.save();
+
+        msg("Set " + admin.getName() + "'s rank to " + displayName);
+        return true;
+    }
+
+    @CommandDispatchTarget(pattern = "info <username>")
+    public boolean getInfo(CommandContext ctx, String username)
+    {
+        checkRank(Rank.SUPER_ADMIN);
+
+        Admin admin = plugin.al.getEntryByName(username);
+
+        if (admin == null)
+        {
+            final Player player = getPlayer(username);
+            if (player != null)
+            {
+                admin = plugin.al.getAdmin(player);
+            }
+        }
+
+        if (admin == null)
+        {
+            msg("Superadmin not found: " + username);
+        }
+        else
+        {
+            msg(admin.toString());
+        }
+
+        return true;
+    }
+
+    @CommandDispatchTarget(pattern = "add <username>")
+    public boolean addUser(CommandContext ctx, String username)
+    {
+        checkConsole();
+        checkRank(Rank.TELNET_ADMIN);
+
+        // Player already an admin?
+        final Player player = getPlayer(username);
+        if (player != null && plugin.al.isAdmin(player))
+        {
+            msg("That player is already admin.");
+            return true;
+        }
+
+        // Find the old admin entry
+        String name = player != null ? player.getName() : username;
+        Admin admin = null;
+        for (Admin loopAdmin : plugin.al.getAllAdmins().values())
+        {
+            if (loopAdmin.getName().equalsIgnoreCase(name))
+            {
+                admin = loopAdmin;
+                break;
+            }
+        }
+
+        if (admin == null) // New admin
+        {
+            if (player == null)
+            {
+                msg(FreedomCommand.PLAYER_NOT_FOUND);
+                return true;
+            }
+
+            player.setOp(true);
+            FUtil.adminAction(sender.getName(), "Adding " + player.getName() + " to the admin list", true);
+            plugin.al.addAdmin(new Admin(player));
+        }
+        else // Existing admin
+        {
+            player.setOp(true);
+            FUtil.adminAction(sender.getName(), "Readding " + admin.getName() + " to the admin list", true);
+
+            if (player != null)
+            {
+                admin.setName(player.getName());
+                admin.addIp(player.getAddress().getAddress().getHostAddress());
+            }
+
+            admin.setActive(true);
+            admin.setLastLogin(new Date());
+
+            plugin.al.save();
+            plugin.al.updateTables();
+        }
+
+        if (player != null)
+        {
+            final FPlayer fPlayer = plugin.pl.getPlayer(player);
+            if (fPlayer.getFreezeData().isFrozen())
+            {
+                fPlayer.getFreezeData().setFrozen(false);
+                msg(player.getPlayer(), "You have been unfrozen.");
+            }
+        }
+
+        return true;
+    }
+
+    @CommandDispatchTarget(pattern = "remove <username>")
+    public boolean removeUser(CommandContext ctx, String username)
+    {
+        checkConsole();
+        checkRank(Rank.TELNET_ADMIN);
+
+        Player player = getPlayer(username);
+        Admin admin = player != null ? plugin.al.getAdmin(player) : plugin.al.getEntryByName(username);
+
+        if (admin == null)
+        {
+            msg("Superadmin not found: " + username);
+            return true;
+        }
+
+        FUtil.adminAction(sender.getName(), "Removing " + admin.getName() + " from the admin list", true);
+        admin.setActive(false);
+        plugin.al.save();
+        plugin.al.updateTables();
+        return true;
+    }
+
+    @CommandDispatchTarget(pattern = "reload")
+    public boolean reload(CommandContext ctx)
+    {
+        checkRank(Rank.SUPER_ADMIN);
+
+        FUtil.adminAction(sender.getName(), "Reloading the admin list", true);
+        plugin.al.load();
+        plugin.csr.load();
+        msg("Admin list reloaded!");
+        return true;
+    }
+
+    @CommandDispatchTarget(pattern = "clean")
+    public boolean clean(CommandContext ctx)
+    {
+        checkConsole();
+        checkRank(Rank.TELNET_ADMIN);
+
+        FUtil.adminAction(sender.getName(), "Cleaning admin list", true);
+        plugin.al.deactivateOldEntries(true);
+        getAdminList();
+        return true;
+    }
+
+    @CommandDispatchTarget(pattern = "list")
+    public boolean list(CommandContext ctx)
+    {
+        getAdminList();
+        return true;
+    }
 
     @Override
     public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
     {
-        if (args.length < 1)
-        {
-            return false;
-        }
-
-        switch (args[0])
-        {
-            case "list":
-            {
-                getAdminList();
-                return true;
-            }
-
-            case "clean":
-            {
-                checkConsole();
-                checkRank(Rank.TELNET_ADMIN);
-
-                FUtil.adminAction(sender.getName(), "Cleaning admin list", true);
-                plugin.al.deactivateOldEntries(true);
-                getAdminList();
-                return true;
-            }
-
-            case "reload":
-            {
-                checkRank(Rank.SUPER_ADMIN);
-
-                FUtil.adminAction(sender.getName(), "Reloading the admin list", true);
-                plugin.al.load();
-                plugin.csr.load();
-                msg("Admin list reloaded!");
-                return true;
-            }
-
-            case "setrank":
-            {
-                checkConsole();
-                checkRank(Rank.SENIOR_ADMIN);
-
-                if (args.length < 3)
-                {
-                    return false;
-                }
-
-                final String rankInput = args[2];
-                final CustomRank custom = plugin.rm != null ? plugin.rm.getCustomRank(rankInput) : null;
-                final Rank rank;
-                final String displayName;
-
-                if (custom != null)
-                {
-                    if (custom.isConsoleOnly())
-                    {
-                        msg("You cannot set players to a console rank");
-                        return true;
-                    }
-                    if (!custom.isAdmin())
-                    {
-                        msg("Rank '" + custom.getName() + "' is not an admin rank.", NamedTextColor.RED);
-                        return true;
-                    }
-                    rank = resolveLegacyTier(custom);
-                    if (rank == null)
-                    {
-                        msg("Rank '" + custom.getName() + "' has no legacy tier; set or inherit from super_admin, telnet_admin, or senior_admin.", NamedTextColor.RED);
-                        return true;
-                    }
-                    displayName = custom.getName();
-                }
-                else
-                {
-                    try
-                    {
-                        rank = Rank.valueOf(rankInput.toUpperCase());
-                    }
-                    catch (IllegalArgumentException ex)
-                    {
-                        msg("Unknown rank: " + rankInput, NamedTextColor.RED);
-                        return true;
-                    }
-                    if (rank.isConsole())
-                    {
-                        msg("You cannot set players to a console rank");
-                        return true;
-                    }
-                    displayName = rank.getName();
-                }
-
-                if (!rank.isAtLeast(Rank.SUPER_ADMIN))
-                {
-                    msg("Rank must be superadmin or higher.", NamedTextColor.RED);
-                    return true;
-                }
-
-                Admin admin = plugin.al.getEntryByName(args[1]);
-                if (admin == null)
-                {
-                    msg("Unknown admin: " + args[1]);
-                    return true;
-                }
-
-                FUtil.adminAction(sender.getName(), "Setting " + admin.getName() + "'s rank to " + displayName, true);
-
-                admin.setRank(rank);
-                admin.setCustomRankId(custom != null ? custom.getId() : null);
-                plugin.al.save();
-
-                msg("Set " + admin.getName() + "'s rank to " + displayName);
-                return true;
-            }
-
-            case "info":
-            {
-                if (args.length < 2)
-                {
-                    return false;
-                }
-
-                checkRank(Rank.SUPER_ADMIN);
-
-                Admin admin = plugin.al.getEntryByName(args[1]);
-
-                if (admin == null)
-                {
-                    final Player player = getPlayer(args[1]);
-                    if (player != null)
-                    {
-                        admin = plugin.al.getAdmin(player);
-                    }
-                }
-
-                if (admin == null)
-                {
-                    msg("Superadmin not found: " + args[1]);
-                }
-                else
-                {
-                    msg(admin.toString());
-                }
-
-                return true;
-            }
-
-            case "add":
-            {
-                if (args.length < 2)
-                {
-                    return false;
-                }
-
-                checkConsole();
-                checkRank(Rank.TELNET_ADMIN);
-
-                // Player already an admin?
-                final Player player = getPlayer(args[1]);
-                if (player != null && plugin.al.isAdmin(player))
-                {
-                    msg("That player is already admin.");
-                    return true;
-                }
-
-                // Find the old admin entry
-                String name = player != null ? player.getName() : args[1];
-                Admin admin = null;
-                for (Admin loopAdmin : plugin.al.getAllAdmins().values())
-                {
-                    if (loopAdmin.getName().equalsIgnoreCase(name))
-                    {
-                        admin = loopAdmin;
-                        break;
-                    }
-                }
-
-                if (admin == null) // New admin
-                {
-                    if (player == null)
-                    {
-                        msg(FreedomCommand.PLAYER_NOT_FOUND);
-                        return true;
-                    }
-
-                    player.setOp(true);
-                    FUtil.adminAction(sender.getName(), "Adding " + player.getName() + " to the admin list", true);
-                    plugin.al.addAdmin(new Admin(player));
-                }
-                else // Existing admin
-                {
-                    player.setOp(true);
-                    FUtil.adminAction(sender.getName(), "Readding " + admin.getName() + " to the admin list", true);
-
-                    if (player != null)
-                    {
-                        admin.setName(player.getName());
-                        admin.addIp(player.getAddress().getAddress().getHostAddress());
-                    }
-
-                    admin.setActive(true);
-                    admin.setLastLogin(new Date());
-
-                    plugin.al.save();
-                    plugin.al.updateTables();
-                }
-
-                if (player != null)
-                {
-                    final FPlayer fPlayer = plugin.pl.getPlayer(player);
-                    if (fPlayer.getFreezeData().isFrozen())
-                    {
-                        fPlayer.getFreezeData().setFrozen(false);
-                        msg(player.getPlayer(), "You have been unfrozen.");
-                    }
-                }
-
-                return true;
-            }
-
-            case "remove":
-            {
-                if (args.length < 2)
-                {
-                    return false;
-                }
-
-                checkConsole();
-                checkRank(Rank.TELNET_ADMIN);
-
-                Player player = getPlayer(args[1]);
-                Admin admin = player != null ? plugin.al.getAdmin(player) : plugin.al.getEntryByName(args[1]);
-
-                if (admin == null)
-                {
-                    msg("Superadmin not found: " + args[1]);
-                    return true;
-                }
-
-                FUtil.adminAction(sender.getName(), "Removing " + admin.getName() + " from the admin list", true);
-                admin.setActive(false);
-                plugin.al.save();
-                plugin.al.updateTables();
-                return true;
-            }
-
-            default:
-            {
-                return false;
-            }
-        }
+        return false;
     }
 
     private void getAdminList()
