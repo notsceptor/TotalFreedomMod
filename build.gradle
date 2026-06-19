@@ -1,7 +1,6 @@
 plugins {
     id 'java'
     id 'com.gorylenko.gradle-git-properties' version '2.5.7'
-    id 'com.gradleup.shadow' version '9.3.0'
 }
 
 group = 'me.totalfreedom'
@@ -30,6 +29,9 @@ repositories {
     maven {
         url 'https://repo.codemc.io/repository/creatorfromhell/'
     }
+    maven {
+        url 'https://repo.codemc.io/repository/maven-releases/'
+    }
 }
 
 dependencies {
@@ -37,20 +39,20 @@ dependencies {
     compileOnly 'org.projectlombok:lombok:1.18.42'
     annotationProcessor 'org.projectlombok:lombok:1.18.42'
     compileOnly 'org.apache.commons:commons-lang3:3.14.0'
-    compileOnly 'commons-lang:commons-lang:2.6'
     compileOnly 'commons-io:commons-io:2.16.1'
     compileOnly 'net.kyori:adventure-text-serializer-ansi:4.17.0'
-    compileOnly 'com.googlecode.json-simple:json-simple:1.1.1'
     compileOnly 'net.milkbowl.vault:VaultUnlockedAPI:2.16'
     compileOnly('com.sk89q.worldedit:worldedit-bukkit:7.3.10') { transitive = false }
     compileOnly('com.sk89q.worldedit:worldedit-core:7.3.10') { transitive = false }
 
-    implementation 'org.apache.sshd:sshd-core:2.17.1'
+    compileOnly 'org.apache.sshd:sshd-core:2.17.1'
 
     compileOnly 'org.jline:jline:3.28.0'
     compileOnly 'org.apache.logging.log4j:log4j-core:2.24.3'
 
     compileOnly 'net.dv8tion:JDA:5.6.1'
+
+    compileOnly 'com.github.retrooper:packetevents-spigot:2.12.1'
 }
 
 configurations.all {
@@ -160,14 +162,5 @@ jar {
     archiveBaseName = 'TotalFreedomMod'
     archiveVersion = project.version
     destinationDirectory = file('build/libs')
-    enabled = false
-}
-
-shadowJar {
-    archiveBaseName = 'TotalFreedomMod'
-    archiveVersion = project.version
-    archiveClassifier = ''
-    destinationDirectory = file('build/libs')
-    relocate 'org.apache.sshd', 'me.totalfreedom.libs.sshd'
 }
 

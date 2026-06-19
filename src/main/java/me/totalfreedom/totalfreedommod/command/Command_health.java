@@ -6,7 +6,6 @@ import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import net.kyori.adventure.text.format.NamedTextColor;
-import org.apache.commons.lang.math.DoubleRange;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -19,7 +18,8 @@ public class Command_health extends FreedomCommand
 {
 
     private static final int BYTES_PER_MB = 1024 * 1024;
-    private static final DoubleRange TPS_RANGE = new DoubleRange(20.0 - 0.1, 20.0 + 0.1);
+    private static final double TPS_MIN = 20.0 - 0.1;
+    private static final double TPS_MAX = 20.0 + 0.1;
 
     @Override
     public boolean run(final CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
@@ -56,7 +56,7 @@ public class Command_health extends FreedomCommand
                         @Override
                         public void run()
                         {
-                            NamedTextColor tpsColor = TPS_RANGE.containsDouble(ticksPerSecond) ? NamedTextColor.GREEN : NamedTextColor.RED;
+                            NamedTextColor tpsColor = (ticksPerSecond >= TPS_MIN && ticksPerSecond <= TPS_MAX) ? NamedTextColor.GREEN : NamedTextColor.RED;
                             msg("Ticks per second: " + ticksPerSecond, tpsColor);
                         }
                     }.runTask(plugin);
