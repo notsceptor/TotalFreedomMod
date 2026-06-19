@@ -41,7 +41,7 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
     public static final String NOT_FROM_CONSOLE = "This command may not be used from the console.";
     public static final String PLAYER_NOT_FOUND = "\u00A77Player not found!";
     //
-    private static final String SIMPLE_ARGUMENT_PATTERN = "[^ ]+";
+    private static final String SIMPLE_ARGUMENT_PATTERN = "\\w+";
     private static final String VARIABLE_LENGTH_ARGUMENT_PATTERN = ".+";
     //
     @Getter
@@ -123,7 +123,7 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
         final CommandDispatchTargetMeta cd = findDispatchTarget(joinedArgs);
         if (cd == null)
         {
-            FLog.warning(String.format("Command %s does not have a pattern handler for the arguments: \"%s\", defaulting to runner",
+            FLog.debug(String.format("Command %s does not have a pattern handler for the arguments: \"%s\", defaulting to runner",
                 commandName,
                 joinedArgs));
             return run(ctx.getSender(), ctx.getPlayerSender(), ctx.getCommand(), ctx.getCommandLabel(), args, ctx.isSenderConsole());
@@ -154,13 +154,10 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
     
         try {
             // Invoke the function with the arguments
-            FLog.info(String.format("For command %s: chose dispatch function %s with arguments: %s", commandName, cd.method.getName(), passedArgs));
+            FLog.debug(String.format("For command %s: chose dispatch function %s with arguments: %s", commandName, cd.method.getName(), passedArgs));
             final Object ret = cd.method.invoke(this, passedArgs.toArray());
             if (ret instanceof Boolean)
-            {
-                FLog.info(String.format("%s", (Boolean) ret));
                 return (Boolean) ret;
-            }
             FLog.warning(String.format("Command %s's pattern handler for the arguments \"%s\" does not return a boolean value",
                 commandName,
                 joinedArgs));
@@ -176,7 +173,7 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
             FLog.severe(String.format("Exception in pattern handler for command %s:", commandName));
             FLog.severe(e);
         }
-        msg("The command you requested could not be executed, please report this issue accordingly. Additional details have been logged");
+        msg("The command you requested could not be executed, please report this issue accordingly. Additional details have been logged to the console.");
         return true;
     }
 
