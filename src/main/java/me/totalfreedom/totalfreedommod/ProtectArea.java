@@ -599,7 +599,7 @@ public class ProtectArea extends FreedomService
             return;
         }
 
-        if (!ConfigEntry.PROTECTAREA_BLOCK_DAMAGE.getBoolean())
+        if (!ConfigEntry.PROTECTAREA_PROTECT_PLAYERS.getBoolean())
         {
             return;
         }

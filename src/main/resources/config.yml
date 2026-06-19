@@ -82,7 +82,11 @@ allow:
 #   a - Block the command and auto-eject that player (for ops and below)
 #   u - Block the command and Return an "Unknown command" message (Used to hide commands)
 #
-# * The third section is the command to be blocked, prefixed with a slash
+# * The third section is the command to be blocked, prefixed with a slash.
+#   You can also list arguments after the command name, separated by spaces.
+#   Two pattern tokens are supported in the argument list:
+#     {?}  - matches exactly one argument (any value) at that position.
+#     {*}  - matches one or more trailing arguments. Only valid as the last token.
 #
 # * The fourth section is the message to send to the player when executing that command.
 #   This should be ommited if unwanted. ChatColors are supported with the &-key. By default
@@ -285,7 +289,7 @@ protectarea:
   enabled: true
   auto_protect_spawnpoints: true
   auto_protect_radius: 25.0
-  block_damage: true
+  protect_players: true
   block_potions: true
 
 # WorldEdit settings

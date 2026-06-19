@@ -14,6 +14,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import io.papermc.paper.event.player.AsyncChatEvent;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 
 public class Muter extends FreedomService
@@ -39,21 +40,39 @@ public class Muter extends FreedomService
     @EventHandler(priority = EventPriority.LOW)
     public void onAsyncPlayerChatEvent(AsyncChatEvent event)
     {
-        FPlayer fPlayer = plugin.pl.getPlayerSync(event.getPlayer());
+        if (shouldCancelChat(event.getPlayer()))
+        {
+            event.setCancelled(true);
+        }
+    }
+
+    @SuppressWarnings("deprecation")
+    @EventHandler(priority = EventPriority.LOW)
+    public void onLegacyAsyncPlayerChat(AsyncPlayerChatEvent event)
+    {
+        if (shouldCancelChat(event.getPlayer()))
+        {
+            event.setCancelled(true);
+        }
+    }
+
+    private boolean shouldCancelChat(Player player)
+    {
+        FPlayer fPlayer = plugin.pl.getPlayerSync(player);
 
         if (!fPlayer.isMuted())
         {
-            return;
+            return false;
         }
 
-        if (plugin.al.isAdminSync(event.getPlayer()))
+        if (plugin.al.isAdminSync(player))
         {
             fPlayer.setMuted(false);
-            return;
+            return false;
         }
 
-        FSync.playerMsg(event.getPlayer(), "You are muted, STFU! - You will be unmuted in 5 minutes.");
-        event.setCancelled(true);
+        FSync.playerMsg(player, "You are muted, STFU! - You will be unmuted in 5 minutes.");
+        return true;
     }
 
     @EventHandler(priority = EventPriority.LOW)
