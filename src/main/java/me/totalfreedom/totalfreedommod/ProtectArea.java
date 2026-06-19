@@ -20,6 +20,7 @@ import org.bukkit.block.Block;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -34,8 +35,12 @@ import org.bukkit.event.block.BlockPistonRetractEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.BlockSpreadEvent;
 import org.bukkit.event.block.SignChangeEvent;
+import org.bukkit.event.entity.AreaEffectCloudApplyEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.entity.LingeringPotionSplashEvent;
+import org.bukkit.event.entity.PotionSplashEvent;
 import org.bukkit.event.hanging.HangingBreakByEntityEvent;
 import org.bukkit.event.hanging.HangingPlaceEvent;
 import org.bukkit.event.player.PlayerBucketEmptyEvent;
@@ -584,6 +589,88 @@ public class ProtectArea extends FreedomService
         {
             event.setCancelled(true);
         }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onPlayerDamage(EntityDamageEvent event)
+    {
+        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
+        {
+            return;
+        }
+
+        if (!ConfigEntry.PROTECTAREA_BLOCK_DAMAGE.getBoolean())
+        {
+            return;
+        }
+
+        if (!(event.getEntity() instanceof Player))
+        {
+            return;
+        }
+
+        if (isInProtectedArea(event.getEntity().getLocation()))
+        {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onPotionSplash(PotionSplashEvent event)
+    {
+        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
+        {
+            return;
+        }
+
+        if (!ConfigEntry.PROTECTAREA_BLOCK_POTIONS.getBoolean())
+        {
+            return;
+        }
+
+        for (LivingEntity affected : event.getAffectedEntities())
+        {
+            if (affected instanceof Player && isInProtectedArea(affected.getLocation()))
+            {
+                event.setIntensity(affected, 0.0D);
+            }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onLingeringPotionSplash(LingeringPotionSplashEvent event)
+    {
+        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
+        {
+            return;
+        }
+
+        if (!ConfigEntry.PROTECTAREA_BLOCK_POTIONS.getBoolean())
+        {
+            return;
+        }
+
+        if (isInProtectedArea(event.getEntity().getLocation()))
+        {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onAreaEffectCloudApply(AreaEffectCloudApplyEvent event)
+    {
+        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
+        {
+            return;
+        }
+
+        if (!ConfigEntry.PROTECTAREA_BLOCK_POTIONS.getBoolean())
+        {
+            return;
+        }
+
+        event.getAffectedEntities().removeIf(
+                entity -> entity instanceof Player && isInProtectedArea(entity.getLocation()));
     }
 
     private boolean shouldBlockInteraction(Player player, Location location)

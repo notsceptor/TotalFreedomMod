@@ -87,6 +87,8 @@ public enum ConfigEntry
     PROTECTAREA_ENABLED(Boolean.class, "protectarea.enabled"),
     PROTECTAREA_SPAWNPOINTS(Boolean.class, "protectarea.auto_protect_spawnpoints"),
     PROTECTAREA_RADIUS(Double.class, "protectarea.auto_protect_radius"),
+    PROTECTAREA_BLOCK_DAMAGE(Boolean.class, "protectarea.block_damage"),
+    PROTECTAREA_BLOCK_POTIONS(Boolean.class, "protectarea.block_potions"),
     //
     WORLDEDIT_ENABLED(Boolean.class, "worldedit.enabled"),
     WORLDEDIT_LIMIT_MAX(Integer.class, "worldedit.limit_max"),

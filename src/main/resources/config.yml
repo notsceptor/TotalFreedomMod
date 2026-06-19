@@ -285,6 +285,8 @@ protectarea:
   enabled: true
   auto_protect_spawnpoints: true
   auto_protect_radius: 25.0
+  block_damage: true
+  block_potions: true
 
 # WorldEdit settings
 worldedit:
