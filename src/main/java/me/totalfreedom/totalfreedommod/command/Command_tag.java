@@ -31,142 +31,134 @@ public class Command_tag extends FreedomCommand
         return !enforcePrefix ? "" : null;
     }
 
-    @Override
-    public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
+    @CommandDispatchTarget(pattern = "list")
+    public boolean listTags(CommandContext ctx)
     {
-        if (args.length == 1)
+        msg("Tags for all online players:");
+
+        for (final Player player : server.getOnlinePlayers())
         {
-            if ("list".equalsIgnoreCase(args[0]))
+            final FPlayer playerdata = plugin.pl.getPlayer(player);
+            if (playerdata.getTag() != null)
             {
-                msg("Tags for all online players:");
-
-                for (final Player player : server.getOnlinePlayers())
-                {
-                    final FPlayer playerdata = plugin.pl.getPlayer(player);
-                    if (playerdata.getTag() != null)
-                    {
-                        msg(player.getName() + ": " + playerdata.getTag());
-                    }
-                }
-
-                return true;
-            }
-            else if ("clearall".equalsIgnoreCase(args[0]))
-            {
-                if (!plugin.al.isAdmin(sender))
-                {
-                    noPerms();
-                    return true;
-                }
-
-                FUtil.adminAction(sender.getName(), "Removing all tags", false);
-
-                String clearedTagValue = getClearedTagValue();
-                int count = 0;
-                for (final Player player : server.getOnlinePlayers())
-                {
-                    final FPlayer playerdata = plugin.pl.getPlayer(player);
-                    if (playerdata.getTag() != null)
-                    {
-                        count++;
-                        playerdata.setTag(clearedTagValue);
-                    }
-                }
-
-                msg(count + " tag(s) removed.");
-
-                return true;
-            }
-            else if ("off".equalsIgnoreCase(args[0]))
-            {
-                if (senderIsConsole)
-                {
-                    msg("\"/tag off\" can't be used from the console. Use \"/tag clear <player>\" or \"/tag clearall\" instead.");
-                }
-                else
-                {
-                    plugin.pl.getPlayer(playerSender).setTag(getClearedTagValue());
-                    msg("Your tag has been removed.");
-                }
-
-                return true;
-            }
-            else
-            {
-                return false;
+                msg(player.getName() + ": " + playerdata.getTag());
             }
         }
-        else if (args.length >= 2)
+
+        return true;
+    }
+
+    @CommandDispatchTarget(pattern = "set <tag..>")
+    public boolean setTag(CommandContext ctx, String tag)
+    {
+        Component colorizedTag = FUtil.colorize(StringUtils.replaceEachRepeatedly(StringUtils.strip(tag),
+                new String[]
+                {
+                    "\u00A7", "&k"
+                },
+                new String[]
+                {
+                    "", ""
+                }));
+        colorizedTag = colorizedTag.append(Component.text("").color(NamedTextColor.WHITE));
+        final String outputTag = AdventureUtil.componentToLegacySection(colorizedTag);
+
+        if (!plugin.al.isAdmin(sender))
         {
-            if ("clear".equalsIgnoreCase(args[0]))
+            final String rawTag = AdventureUtil.stripColor(outputTag).toLowerCase();
+
+            if (rawTag.length() > 20)
             {
-                if (!plugin.al.isAdmin(sender))
-                {
-                    noPerms();
-                    return true;
-                }
-
-                final Player player = getPlayer(args[1]);
-
-                if (player == null)
-                {
-                    msg(FreedomCommand.PLAYER_NOT_FOUND);
-                    return true;
-                }
-
-                plugin.pl.getPlayer(player).setTag(getClearedTagValue());
-                msg("Removed " + player.getName() + "'s tag.");
-
+                msg("That tag is too long (Max is 20 characters).");
                 return true;
             }
-            else if ("set".equalsIgnoreCase(args[0]))
-            {
-                final String inputTag = StringUtils.join(args, " ", 1, args.length);
-                Component colorizedTag = FUtil.colorize(StringUtils.replaceEachRepeatedly(StringUtils.strip(inputTag),
-                        new String[]
-                        {
-                            "\u00A7", "&k"
-                        },
-                        new String[]
-                        {
-                            "", ""
-                        }));
-                colorizedTag = colorizedTag.append(Component.text("").color(NamedTextColor.WHITE));
-                final String outputTag = AdventureUtil.componentToLegacySection(colorizedTag);
 
-                if (!plugin.al.isAdmin(sender))
+            for (String word : FORBIDDEN_WORDS)
+            {
+                if (rawTag.contains(word))
                 {
-                    final String rawTag = AdventureUtil.stripColor(outputTag).toLowerCase();
-
-                    if (rawTag.length() > 20)
-                    {
-                        msg("That tag is too long (Max is 20 characters).");
-                        return true;
-                    }
-
-                    for (String word : FORBIDDEN_WORDS)
-                    {
-                        if (rawTag.contains(word))
-                        {
-                            msg("That tag contains a forbidden word.");
-                            return true;
-                        }
-                    }
+                    msg("That tag contains a forbidden word.");
+                    return true;
                 }
-
-                plugin.pl.getPlayer(playerSender).setTag(outputTag);
-                msg("Tag set to '" + outputTag + "'.");
-
-                return true;
             }
-            else
+        }
+
+        plugin.pl.getPlayer(playerSender).setTag(outputTag);
+        msg("Tag set to '" + outputTag + "'.");
+
+        return true;
+    }
+
+    @CommandDispatchTarget(pattern = "clearall")
+    public boolean clearallTags(CommandContext ctx)
+    {
+        if (!plugin.al.isAdmin(sender))
+        {
+            noPerms();
+            return true;
+        }
+
+        FUtil.adminAction(sender.getName(), "Removing all tags", false);
+
+        String clearedTagValue = getClearedTagValue();
+        int count = 0;
+        for (final Player player : server.getOnlinePlayers())
+        {
+            final FPlayer playerdata = plugin.pl.getPlayer(player);
+            if (playerdata.getTag() != null)
             {
-                return false;
+                count++;
+                playerdata.setTag(clearedTagValue);
             }
+        }
+
+        msg(count + " tag(s) removed.");
+
+        return true;
+    }
+
+    @CommandDispatchTarget(pattern = "off")
+    public boolean removeTag(CommandContext ctx)
+    {
+        if (ctx.isSenderConsole())
+        {
+            msg("\"/tag off\" can't be used from the console. Use \"/tag clear <player>\" or \"/tag clearall\" instead.");
         }
         else
         {
-            return false;
+            plugin.pl.getPlayer(playerSender).setTag(getClearedTagValue());
+            msg("Your tag has been removed.");
         }
+
+        return true;
+    }
+
+    @CommandDispatchTarget(pattern = "clear <player>")
+    public boolean clearTag(CommandContext ctx, String playerName)
+    {
+        if (!plugin.al.isAdmin(sender))
+        {
+            noPerms();
+            return true;
+        }
+
+        final Player player = getPlayer(playerName);
+
+        if (player == null)
+        {
+            msg(FreedomCommand.PLAYER_NOT_FOUND);
+            return true;
+        }
+
+        plugin.pl.getPlayer(player).setTag(getClearedTagValue());
+        msg("Removed " + player.getName() + "'s tag.");
+
+        return true;
+    }
+
+    @Override
+    public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
+    {
+        return false;
     }
 }

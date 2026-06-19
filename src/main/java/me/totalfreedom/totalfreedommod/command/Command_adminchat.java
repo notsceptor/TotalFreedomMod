@@ -2,8 +2,6 @@ package me.totalfreedom.totalfreedommod.command;
 
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.rank.Rank;
-import me.totalfreedom.totalfreedommod.util.FUtil;
-import org.apache.commons.lang3.StringUtils;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -15,27 +13,31 @@ import org.bukkit.entity.Player;
         aliases = "o,ac")
 public class Command_adminchat extends FreedomCommand
 {
+    @CommandDispatchTarget(pattern = "")
+    public boolean toggle(CommandContext ctx)
+    {
+        if (ctx.isSenderConsole())
+        {
+            msg("Only in-game players can toggle AdminChat.");
+            return true;
+        }
 
+        FPlayer userinfo = plugin.pl.getPlayer(ctx.getPlayerSender());
+        userinfo.setAdminChat(!userinfo.inAdminChat());
+        msg("Toggled Admin Chat " + (userinfo.inAdminChat() ? "on" : "off") + ".");
+        return true;
+    }
+
+    @CommandDispatchTarget(pattern = "<message..>")
+    public boolean sendMessage(CommandContext ctx, String message)
+    {
+        plugin.cm.adminChat(ctx.getSender(), message);
+        return true;
+    }
+    
     @Override
     public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
     {
-        if (args.length == 0)
-        {
-            if (senderIsConsole)
-            {
-                msg("Only in-game players can toggle AdminChat.");
-                return true;
-            }
-
-            FPlayer userinfo = plugin.pl.getPlayer(playerSender);
-            userinfo.setAdminChat(!userinfo.inAdminChat());
-            msg("Toggled Admin Chat " + (userinfo.inAdminChat() ? "on" : "off") + ".");
-        }
-        else
-        {
-            plugin.cm.adminChat(sender, StringUtils.join(args, " "));
-        }
-
-        return true;
+        return false;
     }
 }
