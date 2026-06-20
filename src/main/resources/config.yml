@@ -219,6 +219,66 @@ antispam:
   # Milliseconds (ms) after which a player's spam count resets.
   time_window: 1000
 
+# ItemValidator
+# For detecting items with oversized/nested NBT data.
+crash_items:
+  # Whether to prevent crash items.
+  prevent: true
+  # Use this only during an emergency.
+  panic_mode: false
+  # Outbound packet guard.
+  # When the packetevents plugin is present, this can be used to strip items from
+  # equipment/inventory/item slot packets in order to try and prevent the client from crashing.
+  packet_guard: true
+  # Inbound packet rate limiting (also requires packetevents). Caps how many
+  # interaction and chat/command packets a single player may send per second.
+  packet_rate_limit: true
+  # Max block/entity interaction packets per player per second.
+  # 0 disables interaction limiting.
+  max_interactions_per_second: 40
+  # Max chat/command packets per player per second.
+  # 0 disables chat/command limiting.
+  max_commands_per_second: 20
+  # Commands to check for preprocessed text.
+  # Matched against the Minecraft subcommand, e.g. "minecraft:<name>"
+  base_commands:
+    - 'give'
+    - 'i'
+    - 'item'
+    - 'loot'
+    - 'replaceitem'
+  # How often (in ticks, 20 = 1s) to sweep every online player's inventory, armor,
+  # off-hand, and cursor and physically delete cursed items. This backs up the
+  # packet guard by removing the payload at the source so it cannot be re-broadcast
+  # or saved. 0 disables the sweep. 100 ticks (5s) is a good balance.
+  equipment_sweep_ticks: 100
+
+# SignValidator
+# For detecting signs that hang the server/client.
+crash_signs:
+  # Whether to prevent crash signs.
+  prevent: true
+  # When true, scan every loaded chunk's signs and sanitize their contents.
+  # Freshly generated chunks are skipped. Disable this only if it causes
+  # measurable chunk-load latency on your server.
+  scan_chunk_load: true
+  # Proactive sweep (in ticks, 20 = 1s) of chunks around every online player,
+  # removing cursed signs at the source.
+  # 0 disables the sweep. 40 ticks (2s) is a good balance.
+  sweep_ticks: 40
+  # Chunk radius around each player to include in the proactive sweep. 4 covers
+  # roughly the player's immediate view; raise for larger blast radius at some
+  # CPU cost. Chunks are de-duplicated across players each pass.
+  sweep_radius: 4
+  # Outbound block-entity packet guard (requires the packetevents plugin). When a
+  # Tries to drop the BLOCK_ENTITY_DATA in a packet so that the client never receives
+  # the crash payload.
+  packet_guard: true
+  # Outbound chunk packet guard (also requires packetevents). Scans sign block-entities
+  # inside CHUNK_DATA packets sent to joining players so as to prevent crash-on-joins.
+  # Disable if you see too much CPU spike on player join.
+  chunk_guard: true
+
 # AutoEject runs when AntiSpam, AntiNuke or a blocked command action trips.
 # Strikes are stored according to the player's IP address.
 autoeject:

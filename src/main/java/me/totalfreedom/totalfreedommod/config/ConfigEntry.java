@@ -108,6 +108,22 @@ public enum ConfigEntry
     ANTISPAM_LIMIT(Integer.class, "antispam.limit"),
     ANTISPAM_TIME_WINDOW(Integer.class, "antispam.time_window"),
     //
+    CRASH_ITEMS_PREVENT(Boolean.class, "crash_items.prevent"),
+    CRASH_ITEMS_PANIC_MODE(Boolean.class, "crash_items.panic_mode"),
+    CRASH_ITEMS_PACKET_GUARD(Boolean.class, "crash_items.packet_guard"),
+    CRASH_ITEMS_PACKET_RATE_LIMIT(Boolean.class, "crash_items.packet_rate_limit"),
+    CRASH_ITEMS_MAX_INTERACTIONS_PER_SECOND(Integer.class, "crash_items.max_interactions_per_second"),
+    CRASH_ITEMS_MAX_COMMANDS_PER_SECOND(Integer.class, "crash_items.max_commands_per_second"),
+    CRASH_ITEMS_EQUIPMENT_SWEEP_TICKS(Integer.class, "crash_items.equipment_sweep_ticks"),
+    CRASH_ITEMS_BASE_COMMANDS(List.class, "crash_items.base_commands"),
+    //
+    CRASH_SIGNS_PREVENT(Boolean.class, "crash_signs.prevent"),
+    CRASH_SIGNS_SCAN_CHUNK_LOAD(Boolean.class, "crash_signs.scan_chunk_load"),
+    CRASH_SIGNS_PACKET_GUARD(Boolean.class, "crash_signs.packet_guard"),
+    CRASH_SIGNS_CHUNK_GUARD(Boolean.class, "crash_signs.chunk_guard"),
+    CRASH_SIGNS_SWEEP_TICKS(Integer.class, "crash_signs.sweep_ticks"),
+    CRASH_SIGNS_SWEEP_RADIUS(Integer.class, "crash_signs.sweep_radius"),
+    //
     AUTOEJECT_ENABLED(Boolean.class, "autoeject.enabled"),
     AUTOEJECT_PERSIST(Boolean.class, "autoeject.persist"),
     AUTOEJECT_TIME_WINDOW(Integer.class, "autoeject.time_window"),

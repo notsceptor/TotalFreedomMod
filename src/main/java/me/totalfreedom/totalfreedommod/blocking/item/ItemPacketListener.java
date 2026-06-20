@@ -4,6 +4,7 @@ import com.github.retrooper.packetevents.event.PacketListenerAbstract;
 import com.github.retrooper.packetevents.event.PacketListenerPriority;
 import com.github.retrooper.packetevents.event.PacketReceiveEvent;
 import com.github.retrooper.packetevents.event.PacketSendEvent;
+import com.github.retrooper.packetevents.protocol.nbt.NBTCompound;
 import com.github.retrooper.packetevents.protocol.packettype.PacketType;
 import com.github.retrooper.packetevents.protocol.packettype.PacketTypeCommon;
 import com.github.retrooper.packetevents.protocol.player.ClientVersion;
@@ -19,7 +20,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
-import me.totalfreedom.totalfreedommod.config.ConfigEntry;
+import me.totalfreedom.totalfreedommod.blocking.sign.SignPacketGuard;
 
 final class ItemPacketListener extends PacketListenerAbstract
 {
@@ -35,13 +36,10 @@ final class ItemPacketListener extends PacketListenerAbstract
     private final PacketSpamLimiter spamLimiter;
     private final boolean signBlockEntityGuard;
     private final boolean signChunkGuard;
-    private final int signMaxNodes;
-    private final int signMaxDepth;
-    private final int signMaxStringLength;
+    private final boolean blockAllSignPackets;
 
     ItemPacketListener(TotalFreedomMod plugin, boolean sanitizeOutbound, PacketSpamLimiter spamLimiter,
-                             boolean signBlockEntityGuard, boolean signChunkGuard,
-                             int signMaxNodes, int signMaxDepth, int signMaxStringLength)
+                             boolean signBlockEntityGuard, boolean signChunkGuard, boolean blockAllSignPackets)
     {
         super(PacketListenerPriority.HIGH);
         this.plugin = plugin;
@@ -49,9 +47,7 @@ final class ItemPacketListener extends PacketListenerAbstract
         this.spamLimiter = spamLimiter;
         this.signBlockEntityGuard = signBlockEntityGuard;
         this.signChunkGuard = signChunkGuard;
-        this.signMaxNodes = signMaxNodes;
-        this.signMaxDepth = signMaxDepth;
-        this.signMaxStringLength = signMaxStringLength;
+        this.blockAllSignPackets = blockAllSignPackets;
     }
 
     @Override
@@ -121,11 +117,11 @@ final class ItemPacketListener extends PacketListenerAbstract
                 }
             }
 
-            if ((blockAllSignPackets() || signBlockEntityGuard) && type == PacketType.Play.Server.BLOCK_ENTITY_DATA)
+            if ((blockAllSignPackets || signBlockEntityGuard) && type == PacketType.Play.Server.BLOCK_ENTITY_DATA)
             {
                 handleBlockEntityData(event);
             }
-            else if ((blockAllSignPackets() || signChunkGuard) && type == PacketType.Play.Server.CHUNK_DATA)
+            else if ((blockAllSignPackets || signChunkGuard) && type == PacketType.Play.Server.CHUNK_DATA)
             {
                 handleChunkData(event);
             }
@@ -138,15 +134,12 @@ final class ItemPacketListener extends PacketListenerAbstract
     private void handleBlockEntityData(PacketSendEvent event)
     {
         WrapperPlayServerBlockEntityData wrapper = new WrapperPlayServerBlockEntityData(event);
-        if (blockAllSignPackets())
+        NBTCompound nbt = wrapper.getNBT();
+        if (!SignPacketGuard.isSignBlockEntity(nbt))
         {
-            if (SignPacketGuard.isSignBlockEntity(wrapper.getNBT()))
-            {
-                event.setCancelled(true);
-            }
             return;
         }
-        if (SignPacketGuard.isUnsafe(wrapper.getNBT(), signMaxNodes, signMaxDepth, signMaxStringLength))
+        if (blockAllSignPackets || SignPacketGuard.isUnsafe(nbt))
         {
             event.setCancelled(true);
         }
@@ -165,7 +158,7 @@ final class ItemPacketListener extends PacketListenerAbstract
         }
 
         WrapperPlayServerChunkData wrapper = new WrapperPlayServerChunkData(event);
-        if (blockAllSignPackets())
+        if (blockAllSignPackets)
         {
             int stripped = SignPacketGuard.stripAllSignsInColumn(wrapper.getColumn());
             if (stripped > 0)
@@ -174,8 +167,7 @@ final class ItemPacketListener extends PacketListenerAbstract
             }
             return;
         }
-        int neutralized = SignPacketGuard.sanitizeColumn(
-                wrapper.getColumn(), signMaxNodes, signMaxDepth, signMaxStringLength);
+        int neutralized = SignPacketGuard.sanitizeColumn(wrapper.getColumn());
         if (neutralized > 0)
         {
             event.markForReEncode(true);
@@ -283,8 +275,4 @@ final class ItemPacketListener extends PacketListenerAbstract
         return plugin.iv.isCursed(bukkit);
     }
 
-    private static boolean blockAllSignPackets()
-    {
-        return Boolean.FALSE.equals(ConfigEntry.ALLOW_SIGN_PLACE.getBoolean());
-    }
 }

@@ -16,6 +16,9 @@ import me.totalfreedom.totalfreedommod.blocking.InteractBlocker;
 import me.totalfreedom.totalfreedommod.blocking.MobBlocker;
 import me.totalfreedom.totalfreedommod.blocking.PotionBlocker;
 import me.totalfreedom.totalfreedommod.blocking.command.CommandBlocker;
+import me.totalfreedom.totalfreedommod.blocking.item.EquipmentPacketGuard;
+import me.totalfreedom.totalfreedommod.blocking.item.ItemValidator;
+import me.totalfreedom.totalfreedommod.blocking.sign.SignValidator;
 import me.totalfreedom.totalfreedommod.bridge.BukkitTelnetBridge;
 import me.totalfreedom.totalfreedommod.bridge.EssentialsBridge;
 import me.totalfreedom.totalfreedommod.bridge.LibsDisguisesBridge;
@@ -73,6 +76,9 @@ public class TotalFreedomMod extends JavaPlugin
     public ConsoleSenderRegistry csr; // ConsoleSenderRegistry - Maps console senders to appropriate rank
     public CommandLoader cl; // CommandLoader - Loads and registers commands
     public CommandBlocker cb; // CommandBlocker - Blocks specific commands
+    public ItemValidator iv; // ItemValidator - Blocks unwanted NBT items
+    public SignValidator sv; // SignValidator - Sanitizes the components of signs
+    public EquipmentPacketGuard epg; // EquipmentPacketGuard - Strips unwanted items from packets
     public EventBlocker eb; // EventBlocker - Blocks various game events
     public BlockBlocker bb; // BlockBlocker - Blocks block placement/breaking
     public MobBlocker mb; // MobBlocker - Blocks mob spawning
@@ -191,6 +197,9 @@ public class TotalFreedomMod extends JavaPlugin
         csr.load();
         cl = services.registerService(CommandLoader.class);
         cb = services.registerService(CommandBlocker.class);
+        iv = services.registerService(ItemValidator.class);
+        sv = services.registerService(SignValidator.class);
+        epg = services.registerService(EquipmentPacketGuard.class);
         eb = services.registerService(EventBlocker.class);
         bb = services.registerService(BlockBlocker.class);
         mb = services.registerService(MobBlocker.class);

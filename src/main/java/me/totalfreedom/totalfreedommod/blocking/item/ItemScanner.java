@@ -12,6 +12,14 @@ import org.bukkit.inventory.ItemStack;
 final class ItemScanner
 {
 
+    private static final int MAX_CONTAINER_DEPTH = 2;
+    private static final int MAX_NAME_LENGTH = 64;
+    private static final int MAX_LORE_LINES = 24;
+    private static final int MAX_LORE_LINE_LENGTH = 256;
+    private static final int MAX_COMPONENT_NODES = 1024;
+    private static final int MAX_NBT_NODES = 8192;
+    private static final int MAX_NBT_DEPTH = 16;
+
     private ItemScanner()
     {
     }
@@ -39,36 +47,24 @@ final class ItemScanner
         }
     }
 
-    record Config(
-            boolean panicMode,
-            int maxNbtNodes,
-            int maxNbtDepth,
-            int maxContainerDepth,
-            int maxNameLength,
-            int maxLoreLines,
-            int maxLoreLineLength,
-            int maxComponentNodes)
+    static Verdict scan(ItemStack item, boolean panicMode)
     {
+        return scan(item, panicMode, 0);
     }
 
-    static Verdict scan(ItemStack item, Config cfg)
-    {
-        return scan(item, cfg, 0);
-    }
-
-    private static Verdict scan(ItemStack item, Config cfg, int depth)
+    private static Verdict scan(ItemStack item, boolean panicMode, int depth)
     {
         if (item == null || item.isEmpty())
         {
             return Verdict.CLEAN;
         }
 
-        if (depth > cfg.maxContainerDepth())
+        if (depth > MAX_CONTAINER_DEPTH)
         {
             return new Verdict(Reason.CONTAINER_TOO_DEEP, 0L, depth);
         }
 
-        if (cfg.panicMode())
+        if (panicMode)
         {
             if (item.hasData(DataComponentTypes.CONTAINER)
                     || item.hasData(DataComponentTypes.BUNDLE_CONTENTS)
@@ -79,41 +75,43 @@ final class ItemScanner
             }
         }
 
+        // CUSTOM_NAME — gate the serializer behind a safe-graph check
         if (item.hasData(DataComponentTypes.CUSTOM_NAME))
         {
             Component name = item.getData(DataComponentTypes.CUSTOM_NAME);
             if (name != null)
             {
-                int len = ComponentScanner.safePlainTextLength(name, cfg.maxComponentNodes());
+                int len = ComponentScanner.safePlainTextLength(name, MAX_COMPONENT_NODES);
                 if (len < 0)
                 {
                     return new Verdict(Reason.CURSED_COMPONENT, -1L, depth);
                 }
-                if (len > cfg.maxNameLength())
+                if (len > MAX_NAME_LENGTH)
                 {
                     return new Verdict(Reason.OVERSIZED_NAME, len, depth);
                 }
             }
         }
 
+        // LORE — same gating per line
         if (item.hasData(DataComponentTypes.LORE))
         {
             ItemLore lore = item.getData(DataComponentTypes.LORE);
             if (lore != null)
             {
                 List<Component> lines = lore.lines();
-                if (lines.size() > cfg.maxLoreLines())
+                if (lines.size() > MAX_LORE_LINES)
                 {
                     return new Verdict(Reason.OVERSIZED_LORE, lines.size(), depth);
                 }
                 for (Component line : lines)
                 {
-                    int len = ComponentScanner.safePlainTextLength(line, cfg.maxComponentNodes());
+                    int len = ComponentScanner.safePlainTextLength(line, MAX_COMPONENT_NODES);
                     if (len < 0)
                     {
                         return new Verdict(Reason.CURSED_COMPONENT, -1L, depth);
                     }
-                    if (len > cfg.maxLoreLineLength())
+                    if (len > MAX_LORE_LINE_LENGTH)
                     {
                         return new Verdict(Reason.OVERSIZED_LORE, len, depth);
                     }
@@ -121,6 +119,7 @@ final class ItemScanner
             }
         }
 
+        // CONTAINER recursion — primary vector for shulker-in-shulker hang
         if (item.hasData(DataComponentTypes.CONTAINER))
         {
             ItemContainerContents container = item.getData(DataComponentTypes.CONTAINER);
@@ -128,7 +127,7 @@ final class ItemScanner
             {
                 for (ItemStack inner : container.contents())
                 {
-                    Verdict v = scan(inner, cfg, depth + 1);
+                    Verdict v = scan(inner, panicMode, depth + 1);
                     if (v.isCursed())
                     {
                         return v;
@@ -137,6 +136,7 @@ final class ItemScanner
             }
         }
 
+        // BUNDLE recursion
         if (item.hasData(DataComponentTypes.BUNDLE_CONTENTS))
         {
             BundleContents bundle = item.getData(DataComponentTypes.BUNDLE_CONTENTS);
@@ -144,7 +144,7 @@ final class ItemScanner
             {
                 for (ItemStack inner : bundle.contents())
                 {
-                    Verdict v = scan(inner, cfg, depth + 1);
+                    Verdict v = scan(inner, panicMode, depth + 1);
                     if (v.isCursed())
                     {
                         return v;
@@ -155,10 +155,10 @@ final class ItemScanner
 
         if (item.hasItemMeta())
         {
-            switch (RawNbtInspector.inspect(item, cfg.maxNbtNodes(), cfg.maxNbtDepth()))
+            switch (RawNbtInspector.inspect(item, MAX_NBT_NODES, MAX_NBT_DEPTH))
             {
                 case OVERSIZED -> {
-                    return new Verdict(Reason.OVERSIZED_NBT, cfg.maxNbtNodes(), depth);
+                    return new Verdict(Reason.OVERSIZED_NBT, MAX_NBT_NODES, depth);
                 }
                 case ERROR -> {
                     return new Verdict(Reason.UNINSPECTABLE_NBT, -1L, depth);
