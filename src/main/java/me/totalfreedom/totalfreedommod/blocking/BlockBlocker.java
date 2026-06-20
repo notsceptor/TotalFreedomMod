@@ -2,16 +2,21 @@ package me.totalfreedom.totalfreedommod.blocking;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.totalfreedommod.blocking.sign.SignBlocks;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Material;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.FallingBlock;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.EntityChangeBlockEvent;
+import org.bukkit.event.entity.EntitySpawnEvent;
 import org.bukkit.inventory.ItemStack;
 
 public class BlockBlocker extends FreedomService
@@ -36,6 +41,18 @@ public class BlockBlocker extends FreedomService
     public void onBlockPlace(BlockPlaceEvent event)
     {
         final Player player = event.getPlayer();
+
+        if (SignBlocks.isSignBlock(event.getBlockPlaced()))
+        {
+            if (signPlacementBlocked())
+            {
+                player.getInventory().setItem(player.getInventory().getHeldItemSlot(), new ItemStack(Material.COOKIE, 1));
+                player.sendMessage(Component.text("Sign placement is currently disabled.", NamedTextColor.GRAY));
+
+                event.setCancelled(true);
+            }
+            return;
+        }
 
         switch (event.getBlockPlaced().getType())
         {
@@ -126,6 +143,56 @@ public class BlockBlocker extends FreedomService
                 break;
             }
         }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onEntitySpawn(EntitySpawnEvent event)
+    {
+        if (!fallingSignsBlocked())
+        {
+            return;
+        }
+
+        Entity entity = event.getEntity();
+        if (!(entity instanceof FallingBlock falling))
+        {
+            return;
+        }
+
+        if (SignBlocks.isSignMaterial(falling.getBlockData().getMaterial()))
+        {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onEntityChangeBlock(EntityChangeBlockEvent event)
+    {
+        if (!fallingSignsBlocked())
+        {
+            return;
+        }
+
+        if (!(event.getEntity() instanceof FallingBlock))
+        {
+            return;
+        }
+
+        if (SignBlocks.isSignBlock(event.getBlock()))
+        {
+            event.setCancelled(true);
+            event.getEntity().remove();
+        }
+    }
+
+    private boolean signPlacementBlocked()
+    {
+        return Boolean.FALSE.equals(ConfigEntry.ALLOW_SIGN_PLACE.getBoolean());
+    }
+
+    private boolean fallingSignsBlocked()
+    {
+        return Boolean.FALSE.equals(ConfigEntry.ALLOW_FALLING_SIGNS.getBoolean());
     }
 
 }

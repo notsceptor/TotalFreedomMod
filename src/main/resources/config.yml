@@ -60,6 +60,8 @@ allow:
   water_place: false
   tnt_minecarts: false
   explosions: false
+  sign_place: true
+  falling_signs: false
 
 # Blocked commands:
 #

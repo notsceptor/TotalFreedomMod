@@ -18,6 +18,8 @@ public enum ConfigEntry
     ALLOW_LAVA_PLACE(Boolean.class, "allow.lava_place"),
     ALLOW_TNT_MINECARTS(Boolean.class, "allow.tnt_minecarts"),
     ALLOW_WATER_PLACE(Boolean.class, "allow.water_place"),
+    ALLOW_SIGN_PLACE(Boolean.class, "allow.sign_place"),
+    ALLOW_FALLING_SIGNS(Boolean.class, "allow.falling_signs"),
     //
     MOB_LIMITER_ENABLED(Boolean.class, "moblimiter.enabled"),
     MOB_LIMITER_MAX(Integer.class, "moblimiter.max"),
