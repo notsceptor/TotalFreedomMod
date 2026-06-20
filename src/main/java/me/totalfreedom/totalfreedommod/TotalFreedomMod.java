@@ -102,6 +102,7 @@ public class TotalFreedomMod extends JavaPlugin
     public Freezer fm; // Freezer - Freezes players in place
     public Orbiter or; // Orbiter - Makes players orbit around a point
     public Muter mu; // Muter - Mutes players
+    public SpectatorBlocker sb; // SpectatorBlocker - Blocks spectator teleports to players
     public Fuckoff fo; // Fuckoff - Kicks players with a message
     public AutoKick ak; // AutoKick - Automatically kicks players based on conditions
     public AutoEject ae; // AutoEject - Automatically ejects players from vehicles
@@ -227,6 +228,7 @@ public class TotalFreedomMod extends JavaPlugin
         fm = services.registerService(Freezer.class);
         or = services.registerService(Orbiter.class);
         mu = services.registerService(Muter.class);
+        sb = services.registerService(SpectatorBlocker.class);
         fo = services.registerService(Fuckoff.class);
         ak = services.registerService(AutoKick.class);
         ae = services.registerService(AutoEject.class);

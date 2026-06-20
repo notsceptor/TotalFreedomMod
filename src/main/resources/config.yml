@@ -518,6 +518,9 @@ mask_ips: false
 petprotect:
   enabled: true
 
+# When true, non-admins in spectator mode cannot click on other players to attach their camera.
+block_spectator_teleport: true
+
 # LibsDisguises integration
 disguises:
   # List of forbidden disguise types (case-insensitive)

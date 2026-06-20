@@ -81,6 +81,7 @@ public enum ConfigEntry
     //
     ENABLE_PREPROCESS_LOG(Boolean.class, "preprocess_log"),
     ENABLE_PET_PROTECT(Boolean.class, "petprotect.enabled"),
+    BLOCK_SPECTATOR_TELEPORT(Boolean.class, "block_spectator_teleport"),
     //
     LANDMINES_ENABLED(Boolean.class, "landmines_enabled"),
     TOSSMOB_ENABLED(Boolean.class, "tossmob_enabled"),
