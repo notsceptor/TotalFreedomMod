@@ -58,9 +58,10 @@ public class SignValidator extends FreedomService
         }
     }
 
-     * comes near or joins. Removing them at the source keeps the chunk data sent
-     * to new joiners clean; the outbound packet guard covers the brief window
-     * before the next sweep.
+    /**
+     * Acts as a repeating sweep of chunks around each player on the server in order
+	 * to write over any bad chunk data.  The outbound packet guard covers the brief
+	 * window before the next one.
      */
     private void scheduleProactiveSweep()
     {
