@@ -1,5 +1,6 @@
 package me.totalfreedom.totalfreedommod.config;
 
+import java.util.Collections;
 import java.util.List;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 
@@ -260,7 +261,8 @@ public enum ConfigEntry
 
     public List<?> getList()
     {
-        return getConfig().getList(this);
+        List<?> value = getConfig().getList(this);
+        return value != null ? value : Collections.emptyList();
     }
 
     @SuppressWarnings("unchecked")
