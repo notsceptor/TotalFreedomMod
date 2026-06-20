@@ -125,6 +125,13 @@ public enum ConfigEntry
     CRASH_SIGNS_SWEEP_TICKS(Integer.class, "crash_signs.sweep_ticks"),
     CRASH_SIGNS_SWEEP_RADIUS(Integer.class, "crash_signs.sweep_radius"),
     //
+    CRASH_ENTITIES_PREVENT(Boolean.class, "crash_entities.prevent"),
+    CRASH_ENTITIES_MAX_NAME_LENGTH(Integer.class, "crash_entities.max_name_length"),
+    CRASH_ENTITIES_MAX_COMPONENT_NODES(Integer.class, "crash_entities.max_component_nodes"),
+    CRASH_ENTITIES_SWEEP_TICKS(Integer.class, "crash_entities.sweep_ticks"),
+    CRASH_ENTITIES_SCREEN_COMMANDS(Boolean.class, "crash_entities.screen_commands"),
+    CRASH_ENTITIES_STRIP_NAME_VISIBLE(Boolean.class, "crash_entities.strip_name_visible"),
+    //
     AUTOEJECT_ENABLED(Boolean.class, "autoeject.enabled"),
     AUTOEJECT_PERSIST(Boolean.class, "autoeject.persist"),
     AUTOEJECT_TIME_WINDOW(Integer.class, "autoeject.time_window"),

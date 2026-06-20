@@ -16,6 +16,7 @@ import me.totalfreedom.totalfreedommod.blocking.InteractBlocker;
 import me.totalfreedom.totalfreedommod.blocking.MobBlocker;
 import me.totalfreedom.totalfreedommod.blocking.PotionBlocker;
 import me.totalfreedom.totalfreedommod.blocking.command.CommandBlocker;
+import me.totalfreedom.totalfreedommod.blocking.entity.EntityNameValidator;
 import me.totalfreedom.totalfreedommod.blocking.item.EquipmentPacketGuard;
 import me.totalfreedom.totalfreedommod.blocking.item.ItemValidator;
 import me.totalfreedom.totalfreedommod.blocking.sign.SignValidator;
@@ -82,6 +83,7 @@ public class TotalFreedomMod extends JavaPlugin
     public EventBlocker eb; // EventBlocker - Blocks various game events
     public BlockBlocker bb; // BlockBlocker - Blocks block placement/breaking
     public MobBlocker mb; // MobBlocker - Blocks mob spawning
+    public EntityNameValidator env; // EntityNameValidator - Strips custom names from entities
     public InteractBlocker ib; // InteractBlocker - Blocks block interactions
     public PotionBlocker pb; // PotionBlocker - Blocks potion effects
     public LoginProcess lp; // LoginProcess - Handles player login processing
@@ -204,6 +206,7 @@ public class TotalFreedomMod extends JavaPlugin
         eb = services.registerService(EventBlocker.class);
         bb = services.registerService(BlockBlocker.class);
         mb = services.registerService(MobBlocker.class);
+        env = services.registerService(EntityNameValidator.class);
         ib = services.registerService(InteractBlocker.class);
         pb = services.registerService(PotionBlocker.class);
         lp = services.registerService(LoginProcess.class);

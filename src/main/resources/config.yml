@@ -279,6 +279,25 @@ crash_signs:
   # Disable if you see too much CPU spike on player join.
   chunk_guard: true
 
+# EntityNameValidator
+# Detects renamed mobs/entities with custom names that can freeze/hang clients.
+crash_entities:
+  # Whether to strip cursed entity custom names.
+  prevent: true
+  # Maximum plain-text length permitted for an entity custom name.
+  # 64 matches the item-name limit.
+  max_name_length: 64
+  # Maximum Adventure component nodes inspected per custom name.
+  max_component_nodes: 1024
+  # Periodic sweep (in ticks, 20 = 1s) over every entity in every loaded
+  # world. 0 disables the sweep. 200 ticks (10s) is a good balance.
+  sweep_ticks: 200
+  # Pre-screens /summon, /data, /execute, /entitydata, /nick and /rename
+  # for format-specifier patterns (e.g. "%1$s") and nested NBT before executing.
+  screen_commands: true
+  # When stripping a cursed name, also clear the nameplate? (Protects the client.)
+  strip_name_visible: true
+
 # AutoEject runs when AntiSpam, AntiNuke or a blocked command action trips.
 # Strikes are stored according to the player's IP address.
 autoeject:
