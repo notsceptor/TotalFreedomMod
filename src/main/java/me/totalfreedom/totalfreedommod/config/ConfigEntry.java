@@ -21,6 +21,7 @@ public enum ConfigEntry
     ALLOW_WATER_PLACE(Boolean.class, "allow.water_place"),
     ALLOW_SIGN_PLACE(Boolean.class, "allow.sign_place"),
     ALLOW_FALLING_SIGNS(Boolean.class, "allow.falling_signs"),
+    ALLOW_FALLING_BLOCKS(Boolean.class, "allow.falling_blocks"),
     //
     MOB_LIMITER_ENABLED(Boolean.class, "moblimiter.enabled"),
     MOB_LIMITER_MAX(Integer.class, "moblimiter.max"),

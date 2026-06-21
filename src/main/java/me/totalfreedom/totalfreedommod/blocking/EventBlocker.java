@@ -16,6 +16,7 @@ import org.bukkit.entity.Tameable;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.block.BlockBurnEvent;
+import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.BlockIgniteEvent;
 import org.bukkit.event.block.BlockPistonExtendEvent;
@@ -79,6 +80,18 @@ public class EventBlocker extends FreedomService
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onEntityExplode(EntityExplodeEvent event)
+    {
+        if (!ConfigEntry.ALLOW_EXPLOSIONS.getBoolean())
+        {
+            event.setCancelled(true);
+            return;
+        }
+
+        event.setYield(0.0F);
+    }
+
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onBlockExplode(BlockExplodeEvent event)
     {
         if (!ConfigEntry.ALLOW_EXPLOSIONS.getBoolean())
         {

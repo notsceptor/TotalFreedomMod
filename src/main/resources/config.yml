@@ -66,6 +66,7 @@ allow:
   explosions: false
   sign_place: true
   falling_signs: false
+  falling_blocks: false
 
 # Blocked commands:
 #

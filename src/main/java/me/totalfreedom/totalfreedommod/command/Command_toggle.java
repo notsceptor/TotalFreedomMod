@@ -23,6 +23,7 @@ public class Command_toggle extends FreedomCommand
             msg("- fireplace");
             msg("- signplace");
             msg("- fallingsigns");
+            msg("- fallingblocks");
             msg("- lavaplace");
             msg("- fluidspread");
             msg("- lavadmg");
@@ -57,6 +58,12 @@ public class Command_toggle extends FreedomCommand
         if (args[0].equals("fallingsigns"))
         {
             toggle("Falling sign placement is", ConfigEntry.ALLOW_FALLING_SIGNS);
+            return true;
+        }
+
+        if (args[0].equals("fallingblocks"))
+        {
+            toggle("Falling blocks are", ConfigEntry.ALLOW_FALLING_BLOCKS);
             return true;
         }
 

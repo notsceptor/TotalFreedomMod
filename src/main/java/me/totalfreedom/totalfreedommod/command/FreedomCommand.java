@@ -183,6 +183,15 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
         {
             if (e.getCause() instanceof CommandFailException)
                 throw (CommandFailException) e.getCause();
+                final Throwable cause = e.getCause();
+            if (cause instanceof CommandFailException cfe)
+            {
+                throw cfe;
+            }
+            if (cause instanceof RuntimeException rte)
+            {
+                throw rte;
+            }
             FLog.severe(String.format("Exception in pattern handler for command %s:", commandName));
             FLog.severe(e);
         }

@@ -148,18 +148,18 @@ public class BlockBlocker extends FreedomService
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onEntitySpawn(EntitySpawnEvent event)
     {
-        if (!fallingSignsBlocked())
+        if (!(event.getEntity() instanceof FallingBlock falling))
         {
             return;
         }
 
-        Entity entity = event.getEntity();
-        if (!(entity instanceof FallingBlock falling))
+        if (fallingBlocksBlocked())
         {
+            event.setCancelled(true);
             return;
         }
 
-        if (SignBlocks.isSignMaterial(falling.getBlockData().getMaterial()))
+        if (fallingSignsBlocked() && SignBlocks.isSignMaterial(falling.getBlockData().getMaterial()))
         {
             event.setCancelled(true);
         }
@@ -168,17 +168,19 @@ public class BlockBlocker extends FreedomService
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onEntityChangeBlock(EntityChangeBlockEvent event)
     {
-        if (!fallingSignsBlocked())
-        {
-            return;
-        }
-
         if (!(event.getEntity() instanceof FallingBlock))
         {
             return;
         }
 
-        if (SignBlocks.isSignBlock(event.getBlock()))
+        if (fallingBlocksBlocked())
+        {
+            event.setCancelled(true);
+            event.getEntity().remove();
+            return;
+        }
+
+        if (fallingSignsBlocked() && SignBlocks.isSignBlock(event.getBlock()))
         {
             event.setCancelled(true);
             event.getEntity().remove();
@@ -193,6 +195,11 @@ public class BlockBlocker extends FreedomService
     private boolean fallingSignsBlocked()
     {
         return Boolean.FALSE.equals(ConfigEntry.ALLOW_FALLING_SIGNS.getBoolean());
+    }
+
+    private boolean fallingBlocksBlocked()
+    {
+        return Boolean.FALSE.equals(ConfigEntry.ALLOW_FALLING_BLOCKS.getBoolean());
     }
 
 }
