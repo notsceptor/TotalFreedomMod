@@ -181,9 +181,7 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
         }
         catch (InvocationTargetException e)
         {
-            if (e.getCause() instanceof CommandFailException)
-                throw (CommandFailException) e.getCause();
-                final Throwable cause = e.getCause();
+            final Throwable cause = e.getCause();
             if (cause instanceof CommandFailException cfe)
             {
                 throw cfe;
