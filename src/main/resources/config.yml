@@ -427,6 +427,9 @@ discord:
   # ID for the public chat relay channel
   public_channel_id: ''
 
+  # ID for the admin chat relay channel
+  adminchat_channel_id: ''
+
   # ID for the admin console channel
   console_channel_id: ''
 
@@ -435,6 +438,12 @@ discord:
 
   # Format applied to in-game chat posted into the Discord public channel.
   channel_format: '{message}'
+
+  # Format applied to Discord messages broadcast into admin chat.
+  adminchat_format: '&8[&9Discord&8] &f[&bADMIN&f] &4{user}: &6{message}'
+
+  # Format applied to in-game chat posted in the Discord admin chat channel.
+  adminchat_channel_format: '{message}'
 
   # Console-channel log flush interval, in milliseconds (ms).
   console_flush: 1500
