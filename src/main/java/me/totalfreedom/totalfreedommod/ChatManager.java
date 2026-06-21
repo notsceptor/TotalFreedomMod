@@ -333,7 +333,7 @@ public class ChatManager extends FreedomService
 				.append(Component.text("").color(NamedTextColor.WHITE));
 
 		Component adminMsg = Component.text("[")
-				.color(NamedTextColor.AQUA)
+				.color(NamedTextColor.WHITE)
 				.append(Component.text("ADMIN").color(NamedTextColor.AQUA))
 				.append(Component.text("] ").color(NamedTextColor.WHITE))
 				.append(nameComponent.color(NamedTextColor.DARK_RED))
