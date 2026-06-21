@@ -31,6 +31,7 @@ public class DiscordChatRelay extends ListenerAdapter
     }
 
     private static final int DISCORD_MAX_MESSAGE_LENGTH = 1900;
+    private static final int MINECRAFT_MAX_MESSAGE_LENGTH = 200;
 
     public void sendPlayerChatToDiscord(Component rendered)
     {
@@ -123,9 +124,11 @@ public class DiscordChatRelay extends ListenerAdapter
         User author = event.getAuthor();
         String displayName = event.getMember() != null ? event.getMember().getEffectiveName() : author.getName();
 
+        final String truncatedContent = content.length() > MINECRAFT_MAX_MESSAGE_LENGTH ? content.substring(0, MINECRAFT_MAX_MESSAGE_LENGTH) : content;
+
         String rendered = template
                 .replace("{user}", displayName)
-                .replace("{message}", content);
+                .replace("{message}", truncatedContent);
         String translated = AdventureUtil.translateAlternateColorCodes(rendered);
 
         Component component = LegacyComponentSerializer.legacySection().deserialize(translated);
