@@ -389,6 +389,10 @@ public class RankManager extends FreedomService
     
     public CustomRank getCustomRank(String id)
     {
+        if (id == null)
+        {
+            return null;
+        }
         return customRanks.get(id.toLowerCase());
     }
     

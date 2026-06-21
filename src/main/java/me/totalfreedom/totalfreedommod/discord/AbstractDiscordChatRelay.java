@@ -158,9 +158,16 @@ public abstract class AbstractDiscordChatRelay extends ListenerAdapter
             return;
         }
 
-        channel.sendMessage(body).queue(
-                null,
-                err -> failRelayChannelSend(failureDescription, err)
-        );
+        try
+        {
+            channel.sendMessage(body).queue(
+                    null,
+                    err -> failRelayChannelSend(failureDescription, err)
+            );
+        }
+        catch (java.util.concurrent.RejectedExecutionException ex)
+        {
+            failRelayChannelSend(failureDescription, ex);
+        }
     }
 }

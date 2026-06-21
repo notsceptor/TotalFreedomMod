@@ -175,6 +175,15 @@ public class DiscordBridge extends FreedomService
 
         shutdownJdaQuietly();
 
+        chatRelay = null;
+        adminchatRelay = null;
+        consoleRelay = null;
+        commands = null;
+        publicChannel = null;
+        adminchatChannel = null;
+        consoleChannel = null;
+        guild = null;
+
         pendingLinks.clear();
     }
 
