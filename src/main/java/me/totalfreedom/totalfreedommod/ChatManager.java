@@ -328,8 +328,10 @@ public class ChatManager extends FreedomService
 	}
 
 	public void adminChat(CommandSender sender, String message) {
+		Component tag = plugin.rm.getDisplay(sender).getColoredTag();
+
 		Component nameComponent = Component.text(sender.getName() + " ")
-				.append(plugin.rm.getDisplay(sender).getColoredTag())
+				.append(tag)
 				.append(Component.text("").color(NamedTextColor.WHITE));
 
 		Component adminMsg = Component.text("[")
@@ -352,6 +354,8 @@ public class ChatManager extends FreedomService
 		for (Player player : plugin.al.getOnlineAdmins()) {
 			player.sendMessage(adminMsg);
 		}
+
+		plugin.db.relayAdminchatMessage(sender, tag, message);
 	}
 
 	public void reportAction(Player reporter, Player reported, String report) {

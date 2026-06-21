@@ -22,6 +22,8 @@ import net.dv8tion.jda.api.utils.MemberCachePolicy;
 import net.dv8tion.jda.api.utils.cache.CacheFlag;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
+
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -40,9 +42,11 @@ public class DiscordBridge extends FreedomService
     private JDA jda;
     private Guild guild;
     private TextChannel publicChannel;
+    private TextChannel adminchatChannel;
     private TextChannel consoleChannel;
 
     private DiscordChatRelay chatRelay;
+    private DiscordAdminchatRelay adminchatRelay;
     private DiscordConsoleRelay consoleRelay;
     private DiscordCommands commands;
 
@@ -112,13 +116,15 @@ public class DiscordBridge extends FreedomService
         }
 
         publicChannel = resolveChannel(ConfigEntry.DISCORD_PUBLIC_CHANNEL_ID.getString(), "public_channel_id");
+        adminchatChannel = resolveChannel(ConfigEntry.DISCORD_ADMINCHAT_CHANNEL_ID.getString(), "adminchat_channel_id");
         consoleChannel = resolveChannel(ConfigEntry.DISCORD_CONSOLE_CHANNEL_ID.getString(), "console_channel_id");
 
         commands = new DiscordCommands(plugin, this);
         chatRelay = new DiscordChatRelay(plugin, this);
+        adminchatRelay = new DiscordAdminchatRelay(plugin, this);
         consoleRelay = new DiscordConsoleRelay(plugin, this);
 
-        jda.addEventListener(commands, chatRelay, consoleRelay);
+        jda.addEventListener(commands, chatRelay, adminchatRelay, consoleRelay);
 
         guild.updateCommands().addCommands(
                 Commands.slash("list", "Show a list of players on the server."),
@@ -149,6 +155,7 @@ public class DiscordBridge extends FreedomService
 
         FLog.info("[Discord] Bridge ready. Guild: " + guild.getName()
                 + " | public: " + (publicChannel == null ? "(none)" : publicChannel.getName())
+                + " | adminchat: " + (adminchatChannel == null ? "(none)" : adminchatChannel.getName())
                 + " | console: " + (consoleChannel == null ? "(none)" : consoleChannel.getName()));
     }
 
@@ -189,7 +196,17 @@ public class DiscordBridge extends FreedomService
             FLog.warning("[Discord] Chat renderer threw, falling back to plain: " + ex.getMessage());
             rendered = Component.text(player.getName() + ": ").append(event.message());
         }
-        chatRelay.sendPlayerChatToDiscord(rendered);
+        chatRelay.sendMessageToDiscord(rendered);
+    }
+
+    public void relayAdminchatMessage(CommandSender sender, Component tag, String message)
+    {
+        if (adminchatRelay == null || adminchatChannel == null)
+        {
+            return;
+        }
+        Component rendered = tag.append(Component.text(" " + sender.getName() + ": " + message));
+        adminchatRelay.sendMessageToDiscord(rendered);
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -290,6 +307,11 @@ public class DiscordBridge extends FreedomService
     public TextChannel getPublicChannel()
     {
         return publicChannel;
+    }
+
+    public TextChannel getAdminchatChannel()
+    {
+        return adminchatChannel;
     }
 
     public TextChannel getConsoleChannel()

@@ -1,0 +1,166 @@
+package me.totalfreedom.totalfreedommod.discord;
+
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+
+import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.totalfreedommod.util.AdventureUtil;
+import me.totalfreedom.totalfreedommod.util.FLog;
+import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import org.bukkit.Bukkit;
+import org.jetbrains.annotations.NotNull;
+
+/**
+ * Bidirectional chat relay for the chat channel chosen by the extending subclass.
+ */
+public abstract class AbstractDiscordChatRelay extends ListenerAdapter
+{
+    protected static final int DISCORD_MAX_MESSAGE_LENGTH = 1900;
+    protected static final int MINECRAFT_MAX_MESSAGE_LENGTH = 200;
+
+    private final TextChannel channel;
+    private final String channelFormat;
+    private final String chatFormat;
+    private final Consumer<Component> chatAction;
+    private final TotalFreedomMod plugin;
+    private final DiscordBridge bridge;
+
+    public AbstractDiscordChatRelay(TextChannel channel, String channelFormat, String chatFormat, Consumer<Component> chatAction, TotalFreedomMod plugin, DiscordBridge bridge)
+    {
+        this.channel = channel;
+        this.channelFormat = channelFormat;
+        this.chatFormat = chatFormat;
+        this.chatAction = chatAction;
+        this.plugin = plugin;
+        this.bridge = bridge;
+    }
+
+
+    public void sendMessageToDiscord(Component rendered)
+    {
+        String body = DiscordMarkdown.render(rendered);
+        if (body.isBlank())
+        {
+            return;
+        }
+
+        if (channelFormat != null && !channelFormat.isBlank())
+        {
+            body = channelFormat.replace("{message}", body);
+        }
+
+        if (body.length() > DISCORD_MAX_MESSAGE_LENGTH)
+        {
+            body = body.substring(0, DISCORD_MAX_MESSAGE_LENGTH) + "…";
+        }
+
+        sendToRelayChannel(body, "forward chat to Discord");
+    }
+
+    public void sendSystemMessageToDiscord(String message)
+    {
+        if (message == null || message.isBlank())
+        {
+            return;
+        }
+
+        sendToRelayChannel(sanitizeForDiscord(message), "send system message to Discord");
+    }
+
+    public void sendSystemMessageToDiscordNow(String message, long timeout, TimeUnit unit)
+    {
+        if (message == null || message.isBlank())
+        {
+            return;
+        }
+
+        TextChannel channel = bridge.getPublicChannel();
+        if (channel == null)
+        {
+            return;
+        }
+
+        try
+        {
+            channel.sendMessage(sanitizeForDiscord(message)).submit().get(timeout, unit);
+        }
+        catch (InterruptedException ex)
+        {
+            Thread.currentThread().interrupt();
+            FLog.warning("[Discord] Interrupted while sending system message to Discord.");
+        }
+        catch (Exception ex)
+        {
+            FLog.warning("[Discord] Failed to send system message to Discord: " + ex.getMessage());
+        }
+    }
+
+    @Override
+    public void onMessageReceived(@NotNull MessageReceivedEvent event)
+    {
+        if (event.getAuthor().isBot() || event.getAuthor().isSystem())
+        {
+            return;
+        }
+        if (channel == null || !event.isFromGuild())
+        {
+            return;
+        }
+        if (!event.getChannel().getId().equals(channel.getId()))
+        {
+            return;
+        }
+
+        String content = event.getMessage().getContentDisplay();
+        if (content.isBlank())
+        {
+            return;
+        }
+
+        String template = chatFormat;
+        if (template == null || template.isBlank())
+            template = "&9[Discord] &r{user}&7: &f{message}";
+        User author = event.getAuthor();
+        String displayName = event.getMember() != null ? event.getMember().getEffectiveName() : author.getName();
+
+        final String truncatedContent = content.length() > MINECRAFT_MAX_MESSAGE_LENGTH ? content.substring(0, MINECRAFT_MAX_MESSAGE_LENGTH) : content;
+
+        String rendered = template
+                .replace("{user}", displayName)
+                .replace("{message}", truncatedContent);
+        String translated = AdventureUtil.translateAlternateColorCodes(rendered);
+
+        Component component = LegacyComponentSerializer.legacySection().deserialize(translated);
+        // Hop back to the main thread to broadcast.
+        Bukkit.getScheduler().runTask(plugin, () -> chatAction.accept(component));
+    }
+
+    private static String sanitizeForDiscord(String input)
+    {
+        return input.replace("`", "'");
+    }
+
+    private void failRelayChannelSend(final String failureDescription, final Throwable err)
+    {
+        FLog.warning("[Discord] Failed to " + failureDescription + (err != null ? ": " + err.getMessage() : ""));
+    }
+
+    private void sendToRelayChannel(final String body, final String failureDescription)
+    {
+        if (channel == null || body == null)
+        {
+            failRelayChannelSend(failureDescription, null);
+            return;
+        }
+
+        channel.sendMessage(body).queue(
+                null,
+                err -> failRelayChannelSend(failureDescription, err)
+        );
+    }
+}
