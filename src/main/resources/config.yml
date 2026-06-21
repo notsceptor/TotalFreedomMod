@@ -298,6 +298,15 @@ crash_entities:
   screen_commands: true
   # When stripping a cursed name, also clear the nameplate? (Protects the client.)
   strip_name_visible: true
+  # Limit on entity scale multiplier (Attribute.SCALE).  Vanilla allows
+  # up to 16.0.  0 disables the scale cap.
+  max_scale: 4.0
+  # Limit on Slime#setSize.  Each +1 adds ~0.51 blocks to the slime's
+  # bounding box.  Vanilla maxes at 4 (large).  0 disables the size cap.
+  max_slime_size: 8
+  # Periodic sweep over loaded, oversized entities in the worlds, in ticks.
+  # 0 disables.  200 ticks (10s) by default.
+  scale_sweep_ticks: 200
 
 # AutoEject runs when AntiSpam, AntiNuke or a blocked command action trips.
 # Strikes are stored according to the player's IP address.
