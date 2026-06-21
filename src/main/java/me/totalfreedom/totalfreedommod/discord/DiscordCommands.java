@@ -47,7 +47,7 @@ public class DiscordCommands extends ListenerAdapter
         event.deferReply().queue();
         Bukkit.getScheduler().runTask(plugin, () ->
         {
-            String body = "```\n" + PlayerListUtil.buildPlainList() + "\n```";
+            String body = "```\n" + PlayerListUtil.buildRankList() + "\n```";
             event.getHook().sendMessage(body).queue();
         });
     }
