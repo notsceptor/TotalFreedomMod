@@ -4,14 +4,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
-import me.totalfreedom.totalfreedommod.admin.AdminList;
 import me.totalfreedom.totalfreedommod.rank.CustomRank;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 
@@ -66,30 +65,42 @@ public final class PlayerListUtil
                     continue;
                 }
                 // Add the player to their corresponding list, or create the list if it doesn't exist yet
-                playerRanks.merge(rank, new ArrayList<>(), (v, _) -> {
-                    v.add(player);
-                    return v;
-                });
+                if (!playerRanks.containsKey(rank))
+                    playerRanks.put(rank, new ArrayList<>());
+                playerRanks.get(rank).add(player);
                 continue;
             }
             // Otherwise default to OP
             playerRanks.get(defaultRank).add(player);
         }
 
+        if (playerRanks.get(defaultRank).isEmpty())
+            playerRanks.remove(defaultRank);
+
         final int max = Bukkit.getMaxPlayers();
 
-        return String.format("There are %s/%s players online.\n\n%s", players.size(), max, StringUtils.join(plugin.rm.getCustomRanks()
+        final List<String> playerListings = plugin.rm.getCustomRanks()
             .values()
             .stream()
             .sorted((r1, r2) -> Integer.compare(r2.getLevel(), r1.getLevel())) // Sort in reverse level order, highest ranks listed first
+            .filter(playerRanks::containsKey)
             .map(rank -> {
                 // Get all players with that rank
                 final List<Player> rankedPlayers = playerRanks.get(rank);
+                final List<String> rankedPlayerNames = rankedPlayers
+                    .stream()
+                    .map(Player::getName)
+                    .collect(Collectors.toCollection(ArrayList::new));
                 // Make a nice message out of it
                 return String.format("%ss (%s): %s",
                     rank.getName(),
                     rankedPlayers.size(),
-                    StringUtils.join(rankedPlayers.stream().map(Player::getName), ", "));
-            }), "\n"));
+                    StringUtils.join(rankedPlayerNames, ", "));
+            }).collect(Collectors.toCollection(ArrayList::new));
+
+        return String.format("There are %s/%s players online.\n\n%s",
+            players.size(),
+            max,
+            StringUtils.join(playerListings, "\n"));
     }
 }
