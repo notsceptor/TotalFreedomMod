@@ -57,7 +57,9 @@ public final class PlayerListUtil
             // If they're an admin, we can pull their rank
             if (admin != null)
             {
-                final var rank = plugin.rm.getCustomRank(admin.getCustomRankId());
+                var rank = plugin.rm.getCustomRank(admin.getCustomRankId());
+                if (rank == null)
+                    rank = CustomRank.fromLegacyRank(admin.getRank());
                 if (rank == null)
                 {
                     // Give them OP if somehow they don't have a rank
