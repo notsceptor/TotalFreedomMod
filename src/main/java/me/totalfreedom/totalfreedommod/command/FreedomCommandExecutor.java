@@ -13,6 +13,8 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import java.util.List;
+
 public class FreedomCommandExecutor implements CommandExecutor
 {
 
@@ -34,11 +36,6 @@ public class FreedomCommandExecutor implements CommandExecutor
         return commandBase instanceof FreedomCommand ? (FreedomCommand) commandBase : null;
     }
 
-    /**
-     * Entry point for Paper's Brigadier BasicCommand path.
-     * Handles permissions and dispatches to commandBase.runCommand().
-     * The Command parameter is null in this path — no FreedomCommand uses it.
-     */
     void executePaper(CommandSender sender, String label, String[] args)
     {
         if (!hasPermission(sender, true))
@@ -78,6 +75,25 @@ public class FreedomCommandExecutor implements CommandExecutor
         }
     }
 
+    List<String> tabComplete(CommandSender sender, String label, String[] args)
+    {
+        if (!hasPermission(sender, false))
+        {
+            return List.of();
+        }
+
+        try
+        {
+            return commandBase.tabComplete(sender, label, args);
+        }
+        catch (Exception ex)
+        {
+            FLog.warning("Unhandled tab-completion exception: " + label);
+            FLog.warning(ex);
+            return List.of();
+        }
+    }
+
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args)
     {
@@ -112,7 +128,6 @@ public class FreedomCommandExecutor implements CommandExecutor
             return true;
         }
 
-        // Channel-eligibility check for per-user-identified non-player senders.
         RemoteDispatchSession dispatch = RemoteDispatchContext.getActiveSession();
         if (dispatch != null)
         {
@@ -152,7 +167,6 @@ public class FreedomCommandExecutor implements CommandExecutor
 
         final Player player = sender instanceof Player ? (Player) sender : null;
 
-        // Only console
         if (perms.source() == SourceType.ONLY_CONSOLE && player != null)
         {
             if (sendMsg)
@@ -162,7 +176,6 @@ public class FreedomCommandExecutor implements CommandExecutor
             return false;
         }
 
-        // Only in game
         if (perms.source() == SourceType.ONLY_IN_GAME && player == null)
         {
             if (sendMsg)
@@ -172,7 +185,6 @@ public class FreedomCommandExecutor implements CommandExecutor
             return false;
         }
 
-        // Check TFM permission if specified (custom rank system)
         String tfmPermission = perms.permission();
         if (tfmPermission != null && !tfmPermission.isEmpty())
         {
@@ -184,8 +196,6 @@ public class FreedomCommandExecutor implements CommandExecutor
             return result;
         }
 
-        // Fallback to legacy rank level check
-        // Player permissions
         if (player != null)
         {
             Rank rank = plugin.rm.getRank(player);
@@ -197,7 +207,6 @@ public class FreedomCommandExecutor implements CommandExecutor
             return result;
         }
 
-        // Console permissions
         Rank rank = plugin.rm.getRank(sender);
         String boundRankId = plugin.csr.getRankIdForSender(sender.getName());
         CustomRank boundCustom = boundRankId != null ? plugin.rm.getCustomRank(boundRankId) : null;
@@ -235,7 +244,6 @@ public class FreedomCommandExecutor implements CommandExecutor
 
     }
 
-    // Minimal fallback when running through Paper's lifecycle command path.
     private static final class FallbackCommand extends Command
     {
         private FallbackCommand(String name)

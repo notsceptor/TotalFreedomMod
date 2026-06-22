@@ -3,12 +3,8 @@ package me.totalfreedom.totalfreedommod.command;
 import io.papermc.paper.command.brigadier.BasicCommand;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import java.util.Collection;
-import java.util.List;
 import org.bukkit.command.CommandSender;
 
-/**
- * Bridges Paper's Brigadier BasicCommand API to the existing FreedomCommandExecutor.
- */
 @SuppressWarnings("UnstableApiUsage")
 public class FreedomBasicCommand implements BasicCommand
 {
@@ -37,6 +33,6 @@ public class FreedomBasicCommand implements BasicCommand
     @Override
     public Collection<String> suggest(CommandSourceStack stack, String[] args)
     {
-        return List.of();
+        return executor.tabComplete(stack.getSender(), name, args);
     }
 }

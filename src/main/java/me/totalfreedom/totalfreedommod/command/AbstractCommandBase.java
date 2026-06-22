@@ -5,10 +5,9 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-/**
- * Base class for commands.
- * Provides common functionality for command execution.
- */
+import java.util.List;
+import java.util.Locale;
+
 public abstract class AbstractCommandBase<T extends TotalFreedomMod>
 {
 
@@ -21,10 +20,6 @@ public abstract class AbstractCommandBase<T extends TotalFreedomMod>
     protected Player playerSender;
     protected CommandHandler<T> handler;
 
-    /**
-     * Sets the variables for command execution.
-     * Called before runCommand() is invoked.
-     */
     protected void setVariables(CommandSender sender, Command command, String label, String[] args)
     {
         this.sender = sender;
@@ -34,51 +29,42 @@ public abstract class AbstractCommandBase<T extends TotalFreedomMod>
         this.playerSender = sender instanceof Player ? (Player) sender : null;
     }
 
-    /**
-     * Sets the command handler.
-     * Called during command registration.
-     */
     protected void setHandler(CommandHandler<T> handler)
     {
         this.handler = handler;
     }
 
-    /**
-     * Sets the plugin instance.
-     * Called during command registration.
-     */
     protected void setPlugin(T plugin)
     {
         this.plugin = plugin;
         this.server = plugin != null ? plugin.getServer() : null;
     }
 
-    /**
-     * Gets the command handler.
-     */
     protected CommandHandler<T> getHandler()
     {
         return handler;
     }
 
-    /**
-     * Checks if the sender is the console.
-     */
     protected boolean isConsole()
     {
         return !(sender instanceof Player);
     }
 
-    /**
-     * Executes the command.
-     * This is called by the command executor.
-     *
-     * @param sender The command sender
-     * @param command The command
-     * @param label The command label used
-     * @param args The command arguments
-     * @return true if the command was handled, false otherwise
-     */
     public abstract boolean runCommand(CommandSender sender, Command command, String label, String[] args);
-}
 
+    public List<String> tabComplete(CommandSender sender, String label, String[] args)
+    {
+        if (server == null || args.length == 0)
+        {
+            return List.of();
+        }
+
+        String partial = args[args.length - 1].toLowerCase(Locale.ROOT);
+
+        return server.getOnlinePlayers().stream()
+                .map(Player::getName)
+                .filter(name -> name.toLowerCase(Locale.ROOT).startsWith(partial))
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .toList();
+    }
+}
