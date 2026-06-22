@@ -87,7 +87,9 @@ public class Command_saconfig extends FreedomCommand
 
         admin.setRank(rank);
         admin.setCustomRankId(custom != null ? custom.getId() : null);
-        plugin.al.save();
+        plugin.al.updateTables();
+        plugin.al.saveAdminAsync(admin);
+
 
         msg("Set " + admin.getName() + "'s rank to " + displayName);
         return true;
@@ -173,8 +175,8 @@ public class Command_saconfig extends FreedomCommand
             admin.setActive(true);
             admin.setLastLogin(new Date());
 
-            plugin.al.save();
             plugin.al.updateTables();
+            plugin.al.saveAdminAsync(admin);
         }
 
         if (player != null)
@@ -207,8 +209,8 @@ public class Command_saconfig extends FreedomCommand
 
         FUtil.adminAction(sender.getName(), "Removing " + admin.getName() + " from the admin list", true);
         admin.setActive(false);
-        plugin.al.save();
         plugin.al.updateTables();
+        plugin.al.saveAdminAsync(admin);
         return true;
     }
 

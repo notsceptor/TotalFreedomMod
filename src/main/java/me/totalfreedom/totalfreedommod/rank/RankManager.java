@@ -143,6 +143,7 @@ public class RankManager extends FreedomService
         validateEssentialRanks();
         resolveInheritance();
         FLog.info("Loaded " + customRanks.size() + " custom ranks.");
+
     }
     
     private static final String[] ESSENTIAL_RANKS = {
@@ -347,6 +348,7 @@ public class RankManager extends FreedomService
         {
             FLog.severe("Could not save " + RANKS_FILENAME + ": " + ex.getMessage());
         }
+
     }
     
     private void resolveInheritance()

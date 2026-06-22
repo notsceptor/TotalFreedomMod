@@ -503,6 +503,15 @@ announcer:
     - 'Racism, nazism, and sexism are strictly forbidden!'
     - 'Join our Mumble server! IP: 64.34.202.140:2862'
 
+# What to display in the admininfo command.
+admininfo:
+  - '&bHow to apply for an admin position on the TotalFreedom Server:'
+  - ' &6- Do not ask for admin in game'
+  - ' &2- Be helpful within the server'
+  - ' &6- Report those breaking the rules'
+  - ' &2- And apply on our forums at the link:'
+  - '&9https://tfreedom.boards.net/thread/4/application-super-admin-status-june'
+
 # Famous players - cannot be banned by username
 famous_players:
   - honeydew

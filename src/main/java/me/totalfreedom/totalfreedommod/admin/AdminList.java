@@ -3,11 +3,13 @@ package me.totalfreedom.totalfreedommod.admin;
 import com.google.common.base.Function;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import lombok.Getter;
 import me.totalfreedom.totalfreedommod.FreedomService;
@@ -55,6 +57,8 @@ public class AdminList extends FreedomService
     
     // Flag to track if SQL is available
     private boolean usingSql = false;
+    private final Object persistenceLock = new Object();
+    private CompletableFuture<Void> persistenceChain = CompletableFuture.completedFuture(null);
 
     public AdminList(TotalFreedomMod plugin)
     {
@@ -266,12 +270,91 @@ public class AdminList extends FreedomService
      */
     public void saveAsync()
     {
-        if (!plugin.isEnabled())
+        if (usingSql)
         {
-            save();
+            for (Admin admin : List.copyOf(allAdmins.values()))
+            {
+                saveAdminAsync(admin);
+            }
             return;
         }
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, this::save);
+
+        if (!plugin.isEnabled())
+        {
+            saveToYaml();
+            return;
+        }
+
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () ->
+        {
+            synchronized (AdminList.this)
+            {
+                saveToYaml();
+            }
+        });
+    }
+
+    public void saveAdminAsync(Admin admin)
+    {
+        if (admin == null)
+        {
+            return;
+        }
+
+        if (!usingSql)
+        {
+            saveAsync();
+            return;
+        }
+
+        if (plugin.dm == null || !plugin.dm.isInitialized())
+        {
+            FLog.warning("SQL not available; admin change was not saved for " + admin.getName());
+            return;
+        }
+
+        Admin snapshot = copyAdmin(admin);
+        UUID uuid = snapshot.getUuid();
+
+        if (uuid == null)
+        {
+            uuid = FUtil.usernameToUuid(snapshot.getName());
+            if (uuid == null)
+            {
+                uuid = UUID.nameUUIDFromBytes(("OfflinePlayer:" + snapshot.getName().toLowerCase()).getBytes(StandardCharsets.UTF_8));
+            }
+            snapshot.setUuid(uuid);
+            admin.setUuid(uuid);
+        }
+
+        UUID finalUuid = uuid;
+        synchronized (persistenceLock)
+        {
+            persistenceChain = persistenceChain
+                    .handle((ignored, throwable) -> null)
+                    .thenCompose(ignored -> plugin.dm.getAdminRepository().save(finalUuid, snapshot).thenAccept(id ->
+                    {
+                    }))
+                    .exceptionally(ex ->
+                    {
+                        FLog.warning("Failed to save admin " + snapshot.getName() + " to SQL: " + ex.getMessage());
+                        return null;
+                    });
+        }
+    }
+
+    private Admin copyAdmin(Admin admin)
+    {
+        Admin copy = new Admin(admin.getConfigKey());
+        copy.setUuid(admin.getUuid());
+        copy.setName(admin.getName());
+        copy.setRank(admin.getRank());
+        copy.setActive(admin.isActive());
+        copy.setLastLogin(admin.getLastLogin() == null ? null : new Date(admin.getLastLogin().getTime()));
+        copy.setLoginMessage(admin.getLoginMessage());
+        copy.setCustomRankId(admin.getCustomRankId());
+        copy.addIps(new ArrayList<>(admin.getIps()));
+        return copy;
     }
     
     /**
@@ -557,29 +640,7 @@ public class AdminList extends FreedomService
      */
     private void saveAdminToSql(Admin admin)
     {
-        if (plugin.dm == null || !plugin.dm.isInitialized())
-        {
-            return;
-        }
-        
-        try
-        {
-            UUID uuid = admin.getUuid();
-            if (uuid == null)
-            {
-                uuid = FUtil.usernameToUuid(admin.getName());
-                if (uuid == null)
-                {
-                    uuid = UUID.nameUUIDFromBytes(("OfflinePlayer:" + admin.getName().toLowerCase()).getBytes());
-                }
-                admin.setUuid(uuid);
-            }
-            plugin.dm.getAdminRepository().save(uuid, admin).join();
-        }
-        catch (Exception ex)
-        {
-            FLog.warning("Failed to save admin to SQL: " + ex.getMessage());
-        }
+        saveAdminAsync(admin);
     }
 
     public boolean removeAdmin(Admin admin)
@@ -659,21 +720,40 @@ public class AdminList extends FreedomService
         {
             return;
         }
-        
-        try
+
+        UUID uuid = admin.getUuid();
+        String name = admin.getName();
+
+        synchronized (persistenceLock)
         {
-            if (admin.getUuid() != null)
-            {
-                plugin.dm.getAdminRepository().deleteByUuid(admin.getUuid()).join();
-            }
-            else
-            {
-                plugin.dm.getAdminRepository().deleteByUsername(admin.getName());
-            }
-        }
-        catch (Exception ex)
-        {
-            FLog.warning("Failed to remove admin from SQL: " + ex.getMessage());
+            persistenceChain = persistenceChain
+                    .handle((ignored, throwable) -> null)
+                    .thenCompose(ignored ->
+                    {
+                        if (uuid != null)
+                        {
+                            return plugin.dm.getAdminRepository().deleteByUuid(uuid).thenAccept(deleted ->
+                            {
+                            });
+                        }
+
+                        return CompletableFuture.runAsync(() ->
+                        {
+                            try
+                            {
+                                plugin.dm.getAdminRepository().deleteByUsername(name);
+                            }
+                            catch (Exception ex)
+                            {
+                                throw new RuntimeException(ex);
+                            }
+                        });
+                    })
+                    .exceptionally(ex ->
+                    {
+                        FLog.warning("Failed to remove admin " + name + " from SQL: " + ex.getMessage());
+                        return null;
+                    });
         }
     }
 
@@ -718,6 +798,7 @@ public class AdminList extends FreedomService
         }
 
         plugin.wm.adminworld.wipeAccessCache();
+
     }
     
     /**
@@ -782,9 +863,9 @@ public class AdminList extends FreedomService
             }
 
             admin.setActive(false);
+            saveAdminAsync(admin);
         }
 
-        save();
         updateTables();
     }
 }
