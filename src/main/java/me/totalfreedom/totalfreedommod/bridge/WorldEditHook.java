@@ -92,7 +92,9 @@ public final class WorldEditHook implements Listener
 
     private static final Set<String> SIZE_SENSITIVE_LABELS = Set.of(
         "copy", "cut", "paste", "stack", "set", "replace", "regen",
-        "sphere", "cyl", "pyramid", "smooth", "hsphere", "hcyl", "hpyramid"
+        "sphere", "cyl", "pyramid", "smooth", "hsphere", "hcyl", "hpyramid",
+        // relighting doesn't call setBlock so we have to guard their volume
+        "fixlighting", "fixlight", "removelighting", "removelight"
     );
 
     private final TotalFreedomMod plugin;
@@ -462,6 +464,30 @@ public final class WorldEditHook implements Listener
     }
 
     /**
+     * Calculates the theoretical amount of modified blocks within a cuboid bound.
+     * Prevents the exploitation of maths along extreme coordinates (e.g. "Infinity").
+     */
+    private static long safeSelectionVolume(BlockVector3 min, BlockVector3 max)
+    {
+        final long dx = (long) max.x() - min.x() + 1L;
+        final long dy = (long) max.y() - min.y() + 1L;
+        final long dz = (long) max.z() - min.z() + 1L;
+        // normalized min/max always yield spans >= 1
+        if (dx <= 0L || dy <= 0L || dz <= 0L)
+        {
+            return Long.MAX_VALUE;
+        }
+        try
+        {
+            return Math.multiplyExact(Math.multiplyExact(dx, dy), dz);
+        }
+        catch (ArithmeticException overflow)
+        {
+            return Long.MAX_VALUE;
+        }
+    }
+
+    /**
      * Strip leading slashes and any `worldedit:` / `fawe:` namespace prefix,
      * lowercased. Used to match command labels against {@link #SIZE_SENSITIVE_LABELS}.
      */
@@ -529,7 +555,8 @@ public final class WorldEditHook implements Listener
             {
                 return;
             }
-            final long volume = region.getVolume();
+            final long volume = safeSelectionVolume(
+                region.getMinimumPoint(), region.getMaximumPoint());
             if (volume <= cap)
             {
                 return;
@@ -623,7 +650,7 @@ public final class WorldEditHook implements Listener
                 final long cap = getMaxSelectionVolume();
                 if (cap > 0)
                 {
-                    final long volume = region.getVolume();
+                    final long volume = safeSelectionVolume(min, max);
                     if (volume > cap)
                     {
                         bukkitPlayer.sendMessage(Component.text(
