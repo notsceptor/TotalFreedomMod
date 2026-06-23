@@ -65,6 +65,8 @@ public class Command_ban extends FreedomCommand
             plugin.cpb.rollback(name);
         }
 
+        data.setStrikes(0);
+
         if (player != null)
         {
             try

@@ -1,6 +1,7 @@
 package me.totalfreedom.totalfreedommod.command;
 
 import me.totalfreedom.totalfreedommod.banning.Ban;
+import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
@@ -55,6 +56,10 @@ public class Command_tban extends FreedomCommand
         {
             plugin.cpb.rollback(player.getName());
         }
+
+        final PlayerData data = plugin.pl.getData(player);
+        assert data != null;
+        data.setStrikes(data.getStrikes() + 1);
 
         player.kick(Component.text("You have been temporarily banned for five minutes. Please read totalfreedom.me for more info.", NamedTextColor.RED));
 

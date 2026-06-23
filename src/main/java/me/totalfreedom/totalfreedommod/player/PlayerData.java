@@ -14,6 +14,7 @@ import org.bukkit.entity.Player;
 
 public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
 {
+    public static final int MAX_STRIKES = 3;
 
     @Getter
     @Setter
@@ -27,6 +28,8 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
     @Getter
     @Setter
     private boolean potionSpy;
+    @Getter
+    private int strikes;
     private final List<String> ips = Lists.newArrayList();
 
     public PlayerData(Player player)
@@ -48,6 +51,7 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
         this.firstJoinUnix = cs.getLong("first_join", 0);
         this.lastJoinUnix = cs.getLong("last_join", 0);
         this.potionSpy = cs.getBoolean("potion_spy", false);
+        this.strikes = cs.getInt("strikes", 0);
     }
 
     @Override
@@ -59,6 +63,7 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
         cs.set("first_join", firstJoinUnix);
         cs.set("last_join", lastJoinUnix);
         cs.set("potion_spy", potionSpy);
+        cs.set("strikes", strikes);
     }
 
     public List<String> getIps()
@@ -84,5 +89,12 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
                 && firstJoinUnix != 0
                 && lastJoinUnix != 0
                 && !ips.isEmpty();
+    }
+
+    public void setStrikes(int strikes)
+    {
+        if (strikes < 0 || strikes > MAX_STRIKES)
+            return;
+        this.strikes = strikes;
     }
 }

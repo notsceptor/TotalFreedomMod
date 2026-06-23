@@ -144,6 +144,7 @@ super_admin:
     - tfm.admin.rollback
     - tfm.admin.say
     - tfm.admin.setlimit
+    - tfm.admin.strike
     - tfm.admin.undisguiseall
     - tfm.admin.warn
     - tfm.admin.whohas

@@ -2,6 +2,7 @@ package me.totalfreedom.totalfreedommod;
 
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
+import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FSync;
@@ -21,7 +22,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.server.PluginEnableEvent;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.plugin.ServicePriority;
+
 import net.milkbowl.vault.chat.Chat;
 import net.milkbowl.vault.permission.Permission;
 
@@ -258,16 +259,30 @@ public class ChatManager extends FreedomService
 
 		final String formatTemplate = getTranslatedChatFormat();
 
+		final PlayerData data = player != null ? plugin.pl.getData(player) : null;
+
 		final String resolvedTemplate = formatTemplate
 			.replace("{PREFIX}", prefix)
 			.replace("{SUFFIX}", suffix)
 			.replace("{WORLD}", worldName)
 			.replace("{GROUP}", "");
-		final int dnIdx = resolvedTemplate.indexOf("{DISPLAYNAME}");
-		final int msgIdx = resolvedTemplate.indexOf("{MESSAGE}");
+		final String resolvedNonAdminTemplate = resolvedTemplate.replace("{STRIKES}", "");
+		final String resolvedAdminTemplate = resolvedTemplate.replace("{STRIKES}", data != null ? "*".repeat(data.getStrikes()) : "");
 
-		event.renderer((source, sourceDisplayName, msg, viewer) ->
-			buildRenderedMessage(sourceDisplayName, msg, resolvedTemplate, dnIdx, msgIdx));
+		event.renderer((source, sourceDisplayName, msg, viewer) -> {
+			if (viewer instanceof final CommandSender sender && plugin.al.isAdmin(sender)) {
+				return buildRenderedMessage(sourceDisplayName,
+					msg,
+					resolvedAdminTemplate,
+					resolvedAdminTemplate.indexOf("{DISPLAYNAME}"),
+					resolvedAdminTemplate.indexOf("{MESSAGE}"));
+			}
+			return buildRenderedMessage(sourceDisplayName,
+				msg,
+				resolvedNonAdminTemplate,
+				resolvedNonAdminTemplate.indexOf("{DISPLAYNAME}"),
+				resolvedNonAdminTemplate.indexOf("{MESSAGE}"));
+		});
 	}
 
 	private String getTranslatedChatFormat()
