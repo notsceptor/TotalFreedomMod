@@ -687,9 +687,10 @@ chat:
     # Available placeholders:
     #   {PREFIX} - Player's rank prefix (includes tag if present, based on enforce_prefix setting)
     #   {DISPLAYNAME} - Player's display name
+    #   {STRIKES} - Number of strikes indicated by asterisks (visible only to admins)
     #   {MESSAGE} - The chat message
     #   {WORLD} - World name
-    message: "{PREFIX}&8<&r{DISPLAYNAME}&8>&r {MESSAGE}"
+    message: "{PREFIX}&8<&r{DISPLAYNAME}&c{STRIKES}&8>&r {MESSAGE}"
   
   behavior:
     # Shows a player's rank prefix next to their custom tag (otherwise the tag will replace it)
