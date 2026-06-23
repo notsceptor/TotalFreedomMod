@@ -208,8 +208,12 @@ public class FreedomCommandExecutor implements CommandExecutor
         }
 
         Rank rank = plugin.rm.getRank(sender);
-        String boundRankId = plugin.csr.getRankIdForSender(sender.getName());
-        CustomRank boundCustom = boundRankId != null ? plugin.rm.getCustomRank(boundRankId) : null;
+        CustomRank boundCustom = null;
+        if (!RemoteDispatchContext.isActive())
+        {
+            String boundRankId = plugin.csr.getRankIdForSender(sender.getName());
+            boundCustom = boundRankId != null ? plugin.rm.getCustomRank(boundRankId) : null;
+        }
         boolean result;
         if (boundCustom != null)
         {

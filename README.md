@@ -20,8 +20,8 @@ The following plugins hook into TotalFreedomMod and are only necessary for speci
 1. [Vault](https://github.com/MilkBowl/Vault) (supports both the original library and [VaultUnlockedAPI](https://github.com/TheNewEconomy/VaultUnlockedAPI))
 2. [WorldEdit](https://github.com/EngineHub/WorldEdit) 7.3.x (also supports [FastAsyncWorldEdit](https://github.com/IntellectualSites/FastAsyncWorldEdit))
 3. [LibsDisguises](https://github.com/libraryaddict/LibsDisguises) 11.0.x
-4. [EssentialsX](https://github.com/EssentialsX/Essentials) 2.21.x (including EssentialsChat, EssentialsSpawn and EssentialsDiscord)
-5. [BukkitTelnet](https://github.com/TotalFreedom/BukkitTelnet) 4.x (deprecated; no longer guaranteed to work)
+4. [EssentialsX](https://github.com/EssentialsX/Essentials) 2.21.x (including EssentialsChat and EssentialsSpawn)
+5. [packetevents](https://github.com/retrooper/packetevents) 2.12.x (for item/block entity client anti-crash guards and inbound packet rate limiting)
 
 ### Download
 Section 2.1 of the [TotalFreedom General License](https://github.com/tfreedomorg/TotalFreedomMod/blob/devel/LICENSE.md) states that "Redistructions of This Software must solely occur in Source form. Redistribution in Object form is prohibited without prior written permission from the Licensor."

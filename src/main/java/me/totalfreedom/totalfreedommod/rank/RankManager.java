@@ -461,13 +461,16 @@ public class RankManager extends FreedomService
     {
         if (!(sender instanceof Player))
         {
-            String boundRankId = plugin.csr.getRankIdForSender(sender.getName());
-            if (boundRankId != null && plugin.rm != null)
+            if (!RemoteDispatchContext.isActive())
             {
-                CustomRank boundCustom = plugin.rm.getCustomRank(boundRankId);
-                if (boundCustom != null && hasCustomRankPermission(boundCustom, permission))
+                String boundRankId = plugin.csr.getRankIdForSender(sender.getName());
+                if (boundRankId != null && plugin.rm != null)
                 {
-                    return true;
+                    CustomRank boundCustom = plugin.rm.getCustomRank(boundRankId);
+                    if (boundCustom != null && hasCustomRankPermission(boundCustom, permission))
+                    {
+                        return true;
+                    }
                 }
             }
 
