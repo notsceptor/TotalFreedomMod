@@ -137,6 +137,7 @@ super_admin:
     - tfm.admin.opall
     - tfm.admin.opme
     - tfm.admin.overlord
+    - tfm.admin.potspy
     - tfm.admin.premium
     - tfm.admin.purgeall
     - tfm.admin.ro

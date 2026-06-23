@@ -24,6 +24,9 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
     @Getter
     @Setter
     private long lastJoinUnix;
+    @Getter
+    @Setter
+    private boolean potionSpy;
     private final List<String> ips = Lists.newArrayList();
 
     public PlayerData(Player player)
@@ -44,6 +47,7 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
         this.ips.addAll(cs.getStringList("ips"));
         this.firstJoinUnix = cs.getLong("first_join", 0);
         this.lastJoinUnix = cs.getLong("last_join", 0);
+        this.potionSpy = cs.getBoolean("potion_spy", false);
     }
 
     @Override
@@ -54,6 +58,7 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
         cs.set("ips", ips);
         cs.set("first_join", firstJoinUnix);
         cs.set("last_join", lastJoinUnix);
+        cs.set("potion_spy", potionSpy);
     }
 
     public List<String> getIps()

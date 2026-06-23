@@ -32,6 +32,10 @@ repositories {
     maven {
         url 'https://repo.codemc.io/repository/maven-releases/'
     }
+    maven {
+        name = "playpro"
+        url = "https://maven.playpro.com/"
+    }
 }
 
 dependencies {
@@ -53,6 +57,8 @@ dependencies {
     compileOnly 'net.dv8tion:JDA:5.6.1'
 
     compileOnly 'com.github.retrooper:packetevents-spigot:2.12.1'
+
+    compileOnly "net.coreprotect:coreprotect:22.4"
 }
 
 configurations.all {
