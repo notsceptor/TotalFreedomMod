@@ -92,10 +92,20 @@ public class PotionSpy extends FreedomService
                     Component.text(" has thrown ")
                         .append(Component.text(String.valueOf(amount)))
                         .append(Component.text(" potions")))
-                .append(Component.text(" ("))
-                .append(Component.text("click to teleport")
-                    .clickEvent(ClickEvent.runCommand(String.format("tppos %s %s %s", player.getX(), player.getY(), player.getZ()))))
-                .append(Component.text(")")));
+                .append(plugin.esb.isEssentialsEnabled() ?
+                    Component.text(" (")
+                        .append(Component.text("click to teleport")
+                            .clickEvent(ClickEvent.runCommand(String.format("tppos %s %s %s 0 0 %s",
+                                thrower.getX(),
+                                thrower.getY(),
+                                thrower.getZ(),
+                                thrower.getWorld().getName()))))
+                        .append(Component.text(")")) :
+                    Component.text(String.format(" (at %s %s %s in %s)",
+                        thrower.getX(),
+                        thrower.getY(),
+                        thrower.getZ(),
+                        thrower.getWorld().getName()))));
         }
     }
 }
