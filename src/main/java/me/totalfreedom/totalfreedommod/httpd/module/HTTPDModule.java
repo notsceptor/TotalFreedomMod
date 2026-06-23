@@ -2,8 +2,10 @@ package me.totalfreedom.totalfreedommod.httpd.module;
 
 import java.net.Socket;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.httpd.HTTPDPageBuilder;
 import me.totalfreedom.totalfreedommod.httpd.NanoHTTPD.HTTPSession;
 import me.totalfreedom.totalfreedommod.httpd.NanoHTTPD.Method;
@@ -71,5 +73,44 @@ public abstract class HTTPDModule extends PluginComponent<TotalFreedomMod>
         }
 
         return files;
+    }
+
+    protected final String getClientAddress()
+    {
+        final String socketAddress = socket.getInetAddress().getHostAddress();
+
+        if (!isTrustedProxy(socketAddress))
+        {
+            return socketAddress;
+        }
+
+        final String realIp = headers.get("x-real-ip");
+        if (realIp != null && !realIp.trim().isEmpty())
+        {
+            return realIp.trim();
+        }
+
+        final String forwardedFor = headers.get("x-forwarded-for");
+        if (forwardedFor != null && !forwardedFor.trim().isEmpty())
+        {
+            final String[] hops = forwardedFor.split(",");
+            final String clientHop = hops[hops.length - 1].trim();
+            if (!clientHop.isEmpty())
+            {
+                return clientHop;
+            }
+        }
+
+        return socketAddress;
+    }
+
+    private boolean isTrustedProxy(String address)
+    {
+        if (address == null)
+        {
+            return false;
+        }
+        final List<String> trusted = ConfigEntry.HTTPD_TRUSTED_PROXIES.getStringList();
+        return trusted != null && trusted.contains(address);
     }
 }

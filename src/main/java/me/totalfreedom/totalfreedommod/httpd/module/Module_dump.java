@@ -53,7 +53,7 @@ public class Module_dump extends HTTPDModule
     {
         StringBuilder responseBody = new StringBuilder();
 
-        String remoteAddress = socket.getInetAddress().getHostAddress();
+        String remoteAddress = getClientAddress();
 
         String[] args = StringUtils.split(uri, "/");
 

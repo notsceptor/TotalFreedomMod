@@ -129,7 +129,7 @@ public class Module_schematic extends HTTPDModule
             }
             case UPLOAD:
             {
-                final String remoteAddress = socket.getInetAddress().getHostAddress();
+                final String remoteAddress = getClientAddress();
                 if (!isAuthorized(remoteAddress))
                 {
                     out.append(HTMLGenerationTools.paragraph("Schematic upload access denied: Your IP, " + remoteAddress + ", is not registered to a superadmin on this server."));
