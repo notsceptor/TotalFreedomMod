@@ -8,6 +8,7 @@ import java.security.PublicKey;
 import java.util.List;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import org.apache.sshd.common.config.keys.AuthorizedKeyEntry;
+import org.apache.sshd.common.config.keys.KeyUtils;
 import org.apache.sshd.common.config.keys.PublicKeyEntryResolver;
 import org.apache.sshd.server.auth.pubkey.PublickeyAuthenticator;
 import org.apache.sshd.server.session.ServerSession;
@@ -50,7 +51,7 @@ public class SshPublicKeyAuthenticator implements PublickeyAuthenticator {
                     AuthorizedKeyEntry entry = AuthorizedKeyEntry.parseAuthorizedKeyEntry(trimmed);
                     PublicKey authorizedKey = entry.resolvePublicKey(null, PublicKeyEntryResolver.FAILING);
 
-                    if (key.equals(authorizedKey)) {
+                    if (KeyUtils.compareKeys(key, authorizedKey)) {
                         session.setAttribute(SshDaemon.AUTH_METHOD_KEY, SshAuthMethod.PUBLIC_KEY);
                         FLog.info("SSH public key login successful for user: " + username);
                         return true;

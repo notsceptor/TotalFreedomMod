@@ -17,7 +17,8 @@ public class TFMLibraryLoader implements PluginLoader
 
     private static final String[] LIBRARIES = {
             "net.dv8tion:JDA:5.6.1",
-            "org.apache.sshd:sshd-core:2.17.1"
+            "org.apache.sshd:sshd-core:2.17.1",
+            "net.i2p.crypto:eddsa:0.3.0"
     };
 
     @Override
