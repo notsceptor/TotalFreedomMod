@@ -20,6 +20,11 @@ public class Command_strike extends FreedomCommand
             msg(FreedomCommand.PLAYER_NOT_FOUND);
             return true;
         }
+        if (plugin.al.isAdmin(player))
+        {
+            msg("Strikes may not be modified for admins.");
+            return true;
+        }
         final PlayerData data = plugin.pl.getData(player);
         assert data != null;
         final int newValue = data.getStrikes() + mod;
@@ -55,6 +60,11 @@ public class Command_strike extends FreedomCommand
         if (player == null)
         {
             msg(FreedomCommand.PLAYER_NOT_FOUND);
+            return true;
+        }
+        if (plugin.al.isAdmin(player))
+        {
+            msg("Strikes may not be modified for admins.");
             return true;
         }
         final PlayerData data = plugin.pl.getData(player);
