@@ -645,7 +645,7 @@ public class AdminList extends FreedomService
 
     public boolean removeAdmin(Admin admin)
     {
-        if (admin.getRank().isAtLeast(Rank.TELNET_ADMIN))
+        if (admin.getRank().isAtLeast(Rank.SENIOR_ADMIN))
         {
             if (plugin.btb != null)
             {

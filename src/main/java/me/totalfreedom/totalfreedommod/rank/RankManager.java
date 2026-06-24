@@ -152,7 +152,7 @@ public class RankManager extends FreedomService
     }
 
     private static final String[] ESSENTIAL_RANKS = {
-            "non_op", "op", "super_admin", "telnet_admin", "senior_admin"
+            "non_op", "op", "super_admin", "senior_admin"
     };
 
     private void validateEssentialRanks()
@@ -195,8 +195,6 @@ public class RankManager extends FreedomService
                     custom.addPermission("tfm.manage.ranks");
                     custom.addPermission("tfm.admin.senior");
                     // Fall through
-                case TELNET_ADMIN:
-                case TELNET_CONSOLE:
                     custom.addPermission("tfm.admin.telnet");
                     custom.addPermission("tfm.admin.ban.perm");
                     // Fall through
@@ -230,9 +228,7 @@ public class RankManager extends FreedomService
         applyConfigPrefix("non_op", ConfigEntry.VAULT_PREFIX_NON_OP);
         applyConfigPrefix("op", ConfigEntry.VAULT_PREFIX_OP);
         applyConfigPrefix("super_admin", ConfigEntry.VAULT_PREFIX_SUPER_ADMIN);
-        applyConfigPrefix("telnet_admin", ConfigEntry.VAULT_PREFIX_TELNET_ADMIN);
         applyConfigPrefix("senior_admin", ConfigEntry.VAULT_PREFIX_SENIOR_ADMIN);
-        applyConfigPrefix("telnet_console", ConfigEntry.VAULT_PREFIX_TELNET_CONSOLE);
         applyConfigPrefix("senior_console", ConfigEntry.VAULT_PREFIX_SENIOR_CONSOLE);
         applyConfigPrefix("developer", ConfigEntry.VAULT_PREFIX_DEVELOPER);
         applyConfigPrefix("owner", ConfigEntry.VAULT_PREFIX_OWNER);
@@ -296,8 +292,8 @@ public class RankManager extends FreedomService
 
             String[] prefixKeys = {
                     "chat.prefix.impostor", "chat.prefix.non_op", "chat.prefix.op",
-                    "chat.prefix.super_admin", "chat.prefix.telnet_admin", "chat.prefix.senior_admin",
-                    "chat.prefix.telnet_console", "chat.prefix.senior_console",
+                    "chat.prefix.super_admin", "chat.prefix.senior_admin",
+                    "chat.prefix.senior_console",
                     "chat.prefix.developer", "chat.prefix.owner"
             };
 
@@ -443,8 +439,30 @@ public class RankManager extends FreedomService
         Scoreboard scoreboard = manager.getMainScoreboard();
         Team currentTeam = scoreboard.getEntryTeam(player.getName());
         CustomRank rank = getAssignedAdminRank(player);
+        String teamName;
+        NamedTextColor teamColor;
+        Component teamPrefix;
 
-        if (rank == null || !rank.isAdmin())
+        if (rank != null && rank.isAdmin())
+        {
+            teamName = createTeamName(rank);
+            teamColor = rank.getColor();
+            String prefix = rank.getPrefix();
+            teamPrefix = prefix == null
+                    ? Component.empty()
+                    : AdventureUtil.legacyToComponent(prefix);
+        }
+        else if (player.isOp() && !plugin.al.isAdminImpostor(player))
+        {
+            CustomRank opRank = getCustomRankForLegacy(Rank.OP);
+            teamName = "op";
+            teamColor = NamedTextColor.WHITE;
+            String prefix = opRank == null ? null : opRank.getPrefix();
+            teamPrefix = prefix == null
+                    ? Rank.OP.getColoredTag().append(Component.space())
+                    : AdventureUtil.legacyToComponent(prefix);
+        }
+        else
         {
             if (currentTeam != null)
             {
@@ -453,8 +471,6 @@ public class RankManager extends FreedomService
 
             return;
         }
-
-        String teamName = createTeamName(rank);
 
         if (currentTeam != null && !currentTeam.getName().equals(teamName))
         {
@@ -468,11 +484,8 @@ public class RankManager extends FreedomService
             team = scoreboard.registerNewTeam(teamName);
         }
 
-        team.color(rank.getColor());
-        String prefix = rank.getPrefix();
-        team.prefix(prefix == null
-                ? Component.empty()
-                : AdventureUtil.legacyToComponent(prefix));
+        team.color(teamColor);
+        team.prefix(teamPrefix);
         team.addEntry(player.getName());
     }
 
@@ -664,7 +677,7 @@ public class RankManager extends FreedomService
         }
         if (permission.startsWith("tfm.admin.telnet"))
         {
-            return rank.isAtLeast(Rank.TELNET_ADMIN);
+            return rank.isAtLeast(Rank.SENIOR_ADMIN);
         }
         if (permission.startsWith("tfm.admin."))
         {

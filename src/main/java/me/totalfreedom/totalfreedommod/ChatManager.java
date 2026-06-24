@@ -448,12 +448,8 @@ public class ChatManager extends FreedomService
 					return ConfigEntry.VAULT_PREFIX_OP.getString();
 				case SUPER_ADMIN:
 					return ConfigEntry.VAULT_PREFIX_SUPER_ADMIN.getString();
-				case TELNET_ADMIN:
-					return ConfigEntry.VAULT_PREFIX_TELNET_ADMIN.getString();
 				case SENIOR_ADMIN:
 					return ConfigEntry.VAULT_PREFIX_SENIOR_ADMIN.getString();
-				case TELNET_CONSOLE:
-					return ConfigEntry.VAULT_PREFIX_TELNET_CONSOLE.getString();
 				case SENIOR_CONSOLE:
 					return ConfigEntry.VAULT_PREFIX_SENIOR_CONSOLE.getString();
 				default:

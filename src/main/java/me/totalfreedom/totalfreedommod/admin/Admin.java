@@ -217,7 +217,7 @@ public class Admin implements ConfigLoadable, ConfigSavable, Validatable
 
         if (!active)
         {
-            if (getRank().isAtLeast(Rank.TELNET_ADMIN))
+            if (getRank().isAtLeast(Rank.SENIOR_ADMIN))
             {
                 if (plugin.btb != null)
                 {

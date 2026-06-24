@@ -125,11 +125,6 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
             }
         }
 
-        if (yaml.contains("telnet_console"))
-        {
-            yaml.set("telnet_console", null);
-            changed = true;
-        }
         if (yaml.contains("senior_console"))
         {
             yaml.set("senior_console", null);
@@ -168,11 +163,7 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
         {
             Rank rank = admin.getRank();
             Rank newRank = null;
-            if (rank == Rank.TELNET_CONSOLE)
-            {
-                newRank = Rank.TELNET_ADMIN;
-            }
-            else if (rank == Rank.SENIOR_CONSOLE)
+            if (rank == Rank.SENIOR_CONSOLE)
             {
                 newRank = Rank.SENIOR_ADMIN;
             }
@@ -223,10 +214,6 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
             if (asec.getBoolean("is_senior_admin"))
             {
                 rank = Rank.SENIOR_ADMIN;
-            }
-            else if (asec.getBoolean("is_telnet_admin"))
-            {
-                rank = Rank.TELNET_ADMIN;
             }
             else
             {

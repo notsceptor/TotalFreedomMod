@@ -15,13 +15,7 @@ public enum Rank implements Displayable
     NON_OP("a", "Non-Op", Type.PLAYER, "", NamedTextColor.GREEN),
     OP("an", "Op", Type.PLAYER, "OP", NamedTextColor.RED),
     SUPER_ADMIN("a", "Super Admin", Type.ADMIN, "SA", NamedTextColor.AQUA),
-    TELNET_ADMIN("a", "Telnet Admin", Type.ADMIN, "STA", NamedTextColor.DARK_GREEN),
     SENIOR_ADMIN("a", "Senior Admin", Type.ADMIN, "SrA", NamedTextColor.GOLD),
-    /**
-     * @deprecated use {@link #TELNET_ADMIN} directly; console-class senders now resolve to admin ranks via {@code ConsoleSenderRegistry}.
-     */
-    @Deprecated
-    TELNET_CONSOLE("the", "Console", Type.ADMIN_CONSOLE, "Console", NamedTextColor.DARK_PURPLE),
     /**
      * @deprecated use {@link #SENIOR_ADMIN} directly; console-class senders now resolve to admin ranks via {@code ConsoleSenderRegistry}.
      */
@@ -143,9 +137,6 @@ public enum Rank implements Displayable
     {
         switch (this)
         {
-            case TELNET_ADMIN:
-            case TELNET_CONSOLE:
-                return TELNET_CONSOLE;
             case SENIOR_ADMIN:
             case SENIOR_CONSOLE:
                 return SENIOR_CONSOLE;
@@ -159,9 +150,6 @@ public enum Rank implements Displayable
     {
         switch (this)
         {
-            case TELNET_ADMIN:
-            case TELNET_CONSOLE:
-                return TELNET_ADMIN;
             case SENIOR_ADMIN:
             case SENIOR_CONSOLE:
                 return SENIOR_ADMIN;

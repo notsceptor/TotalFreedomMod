@@ -46,7 +46,7 @@ public class Command_saconfig extends FreedomCommand
             rank = resolveLegacyTier(custom);
             if (rank == null)
             {
-                msg("Rank '" + custom.getName() + "' has no legacy tier; set or inherit from super_admin, telnet_admin, or senior_admin.", NamedTextColor.RED);
+                msg("Rank '" + custom.getName() + "' has no legacy tier; set or inherit from super_admin or senior_admin.", NamedTextColor.RED);
                 return true;
             }
             displayName = custom.getName();
@@ -90,6 +90,11 @@ public class Command_saconfig extends FreedomCommand
         plugin.al.updateTables();
         plugin.al.saveAdminAsync(admin);
 
+        Player player = getPlayer(admin.getName());
+        if (player != null && plugin.rm != null)
+        {
+            plugin.rm.updatePlayerTeam(player);
+        }
 
         msg("Set " + admin.getName() + "'s rank to " + displayName);
         return true;
@@ -127,7 +132,7 @@ public class Command_saconfig extends FreedomCommand
     public boolean addUser(CommandContext ctx, String username)
     {
         checkConsole();
-        checkRank(Rank.TELNET_ADMIN);
+        checkRank(Rank.SENIOR_ADMIN);
 
         // Player already an admin?
         final Player player = getPlayer(username);
@@ -181,6 +186,11 @@ public class Command_saconfig extends FreedomCommand
 
         if (player != null)
         {
+            if (plugin.rm != null)
+            {
+                plugin.rm.updatePlayerTeam(player);
+            }
+
             final FPlayer fPlayer = plugin.pl.getPlayer(player);
             if (fPlayer.getFreezeData().isFrozen())
             {
@@ -196,7 +206,7 @@ public class Command_saconfig extends FreedomCommand
     public boolean removeUser(CommandContext ctx, String username)
     {
         checkConsole();
-        checkRank(Rank.TELNET_ADMIN);
+        checkRank(Rank.SENIOR_ADMIN);
 
         Player player = getPlayer(username);
         Admin admin = player != null ? plugin.al.getAdmin(player) : plugin.al.getEntryByName(username);
@@ -211,6 +221,12 @@ public class Command_saconfig extends FreedomCommand
         admin.setActive(false);
         plugin.al.updateTables();
         plugin.al.saveAdminAsync(admin);
+
+        if (player != null && plugin.rm != null)
+        {
+            plugin.rm.updatePlayerTeam(player);
+        }
+
         return true;
     }
 
@@ -230,7 +246,7 @@ public class Command_saconfig extends FreedomCommand
     public boolean clean(CommandContext ctx)
     {
         checkConsole();
-        checkRank(Rank.TELNET_ADMIN);
+        checkRank(Rank.SENIOR_ADMIN);
 
         FUtil.adminAction(sender.getName(), "Cleaning admin list", true);
         plugin.al.deactivateOldEntries(true);

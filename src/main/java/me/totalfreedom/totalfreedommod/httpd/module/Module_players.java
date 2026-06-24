@@ -25,7 +25,6 @@ public class Module_players extends HTTPDModule
         final JsonArray players = new JsonArray();
         final JsonArray onlineadmins = new JsonArray();
         final JsonArray superadmins = new JsonArray();
-        final JsonArray telnetadmins = new JsonArray();
         final JsonArray senioradmins = new JsonArray();
         final JsonArray developers = new JsonArray();
 
@@ -49,9 +48,6 @@ public class Module_players extends HTTPDModule
                 case SUPER_ADMIN:
                     superadmins.add(username);
                     break;
-                case TELNET_ADMIN:
-                    telnetadmins.add(username);
-                    break;
                 case SENIOR_ADMIN:
                     senioradmins.add(username);
                     break;
@@ -67,7 +63,6 @@ public class Module_players extends HTTPDModule
         responseObject.add("players", players);
         responseObject.add("onlineadmins", onlineadmins);
         responseObject.add("superadmins", superadmins);
-        responseObject.add("telnetadmins", telnetadmins);
         responseObject.add("senioradmins", senioradmins);
         responseObject.add("developers", developers);
 

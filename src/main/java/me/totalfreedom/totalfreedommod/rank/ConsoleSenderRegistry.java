@@ -116,8 +116,6 @@ public class ConsoleSenderRegistry
             Rank rank = Rank.valueOf(key);
             switch (rank)
             {
-                case TELNET_CONSOLE:
-                    return Rank.TELNET_ADMIN;
                 case SENIOR_CONSOLE:
                     return Rank.SENIOR_ADMIN;
                 default:

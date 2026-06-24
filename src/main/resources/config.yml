@@ -79,7 +79,6 @@ allow:
 #   Valid ranks:
 #   n - Nobody (Completely disabled)
 #   c - Senior Admins (Console)
-#   t - Telnet Admins (Console)
 #   s - Super Admins (Any in-game admin)
 #   o - Ops (Non-Ops won't be able to use it)
 #

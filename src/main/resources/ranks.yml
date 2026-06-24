@@ -29,7 +29,6 @@
 #   tfm.fun.*         - Fun commands (smite, doom, orbit, etc.)
 #   tfm.admin.*       - Admin actions (ban, kick, mute, freeze, cage)
 #   tfm.admin.senior.* - Senior admin only actions
-#   tfm.admin.telnet.* - Telnet admin actions
 #   tfm.server.*      - Server management commands
 #   tfm.world.*       - World management commands
 #   tfm.manage.*      - Management commands (ranks, config)
@@ -153,31 +152,16 @@ super_admin:
     - tfm.server.*
     - tfm.manage.saconfig
 
-telnet_admin:
-  name: Telnet Admin
-  abbreviation: STA
-  prefix: "&8[&2STA&8] "
-  level: 3
-  color: dark_green
-  determiner: a
-  admin: true
-  console_only: false
-  inherit: super_admin
-  permissions:
-    - tfm.admin.*
-    - tfm.admin.ban.perm
-    - tfm.admin.telnet.plugincontrol
-
 senior_admin:
   name: Senior Admin
   abbreviation: SrA
   prefix: "&8[&6SrA&8] "
-  level: 4
+  level: 3
   color: light_purple
   determiner: a
   admin: true
   console_only: false
-  inherit: telnet_admin
+  inherit: super_admin
   permissions:
     - tfm.admin.senior.*
     - tfm.admin.telnet.*
