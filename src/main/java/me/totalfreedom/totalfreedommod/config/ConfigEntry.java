@@ -218,6 +218,8 @@ public enum ConfigEntry
     VAULT_PREFIX_OWNER(String.class, "chat.prefix.owner"),
     //
     TABLIST_ENABLED(Boolean.class, "tablist.enabled"),
+    TABLIST_COLORFUL(Boolean.class, "tablist.colorful_tablist"),
+    TABLIST_CHANGE_COLORS(Integer.class, "tablist.change_colors"),
     TABLIST_HEADER(String.class, "tablist.header"),
     TABLIST_FOOTER(String.class, "tablist.footer"),
     TABLIST_TYPE(String.class, "tablist.type"),

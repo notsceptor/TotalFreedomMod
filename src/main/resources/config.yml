@@ -721,6 +721,13 @@ chat:
 tablist:
   enabled: true
 
+  # Every word in the header/footer will be a different color unless prefixed by a
+  # color code, excluding whitespace.
+  colorful_tablist: false
+
+  # How much time in seconds before the colors change (requires colorful_tablist).
+  change_colors: 3
+
   # Text displayed above the player list.
   # Supports & color codes. Use | for multiline (YAML block scalar).
   header: ""
