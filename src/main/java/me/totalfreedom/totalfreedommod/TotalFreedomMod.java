@@ -333,36 +333,36 @@ public class TotalFreedomMod extends JavaPlugin
 
         public void load(TotalFreedomMod plugin)
         {
-            try
-            {
-                final Properties props;
-                final Properties gitprops;
-                try (InputStream in = plugin.getResource("build.properties"))
-                {
-                    props = new Properties();
-                    props.load(in);
-                }
-                try (InputStream in = plugin.getResource("git.properties"))
-                {
-                    gitprops = new Properties();
-                    gitprops.load(in);
-                }
+            final Properties props = readResource(plugin, "build.properties");
+            final Properties gitprops = readResource(plugin, "git.properties");
 
-                author = props.getProperty("buildAuthor", "unknown");
-                codename = props.getProperty("buildCodeName", "unknown");
-                version = props.getProperty("buildVersion", pluginVersion);
-                number = props.getProperty("buildNumber", "1");
-                date = gitprops.getProperty("git.build.time", "unknown");
-                head = gitprops.getProperty("git.commit.id.abbrev", "unknown");
-                
-                
-                
+            author = props.getProperty("buildAuthor", "unknown");
+            codename = props.getProperty("buildCodeName", "unknown");
+            version = props.getProperty("buildVersion", pluginVersion);
+            number = props.getProperty("buildNumber", "1");
+            date = gitprops.getProperty("git.build.time", "unknown");
+            head = gitprops.getProperty("git.commit.id.abbrev", "unknown");
+        }
+
+        private static Properties readResource(TotalFreedomMod plugin, String name)
+        {
+            final Properties properties = new Properties();
+            try (InputStream in = plugin.getResource(name))
+            {
+                if (in != null)
+                {
+                    properties.load(in);
+                }
+                else
+                {
+                    FLog.warning("Build resource '" + name + "' not found in plugin jar; using defaults.");
+                }
             }
             catch (Exception ex)
             {
-                FLog.severe("Could not load build properties! Did you compile with Netbeans/Maven?");
-                FLog.severe(ex);
+                FLog.warning("Could not read build resource '" + name + "': " + ex.getMessage());
             }
+            return properties;
         }
 
         public String formattedVersion()

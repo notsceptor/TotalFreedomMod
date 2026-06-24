@@ -3,6 +3,7 @@ package me.totalfreedom.totalfreedommod.blocking;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
+import org.bukkit.GameMode;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Boat;
 import org.bukkit.entity.Entity;
@@ -11,6 +12,7 @@ import org.bukkit.entity.FallingBlock;
 import org.bukkit.entity.Hanging;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Minecart;
+import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
 import org.bukkit.entity.Tameable;
 import org.bukkit.event.EventHandler;
@@ -148,6 +150,15 @@ public class EventBlocker extends FreedomService
     @EventHandler(priority = EventPriority.HIGH)
     public void onEntityDamage(EntityDamageEvent event)
     {
+        if ((event.getCause() == EntityDamageEvent.DamageCause.MAGIC
+                || event.getCause() == EntityDamageEvent.DamageCause.WITHER)
+                && event.getEntity() instanceof Player player
+                && (player.getGameMode() == GameMode.CREATIVE || player.isInvulnerable()))
+        {
+            event.setCancelled(true);
+            return;
+        }
+
         switch (event.getCause())
         {
             case LAVA:
