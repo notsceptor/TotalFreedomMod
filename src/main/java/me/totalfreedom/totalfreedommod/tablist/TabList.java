@@ -16,7 +16,6 @@ import org.bukkit.scheduler.BukkitTask;
 
 public class TabList extends FreedomService
 {
-
     private BukkitTask updateTask;
     private BukkitTask recolorTask;
     private boolean enabled;
@@ -33,23 +32,38 @@ public class TabList extends FreedomService
     protected void onStart()
     {
         enabled = ConfigEntry.TABLIST_ENABLED.getBoolean();
+
         if (!enabled)
         {
             return;
         }
 
         colorful = ConfigEntry.TABLIST_COLORFUL.getBoolean();
+
         if (colorful)
         {
             recolorHeaderFooter();
-            long colorInterval = Math.max(1, ConfigEntry.TABLIST_CHANGE_COLORS.getInteger()) * 20L;
+
+            long colorInterval = Math.max(
+                    1,
+                    ConfigEntry.TABLIST_CHANGE_COLORS.getInteger()) * 20L;
+
             recolorTask = plugin.getServer().getScheduler()
-                    .runTaskTimer(plugin, this::pushRecolor, colorInterval, colorInterval);
+                    .runTaskTimer(
+                            plugin,
+                            this::pushRecolor,
+                            colorInterval,
+                            colorInterval);
         }
 
         long interval = ConfigEntry.TABLIST_UPDATE_INTERVAL.getInteger();
+
         updateTask = plugin.getServer().getScheduler()
-                .runTaskTimer(plugin, this::updateAll, interval, interval);
+                .runTaskTimer(
+                        plugin,
+                        this::updateAll,
+                        interval,
+                        interval);
 
         server.getScheduler().runTask(plugin, this::updateAll);
     }
@@ -71,7 +85,10 @@ public class TabList extends FreedomService
 
         for (Player player : server.getOnlinePlayers())
         {
-            player.sendPlayerListHeaderAndFooter(Component.empty(), Component.empty());
+            player.sendPlayerListHeaderAndFooter(
+                    Component.empty(),
+                    Component.empty());
+            player.playerListName(null);
         }
     }
 
@@ -82,15 +99,19 @@ public class TabList extends FreedomService
         {
             return;
         }
+
         final Player player = event.getPlayer();
         final CycleContext ctx = newCycleContext();
-        // Delay 1 tick so all other MONITOR-priority join handlers finish first.
-        plugin.getServer().getScheduler().runTaskLater(plugin, () -> applyToPlayer(player, ctx), 1L);
+        plugin.getServer().getScheduler().runTaskLater(
+                plugin,
+                () -> applyToPlayer(player, ctx),
+                1L);
     }
 
     private void updateAll()
     {
         final CycleContext ctx = newCycleContext();
+
         for (Player player : server.getOnlinePlayers())
         {
             applyToPlayer(player, ctx);
@@ -100,6 +121,7 @@ public class TabList extends FreedomService
     private CycleContext newCycleContext()
     {
         final CycleContext ctx = new CycleContext();
+
         if (colorful)
         {
             ctx.header = colorfulHeader;
@@ -107,14 +129,13 @@ public class TabList extends FreedomService
         }
         else
         {
-            ctx.header = AdventureUtil.legacyToComponent(ConfigEntry.TABLIST_HEADER.getString());
-            ctx.footer = AdventureUtil.legacyToComponent(ConfigEntry.TABLIST_FOOTER.getString());
+            ctx.header = AdventureUtil.legacyToComponent(
+                    ConfigEntry.TABLIST_HEADER.getString());
+
+            ctx.footer = AdventureUtil.legacyToComponent(
+                    ConfigEntry.TABLIST_FOOTER.getString());
         }
-        ctx.playerComponentTemplate = ConfigEntry.TABLIST_PLAYER_COMPONENT.getString();
-        ctx.afkTag = ConfigEntry.TABLIST_AFK_TAG.getString();
-        String nickIndicator = ConfigEntry.TABLIST_DISPLAY_NICKNAME_PREFIX.getString();
-        ctx.nicknameIndicator = nickIndicator != null ? nickIndicator : "";
-        ctx.essentialsEnabled = plugin.esb.isEssentialsEnabled();
+
         return ctx;
     }
 
@@ -124,66 +145,30 @@ public class TabList extends FreedomService
         {
             return;
         }
+
         player.sendPlayerListHeaderAndFooter(ctx.header, ctx.footer);
-        player.playerListName(buildPlayerListName(player, ctx));
-    }
-
-    private Component buildPlayerListName(Player player, CycleContext ctx)
-    {
-        // ${prefix} — rank tag / custom tag, same logic as chat prefix
-        String prefix = plugin.cm.buildPlayerPrefix(player);
-
-        // ${afk_tag} — AFK indicator (empty if not AFK or Essentials unavailable)
-        String afkTag = "";
-        if (ctx.essentialsEnabled && plugin.esb.isAfk(player.getName()))
-        {
-            afkTag = ctx.afkTag;
-        }
-
-        // ${display_name} — nickname (with optional prepended indicator) or plain real name
-        String displayName = resolveDisplayName(player, ctx);
-
-        // ${name} — plain real username, no color applied
-        String name = player.getName();
-
-        String resolved = ctx.playerComponentTemplate
-                .replace("${prefix}", prefix)
-                .replace("${afk_tag}", afkTag)
-                .replace("${display_name}", displayName)
-                .replace("${name}", name);
-
-        return AdventureUtil.legacyToComponent(resolved);
-    }
-
-    // Returns the player's display name for the tab list:
-    // Essentials may return § codes in the nickname; these are normalised to & for legacyToComponent.
-    private String resolveDisplayName(Player player, CycleContext ctx)
-    {
-        if (ctx.essentialsEnabled)
-        {
-            String nickname = plugin.esb.getNickname(player.getName());
-            if (nickname != null && !nickname.isEmpty()
-                    && !nickname.equalsIgnoreCase(player.getName()))
-            {
-                return ctx.nicknameIndicator + nickname.replace('§', '&');
-            }
-        }
-        return player.getName();
+        player.playerListName(null);
     }
 
     private void pushRecolor()
     {
         recolorHeaderFooter();
+
         for (Player player : server.getOnlinePlayers())
         {
-            player.sendPlayerListHeaderAndFooter(colorfulHeader, colorfulFooter);
+            player.sendPlayerListHeaderAndFooter(
+                    colorfulHeader,
+                    colorfulFooter);
         }
     }
 
     private void recolorHeaderFooter()
     {
-        colorfulHeader = colorizeWords(ConfigEntry.TABLIST_HEADER.getString());
-        colorfulFooter = colorizeWords(ConfigEntry.TABLIST_FOOTER.getString());
+        colorfulHeader = colorizeWords(
+                ConfigEntry.TABLIST_HEADER.getString());
+
+        colorfulFooter = colorizeWords(
+                ConfigEntry.TABLIST_FOOTER.getString());
     }
 
     private Component colorizeWords(String input)
@@ -195,30 +180,38 @@ public class TabList extends FreedomService
 
         final StringBuilder sb = new StringBuilder();
         final String[] lines = input.split("\n", -1);
+
         for (int i = 0; i < lines.length; i++)
         {
             if (i > 0)
             {
                 sb.append('\n');
             }
+
             final String[] words = lines[i].split(" ", -1);
+
             for (int j = 0; j < words.length; j++)
             {
                 if (j > 0)
                 {
                     sb.append(' ');
                 }
+
                 final String word = words[j];
+
                 if (word.isEmpty() || startsWithColor(word))
                 {
                     sb.append(word);
                 }
                 else
                 {
-                    sb.append('&').append(randomColorChar()).append(word);
+                    sb.append('&')
+                            .append(randomColorChar())
+                            .append(word);
                 }
             }
         }
+
         return AdventureUtil.legacyToComponent(sb.toString());
     }
 
@@ -228,24 +221,26 @@ public class TabList extends FreedomService
         {
             return false;
         }
+
         final char code = Character.toLowerCase(word.charAt(1));
-        return (code >= '0' && code <= '9') || (code >= 'a' && code <= 'f') || code == 'r';
+
+        return (code >= '0' && code <= '9')
+                || (code >= 'a' && code <= 'f')
+                || code == 'r';
     }
 
     private char randomColorChar()
     {
         final NamedTextColor color = FUtil.randomChatColor();
-        final ChatColor legacy = AdventureUtil.namedTextColorToChatColor(color);
+        final ChatColor legacy =
+                AdventureUtil.namedTextColorToChatColor(color);
+
         return (legacy != null ? legacy : ChatColor.WHITE).getChar();
     }
 
     private static final class CycleContext
     {
-        Component header;
-        Component footer;
-        String playerComponentTemplate;
-        String afkTag;
-        String nicknameIndicator;
-        boolean essentialsEnabled;
+        private Component header;
+        private Component footer;
     }
 }

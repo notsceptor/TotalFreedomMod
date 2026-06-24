@@ -130,6 +130,8 @@ public class PlayerList extends FreedomService
         }
 
         tPlayer = new FPlayer(plugin, player);
+        final PlayerData data = getData(player);
+        tPlayer.setCommandSpy(data.isCommandSpy());
         playerMap.put(player.getAddress().getAddress().getHostAddress(), tPlayer);
 
         return tPlayer;

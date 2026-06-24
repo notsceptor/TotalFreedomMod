@@ -29,6 +29,9 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
     @Setter
     private boolean potionSpy;
     @Getter
+    @Setter
+    private boolean commandSpy;
+    @Getter
     private int strikes;
     private final List<String> ips = Lists.newArrayList();
 
@@ -51,6 +54,7 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
         this.firstJoinUnix = cs.getLong("first_join", 0);
         this.lastJoinUnix = cs.getLong("last_join", 0);
         this.potionSpy = cs.getBoolean("potion_spy", false);
+        this.commandSpy = cs.getBoolean("command_spy", false);
         this.strikes = cs.getInt("strikes", 0);
     }
 
@@ -63,6 +67,7 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
         cs.set("first_join", firstJoinUnix);
         cs.set("last_join", lastJoinUnix);
         cs.set("potion_spy", potionSpy);
+        cs.set("command_spy", commandSpy);
         cs.set("strikes", strikes);
     }
 

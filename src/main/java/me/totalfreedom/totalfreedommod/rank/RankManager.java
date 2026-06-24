@@ -43,30 +43,33 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scoreboard.Scoreboard;
+import org.bukkit.scoreboard.ScoreboardManager;
+import org.bukkit.scoreboard.Team;
 
 public class RankManager extends FreedomService
 {
     // ========================================================================
     // Custom Rank System
     // ========================================================================
-    
+
     public static final String RANKS_FILENAME = "ranks.yml";
-    
+
     /**
      * All custom ranks, keyed by ID.
      */
     private final Map<String, CustomRank> customRanks = Maps.newLinkedHashMap();
-    
+
     /**
      * File for storing custom ranks.
      */
     private File ranksFile;
-    
+
     /**
      * YAML configuration for ranks.
      */
     private YamlConfiguration ranksConfig;
-    
+
     /**
      * Chat input handler for interactive menus.
      */
@@ -84,7 +87,8 @@ public class RankManager extends FreedomService
     {
         // Load custom ranks
         loadRanks();
-        
+        server.getScheduler().runTask(plugin, this::updateAllPlayerTeams);
+
         // Start persistent monitor if enabled
         if (ConfigEntry.AUTO_OP_ENABLED.getBoolean() && ConfigEntry.AUTO_OP_PERSISTENT_MONITOR.getBoolean())
         {
@@ -97,59 +101,60 @@ public class RankManager extends FreedomService
     {
         // Save ranks before shutdown
         saveRanks();
-        
+
         // Stop persistent monitor
         if (persistentMonitorTask != null)
         {
             persistentMonitorTask.cancel();
             persistentMonitorTask = null;
         }
-        
+
         // Clear chat input handlers
         chatInputHandler.clearAll();
     }
-    
+
     // ========================================================================
     // Custom Rank Management
     // ========================================================================
-    
+
     /**
      * Load custom ranks from ranks.yml.
      */
     public void loadRanks()
     {
         ranksFile = new File(plugin.getDataFolder(), RANKS_FILENAME);
-        
+
         if (!ranksFile.exists())
         {
             createDefaultRanks();
             migrateConfigRanks();
             return;
         }
-        
+
         ranksConfig = YamlConfiguration.loadConfiguration(ranksFile);
         customRanks.clear();
-        
+
         for (String key : ranksConfig.getKeys(false))
         {
             ConfigurationSection section = ranksConfig.getConfigurationSection(key);
             if (section == null) continue;
-            
+
             CustomRank rank = new CustomRank(key);
             rank.loadFrom(section);
             customRanks.put(key.toLowerCase(), rank);
         }
-        
+
         validateEssentialRanks();
         resolveInheritance();
+        updateAllPlayerTeams();
         FLog.info("Loaded " + customRanks.size() + " custom ranks.");
 
     }
-    
+
     private static final String[] ESSENTIAL_RANKS = {
-        "non_op", "op", "super_admin", "telnet_admin", "senior_admin"
+            "non_op", "op", "super_admin", "telnet_admin", "senior_admin"
     };
-    
+
     private void validateEssentialRanks()
     {
         boolean modified = false;
@@ -170,18 +175,18 @@ public class RankManager extends FreedomService
             FLog.info("Repaired ranks.yml with missing essential ranks.");
         }
     }
-    
+
     /**
      * Create default ranks from the legacy Rank enum.
      */
     private void createDefaultRanks()
     {
         customRanks.clear();
-        
+
         for (Rank legacyRank : Rank.values())
         {
             CustomRank custom = CustomRank.fromLegacyRank(legacyRank);
-            
+
             // Add default permissions based on rank type
             switch (legacyRank)
             {
@@ -210,15 +215,15 @@ public class RankManager extends FreedomService
                 default:
                     break;
             }
-            
+
             customRanks.put(custom.getId(), custom);
         }
-        
+
         resolveInheritance();
         saveRanks();
         FLog.info("Created default ranks configuration.");
     }
-    
+
     private void migrateConfigRanks()
     {
         applyConfigPrefix("impostor", ConfigEntry.VAULT_PREFIX_IMPOSTOR);
@@ -231,7 +236,7 @@ public class RankManager extends FreedomService
         applyConfigPrefix("senior_console", ConfigEntry.VAULT_PREFIX_SENIOR_CONSOLE);
         applyConfigPrefix("developer", ConfigEntry.VAULT_PREFIX_DEVELOPER);
         applyConfigPrefix("owner", ConfigEntry.VAULT_PREFIX_OWNER);
-        
+
         List<String> owners = ConfigEntry.SERVER_OWNERS.getStringList();
         if (owners != null && !owners.isEmpty())
         {
@@ -251,12 +256,12 @@ public class RankManager extends FreedomService
                 FLog.info("Found " + found + " owner(s) from config.yml. They will display with the owner rank.");
             }
         }
-        
+
         saveRanks();
         removeConfigRanks();
         FLog.info("Migrated rank configuration from config.yml to ranks.yml.");
     }
-    
+
     private void applyConfigPrefix(String rankId, ConfigEntry entry)
     {
         String prefix = entry.getString();
@@ -269,7 +274,7 @@ public class RankManager extends FreedomService
             }
         }
     }
-    
+
     private void removeConfigRanks()
     {
         File configFile = new File(plugin.getDataFolder(), "config.yml");
@@ -277,25 +282,25 @@ public class RankManager extends FreedomService
         {
             return;
         }
-        
+
         try
         {
             YamlConfiguration config = YamlConfiguration.loadConfiguration(configFile);
             boolean modified = false;
-            
+
             if (config.contains("server.owners"))
             {
                 config.set("server.owners", null);
                 modified = true;
             }
-            
+
             String[] prefixKeys = {
-                "chat.prefix.impostor", "chat.prefix.non_op", "chat.prefix.op",
-                "chat.prefix.super_admin", "chat.prefix.telnet_admin", "chat.prefix.senior_admin",
-                "chat.prefix.telnet_console", "chat.prefix.senior_console",
-                "chat.prefix.developer", "chat.prefix.owner"
+                    "chat.prefix.impostor", "chat.prefix.non_op", "chat.prefix.op",
+                    "chat.prefix.super_admin", "chat.prefix.telnet_admin", "chat.prefix.senior_admin",
+                    "chat.prefix.telnet_console", "chat.prefix.senior_console",
+                    "chat.prefix.developer", "chat.prefix.owner"
             };
-            
+
             for (String key : prefixKeys)
             {
                 if (config.contains(key))
@@ -304,13 +309,13 @@ public class RankManager extends FreedomService
                     modified = true;
                 }
             }
-            
+
             ConfigurationSection prefixSection = config.getConfigurationSection("chat.prefix");
             if (prefixSection != null && prefixSection.getKeys(false).isEmpty())
             {
                 config.set("chat.prefix", null);
             }
-            
+
             if (modified)
             {
                 config.save(configFile);
@@ -321,7 +326,7 @@ public class RankManager extends FreedomService
             FLog.warning("Could not update config.yml: " + ex.getMessage());
         }
     }
-    
+
     /**
      * Save custom ranks to ranks.yml.
      */
@@ -331,15 +336,15 @@ public class RankManager extends FreedomService
         {
             ranksFile = new File(plugin.getDataFolder(), RANKS_FILENAME);
         }
-        
+
         ranksConfig = new YamlConfiguration();
-        
+
         for (CustomRank rank : customRanks.values())
         {
             ConfigurationSection section = ranksConfig.createSection(rank.getId());
             rank.saveTo(section);
         }
-        
+
         try
         {
             ranksConfig.save(ranksFile);
@@ -350,7 +355,7 @@ public class RankManager extends FreedomService
         }
 
     }
-    
+
     private void resolveInheritance()
     {
         for (CustomRank rank : customRanks.values())
@@ -359,20 +364,20 @@ public class RankManager extends FreedomService
             rank.setResolvedPermissions(resolved);
         }
     }
-    
+
     private Set<String> collectPermissions(CustomRank rank, Set<String> visited)
     {
         if (rank == null) return Set.of();
-        
+
         if (visited.contains(rank.getId()))
         {
             FLog.warning("Circular inheritance detected for rank: " + rank.getId());
             return Set.of();
         }
         visited.add(rank.getId());
-        
+
         Set<String> perms = new HashSet<>(rank.getPermissions());
-        
+
         if (rank.getInheritFrom() != null)
         {
             CustomRank parent = customRanks.get(rank.getInheritFrom().toLowerCase());
@@ -385,10 +390,10 @@ public class RankManager extends FreedomService
                 perms.addAll(collectPermissions(parent, visited));
             }
         }
-        
+
         return perms;
     }
-    
+
     public CustomRank getCustomRank(String id)
     {
         if (id == null)
@@ -397,7 +402,100 @@ public class RankManager extends FreedomService
         }
         return customRanks.get(id.toLowerCase());
     }
-    
+
+
+    private CustomRank getAssignedAdminRank(Player player)
+    {
+        if (plugin.al.isAdminImpostor(player))
+        {
+            return null;
+        }
+
+        Admin admin = plugin.al.getAdmin(player);
+
+        if (admin == null || !admin.isActive())
+        {
+            return null;
+        }
+
+        if (admin.getCustomRankId() != null)
+        {
+            CustomRank customRank = getCustomRank(admin.getCustomRankId());
+
+            if (customRank != null)
+            {
+                return customRank;
+            }
+        }
+
+        return getCustomRankForLegacy(admin.getRank());
+    }
+
+    public void updatePlayerTeam(Player player)
+    {
+        ScoreboardManager manager = server.getScoreboardManager();
+
+        if (manager == null)
+        {
+            return;
+        }
+
+        Scoreboard scoreboard = manager.getMainScoreboard();
+        Team currentTeam = scoreboard.getEntryTeam(player.getName());
+        CustomRank rank = getAssignedAdminRank(player);
+
+        if (rank == null || !rank.isAdmin())
+        {
+            if (currentTeam != null)
+            {
+                currentTeam.removeEntry(player.getName());
+            }
+
+            return;
+        }
+
+        String teamName = createTeamName(rank);
+
+        if (currentTeam != null && !currentTeam.getName().equals(teamName))
+        {
+            currentTeam.removeEntry(player.getName());
+        }
+
+        Team team = scoreboard.getTeam(teamName);
+
+        if (team == null)
+        {
+            team = scoreboard.registerNewTeam(teamName);
+        }
+
+        team.color(rank.getColor());
+        String prefix = rank.getPrefix();
+        team.prefix(prefix == null
+                ? Component.empty()
+                : AdventureUtil.legacyToComponent(prefix));
+        team.addEntry(player.getName());
+    }
+
+    private String createTeamName(CustomRank rank)
+    {
+        String name = rank.getId().replaceAll("[^A-Za-z0-9_\\-]", "_");
+
+        if (name.length() > 16)
+        {
+            name = name.substring(0, 16);
+        }
+
+        return name;
+    }
+
+    public void updateAllPlayerTeams()
+    {
+        for (Player player : server.getOnlinePlayers())
+        {
+            updatePlayerTeam(player);
+        }
+    }
+
     /**
      * Get all custom ranks.
      */
@@ -405,7 +503,7 @@ public class RankManager extends FreedomService
     {
         return customRanks;
     }
-    
+
     /**
      * Get custom ranks sorted by level.
      */
@@ -415,14 +513,15 @@ public class RankManager extends FreedomService
         sorted.sort(Comparator.comparingInt(CustomRank::getLevel));
         return sorted;
     }
-    
+
     public void setCustomRank(CustomRank rank)
     {
         customRanks.put(rank.getId(), rank);
         resolveInheritance();
         saveRanks();
+        updateAllPlayerTeams();
     }
-    
+
     /**
      * Remove a custom rank.
      */
@@ -432,11 +531,12 @@ public class RankManager extends FreedomService
         if (removed != null)
         {
             saveRanks();
+            updateAllPlayerTeams();
             return true;
         }
         return false;
     }
-    
+
     /**
      * Check if a custom rank exists.
      */
@@ -444,15 +544,15 @@ public class RankManager extends FreedomService
     {
         return customRanks.containsKey(id.toLowerCase());
     }
-    
+
     // ========================================================================
     // Permission System (Internal, NOT Bukkit-based)
     // ========================================================================
-    
+
     /**
      * Check if a sender has a specific TFM permission.
      * This does NOT use Bukkit permission nodes - it's purely internal.
-     * 
+     *
      * @param sender The command sender
      * @param permission The TFM permission string (e.g., "tfm.admin.ban")
      * @return true if the sender has the permission
@@ -484,7 +584,7 @@ public class RankManager extends FreedomService
         }
 
         Player player = (Player) sender;
-        
+
         // Check if admin
         Admin admin = plugin.al.getAdmin(player);
         if (admin != null && admin.isActive())
@@ -501,7 +601,7 @@ public class RankManager extends FreedomService
                     }
                 }
             }
-            
+
             // Fallback to custom rank derived from legacy rank
             CustomRank customRank = getCustomRankForLegacy(admin.getRank());
             if (customRank != null)
@@ -511,11 +611,11 @@ public class RankManager extends FreedomService
                     return true;
                 }
             }
-            
+
             // Legacy fallback: check rank level
             return checkLegacyPermission(admin.getRank(), permission);
         }
-        
+
         // Non-admins: check if they have a custom rank assigned (for future expansion)
         // For now, non-admins only have basic player permissions
         CustomRank opRank = getCustomRank("op");
@@ -523,17 +623,17 @@ public class RankManager extends FreedomService
         {
             return hasCustomRankPermission(opRank, permission);
         }
-        
+
         return false;
     }
-    
+
     private boolean hasCustomRankPermission(CustomRank rank, String permission)
     {
         if (rank.hasPermission(permission))
         {
             return true;
         }
-        
+
         String[] parts = permission.split("\\.");
         StringBuilder wildcard = new StringBuilder();
         for (int i = 0; i < parts.length - 1; i++)
@@ -544,10 +644,10 @@ public class RankManager extends FreedomService
                 return true;
             }
         }
-        
+
         return false;
     }
-    
+
     /**
      * Check permission based on legacy rank level.
      */
@@ -576,7 +676,7 @@ public class RankManager extends FreedomService
         }
         return false;
     }
-    
+
     /**
      * Get the custom rank that corresponds to a legacy Rank enum.
      */
@@ -584,7 +684,7 @@ public class RankManager extends FreedomService
     {
         return getCustomRank(legacyRank.name().toLowerCase());
     }
-    
+
     /**
      * Check if sender has permission to manage ranks.
      */
@@ -592,11 +692,11 @@ public class RankManager extends FreedomService
     {
         return hasPermission(sender, "tfm.manage.ranks");
     }
-    
+
     // ========================================================================
     // Chat Input Handler (Inner Class)
     // ========================================================================
-    
+
     /**
      * Get the chat input handler for interactive menus.
      */
@@ -604,7 +704,7 @@ public class RankManager extends FreedomService
     {
         return chatInputHandler;
     }
-    
+
     /**
      * Inner class that handles chat input for interactive configuration menus.
      * Players can be registered to have their next chat message captured.
@@ -615,10 +715,10 @@ public class RankManager extends FreedomService
          * Map of player UUIDs to their pending input handlers.
          */
         private final Map<UUID, PendingInput> pendingInputs = new ConcurrentHashMap<>();
-        
+
         /**
          * Register a player to capture their next chat message.
-         * 
+         *
          * @param player The player
          * @param prompt The prompt to show the player
          * @param callback The callback to invoke with the input
@@ -627,20 +727,20 @@ public class RankManager extends FreedomService
         public void awaitInput(Player player, Component prompt, Consumer<String> callback, int timeoutSeconds)
         {
             UUID uuid = player.getUniqueId();
-            
+
             // Cancel any existing pending input
             cancelInput(player);
-            
+
             // Send prompt
             player.sendMessage(Component.empty());
             player.sendMessage(prompt);
             player.sendMessage(Component.text("Type your response in chat, or type 'cancel' to abort.")
                     .color(NamedTextColor.GRAY).decorate(TextDecoration.ITALIC));
-            
+
             // Register pending input
             PendingInput pending = new PendingInput(callback, System.currentTimeMillis());
             pendingInputs.put(uuid, pending);
-            
+
             // Schedule timeout if specified
             if (timeoutSeconds > 0)
             {
@@ -663,7 +763,7 @@ public class RankManager extends FreedomService
                 }.runTaskLater(plugin, timeoutSeconds * 20L);
             }
         }
-        
+
         /**
          * Cancel pending input for a player.
          */
@@ -671,7 +771,7 @@ public class RankManager extends FreedomService
         {
             pendingInputs.remove(player.getUniqueId());
         }
-        
+
         /**
          * Check if a player has pending input.
          */
@@ -679,10 +779,10 @@ public class RankManager extends FreedomService
         {
             return pendingInputs.containsKey(player.getUniqueId());
         }
-        
+
         /**
          * Process a chat message from a player.
-         * 
+         *
          * @param player The player
          * @param message The chat message
          * @return true if the message was consumed (pending input), false otherwise
@@ -691,19 +791,19 @@ public class RankManager extends FreedomService
         {
             UUID uuid = player.getUniqueId();
             PendingInput pending = pendingInputs.remove(uuid);
-            
+
             if (pending == null)
             {
                 return false;
             }
-            
+
             // Check for cancel
             if (message.equalsIgnoreCase("cancel"))
             {
                 player.sendMessage(Component.text("Input cancelled.").color(NamedTextColor.YELLOW));
                 return true;
             }
-            
+
             // Invoke callback
             try
             {
@@ -714,10 +814,10 @@ public class RankManager extends FreedomService
                 player.sendMessage(Component.text("Error processing input: " + ex.getMessage()).color(NamedTextColor.RED));
                 FLog.warning("Error in chat input callback: " + ex.getMessage());
             }
-            
+
             return true;
         }
-        
+
         /**
          * Clear all pending inputs.
          */
@@ -725,7 +825,7 @@ public class RankManager extends FreedomService
         {
             pendingInputs.clear();
         }
-        
+
         /**
          * Inner class representing pending input.
          */
@@ -733,22 +833,22 @@ public class RankManager extends FreedomService
         {
         }
     }
-    
+
     // ========================================================================
     // Chat Event Handler (for input capture)
     // ========================================================================
-    
+
     @EventHandler(priority = EventPriority.LOWEST)
     public void onPlayerChat(AsyncChatEvent event)
     {
         Player player = event.getPlayer();
-        
+
         // Check if this player has pending input
         if (chatInputHandler.hasPendingInput(player))
         {
             // Extract plain text from the Component message
             final String message = PlainTextComponentSerializer.plainText().serialize(event.message());
-            
+
             // Process on main thread to avoid async issues
             new BukkitRunnable()
             {
@@ -758,30 +858,42 @@ public class RankManager extends FreedomService
                     chatInputHandler.processChat(player, message);
                 }
             }.runTask(plugin);
-            
+
             // Cancel the chat event so the message isn't broadcast
             event.setCancelled(true);
         }
     }
-    
+
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event)
     {
         // Clean up pending inputs when player leaves
         chatInputHandler.cancelInput(event.getPlayer());
+
+        ScoreboardManager manager = server.getScoreboardManager();
+
+        if (manager != null)
+        {
+            Team team = manager.getMainScoreboard().getEntryTeam(event.getPlayer().getName());
+
+            if (team != null)
+            {
+                team.removeEntry(event.getPlayer().getName());
+            }
+        }
     }
-    
+
     // ========================================================================
     // Interactive Menu Builder (for /rankconfig)
     // ========================================================================
-    
+
     /**
      * Build the main rank configuration menu.
      */
     public Component buildMainMenu()
     {
         Component builder = Component.empty();
-        
+
         builder.append(Component.text("\n"));
         builder.append(Component.text("═══════════════════════════════════════").color(NamedTextColor.GOLD));
         builder.append(Component.text("\n"));
@@ -789,11 +901,11 @@ public class RankManager extends FreedomService
         builder.append(Component.text("\n"));
         builder.append(Component.text("═══════════════════════════════════════").color(NamedTextColor.GOLD));
         builder.append(Component.text("\n\n"));
-        
+
         // List ranks with edit buttons
         builder.append(Component.text("Ranks (sorted by level):").color(NamedTextColor.YELLOW));
         builder.append(Component.text("\n"));
-        
+
         for (CustomRank rank : getCustomRanksSorted())
         {
             builder.append(Component.text("  • ").color(NamedTextColor.GRAY));
@@ -801,54 +913,54 @@ public class RankManager extends FreedomService
             builder.append(Component.text(" " + rank.getName()).color(rank.getColor()));
             builder.append(Component.text(" (Level " + rank.getLevel() + ")").color(NamedTextColor.DARK_GRAY));
             builder.append(Component.text(" "));
-            
+
             // Edit button
             builder.append(Component.text("[Edit]")
                     .color(NamedTextColor.AQUA)
                     .clickEvent(ClickEvent.runCommand("/rankconfig edit " + rank.getId()))
                     .hoverEvent(HoverEvent.showText(Component.text("Click to edit " + rank.getName()))));
-            
+
             builder.append(Component.text(" "));
-            
+
             // Delete button
             builder.append(Component.text("[Delete]")
                     .color(NamedTextColor.RED)
                     .clickEvent(ClickEvent.runCommand("/rankconfig delete " + rank.getId()))
                     .hoverEvent(HoverEvent.showText(Component.text("Click to delete " + rank.getName()))));
-            
+
             builder.append(Component.text("\n"));
         }
-        
+
         builder.append(Component.text("\n"));
-        
+
         // Actions
         builder.append(Component.text("[+ Create New Rank]")
                 .color(NamedTextColor.GREEN)
                 .decorate(TextDecoration.BOLD)
                 .clickEvent(ClickEvent.runCommand("/rankconfig create"))
                 .hoverEvent(HoverEvent.showText(Component.text("Click to create a new rank"))));
-        
+
         builder.append(Component.text("  "));
-        
+
         builder.append(Component.text("[Reload]")
                 .color(NamedTextColor.YELLOW)
                 .clickEvent(ClickEvent.runCommand("/rankconfig reload"))
                 .hoverEvent(HoverEvent.showText(Component.text("Reload ranks from file"))));
-        
+
         builder.append(Component.text("\n"));
         builder.append(Component.text("═══════════════════════════════════════").color(NamedTextColor.GOLD));
         builder.append(Component.text("\n"));
-        
+
         return builder;
     }
-    
+
     /**
      * Build the rank edit menu.
      */
     public Component buildEditMenu(CustomRank rank)
     {
         Component builder = Component.empty();
-        
+
         builder.append(Component.text("\n"));
         builder.append(Component.text("═══════════════════════════════════════").color(NamedTextColor.AQUA));
         builder.append(Component.text("\n"));
@@ -858,7 +970,7 @@ public class RankManager extends FreedomService
         builder.append(Component.text("\n"));
         builder.append(Component.text("═══════════════════════════════════════").color(NamedTextColor.AQUA));
         builder.append(Component.text("\n\n"));
-        
+
         builder.append(buildEditableProperty("Name", rank.getName(), "/rankconfig set " + rank.getId() + " name"));
         builder.append(buildEditableProperty("Abbreviation", rank.getAbbreviation(), "/rankconfig set " + rank.getId() + " abbreviation"));
         builder.append(buildEditableProperty("Prefix", rank.getPrefix() != null ? rank.getPrefix() : "(none)", "/rankconfig set " + rank.getId() + " prefix"));
@@ -868,9 +980,9 @@ public class RankManager extends FreedomService
         builder.append(buildEditableProperty("Is Admin", String.valueOf(rank.isAdmin()), "/rankconfig set " + rank.getId() + " admin"));
         builder.append(buildEditableProperty("Console Only", String.valueOf(rank.isConsoleOnly()), "/rankconfig set " + rank.getId() + " console"));
         builder.append(buildEditableProperty("Inherit From", rank.getInheritFrom() != null ? rank.getInheritFrom() : "(none)", "/rankconfig set " + rank.getId() + " inherit"));
-        
+
         builder.append(Component.text("\n"));
-        
+
         // Permissions section
         builder.append(Component.text("Permissions:").color(NamedTextColor.YELLOW));
         builder.append(Component.text(" "));
@@ -879,7 +991,7 @@ public class RankManager extends FreedomService
                 .clickEvent(ClickEvent.runCommand("/rankconfig set " + rank.getId() + " addperm"))
                 .hoverEvent(HoverEvent.showText(Component.text("Add a permission"))));
         builder.append(Component.text("\n"));
-        
+
         if (rank.getPermissions().isEmpty())
         {
             builder.append(Component.text("  (none)").color(NamedTextColor.DARK_GRAY).decorate(TextDecoration.ITALIC));
@@ -899,7 +1011,7 @@ public class RankManager extends FreedomService
                 builder.append(Component.text("\n"));
             }
         }
-        
+
         builder.append(Component.text("\n"));
         builder.append(Component.text("[← Back to List]")
                 .color(NamedTextColor.GRAY)
@@ -913,10 +1025,10 @@ public class RankManager extends FreedomService
         builder.append(Component.text("\n"));
         builder.append(Component.text("═══════════════════════════════════════").color(NamedTextColor.AQUA));
         builder.append(Component.text("\n"));
-        
+
         return builder;
     }
-    
+
     /**
      * Build an editable property line.
      */
@@ -1208,6 +1320,8 @@ public class RankManager extends FreedomService
             }
         }
 
+        updatePlayerTeam(player);
+
         // Handle impostors
         if (plugin.al.isAdminImpostor(player))
         {
@@ -1265,9 +1379,6 @@ public class RankManager extends FreedomService
             String tagLegacy = AdventureUtil.componentToLegacySection(display.getColoredTag());
             plugin.pl.getPlayer(player).setTag(tagLegacy);
 
-            // Set player list name using Adventure API
-            Component displayNameComponent = Component.text(player.getName()).color(display.getColor());
-            player.playerListName(displayNameComponent);
         }
     }
 

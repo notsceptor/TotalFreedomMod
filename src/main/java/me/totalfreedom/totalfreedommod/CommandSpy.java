@@ -1,5 +1,6 @@
 package me.totalfreedom.totalfreedommod;
 
+import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -27,18 +28,27 @@ public class CommandSpy extends FreedomService
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerCommandPreprocess(PlayerCommandPreprocessEvent event)
     {
-        if (plugin.al.isAdmin(event.getPlayer()))
-        {
-            return;
-        }
+        final Player commandSender = event.getPlayer();
+        final boolean senderIsAdmin = plugin.al.isAdmin(commandSender);
 
         for (Player player : plugin.al.getOnlineAdmins())
         {
-            if (plugin.pl.getPlayer(player).cmdspyEnabled())
+            if (!plugin.pl.getPlayer(player).cmdspyEnabled())
             {
-                FUtil.playerMsg(player, event.getPlayer().getName() + ": " + event.getMessage());
+                continue;
             }
+
+            if (senderIsAdmin && !plugin.rm.getRank(player).isAtLeast(Rank.SENIOR_ADMIN))
+            {
+                continue;
+            }
+
+            if (player.equals(commandSender))
+            {
+                continue;
+            }
+
+            FUtil.playerMsg(player, commandSender.getName() + ": " + event.getMessage());
         }
     }
-
 }
