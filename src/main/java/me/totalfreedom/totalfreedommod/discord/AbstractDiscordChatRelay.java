@@ -130,14 +130,55 @@ public abstract class AbstractDiscordChatRelay extends ListenerAdapter
 
         final String truncatedContent = content.length() > MINECRAFT_MAX_MESSAGE_LENGTH ? content.substring(0, MINECRAFT_MAX_MESSAGE_LENGTH) : content;
 
-        String rendered = template
-                .replace("{user}", displayName)
-                .replace("{message}", truncatedContent);
-        String translated = AdventureUtil.translateAlternateColorCodes(rendered);
-
-        Component component = LegacyComponentSerializer.legacySection().deserialize(translated);
+        final Component component = buildDiscordMessage(template, displayName, truncatedContent);
         // Hop back to the main thread to broadcast.
         Bukkit.getScheduler().runTask(plugin, () -> chatAction.accept(component));
+    }
+
+    private static Component buildDiscordMessage(String template, String user, String message)
+    {
+        String resolved = template.replace("{user}", user);
+        int msgIdx = resolved.indexOf("{message}");
+        if (msgIdx < 0)
+        {
+            String translated = AdventureUtil.translateAlternateColorCodes(resolved.replace("{message}", message));
+            return AdventureUtil.addLinks(legacySection(translated));
+        }
+
+        String before = resolved.substring(0, msgIdx);
+        String after = resolved.substring(msgIdx + "{message}".length());
+        Component messageComponent = AdventureUtil.addLinks(
+                legacySection(AdventureUtil.translateAlternateColorCodes(trailingLegacyCodes(before) + message)));
+        return legacySection(AdventureUtil.translateAlternateColorCodes(before))
+                .append(messageComponent)
+                .append(legacySection(AdventureUtil.translateAlternateColorCodes(after)));
+    }
+
+    private static Component legacySection(String s)
+    {
+        if (s == null || s.isEmpty())
+        {
+            return Component.empty();
+        }
+        return LegacyComponentSerializer.legacySection().deserialize(s);
+    }
+
+    private static String trailingLegacyCodes(String s)
+    {
+        int i = s.length();
+        while (i >= 2 && s.charAt(i - 2) == '&')
+        {
+            char code = Character.toLowerCase(s.charAt(i - 1));
+            if ("0123456789abcdefklmnor".indexOf(code) >= 0)
+            {
+                i -= 2;
+            }
+            else
+            {
+                break;
+            }
+        }
+        return s.substring(i);
     }
 
     private static String sanitizeForDiscord(String input)

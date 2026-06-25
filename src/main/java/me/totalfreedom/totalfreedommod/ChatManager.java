@@ -355,7 +355,7 @@ public class ChatManager extends FreedomService
 				.append(Component.text("] ").color(NamedTextColor.WHITE))
 				.append(nameComponent.color(NamedTextColor.DARK_RED))
 				.append(Component.text(": ").color(NamedTextColor.DARK_RED))
-				.append(Component.text(message).color(NamedTextColor.GOLD));
+				.append(AdventureUtil.addLinks(Component.text(message).color(NamedTextColor.GOLD)));
 
 		// Serialize console message to ANSI for terminal colors
 		Component consoleMsg = Component.text("[ADMIN] ")

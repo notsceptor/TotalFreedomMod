@@ -3,7 +3,11 @@ package me.totalfreedom.totalfreedommod.util;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Pattern;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextReplacementConfig;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -16,6 +20,9 @@ public class AdventureUtil
     private static final LegacyComponentSerializer LEGACY_AMPERSAND = LegacyComponentSerializer.legacyAmpersand();
     private static final LegacyComponentSerializer LEGACY_SECTION = LegacyComponentSerializer.legacySection();
     private static final PlainTextComponentSerializer PLAIN_TEXT = PlainTextComponentSerializer.plainText();
+
+    private static final Pattern URL_PATTERN = Pattern.compile(
+            "(?i)\\b(?:https?://|www\\.)[-a-z0-9+&@#/%?=~_|!:,.;]*[-a-z0-9+&@#/%=~_|]");
 
     private static final Map<ChatColor, NamedTextColor> CHAT_COLOR_TO_NAMED_TEXT_COLOR = new EnumMap<ChatColor, NamedTextColor>(ChatColor.class);
     private static final Map<NamedTextColor, ChatColor> NAMED_TEXT_COLOR_TO_CHAT_COLOR = new HashMap<NamedTextColor, ChatColor>();
@@ -74,6 +81,24 @@ public class AdventureUtil
             return Component.empty();
         }
         return LEGACY_AMPERSAND.deserialize(legacy);
+    }
+
+    public static Component addLinks(Component component)
+    {
+        if (component == null)
+        {
+            return Component.empty();
+        }
+        return component.replaceText(builder -> builder
+                .match(URL_PATTERN)
+                .replacement((result, text) ->
+                {
+                    final String url = result.group();
+                    final String href = url.regionMatches(true, 0, "http", 0, 4) ? url : "https://" + url;
+                    return text.clickEvent(ClickEvent.openUrl(href))
+                            .hoverEvent(HoverEvent.showText(Component.text("Open " + href)))
+                            .decorate(TextDecoration.UNDERLINED);
+                }));
     }
 
     /**
