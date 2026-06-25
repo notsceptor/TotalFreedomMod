@@ -85,7 +85,7 @@ public class Announcer extends FreedomService
     {
         // Convert legacy string with & codes to Component for proper color rendering
         String fullMessage = prefix + message;
-        FUtil.bcastMsg(AdventureUtil.legacyToComponent(fullMessage));
+        FUtil.bcastMsg(AdventureUtil.addLinks(AdventureUtil.legacyToComponent(fullMessage)));
     }
 
 }

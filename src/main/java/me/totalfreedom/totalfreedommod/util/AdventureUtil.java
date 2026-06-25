@@ -17,8 +17,17 @@ import org.bukkit.ChatColor;
 public class AdventureUtil
 {
 
-    private static final LegacyComponentSerializer LEGACY_AMPERSAND = LegacyComponentSerializer.legacyAmpersand();
-    private static final LegacyComponentSerializer LEGACY_SECTION = LegacyComponentSerializer.legacySection();
+    private static LegacyComponentSerializer legacySerializer(char character)
+    {
+        return LegacyComponentSerializer.builder()
+                .character(character)
+                .hexColors()
+                .useUnusualXRepeatedCharacterHexFormat()
+                .build();
+    }
+
+    private static final LegacyComponentSerializer LEGACY_AMPERSAND = legacySerializer('&');
+    private static final LegacyComponentSerializer LEGACY_SECTION = legacySerializer('\u00A7');
     private static final PlainTextComponentSerializer PLAIN_TEXT = PlainTextComponentSerializer.plainText();
 
     private static final Pattern URL_PATTERN = Pattern.compile(

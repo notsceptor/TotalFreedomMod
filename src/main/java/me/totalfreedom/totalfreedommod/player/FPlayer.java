@@ -414,6 +414,10 @@ public class FPlayer
         {
             this.tag = tag;
         }
+        else if (tag.indexOf('\u00A7') >= 0)
+        {
+            this.tag = tag;
+        }
         else
         {
             String colorizedTag = AdventureUtil.componentToLegacySection(FUtil.colorize(tag));

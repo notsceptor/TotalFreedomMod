@@ -92,7 +92,9 @@ public class Command_tag extends FreedomCommand
         }
 
         plugin.pl.getPlayer(playerSender).setTag(outputTag);
-        msg("Tag set to '" + outputTag + "'.");
+        msg(Component.text("Tag set to '", NamedTextColor.GRAY)
+                .append(colorizedTag)
+                .append(Component.text("'.", NamedTextColor.GRAY)));
 
         return true;
     }
