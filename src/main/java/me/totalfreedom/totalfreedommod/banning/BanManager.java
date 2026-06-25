@@ -3,6 +3,7 @@ package me.totalfreedom.totalfreedommod.banning;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -34,8 +35,10 @@ public class BanManager extends FreedomService
     private final List<String> unbannableUsernames = Lists.newArrayList();
     //
     private final File configFile;
-    private YamlConfiguration config;
-    
+
+    private final Object lock = new Object();
+    private final Object persistenceLock = new Object();
+
     // Flag to track if SQL is available
     private boolean usingSql = false;
 
@@ -43,7 +46,6 @@ public class BanManager extends FreedomService
     {
         super(plugin);
         this.configFile = new File(plugin.getDataFolder(), "bans.yml");
-        this.config = YamlConfiguration.loadConfiguration(configFile);
     }
 
     @Override
@@ -74,13 +76,15 @@ public class BanManager extends FreedomService
         {
             BanRepository repo = plugin.dm.getBanRepository();
             List<Ban> loadedBans = repo.findAll().join();
-            
-            bans.clear();
-            bans.addAll(loadedBans);
-            
-            usingSql = true;
-            updateViews();
-            FLog.info("Loaded " + ipBans.size() + " IP bans and " + nameBans.size() + " username bans from SQL database.");
+
+            synchronized (lock)
+            {
+                bans.clear();
+                bans.addAll(loadedBans);
+                usingSql = true;
+                updateViews();
+                FLog.info("Loaded " + ipBans.size() + " IP bans and " + nameBans.size() + " username bans from SQL database.");
+            }
         }
         catch (Exception ex)
         {
@@ -106,33 +110,35 @@ public class BanManager extends FreedomService
                 FLog.severe("Could not create bans.yml");
             }
         }
-        config = YamlConfiguration.loadConfiguration(configFile);
+        final YamlConfiguration loaded = YamlConfiguration.loadConfiguration(configFile);
 
-        bans.clear();
-        for (String id : config.getKeys(false))
+        synchronized (lock)
         {
-            if (!config.isConfigurationSection(id))
+            bans.clear();
+            for (String id : loaded.getKeys(false))
             {
-                FLog.warning("Could not load username ban: " + id + ". Invalid format!");
-                continue;
+                if (!loaded.isConfigurationSection(id))
+                {
+                    FLog.warning("Could not load username ban: " + id + ". Invalid format!");
+                    continue;
+                }
+
+                Ban ban = new Ban();
+                ban.loadFrom(loaded.getConfigurationSection(id));
+
+                if (!ban.isValid())
+                {
+                    FLog.warning("Not adding username ban: " + id + ". Missing information.");
+                    continue;
+                }
+
+                bans.add(ban);
             }
 
-            Ban ban = new Ban();
-            ban.loadFrom(config.getConfigurationSection(id));
-
-            if (!ban.isValid())
-            {
-                FLog.warning("Not adding username ban: " + id + ". Missing information.");
-                continue;
-            }
-
-            bans.add(ban);
+            usingSql = false;
+            updateViews();
+            FLog.info("Loaded " + ipBans.size() + " IP bans and " + nameBans.size() + " username bans from YAML.");
         }
-
-        // Remove expired bans, repopulate ipBans and nameBans,
-        usingSql = false;
-        updateViews();
-        FLog.info("Loaded " + ipBans.size() + " IP bans and " + nameBans.size() + " username bans from YAML.");
     }
 
     @Override
@@ -157,18 +163,27 @@ public class BanManager extends FreedomService
         return Collections.unmodifiableCollection(nameBans.values());
     }
 
-    public synchronized void saveAll()
+    public void saveAll()
     {
-        // Remove expired
-        updateViews();
-
-        if (usingSql)
+        final boolean sql;
+        final List<Ban> snapshot;
+        synchronized (lock)
         {
-            saveAllToSql();
+            updateViews();
+            sql = usingSql;
+            snapshot = new ArrayList<>(bans);
         }
-        else
+
+        synchronized (persistenceLock)
         {
-            saveAllToYaml();
+            if (sql)
+            {
+                writeAllToSql(snapshot);
+            }
+            else
+            {
+                writeAllToYaml(snapshot);
+            }
         }
     }
 
@@ -191,54 +206,60 @@ public class BanManager extends FreedomService
         }
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> saveBanToSql(ban));
     }
-    
+
+    private void removeBanFromSqlAsync(Ban ban)
+    {
+        if (!plugin.isEnabled())
+        {
+            removeBanFromSql(ban);
+            return;
+        }
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> removeBanFromSql(ban));
+    }
+
     /**
-     * Save all bans to SQL database.
+     * Write the given snapshot of bans to the SQL database. Must be called under persistenceLock.
      */
-    private void saveAllToSql()
+    private void writeAllToSql(List<Ban> snapshot)
     {
         if (plugin.dm == null || !plugin.dm.isInitialized())
         {
             FLog.warning("SQL not available, falling back to YAML save");
-            saveAllToYaml();
+            writeAllToYaml(snapshot);
             return;
         }
-        
+
         try
         {
             BanRepository repo = plugin.dm.getBanRepository();
             // Clear and re-add all (simple approach for now)
             repo.deleteAll().join();
-            for (Ban ban : bans)
+            for (Ban ban : snapshot)
             {
                 repo.save(ban).join();
             }
-            FLog.debug("Saved " + bans.size() + " bans to SQL database");
+            FLog.debug("Saved " + snapshot.size() + " bans to SQL database");
         }
         catch (Exception ex)
         {
             FLog.warning("Failed to save bans to SQL: " + ex.getMessage());
         }
     }
-    
+
     /**
-     * Save all bans to YAML file.
+     * Write the given snapshot of bans to the YAML file. Must be called under persistenceLock.
      */
-    private void saveAllToYaml()
+    private void writeAllToYaml(List<Ban> snapshot)
     {
-        for (String key : config.getKeys(false))
+        final YamlConfiguration out = new YamlConfiguration();
+        for (Ban ban : snapshot)
         {
-            config.set(key, null);
-        }
-        for (Ban ban : bans)
-        {
-            ban.saveTo(config.createSection(String.valueOf(ban.hashCode())));
+            ban.saveTo(out.createSection(String.valueOf(ban.hashCode())));
         }
 
-        // Save config
         try
         {
-            config.save(configFile);
+            out.save(configFile);
         }
         catch (IOException ex)
         {
@@ -248,61 +269,76 @@ public class BanManager extends FreedomService
 
     public Ban getByIp(String ip)
     {
-        final Ban directBan = ipBans.get(ip);
-        if (directBan != null && !directBan.isExpired())
+        synchronized (lock)
         {
-            return directBan;
-        }
-
-        // Match fuzzy IP
-        for (Ban loopBan : ipBans.values())
-        {
-            if (loopBan.isExpired())
+            final Ban directBan = ipBans.get(ip);
+            if (directBan != null && !directBan.isExpired())
             {
-                continue;
+                return directBan;
             }
 
-            for (String loopIp : loopBan.getIps())
+            // Match fuzzy IP
+            for (Ban loopBan : ipBans.values())
             {
-                if (!loopIp.contains("*"))
+                if (loopBan.isExpired())
                 {
                     continue;
                 }
 
-                if (FUtil.fuzzyIpMatch(ip, loopIp, 4))
+                for (String loopIp : loopBan.getIps())
                 {
-                    return loopBan;
+                    if (!loopIp.contains("*"))
+                    {
+                        continue;
+                    }
+
+                    if (FUtil.fuzzyIpMatch(ip, loopIp, 4))
+                    {
+                        return loopBan;
+                    }
                 }
             }
-        }
 
-        return null;
+            return null;
+        }
     }
 
     public Ban getByUsername(String username)
     {
-        username = username.toLowerCase();
-        final Ban directBan = nameBans.get(username);
-
-        if (directBan != null && !directBan.isExpired())
+        synchronized (lock)
         {
-            return directBan;
-        }
+            username = username.toLowerCase();
+            final Ban directBan = nameBans.get(username);
 
-        return null;
+            if (directBan != null && !directBan.isExpired())
+            {
+                return directBan;
+            }
+
+            return null;
+        }
     }
 
     public Ban unbanIp(String ip)
     {
-        final Ban ban = getByIp(ip);
+        final Ban ban;
+        final boolean sql;
+        synchronized (lock)
+        {
+            ban = getByIp(ip);
+            if (ban != null)
+            {
+                bans.remove(ban);
+                updateViews();
+            }
+            sql = usingSql;
+        }
 
         if (ban != null)
         {
-            bans.remove(ban);
-            if (usingSql)
+            if (sql)
             {
-                removeBanFromSql(ban);
-                updateViews();
+                removeBanFromSqlAsync(ban);
             }
             else
             {
@@ -315,15 +351,24 @@ public class BanManager extends FreedomService
 
     public Ban unbanUsername(String username)
     {
-        final Ban ban = getByUsername(username);
+        final Ban ban;
+        final boolean sql;
+        synchronized (lock)
+        {
+            ban = getByUsername(username);
+            if (ban != null)
+            {
+                bans.remove(ban);
+                updateViews();
+            }
+            sql = usingSql;
+        }
 
         if (ban != null)
         {
-            bans.remove(ban);
-            if (usingSql)
+            if (sql)
             {
-                removeBanFromSql(ban);
-                updateViews();
+                removeBanFromSqlAsync(ban);
             }
             else
             {
@@ -346,9 +391,21 @@ public class BanManager extends FreedomService
 
     public boolean addBan(Ban ban)
     {
-        if (bans.add(ban))
+        final boolean added;
+        final boolean sql;
+        synchronized (lock)
         {
-            if (usingSql)
+            added = bans.add(ban);
+            if (added)
+            {
+                updateViews();
+            }
+            sql = usingSql;
+        }
+
+        if (added)
+        {
+            if (sql)
             {
                 saveBanToSqlAsync(ban);
             }
@@ -356,13 +413,11 @@ public class BanManager extends FreedomService
             {
                 saveAllAsync();
             }
-            updateViews();
-            return true;
         }
 
-        return false;
+        return added;
     }
-    
+
     /**
      * Save a single ban to SQL database.
      */
@@ -372,17 +427,20 @@ public class BanManager extends FreedomService
         {
             return;
         }
-        
-        try
+
+        synchronized (persistenceLock)
         {
-            plugin.dm.getBanRepository().save(ban).join();
-        }
-        catch (Exception ex)
-        {
-            FLog.warning("Failed to save ban to SQL: " + ex.getMessage());
+            try
+            {
+                plugin.dm.getBanRepository().save(ban).join();
+            }
+            catch (Exception ex)
+            {
+                FLog.warning("Failed to save ban to SQL: " + ex.getMessage());
+            }
         }
     }
-    
+
     /**
      * Remove a ban from SQL database.
      */
@@ -392,75 +450,67 @@ public class BanManager extends FreedomService
         {
             return;
         }
-        
-        try
+
+        synchronized (persistenceLock)
         {
-            if (ban.getUuid() != null)
+            try
             {
-                plugin.dm.getBanRepository().deleteByUuid(ban.getUuid()).join();
+                if (ban.getUuid() != null)
+                {
+                    plugin.dm.getBanRepository().deleteByUuid(ban.getUuid()).join();
+                }
+                else if (ban.hasUsername())
+                {
+                    plugin.dm.getBanRepository().deleteByUsername(ban.getUsername());
+                }
             }
-            else if (ban.hasUsername())
+            catch (Exception ex)
             {
-                plugin.dm.getBanRepository().deleteByUsername(ban.getUsername());
+                FLog.warning("Failed to remove ban from SQL: " + ex.getMessage());
             }
-        }
-        catch (Exception ex)
-        {
-            FLog.warning("Failed to remove ban from SQL: " + ex.getMessage());
         }
     }
 
     public boolean removeBan(Ban ban)
     {
-        if (bans.remove(ban))
+        final boolean removed;
+        final boolean sql;
+        synchronized (lock)
         {
-            if (usingSql)
+            removed = bans.remove(ban);
+            if (removed)
             {
-                removeBanFromSql(ban);
                 updateViews();
+            }
+            sql = usingSql;
+        }
+
+        if (removed)
+        {
+            if (sql)
+            {
+                removeBanFromSqlAsync(ban);
             }
             else
             {
                 saveAllAsync();
             }
-            return true;
         }
 
-        return false;
+        return removed;
     }
 
     public int purge()
     {
-        if (usingSql)
+        final int size;
+        synchronized (lock)
         {
-            try
-            {
-                plugin.dm.getBanRepository().deleteAll().join();
-            }
-            catch (Exception ex)
-            {
-                FLog.warning("Failed to purge bans from SQL: " + ex.getMessage());
-            }
-        }
-        else
-        {
-            for (String key : config.getKeys(false))
-            {
-                config.set(key, null);
-            }
-            try
-            {
-                config.save(configFile);
-            }
-            catch (IOException ex)
-            {
-                FLog.severe("Could not save bans.yml");
-            }
+            size = bans.size();
+            bans.clear();
+            updateViews();
         }
 
-        int size = bans.size();
-        bans.clear();
-        updateViews();
+        saveAllAsync();
 
         return size;
     }
@@ -506,6 +556,7 @@ public class BanManager extends FreedomService
         player.setOp(true);
     }
 
+    // Must be called while holding 'lock'.
     private void updateViews()
     {
         // Remove expired bans

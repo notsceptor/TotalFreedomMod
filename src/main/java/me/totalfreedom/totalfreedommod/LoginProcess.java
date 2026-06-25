@@ -49,6 +49,11 @@ public class LoginProcess extends FreedomService
     @EventHandler(priority = EventPriority.NORMAL)
     public void onPlayerPreLogin(AsyncPlayerPreLoginEvent event)
     {
+        if (event.getLoginResult() != AsyncPlayerPreLoginEvent.Result.ALLOWED)
+        {
+            return;
+        }
+
         final String ip = event.getAddress().getHostAddress().trim();
         final boolean isAdmin;
         if (ConfigEntry.ADMINLIST_USE_UUID_ONLY.getBoolean())
