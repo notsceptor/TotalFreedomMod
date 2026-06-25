@@ -239,6 +239,59 @@ public class PermbanList extends FreedomService
     }
 
     /**
+     * Remove every permban that has an IP matching the given address or range.
+     */
+    public List<String> removePermbansByIp(String ip)
+    {
+        final List<String> removedNames = new ArrayList<>();
+        final boolean sql;
+        synchronized (lock)
+        {
+            for (PermBan permban : new ArrayList<>(permbansByName.values()))
+            {
+                boolean matches = false;
+                for (String banIp : permban.getIps())
+                {
+                    if (FUtil.fuzzyIpMatch(ip, banIp, 4))
+                    {
+                        matches = true;
+                        break;
+                    }
+                }
+
+                if (!matches)
+                {
+                    continue;
+                }
+
+                final String name = permban.getUsername().toLowerCase().trim();
+                permbansByName.remove(name);
+                permbannedNames.remove(name);
+                removedNames.add(permban.getUsername());
+            }
+
+            // Rebuild the IP view so IPs shared with surviving permbans are retained.
+            permbannedIps.clear();
+            for (PermBan permban : permbansByName.values())
+            {
+                permbannedIps.addAll(permban.getIps());
+            }
+
+            sql = usingSql;
+        }
+
+        if (sql)
+        {
+            for (String name : removedNames)
+            {
+                removePermbanFromSqlAsync(name.toLowerCase().trim());
+            }
+        }
+
+        return removedNames;
+    }
+
+    /**
      * Get a permban by username.
      */
     public PermBan getPermban(String username)
