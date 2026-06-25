@@ -10,12 +10,15 @@ import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import java.io.IOException;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
 public class PlayerList extends FreedomService
@@ -100,6 +103,11 @@ public class PlayerList extends FreedomService
         }
     }
 
+    public void saveData(PlayerData data)
+    {
+        saveOne(data);
+    }
+
     public FPlayer getPlayerSync(Player player)
     {
         synchronized (playerMap)
@@ -132,6 +140,7 @@ public class PlayerList extends FreedomService
         tPlayer = new FPlayer(plugin, player);
         final PlayerData data = getData(player);
         tPlayer.setCommandSpy(data.isCommandSpy());
+        tPlayer.setCommandsBlocked(data.isCommandsBlocked());
         playerMap.put(player.getAddress().getAddress().getHostAddress(), tPlayer);
 
         return tPlayer;
@@ -216,6 +225,26 @@ public class PlayerList extends FreedomService
         }
 
         return data;
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPlayerJoin(PlayerJoinEvent event)
+    {
+        final Player player = event.getPlayer();
+        final PlayerData data = getData(player);
+        final FPlayer fPlayer = getPlayer(player);
+
+        if (data.isMuted())
+        {
+            fPlayer.setMuted(true);
+            player.sendMessage(Component.text("You are still muted.", NamedTextColor.RED));
+        }
+
+        if (data.isFrozen())
+        {
+            fPlayer.getFreezeData().setFrozen(true);
+            player.sendMessage(Component.text("You are still frozen.", NamedTextColor.AQUA));
+        }
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)

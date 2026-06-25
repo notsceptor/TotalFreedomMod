@@ -3,6 +3,7 @@ package me.totalfreedom.totalfreedommod.freeze;
 import lombok.Getter;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
+import me.totalfreedom.totalfreedommod.player.PlayerData;
 import static me.totalfreedom.totalfreedommod.player.FPlayer.AUTO_PURGE_TICKS;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
@@ -37,6 +38,13 @@ public class FreezeData
         {
             FLog.info("Could not freeze " + fPlayer.getName() + ". Player not online!");
             return;
+        }
+
+        final PlayerData data = fPlayer.getPlugin().pl.getData(player);
+        if (data.isFrozen() != freeze)
+        {
+            data.setFrozen(freeze);
+            fPlayer.getPlugin().pl.saveData(data);
         }
 
         FUtil.cancel(unfreeze);

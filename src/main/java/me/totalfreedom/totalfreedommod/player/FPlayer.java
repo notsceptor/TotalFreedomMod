@@ -305,20 +305,35 @@ public class FPlayer
         FUtil.cancel(unmuteTask);
         unmuteTask = null;
 
-        if (!muted)
+        if (muted)
         {
-            return;
+            if (getPlayer() == null)
+            {
+                return;
+            }
+            unmuteTask = plugin.getServer().getScheduler().runTaskLater(plugin, () ->
+            {
+                FUtil.adminAction("TotalFreedom", "Unmuting " + getPlayer().getName(), false);
+                setMuted(false);
+            }, AUTO_PURGE_TICKS);
         }
 
-        if (getPlayer() == null)
+        persistMuted(muted);
+    }
+
+    private void persistMuted(boolean muted)
+    {
+        final Player p = getPlayer();
+        if (p == null)
         {
             return;
         }
-        unmuteTask = plugin.getServer().getScheduler().runTaskLater(plugin, () ->
+        final PlayerData data = plugin.pl.getData(p);
+        if (data.isMuted() != muted)
         {
-            FUtil.adminAction("TotalFreedom", "Unmuting " + getPlayer().getName(), false);
-            setMuted(false);
-        }, AUTO_PURGE_TICKS);
+            data.setMuted(muted);
+            plugin.pl.saveData(data);
+        }
     }
 
     public BukkitTask getLockupScheduleID()
@@ -359,6 +374,18 @@ public class FPlayer
     public void setCommandsBlocked(boolean commandsBlocked)
     {
         this.allCommandsBlocked = commandsBlocked;
+
+        final Player p = getPlayer();
+        if (p == null)
+        {
+            return;
+        }
+        final PlayerData data = plugin.pl.getData(p);
+        if (data.isCommandsBlocked() != commandsBlocked)
+        {
+            data.setCommandsBlocked(commandsBlocked);
+            plugin.pl.saveData(data);
+        }
     }
 
     public String getLastCommand()

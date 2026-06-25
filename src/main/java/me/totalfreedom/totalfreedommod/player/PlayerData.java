@@ -32,6 +32,15 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
     @Setter
     private boolean commandSpy;
     @Getter
+    @Setter
+    private boolean muted;
+    @Getter
+    @Setter
+    private boolean frozen;
+    @Getter
+    @Setter
+    private boolean commandsBlocked;
+    @Getter
     private int strikes;
     private final List<String> ips = Lists.newArrayList();
 
@@ -55,6 +64,9 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
         this.lastJoinUnix = cs.getLong("last_join", 0);
         this.potionSpy = cs.getBoolean("potion_spy", false);
         this.commandSpy = cs.getBoolean("command_spy", false);
+        this.muted = cs.getBoolean("muted", false);
+        this.frozen = cs.getBoolean("frozen", false);
+        this.commandsBlocked = cs.getBoolean("commands_blocked", false);
         this.strikes = cs.getInt("strikes", 0);
     }
 
@@ -68,6 +80,9 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
         cs.set("last_join", lastJoinUnix);
         cs.set("potion_spy", potionSpy);
         cs.set("command_spy", commandSpy);
+        cs.set("muted", muted);
+        cs.set("frozen", frozen);
+        cs.set("commands_blocked", commandsBlocked);
         cs.set("strikes", strikes);
     }
 
