@@ -2,10 +2,11 @@ package me.totalfreedom.totalfreedommod.banning;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import lombok.Getter;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
@@ -26,14 +27,14 @@ public class PermbanList extends FreedomService
 
     public static final String CONFIG_FILENAME = "permbans.yml";
 
-    @Getter
     private final Set<String> permbannedNames = Sets.newHashSet();
-    @Getter
     private final Set<String> permbannedIps = Sets.newHashSet();
     
     // Store full PermBan objects for SQL operations
     private final Map<String, PermBan> permbansByName = Maps.newHashMap();
-    
+    private final Object lock = new Object();
+    private final Object persistenceLock = new Object();
+
     // Flag to track if SQL is available
     private boolean usingSql = false;
 
@@ -65,21 +66,24 @@ public class PermbanList extends FreedomService
         {
             PermbanRepository repo = plugin.dm.getPermbanRepository();
             List<PermBan> loadedPermbans = repo.findAll().join();
-            
-            permbannedNames.clear();
-            permbannedIps.clear();
-            permbansByName.clear();
-            
-            for (PermBan permban : loadedPermbans)
+
+            synchronized (lock)
             {
-                String name = permban.getUsername().toLowerCase().trim();
-                permbannedNames.add(name);
-                permbannedIps.addAll(permban.getIps());
-                permbansByName.put(name, permban);
+                permbannedNames.clear();
+                permbannedIps.clear();
+                permbansByName.clear();
+
+                for (PermBan permban : loadedPermbans)
+                {
+                    String name = permban.getUsername().toLowerCase().trim();
+                    permbannedNames.add(name);
+                    permbannedIps.addAll(permban.getIps());
+                    permbansByName.put(name, permban);
+                }
+
+                usingSql = true;
+                FLog.info("Loaded " + permbannedIps.size() + " perm IP bans and " + permbannedNames.size() + " perm username bans from SQL database.");
             }
-            
-            usingSql = true;
-            FLog.info("Loaded " + permbannedIps.size() + " perm IP bans and " + permbannedNames.size() + " perm username bans from SQL database.");
         }
         catch (Exception ex)
         {
@@ -93,10 +97,6 @@ public class PermbanList extends FreedomService
      */
     private void loadFromYaml()
     {
-        permbannedNames.clear();
-        permbannedIps.clear();
-        permbansByName.clear();
-
         final File configFile = new File(plugin.getDataFolder(), CONFIG_FILENAME);
         if (!configFile.exists())
         {
@@ -112,22 +112,29 @@ public class PermbanList extends FreedomService
         }
         final YamlConfiguration config = YamlConfiguration.loadConfiguration(configFile);
 
-        for (String name : config.getKeys(false))
+        synchronized (lock)
         {
-            String lowerName = name.toLowerCase().trim();
-            permbannedNames.add(lowerName);
-            List<String> ips = config.getStringList(name);
-            permbannedIps.addAll(ips);
-            
-            // Create PermBan object
-            PermBan permban = new PermBan();
-            permban.setUsername(lowerName);
-            permban.setIps(ips);
-            permbansByName.put(lowerName, permban);
-        }
+            permbannedNames.clear();
+            permbannedIps.clear();
+            permbansByName.clear();
 
-        usingSql = false;
-        FLog.info("Loaded " + permbannedIps.size() + " perm IP bans and " + permbannedNames.size() + " perm username bans from YAML.");
+            for (String name : config.getKeys(false))
+            {
+                String lowerName = name.toLowerCase().trim();
+                permbannedNames.add(lowerName);
+                List<String> ips = config.getStringList(name);
+                permbannedIps.addAll(ips);
+
+                // Create PermBan object
+                PermBan permban = new PermBan();
+                permban.setUsername(lowerName);
+                permban.setIps(ips);
+                permbansByName.put(lowerName, permban);
+            }
+
+            usingSql = false;
+            FLog.info("Loaded " + permbannedIps.size() + " perm IP bans and " + permbannedNames.size() + " perm username bans from YAML.");
+        }
     }
 
     @Override
@@ -149,19 +156,28 @@ public class PermbanList extends FreedomService
         {
             return;
         }
-        
-        try
+
+        final List<PermBan> snapshot;
+        synchronized (lock)
         {
-            PermbanRepository repo = plugin.dm.getPermbanRepository();
-            for (PermBan permban : permbansByName.values())
-            {
-                repo.save(permban).join();
-            }
-            FLog.debug("Saved " + permbansByName.size() + " permbans to SQL database");
+            snapshot = new ArrayList<>(permbansByName.values());
         }
-        catch (Exception ex)
+
+        synchronized (persistenceLock)
         {
-            FLog.warning("Failed to save permbans to SQL: " + ex.getMessage());
+            try
+            {
+                PermbanRepository repo = plugin.dm.getPermbanRepository();
+                for (PermBan permban : snapshot)
+                {
+                    repo.save(permban).join();
+                }
+                FLog.debug("Saved " + snapshot.size() + " permbans to SQL database");
+            }
+            catch (Exception ex)
+            {
+                FLog.warning("Failed to save permbans to SQL: " + ex.getMessage());
+            }
         }
     }
 
@@ -176,12 +192,106 @@ public class PermbanList extends FreedomService
      */
     public void addPermban(PermBan permban)
     {
-        String name = permban.getUsername().toLowerCase().trim();
-        permbannedNames.add(name);
-        permbannedIps.addAll(permban.getIps());
-        permbansByName.put(name, permban);
-        
-        if (usingSql && plugin.dm != null && plugin.dm.isInitialized())
+        final boolean sql;
+        synchronized (lock)
+        {
+            String name = permban.getUsername().toLowerCase().trim();
+            permbannedNames.add(name);
+            permbannedIps.addAll(permban.getIps());
+            permbansByName.put(name, permban);
+            sql = usingSql;
+        }
+
+        if (sql)
+        {
+            savePermbanToSqlAsync(permban);
+        }
+    }
+
+    /**
+     * Remove a permban by username.
+     */
+    public boolean removePermban(String username)
+    {
+        final String name = username.toLowerCase().trim();
+        final PermBan permban;
+        final boolean sql;
+        synchronized (lock)
+        {
+            permban = permbansByName.remove(name);
+            if (permban == null)
+            {
+                return false;
+            }
+
+            permbannedNames.remove(name);
+            // Remove IPs associated with this permban
+            permbannedIps.removeAll(permban.getIps());
+            sql = usingSql;
+        }
+
+        if (sql)
+        {
+            removePermbanFromSqlAsync(name);
+        }
+
+        return true;
+    }
+
+    /**
+     * Get a permban by username.
+     */
+    public PermBan getPermban(String username)
+    {
+        synchronized (lock)
+        {
+            return permbansByName.get(username.toLowerCase().trim());
+        }
+    }
+
+    /**
+     * Returns a snapshot of the permbanned usernames.
+     */
+    public Set<String> getPermbannedNames()
+    {
+        synchronized (lock)
+        {
+            return new HashSet<>(permbannedNames);
+        }
+    }
+
+    /**
+     * Returns a snapshot of the permbanned IPs.
+     */
+    public Set<String> getPermbannedIps()
+    {
+        synchronized (lock)
+        {
+            return new HashSet<>(permbannedIps);
+        }
+    }
+
+    /**
+     * Save a single permban to SQL.
+     */
+    private void savePermbanToSqlAsync(PermBan permban)
+    {
+        if (!plugin.isEnabled())
+        {
+            savePermbanToSql(permban);
+            return;
+        }
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> savePermbanToSql(permban));
+    }
+
+    private void savePermbanToSql(PermBan permban)
+    {
+        if (plugin.dm == null || !plugin.dm.isInitialized())
+        {
+            return;
+        }
+
+        synchronized (persistenceLock)
         {
             try
             {
@@ -195,22 +305,26 @@ public class PermbanList extends FreedomService
     }
     
     /**
-     * Remove a permban by username.
+     * Remove a single permban from SQL.
      */
-    public boolean removePermban(String username)
+    private void removePermbanFromSqlAsync(String name)
     {
-        String name = username.toLowerCase().trim();
-        PermBan permban = permbansByName.remove(name);
-        if (permban == null)
+        if (!plugin.isEnabled())
         {
-            return false;
+            removePermbanFromSql(name);
+            return;
         }
-        
-        permbannedNames.remove(name);
-        // Remove IPs associated with this permban
-        permbannedIps.removeAll(permban.getIps());
-        
-        if (usingSql && plugin.dm != null && plugin.dm.isInitialized())
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> removePermbanFromSql(name));
+    }
+
+    private void removePermbanFromSql(String name)
+    {
+        if (plugin.dm == null || !plugin.dm.isInitialized())
+        {
+            return;
+        }
+
+        synchronized (persistenceLock)
         {
             try
             {
@@ -221,16 +335,6 @@ public class PermbanList extends FreedomService
                 FLog.warning("Failed to remove permban from SQL: " + ex.getMessage());
             }
         }
-        
-        return true;
-    }
-    
-    /**
-     * Get a permban by username.
-     */
-    public PermBan getPermban(String username)
-    {
-        return permbansByName.get(username.toLowerCase().trim());
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
