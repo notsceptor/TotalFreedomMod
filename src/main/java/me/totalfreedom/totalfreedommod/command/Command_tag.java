@@ -19,10 +19,25 @@ import org.bukkit.entity.Player;
 public class Command_tag extends FreedomCommand
 {
 
+    public static final int MAX_TAG_LENGTH = 20;
+
     public static final List<String> FORBIDDEN_WORDS = Arrays.asList(new String[]
     {
-        "admin", "owner", "moderator", "developer", "console"
+        "[SA]", "[SrA]", "[Dev]", "[Exec]", "[Owner]", "admin", "owner", "moderator", "developer", "console"
     });
+
+    public static boolean containsForbidden(String plainText)
+    {
+        final String raw = plainText.toLowerCase();
+        for (String word : FORBIDDEN_WORDS)
+        {
+            if (raw.contains(word))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
 
     private String getClearedTagValue()
     {
@@ -62,25 +77,18 @@ public class Command_tag extends FreedomCommand
                 }));
         colorizedTag = colorizedTag.append(Component.text("").color(NamedTextColor.WHITE));
         final String outputTag = AdventureUtil.componentToLegacySection(colorizedTag);
+        final String rawTag = AdventureUtil.componentToPlainText(colorizedTag).toLowerCase();
 
-        if (!plugin.al.isAdmin(sender))
+        if (rawTag.length() > MAX_TAG_LENGTH)
         {
-            final String rawTag = AdventureUtil.stripColor(outputTag).toLowerCase();
+            msg("That tag is too long (Max is " + MAX_TAG_LENGTH + " characters).");
+            return true;
+        }
 
-            if (rawTag.length() > 20)
-            {
-                msg("That tag is too long (Max is 20 characters).");
-                return true;
-            }
-
-            for (String word : FORBIDDEN_WORDS)
-            {
-                if (rawTag.contains(word))
-                {
-                    msg("That tag contains a forbidden word.");
-                    return true;
-                }
-            }
+        if (!plugin.al.isAdmin(sender) && containsForbidden(rawTag))
+        {
+            msg("That tag contains a forbidden word.");
+            return true;
         }
 
         plugin.pl.getPlayer(playerSender).setTag(outputTag);

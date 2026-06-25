@@ -153,6 +153,15 @@ public class AdventureUtil
         return component;
     }
 
+    public static String componentToPlainText(Component component)
+    {
+        if (component == null)
+        {
+            return "";
+        }
+        return PLAIN_TEXT.serialize(component);
+    }
+
     /**
      * Strips color codes from a string, returning plain text.
      * Replacement for ChatColor.stripColor()

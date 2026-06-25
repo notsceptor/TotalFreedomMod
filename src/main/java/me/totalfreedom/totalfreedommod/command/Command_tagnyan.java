@@ -25,13 +25,16 @@ public class Command_tagnyan extends FreedomCommand
 
         final String plainText = AdventureUtil.stripColor(StringUtils.join(args, " "));
 
-        for (String word : Command_tag.FORBIDDEN_WORDS)
+        if (plainText.length() > Command_tag.MAX_TAG_LENGTH)
         {
-            if (plainText.toLowerCase().contains(word))
-            {
-                msg("That tag contains a forbidden word.");
-                return true;
-            }
+            msg("That tag is too long (Max is " + Command_tag.MAX_TAG_LENGTH + " characters).");
+            return true;
+        }
+
+        if (!plugin.al.isAdmin(sender) && Command_tag.containsForbidden(plainText))
+        {
+            msg("That tag contains a forbidden word.");
+            return true;
         }
 
         final StringBuilder tag = new StringBuilder();
