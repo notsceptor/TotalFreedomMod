@@ -252,6 +252,9 @@ crash_items:
   # packet guard by removing the payload at the source so it cannot be re-broadcast
   # or saved. 0 disables the sweep. 100 ticks (5s) is a good balance.
   equipment_sweep_ticks: 100
+  # Whether to suppress the repretitive warnings from Paper that appear in console
+  # when an item is blocked ("Can't create item stack with properties").
+  hide_console_spam: true
 
 # SignValidator
 # For detecting signs that hang the server/client.

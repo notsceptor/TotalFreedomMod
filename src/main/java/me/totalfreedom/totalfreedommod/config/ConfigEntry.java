@@ -122,6 +122,7 @@ public enum ConfigEntry
     CRASH_ITEMS_MAX_COMMANDS_PER_SECOND(Integer.class, "crash_items.max_commands_per_second"),
     CRASH_ITEMS_EQUIPMENT_SWEEP_TICKS(Integer.class, "crash_items.equipment_sweep_ticks"),
     CRASH_ITEMS_BASE_COMMANDS(List.class, "crash_items.base_commands"),
+    CRASH_ITEMS_HIDE_CONSOLE_SPAM(Boolean.class, "crash_items.hide_console_spam"),
     //
     CRASH_SIGNS_PREVENT(Boolean.class, "crash_signs.prevent"),
     CRASH_SIGNS_SCAN_CHUNK_LOAD(Boolean.class, "crash_signs.scan_chunk_load"),

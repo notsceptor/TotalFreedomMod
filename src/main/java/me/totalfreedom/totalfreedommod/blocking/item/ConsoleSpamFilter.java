@@ -35,7 +35,7 @@ public class ConsoleSpamFilter extends FreedomService
     @Override
     protected void onStart()
     {
-        if (!ConfigEntry.CRASH_ITEMS_SUPPRESS_CONSOLE_SPAM.getBoolean())
+        if (!ConfigEntry.CRASH_ITEMS_HIDE_CONSOLE_SPAM.getBoolean())
         {
             return;
         }
