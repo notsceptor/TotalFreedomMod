@@ -169,7 +169,7 @@ public class Command_saconfig extends FreedomCommand
         else // Existing admin
         {
             player.setOp(true);
-            FUtil.adminAction(sender.getName(), "Readding " + admin.getName() + " to the admin list", true);
+            FUtil.adminAction(sender.getName(), "Re-adding " + admin.getName() + " to the admin list", true);
 
             if (player != null)
             {
