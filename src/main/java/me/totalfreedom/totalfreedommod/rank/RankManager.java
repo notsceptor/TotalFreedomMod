@@ -439,30 +439,8 @@ public class RankManager extends FreedomService
         Scoreboard scoreboard = manager.getMainScoreboard();
         Team currentTeam = scoreboard.getEntryTeam(player.getName());
         CustomRank rank = getAssignedAdminRank(player);
-        String teamName;
-        NamedTextColor teamColor;
-        Component teamPrefix;
 
-        if (rank != null && rank.isAdmin())
-        {
-            teamName = createTeamName(rank);
-            teamColor = rank.getColor();
-            String prefix = rank.getPrefix();
-            teamPrefix = prefix == null
-                    ? Component.empty()
-                    : AdventureUtil.legacyToComponent(prefix);
-        }
-        else if (player.isOp() && !plugin.al.isAdminImpostor(player))
-        {
-            CustomRank opRank = getCustomRankForLegacy(Rank.OP);
-            teamName = "op";
-            teamColor = NamedTextColor.WHITE;
-            String prefix = opRank == null ? null : opRank.getPrefix();
-            teamPrefix = prefix == null
-                    ? Rank.OP.getColoredTag().append(Component.space())
-                    : AdventureUtil.legacyToComponent(prefix);
-        }
-        else
+        if (rank == null || !rank.isAdmin())
         {
             if (currentTeam != null)
             {
@@ -471,6 +449,8 @@ public class RankManager extends FreedomService
 
             return;
         }
+
+        String teamName = createTeamName(rank);
 
         if (currentTeam != null && !currentTeam.getName().equals(teamName))
         {
@@ -484,8 +464,8 @@ public class RankManager extends FreedomService
             team = scoreboard.registerNewTeam(teamName);
         }
 
-        team.color(teamColor);
-        team.prefix(teamPrefix);
+        team.color(rank.getColor());
+        team.prefix(Component.empty());
         team.addEntry(player.getName());
     }
 
