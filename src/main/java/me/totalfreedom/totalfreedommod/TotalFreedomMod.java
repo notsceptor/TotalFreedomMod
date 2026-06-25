@@ -18,6 +18,7 @@ import me.totalfreedom.totalfreedommod.blocking.PotionBlocker;
 import me.totalfreedom.totalfreedommod.blocking.command.CommandBlocker;
 import me.totalfreedom.totalfreedommod.blocking.entity.EntityNameValidator;
 import me.totalfreedom.totalfreedommod.blocking.entity.EntitySizeGuard;
+import me.totalfreedom.totalfreedommod.blocking.entity.WindChargeGuard;
 import me.totalfreedom.totalfreedommod.blocking.item.ConsoleSpamFilter;
 import me.totalfreedom.totalfreedommod.blocking.item.EquipmentPacketGuard;
 import me.totalfreedom.totalfreedommod.blocking.item.ItemValidator;
@@ -214,6 +215,7 @@ public class TotalFreedomMod extends JavaPlugin
         mb = services.registerService(MobBlocker.class);
         env = services.registerService(EntityNameValidator.class);
         services.registerService(EntitySizeGuard.class);
+        services.registerService(WindChargeGuard.class);
         ib = services.registerService(InteractBlocker.class);
         pb = services.registerService(PotionBlocker.class);
         lp = services.registerService(LoginProcess.class);

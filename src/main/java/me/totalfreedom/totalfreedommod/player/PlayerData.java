@@ -41,6 +41,9 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
     @Setter
     private boolean commandsBlocked;
     @Getter
+    @Setter
+    private String savedTag;
+    @Getter
     private int strikes;
     private final List<String> ips = Lists.newArrayList();
 
@@ -68,6 +71,11 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
         this.frozen = cs.getBoolean("frozen", false);
         this.commandsBlocked = cs.getBoolean("commands_blocked", false);
         this.strikes = cs.getInt("strikes", 0);
+        this.savedTag = cs.getString("saved_tag");
+        if (this.savedTag != null && this.savedTag.isEmpty())
+        {
+            this.savedTag = null;
+        }
     }
 
     @Override
@@ -84,6 +92,7 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
         cs.set("frozen", frozen);
         cs.set("commands_blocked", commandsBlocked);
         cs.set("strikes", strikes);
+        cs.set("saved_tag", savedTag);
     }
 
     public List<String> getIps()

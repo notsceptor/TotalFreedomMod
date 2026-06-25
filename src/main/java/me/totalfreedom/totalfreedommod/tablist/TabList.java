@@ -171,7 +171,7 @@ public class TabList extends FreedomService
                 return ctx.nicknameIndicator + nickname.replace('§', '&');
             }
         }
-        return player.getName();
+        return "&r" + player.getName();
     }
 
     private void pushRecolor()

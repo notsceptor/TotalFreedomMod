@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
+import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FUtil;
@@ -15,7 +16,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 @CommandPermissions(level = Rank.OP, source = SourceType.BOTH, permission = "tfm.player.tag")
-@CommandParameters(description = "Sets yourself a prefix", usage = "/<command> <set <tag..> | off | clear <player> | clearall>")
+@CommandParameters(description = "Sets yourself a prefix", usage = "/<command> <set <tag..> | save | off | clear <player> | clearall>")
 public class Command_tag extends FreedomCommand
 {
 
@@ -44,6 +45,17 @@ public class Command_tag extends FreedomCommand
         Boolean enforcePrefixConfig = ConfigEntry.VAULT_CHAT_ENFORCE_PREFIX.getBoolean();
         boolean enforcePrefix = enforcePrefixConfig != null ? enforcePrefixConfig : false;
         return !enforcePrefix ? "" : null;
+    }
+
+    private static boolean hasTag(String tag)
+    {
+        return tag != null && !tag.isEmpty();
+    }
+
+    private void clearPlayerTag(Player player)
+    {
+        plugin.pl.getPlayer(player).setTag(getClearedTagValue());
+        plugin.pl.clearSavedTag(player);
     }
 
     @CommandDispatchTarget(pattern = "list")
@@ -99,6 +111,32 @@ public class Command_tag extends FreedomCommand
         return true;
     }
 
+    @CommandDispatchTarget(pattern = "save")
+    public boolean saveTag(CommandContext ctx)
+    {
+        if (ctx.isSenderConsole())
+        {
+            msg("\"/tag save\" can't be used from the console.");
+            return true;
+        }
+
+        final FPlayer fPlayer = plugin.pl.getPlayer(playerSender);
+        if (!hasTag(fPlayer.getTag()))
+        {
+            msg("You don't have a tag set. Use \"/tag set <tag>\" first.");
+            return true;
+        }
+
+        if (!plugin.pl.saveCurrentTag(playerSender))
+        {
+            msg("Could not save your tag.");
+            return true;
+        }
+
+        msg("Your tag has been saved and will persist until cleared.");
+        return true;
+    }
+
     @CommandDispatchTarget(pattern = "clearall")
     public boolean clearallTags(CommandContext ctx)
     {
@@ -115,10 +153,12 @@ public class Command_tag extends FreedomCommand
         for (final Player player : server.getOnlinePlayers())
         {
             final FPlayer playerdata = plugin.pl.getPlayer(player);
-            if (playerdata.getTag() != null)
+            final PlayerData data = plugin.pl.getData(player);
+            if (hasTag(playerdata.getTag()) || hasTag(data.getSavedTag()))
             {
                 count++;
                 playerdata.setTag(clearedTagValue);
+                plugin.pl.clearSavedTag(player);
             }
         }
 
@@ -136,7 +176,7 @@ public class Command_tag extends FreedomCommand
         }
         else
         {
-            plugin.pl.getPlayer(playerSender).setTag(getClearedTagValue());
+            clearPlayerTag(playerSender);
             msg("Your tag has been removed.");
         }
 
@@ -160,7 +200,7 @@ public class Command_tag extends FreedomCommand
             return true;
         }
 
-        plugin.pl.getPlayer(player).setTag(getClearedTagValue());
+        clearPlayerTag(player);
         msg("Removed " + player.getName() + "'s tag.");
 
         return true;

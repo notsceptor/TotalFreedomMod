@@ -108,6 +108,30 @@ public class PlayerList extends FreedomService
         saveOne(data);
     }
 
+    public void clearSavedTag(Player player)
+    {
+        final PlayerData data = getData(player);
+        if (data.getSavedTag() != null)
+        {
+            data.setSavedTag(null);
+            saveData(data);
+        }
+    }
+
+    public boolean saveCurrentTag(Player player)
+    {
+        final String tag = getPlayer(player).getTag();
+        if (tag == null || tag.isEmpty())
+        {
+            return false;
+        }
+
+        final PlayerData data = getData(player);
+        data.setSavedTag(tag);
+        saveData(data);
+        return true;
+    }
+
     public FPlayer getPlayerSync(Player player)
     {
         synchronized (playerMap)
@@ -244,6 +268,12 @@ public class PlayerList extends FreedomService
         {
             fPlayer.getFreezeData().setFrozen(true);
             player.sendMessage(Component.text("You are still frozen.", NamedTextColor.AQUA));
+        }
+
+        final String savedTag = data.getSavedTag();
+        if (savedTag != null)
+        {
+            fPlayer.setTag(savedTag);
         }
     }
 

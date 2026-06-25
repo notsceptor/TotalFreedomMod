@@ -1368,9 +1368,13 @@ public class RankManager extends FreedomService
                 plugin.db.relayLoginMessage(broadcastMsg);
             }
 
-            // setTag expects String, convert Component to legacy with § codes for chat format
-            String tagLegacy = AdventureUtil.componentToLegacySection(display.getColoredTag());
-            plugin.pl.getPlayer(player).setTag(tagLegacy);
+            // Skip rank tag when the player has a saved custom tag.
+            final String savedTag = plugin.pl.getData(player).getSavedTag();
+            if (savedTag == null)
+            {
+                String tagLegacy = AdventureUtil.componentToLegacySection(display.getColoredTag());
+                plugin.pl.getPlayer(player).setTag(tagLegacy);
+            }
 
         }
     }
