@@ -10,6 +10,7 @@ import me.totalfreedom.totalfreedommod.vault.ChatService;
 import me.totalfreedom.totalfreedommod.vault.PermissionService;
 import static me.totalfreedom.totalfreedommod.util.FUtil.playerMsg;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.serializer.ansi.ANSIComponentSerializer;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -377,7 +378,13 @@ public class ChatManager extends FreedomService
 		Component reportMsg = Component.text("[REPORTS] ")
 				.color(NamedTextColor.RED)
 				.append(Component.text(reporter.getName() + " has reported " + reported.getName() + " for " + report)
-						.color(NamedTextColor.GOLD));
+				.append(Component.text(" ("))
+                .append(Component.text("click to teleport")
+					.clickEvent(ClickEvent.runCommand(String.format("%s %s",
+						plugin.esb.isEssentialsEnabled() ? "tpo" : "tp",
+						reported.getName()))))
+				.append(Component.text(")"))
+				.color(NamedTextColor.GOLD));
 
 		for (Player player : plugin.al.getOnlineAdmins()) {
 			playerMsg(player, reportMsg);

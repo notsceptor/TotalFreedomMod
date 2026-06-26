@@ -101,7 +101,7 @@ public class PotionSpy extends FreedomService
                                 thrower.getZ(),
                                 thrower.getWorld().getName()))))
                         .append(Component.text(")")) :
-                    Component.text(String.format(" (at %s %s %s in %s)",
+                    Component.text(String.format(" (at %s, %s, %s in %s)",
                         thrower.getX(),
                         thrower.getY(),
                         thrower.getZ(),

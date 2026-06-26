@@ -1,11 +1,8 @@
 package me.totalfreedom.totalfreedommod.command;
 
 import me.totalfreedom.totalfreedommod.rank.Rank;
-import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -14,16 +11,10 @@ import org.bukkit.entity.Player;
 @CommandParameters(description = "Report a player for admins to see.", usage = "/<command> <player> <reason>")
 public class Command_report extends FreedomCommand
 {
-
-    @Override
-    public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
+    @CommandDispatchTarget(pattern = "<playerName> <reason..>")
+    public boolean report(CommandContext ctx, String playerName, String reason)
     {
-        if (args.length < 2)
-        {
-            return false;
-        }
-
-        Player player = getPlayer(args[0]);
+        Player player = getPlayer(playerName);
 
         if (player == null)
         {
@@ -46,11 +37,16 @@ public class Command_report extends FreedomCommand
             return true;
         }
 
-        String report = StringUtils.join(ArrayUtils.subarray(args, 1, args.length), " ");
-        plugin.cm.reportAction(playerSender, player, report);
+        plugin.cm.reportAction(playerSender, player, reason);
 
         msg(Component.text("Thank you, your report has been successfully logged.", NamedTextColor.GREEN));
 
         return true;
+    }
+
+    @Override
+    public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
+    {
+        return false;
     }
 }
