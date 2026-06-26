@@ -9,12 +9,15 @@ import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
+import org.bukkit.World;
+import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.block.BlockDispenseEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
+import org.bukkit.event.entity.ItemSpawnEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCreativeEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
@@ -24,6 +27,7 @@ import org.bukkit.event.inventory.InventoryPickupItemEvent;
 import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.event.inventory.PrepareItemCraftEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
+import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.server.ServerCommandEvent;
 import org.bukkit.event.world.LootGenerateEvent;
 import org.bukkit.inventory.Inventory;
@@ -95,6 +99,23 @@ public class ItemValidator extends FreedomService
         for (Player player : server.getOnlinePlayers())
         {
             sweepPlayer(player);
+        }
+        sweepGroundItems();
+    }
+
+    private void sweepGroundItems()
+    {
+        for (World world : server.getWorlds())
+        {
+            for (Item item : world.getEntitiesByClass(Item.class))
+            {
+                ItemScanner.Verdict v = scan(item.getItemStack());
+                if (v.isCursed())
+                {
+                    item.remove();
+                    recordDetection(v, "ground sweep @ " + FUtil.formatLocation(item.getLocation()));
+                }
+            }
         }
     }
 
@@ -503,6 +524,39 @@ public class ItemValidator extends FreedomService
         event.setCancelled(true);
         event.getItem().remove();
         recordDetection(v, "pickup by " + event.getEntity().getName());
+    }
+
+    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
+    public void onPlayerDropItem(PlayerDropItemEvent event)
+    {
+        if (!enabled())
+        {
+            return;
+        }
+        ItemScanner.Verdict v = scan(event.getItemDrop().getItemStack());
+        if (!v.isCursed())
+        {
+            return;
+        }
+        event.setCancelled(true);
+        recordDetection(v, "drop by " + event.getPlayer().getName());
+        FUtil.playerMsg(event.getPlayer(), "You cannot drop a cursed item.", NamedTextColor.RED);
+    }
+
+    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
+    public void onItemSpawn(ItemSpawnEvent event)
+    {
+        if (!enabled())
+        {
+            return;
+        }
+        ItemScanner.Verdict v = scan(event.getEntity().getItemStack());
+        if (!v.isCursed())
+        {
+            return;
+        }
+        event.setCancelled(true);
+        recordDetection(v, "item spawn at " + FUtil.formatLocation(event.getLocation()));
     }
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)

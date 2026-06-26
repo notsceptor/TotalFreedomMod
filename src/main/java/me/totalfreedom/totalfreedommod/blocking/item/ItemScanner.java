@@ -2,6 +2,7 @@ package me.totalfreedom.totalfreedommod.blocking.item;
 
 import io.papermc.paper.datacomponent.DataComponentTypes;
 import io.papermc.paper.datacomponent.item.BundleContents;
+import io.papermc.paper.datacomponent.item.ChargedProjectiles;
 import io.papermc.paper.datacomponent.item.ItemContainerContents;
 import io.papermc.paper.datacomponent.item.ItemLore;
 import java.util.List;
@@ -33,6 +34,7 @@ final class ItemScanner
         OVERSIZED_TOTAL,
         OVERSIZED_NBT,
         UNINSPECTABLE_NBT,
+        MALFORMED_ENTITY_DATA,
         CURSED_COMPONENT,
         PANIC_BLANKET_REJECT
     }
@@ -69,7 +71,8 @@ final class ItemScanner
             if (item.hasData(DataComponentTypes.CONTAINER)
                     || item.hasData(DataComponentTypes.BUNDLE_CONTENTS)
                     || item.hasData(DataComponentTypes.CONTAINER_LOOT)
-                    || item.hasData(DataComponentTypes.CHARGED_PROJECTILES))
+                    || item.hasData(DataComponentTypes.CHARGED_PROJECTILES)
+                    || RawNbtInspector.hasEntityOrBucketData(item))
             {
                 return new Verdict(Reason.PANIC_BLANKET_REJECT, 0L, depth);
             }
@@ -153,18 +156,34 @@ final class ItemScanner
             }
         }
 
-        if (item.hasItemMeta())
+        if (item.hasData(DataComponentTypes.CHARGED_PROJECTILES))
         {
-            switch (RawNbtInspector.inspect(item, MAX_NBT_NODES, MAX_NBT_DEPTH))
+            ChargedProjectiles charged = item.getData(DataComponentTypes.CHARGED_PROJECTILES);
+            if (charged != null)
             {
-                case OVERSIZED -> {
-                    return new Verdict(Reason.OVERSIZED_NBT, MAX_NBT_NODES, depth);
+                for (ItemStack projectile : charged.projectiles())
+                {
+                    Verdict v = scan(projectile, panicMode, depth + 1);
+                    if (v.isCursed())
+                    {
+                        return v;
+                    }
                 }
-                case ERROR -> {
-                    return new Verdict(Reason.UNINSPECTABLE_NBT, -1L, depth);
-                }
-                default -> {
-                }
+            }
+        }
+
+        switch (RawNbtInspector.inspect(item, MAX_NBT_NODES, MAX_NBT_DEPTH))
+        {
+            case OVERSIZED -> {
+                return new Verdict(Reason.OVERSIZED_NBT, MAX_NBT_NODES, depth);
+            }
+            case MALFORMED -> {
+                return new Verdict(Reason.MALFORMED_ENTITY_DATA, -1L, depth);
+            }
+            case ERROR -> {
+                return new Verdict(Reason.UNINSPECTABLE_NBT, -1L, depth);
+            }
+            default -> {
             }
         }
 

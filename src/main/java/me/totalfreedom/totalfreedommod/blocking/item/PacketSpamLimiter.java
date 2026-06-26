@@ -8,14 +8,17 @@ final class PacketSpamLimiter
 
     private final ConcurrentHashMap<UUID, Window> interactions = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<UUID, Window> chats = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<UUID, Window> movements = new ConcurrentHashMap<>();
 
     private final int maxInteractionsPerSecond;
     private final int maxChatsPerSecond;
+    private final int maxMovementPerSecond;
 
-    PacketSpamLimiter(int maxInteractionsPerSecond, int maxChatsPerSecond)
+    PacketSpamLimiter(int maxInteractionsPerSecond, int maxChatsPerSecond, int maxMovementPerSecond)
     {
         this.maxInteractionsPerSecond = maxInteractionsPerSecond;
         this.maxChatsPerSecond = maxChatsPerSecond;
+        this.maxMovementPerSecond = maxMovementPerSecond;
     }
 
     boolean allowInteraction(UUID id)
@@ -26,6 +29,11 @@ final class PacketSpamLimiter
     boolean allowChat(UUID id)
     {
         return allow(chats, id, maxChatsPerSecond);
+    }
+
+    boolean allowMovement(UUID id)
+    {
+        return allow(movements, id, maxMovementPerSecond);
     }
 
     private static boolean allow(ConcurrentHashMap<UUID, Window> map, UUID id, int limit)
@@ -52,12 +60,14 @@ final class PacketSpamLimiter
     {
         interactions.remove(id);
         chats.remove(id);
+        movements.remove(id);
     }
 
     void clear()
     {
         interactions.clear();
         chats.clear();
+        movements.clear();
     }
 
     private static final class Window

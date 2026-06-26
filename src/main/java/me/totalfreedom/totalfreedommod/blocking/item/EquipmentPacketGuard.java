@@ -86,7 +86,7 @@ public class EquipmentPacketGuard extends FreedomService
     {
         if (snapshot.rateLimit)
         {
-            spamLimiter = new PacketSpamLimiter(snapshot.maxInteractions, snapshot.maxCommands);
+            spamLimiter = new PacketSpamLimiter(snapshot.maxInteractions, snapshot.maxCommands, snapshot.maxMovement);
         }
 
         registeredListener = PacketEvents.getAPI().getEventManager()
@@ -109,7 +109,8 @@ public class EquipmentPacketGuard extends FreedomService
             boolean signChunkGuard,
             boolean blockAllSignPackets,
             int maxInteractions,
-            int maxCommands)
+            int maxCommands,
+            int maxMovement)
     {
         private static Snapshot read()
         {
@@ -120,7 +121,8 @@ public class EquipmentPacketGuard extends FreedomService
                     Boolean.TRUE.equals(ConfigEntry.CRASH_SIGNS_CHUNK_GUARD.getBoolean()),
                     Boolean.FALSE.equals(ConfigEntry.ALLOW_SIGN_PLACE.getBoolean()),
                     ConfigEntry.CRASH_ITEMS_MAX_INTERACTIONS_PER_SECOND.getInteger(),
-                    ConfigEntry.CRASH_ITEMS_MAX_COMMANDS_PER_SECOND.getInteger());
+                    ConfigEntry.CRASH_ITEMS_MAX_COMMANDS_PER_SECOND.getInteger(),
+                    ConfigEntry.CRASH_ITEMS_MAX_MOVEMENT_PER_SECOND.getInteger());
         }
 
         private boolean anyHookEnabled()

@@ -20,7 +20,9 @@ public class ConsoleSpamFilter extends FreedomService
     // Substrings matched against each log line; any hit is dropped before it reaches an appender.
     private static final String[] DENY_PATTERNS =
     {
-        "Can't create item stack with properties"
+        "Can't create item stack with properties",
+        "to contain number, but got",
+        "': Not a number"
     };
 
     private final SpamFilter filter = new SpamFilter();
