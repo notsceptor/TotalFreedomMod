@@ -283,8 +283,9 @@ crash_signs:
   # Disable if you see too much CPU spike on player join.
   chunk_guard: true
 
-# EntityNameValidator
-# Detects renamed mobs/entities with custom names that can freeze/hang clients.
+# EntityValidator
+# Detects invalid entity names, hitboxes, text displays, projectiles and so on;
+# this custom NBT data can be used to produce entities that freeze/hang clients.
 crash_entities:
   # Whether to strip cursed entity custom names.
   prevent: true
