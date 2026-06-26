@@ -4,6 +4,7 @@ import com.github.retrooper.packetevents.event.PacketListenerAbstract;
 import com.github.retrooper.packetevents.event.PacketListenerPriority;
 import com.github.retrooper.packetevents.event.PacketReceiveEvent;
 import com.github.retrooper.packetevents.event.PacketSendEvent;
+import com.github.retrooper.packetevents.protocol.entity.data.EntityData;
 import com.github.retrooper.packetevents.protocol.nbt.NBTCompound;
 import com.github.retrooper.packetevents.protocol.packettype.PacketType;
 import com.github.retrooper.packetevents.protocol.packettype.PacketTypeCommon;
@@ -13,6 +14,7 @@ import io.netty.buffer.ByteBuf;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerBlockEntityData;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerChunkData;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityEquipment;
+import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityMetadata;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerSetSlot;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerWindowItems;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
@@ -69,9 +71,23 @@ final class ItemPacketListener extends PacketListenerAbstract
                     || type == PacketType.Play.Client.USE_ITEM
                     || type == PacketType.Play.Client.PLAYER_DIGGING
                     || type == PacketType.Play.Client.INTERACT_ENTITY
-                    || type == PacketType.Play.Client.ANIMATION)
+                    || type == PacketType.Play.Client.ANIMATION
+                    || type == PacketType.Play.Client.HELD_ITEM_CHANGE
+                    || type == PacketType.Play.Client.CREATIVE_INVENTORY_ACTION
+                    || type == PacketType.Play.Client.ENTITY_ACTION)
             {
                 if (!spamLimiter.allowInteraction(id))
+                {
+                    event.setCancelled(true);
+                }
+            }
+            else if (type == PacketType.Play.Client.PLAYER_POSITION
+                    || type == PacketType.Play.Client.PLAYER_POSITION_AND_ROTATION
+                    || type == PacketType.Play.Client.PLAYER_ROTATION
+                    || type == PacketType.Play.Client.PLAYER_FLYING
+                    || type == PacketType.Play.Client.VEHICLE_MOVE)
+            {
+                if (!spamLimiter.allowMovement(id))
                 {
                     event.setCancelled(true);
                 }
@@ -113,6 +129,11 @@ final class ItemPacketListener extends PacketListenerAbstract
                 if (type == PacketType.Play.Server.WINDOW_ITEMS)
                 {
                     handleWindowItems(event);
+                    return;
+                }
+                if (type == PacketType.Play.Server.ENTITY_METADATA)
+                {
+                    handleEntityMetadata(event);
                     return;
                 }
             }
@@ -255,6 +276,49 @@ final class ItemPacketListener extends PacketListenerAbstract
         {
             event.markForReEncode(true);
         }
+    }
+
+    private void handleEntityMetadata(PacketSendEvent event)
+    {
+        WrapperPlayServerEntityMetadata wrapper = new WrapperPlayServerEntityMetadata(event);
+        List<EntityData<?>> metadata = wrapper.getEntityMetadata();
+        boolean dirty = false;
+        for (EntityData<?> data : metadata)
+        {
+            if (sanitizeMetadataEntry(data))
+            {
+                dirty = true;
+            }
+        }
+        if (dirty)
+        {
+            wrapper.setEntityMetadata(metadata);
+            event.markForReEncode(true);
+        }
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private boolean sanitizeMetadataEntry(EntityData<?> data)
+    {
+        Object value = data.getValue();
+        if (value instanceof com.github.retrooper.packetevents.protocol.item.ItemStack peItem)
+        {
+            if (isCursed(peItem))
+            {
+                ((EntityData) data).setValue(EMPTY);
+                return true;
+            }
+            return false;
+        }
+        if (value instanceof Optional<?> opt
+                && opt.isPresent()
+                && opt.get() instanceof com.github.retrooper.packetevents.protocol.item.ItemStack peItem
+                && isCursed(peItem))
+        {
+            ((EntityData) data).setValue(Optional.empty());
+            return true;
+        }
+        return false;
     }
 
     private boolean isCursed(com.github.retrooper.packetevents.protocol.item.ItemStack peItem)

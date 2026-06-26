@@ -27,6 +27,7 @@ import org.bukkit.event.block.LeavesDecayEvent;
 import org.bukkit.event.entity.EntityCombustEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.entity.EntityRegainHealthEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntitySpawnEvent;
 import org.bukkit.event.entity.ExplosionPrimeEvent;
@@ -150,8 +151,11 @@ public class EventBlocker extends FreedomService
     @EventHandler(priority = EventPriority.HIGH)
     public void onEntityDamage(EntityDamageEvent event)
     {
-        if ((event.getCause() == EntityDamageEvent.DamageCause.MAGIC
-                || event.getCause() == EntityDamageEvent.DamageCause.WITHER)
+        EntityDamageEvent.DamageCause cause = event.getCause();
+        if ((cause == EntityDamageEvent.DamageCause.MAGIC
+                || cause == EntityDamageEvent.DamageCause.WITHER
+                || cause == EntityDamageEvent.DamageCause.VOID
+                || cause == EntityDamageEvent.DamageCause.CUSTOM)
                 && event.getEntity() instanceof Player player
                 && (player.getGameMode() == GameMode.CREATIVE || player.isInvulnerable()))
         {
@@ -181,6 +185,18 @@ public class EventBlocker extends FreedomService
                     event.setCancelled(true);
                 }
             }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onEntityRegainHealth(EntityRegainHealthEvent event)
+    {
+        double amount = event.getAmount();
+        if ((amount < 0.0D || !Double.isFinite(amount))
+                && event.getEntity() instanceof Player player
+                && (player.getGameMode() == GameMode.CREATIVE || player.isInvulnerable()))
+        {
+            event.setCancelled(true);
         }
     }
 

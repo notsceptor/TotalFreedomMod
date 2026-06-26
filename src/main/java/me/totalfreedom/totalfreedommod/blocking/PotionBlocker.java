@@ -1,13 +1,20 @@
 package me.totalfreedom.totalfreedommod.blocking;
 
+import java.util.Collection;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.ThrownPotion;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
+import org.bukkit.event.entity.LingeringPotionSplashEvent;
 import org.bukkit.event.entity.PotionSplashEvent;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.PotionMeta;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.projectiles.ProjectileSource;
 
 public class PotionBlocker extends FreedomService
@@ -33,6 +40,12 @@ public class PotionBlocker extends FreedomService
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onThrowPotion(PotionSplashEvent event)
     {
+        if (isLethalPotion(event.getEntity()))
+        {
+            event.setCancelled(true);
+            return;
+        }
+
         ProjectileSource source = event.getEntity().getShooter();
 
         if (!(source instanceof Player))
@@ -58,6 +71,50 @@ public class PotionBlocker extends FreedomService
             }
         }
 
+    }
+
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+    public void onLingeringPotion(LingeringPotionSplashEvent event)
+    {
+        if (isLethalPotion(event.getEntity()))
+        {
+            event.setCancelled(true);
+        }
+    }
+
+    private static boolean isLethalPotion(ThrownPotion potion)
+    {
+        if (potion == null)
+        {
+            return false;
+        }
+        ItemStack item = potion.getItem();
+        if (item == null || !(item.getItemMeta() instanceof PotionMeta meta) || !meta.hasCustomEffects())
+        {
+            return false;
+        }
+        return hasLethalInstantEffect(meta.getCustomEffects());
+    }
+
+    private static boolean hasLethalInstantEffect(Collection<PotionEffect> effects)
+    {
+        for (PotionEffect effect : effects)
+        {
+            if (isLethalInstant(effect.getType(), effect.getAmplifier()))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isLethalInstant(PotionEffectType type, int amplifier)
+    {
+        if (type != PotionEffectType.INSTANT_HEALTH && type != PotionEffectType.INSTANT_DAMAGE)
+        {
+            return false;
+        }
+        return amplifier < 0 || amplifier > 31 || (4 << (amplifier & 31)) <= 0;
     }
 
 }

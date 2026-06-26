@@ -120,6 +120,7 @@ public enum ConfigEntry
     CRASH_ITEMS_PACKET_RATE_LIMIT(Boolean.class, "crash_items.packet_rate_limit"),
     CRASH_ITEMS_MAX_INTERACTIONS_PER_SECOND(Integer.class, "crash_items.max_interactions_per_second"),
     CRASH_ITEMS_MAX_COMMANDS_PER_SECOND(Integer.class, "crash_items.max_commands_per_second"),
+    CRASH_ITEMS_MAX_MOVEMENT_PER_SECOND(Integer.class, "crash_items.max_movement_packets_per_second"),
     CRASH_ITEMS_EQUIPMENT_SWEEP_TICKS(Integer.class, "crash_items.equipment_sweep_ticks"),
     CRASH_ITEMS_BASE_COMMANDS(List.class, "crash_items.base_commands"),
     CRASH_ITEMS_HIDE_CONSOLE_SPAM(Boolean.class, "crash_items.hide_console_spam"),

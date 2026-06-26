@@ -239,6 +239,7 @@ crash_items:
   # Max chat/command packets per player per second.
   # 0 disables chat/command limiting.
   max_commands_per_second: 20
+  max_movement_packets_per_second: 120
   # Commands to check for preprocessed text.
   # Matched against the Minecraft subcommand, e.g. "minecraft:<name>"
   base_commands:
