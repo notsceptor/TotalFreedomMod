@@ -6,7 +6,6 @@ import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.format.NamedTextColor;
-import org.apache.commons.lang3.StringUtils;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.command.Command;
@@ -14,19 +13,14 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 @CommandPermissions(level = Rank.SUPER_ADMIN, source = SourceType.BOTH, permission = "tfm.admin.ban")
-@CommandParameters(description = "Bans an online or previously known player and their known IP addresses.", usage = "/<command> <player> [reason] [-nrb]", aliases = "gtfo")
+@CommandParameters(description = "Bans an online or previously known player and their known IP addresses.", usage = "/<command> [-s] [-nrb] <player> [reason]", aliases = "gtfo")
 public class Command_ban extends FreedomCommand
 {
-    @Override
-    public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
+    @CommandDispatchTarget(pattern = "<playerName> <reason..>", switches = "s,nrb")
+    public boolean ban(CommandContext ctx, String playerName, String reason, boolean silent, boolean noRollback)
     {
-        if (args.length < 1)
-        {
-            return false;
-        }
-
-        Player player = getPlayer(args[0]);
-        PlayerData data = BanCommandUtil.getData(plugin, args[0], player);
+        Player player = getPlayer(playerName);
+        PlayerData data = BanCommandUtil.getData(plugin, playerName, player);
 
         if (player == null && data == null)
         {
@@ -34,7 +28,7 @@ public class Command_ban extends FreedomCommand
             return true;
         }
 
-        String name = BanCommandUtil.getCanonicalName(args[0], player, data);
+        String name = BanCommandUtil.getCanonicalName(playerName, player, data);
 
         if (plugin.bm.getByUsername(name) != null)
         {
@@ -42,23 +36,15 @@ public class Command_ban extends FreedomCommand
             return true;
         }
 
-        boolean noRollback = args.length > 1 && args[args.length - 1].equalsIgnoreCase("-nrb");
-        int reasonEnd = noRollback ? args.length - 1 : args.length;
-
-        String reason = reasonEnd > 1
-                ? StringUtils.join(args, " ", 1, reasonEnd)
-                : null;
-
         List<String> ips = BanCommandUtil.getIps(player, data);
         Ban ban = BanCommandUtil.createFullBan(name, ips, sender, null, reason);
 
-        if (player != null)
-        {
+        if (!silent && player != null)
             FUtil.bcastMsg(player.getName() + " has been a VERY naughty, naughty boy.", NamedTextColor.RED);
-        }
 
         plugin.bm.addBan(ban);
-        FUtil.adminAction(sender.getName(), "Banning " + name, true);
+        if (!silent)
+            FUtil.adminAction(sender.getName(), "Banning " + name, true);
 
         if (!noRollback)
         {
@@ -77,23 +63,26 @@ public class Command_ban extends FreedomCommand
             {
             }
 
-            player.setOp(false);
-            player.setGameMode(GameMode.SURVIVAL);
-            player.getInventory().clear();
-
-            Location targetPos = player.getLocation();
-            if (targetPos.getWorld() != null)
+            if (!silent)
             {
-                for (int x = -1; x <= 1; x++)
+                player.setOp(false);
+                player.setGameMode(GameMode.SURVIVAL);
+                player.getInventory().clear();
+
+                Location targetPos = player.getLocation();
+                if (targetPos.getWorld() != null)
                 {
-                    for (int z = -1; z <= 1; z++)
+                    for (int x = -1; x <= 1; x++)
                     {
-                        Location strikePos = new Location(
-                                targetPos.getWorld(),
-                                targetPos.getBlockX() + x,
-                                targetPos.getBlockY(),
-                                targetPos.getBlockZ() + z);
-                        targetPos.getWorld().strikeLightning(strikePos);
+                        for (int z = -1; z <= 1; z++)
+                        {
+                            Location strikePos = new Location(
+                                    targetPos.getWorld(),
+                                    targetPos.getBlockX() + x,
+                                    targetPos.getBlockY(),
+                                    targetPos.getBlockZ() + z);
+                            targetPos.getWorld().strikeLightning(strikePos);
+                        }
                     }
                 }
             }
@@ -102,5 +91,17 @@ public class Command_ban extends FreedomCommand
         }
 
         return true;
+    }
+
+    @CommandDispatchTarget(pattern = "<playerName>", switches = "s,nrb")
+    public boolean banNoReason(CommandContext ctx, String playerName, boolean silent, boolean noRollback)
+    {
+        return ban(ctx, playerName, null, silent, noRollback);
+    }
+
+    @Override
+    public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
+    {
+        return false;
     }
 }

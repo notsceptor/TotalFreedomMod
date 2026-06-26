@@ -10,34 +10,35 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 @CommandPermissions(level = Rank.SUPER_ADMIN, source = SourceType.BOTH, permission = "tfm.admin.ban")
-@CommandParameters(description = "Unbans an online or offline player and linked IP addresses.", usage = "/<command> <player> [-r]")
+@CommandParameters(description = "Unbans an online or offline player and linked IP addresses.", usage = "/<command> [-s] [-r] <player>")
 public class Command_unban extends FreedomCommand
 {
-    @Override
-    public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
+    @CommandDispatchTarget(pattern = "<playerName>", switches = "s,r")
+    public boolean unban(CommandContext ctx, String playerName, boolean silent, boolean restore)
     {
-        if (args.length < 1)
-        {
-            return false;
-        }
-        Player player = getPlayer(args[0]);
-        PlayerData data = BanCommandUtil.getData(plugin, args[0], player);
-        String name = BanCommandUtil.getCanonicalName(args[0], player, data);
-        Set<Ban> bans = BanCommandUtil.findLinkedBans(plugin, args[0], player, data);
+        Player player = getPlayer(playerName);
+        PlayerData data = BanCommandUtil.getData(plugin, playerName, player);
+        String name = BanCommandUtil.getCanonicalName(playerName, player, data);
+        Set<Ban> bans = BanCommandUtil.findLinkedBans(plugin, playerName, player, data);
         if (bans.isEmpty())
         {
-            msg("No ban on record for " + args[0] + ".");
+            msg("No ban on record for " + playerName + ".");
             return true;
         }
         for (Ban ban : bans)
         {
             plugin.bm.removeBan(ban);
         }
-        FUtil.adminAction(sender.getName(), "Unbanning " + name, true);
-        if (args.length > 1 && args[1].equalsIgnoreCase("-r"))
-        {
+        if (!silent)
+            FUtil.adminAction(sender.getName(), "Unbanning " + name, true);
+        if (restore)
             plugin.cpb.restore(name);
-        }
         return true;
+    }
+
+    @Override
+    public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
+    {
+        return false;
     }
 }

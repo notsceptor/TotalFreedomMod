@@ -111,8 +111,11 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
             // Create the pattern to match against
             final Pattern pattern = Pattern.compile(regex);
 
+            // Get the switches
+            final String[] switches = !ci.switches().isEmpty() ? ci.switches().split(",") : new String[0];
+
             // Insert into the map
-            dispatchMap.put(pattern, new CommandDispatchTargetMeta(pattern, method, ellipsis));
+            dispatchMap.put(pattern, new CommandDispatchTargetMeta(pattern, Arrays.asList(switches), method, ellipsis));
         }
 
         return dispatchMap;
@@ -124,7 +127,7 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
         final String joinedArgs = StringUtils.join(args, " ");
 
         // Find the dispatch target, default to the normal run function if it can't find one
-        final CommandDispatchTargetMeta cd = findDispatchTarget(joinedArgs);
+        final CommandDispatchTargetMeta cd = findDispatchTarget(args);
         if (cd == null)
         {
             FLog.debug(String.format("Command %s does not have a pattern handler for the arguments: \"%s\", defaulting to runner",
@@ -138,23 +141,54 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
         // 1 for each [^ ]+ or .+ in the dispatch target pattern
 
         final List<Object> passedArgs = new ArrayList<>(Arrays.asList(ctx));
+        final boolean[] passedSwitches = new boolean[cd.switches.size()];
 
         if (args.length != 0)
         {
             final String patternStr = cd.pattern.toString();
             final String[] patternParts = patternStr.substring(1, patternStr.length() - 1).split(" ");
-            IntStream.range(0, patternParts.length)
-                .forEach(i -> {
-                    final String patternPart = patternParts[i];
+            final int _ = IntStream.range(0, args.length)
+                // We're using a fold (reduce) here to maintain state for where we are in the pattern (j),
+                // alongside where we are in the argument list (i)
+                .reduce(0, (j, i) -> {
                     final String arg = args[i];
+                    // If we encounter what looks like a switch
+                    if (arg.startsWith("-"))
+                    {
+                        // Loop over all the switches and see if this is one of them
+                        for (int k = 0; k < cd.switches.size(); ++k)
+                        {
+                            final String sw = cd.switches.get(k);
+                            if (arg.substring(1).equals(sw))
+                            {
+                                // If so, track it and move on
+                                passedSwitches[k] = true;
+                                // Don't move forward in the pattern
+                                return j;
+                            }
+                        }
+                    }
+                    // This just means that we hit a variable length argument pattern
+                    if (j >= patternParts.length)
+                        return j;
+                    final String patternPart = patternParts[j];
                     // Add the rest of the arguments if we encounter an ellipsis
                     if (patternPart.equals(VARIABLE_LENGTH_ARGUMENT_PATTERN))
-                        passedArgs.add(StringUtils.join(args, " ", cd.ellipsis.get(), args.length));
+                        passedArgs.add(StringUtils.join((List<String>) Arrays.stream(args)
+                            .skip(i)
+                            .filter(a -> !cd.switches.contains(a.replaceAll("^-", "")))
+                            .collect(Collectors.toCollection(ArrayList::new)), " "));
                     // Add the current argument if there's a placeholder here
                     else if (patternPart.equals(SIMPLE_ARGUMENT_PATTERN))
                         passedArgs.add(arg);
+                    // Move forward in the pattern
+                    return j + 1;
                 });
         }
+
+        // Concatenate all switch values to the end
+        for (final boolean passedSwitch : passedSwitches)
+            passedArgs.add(passedSwitch);
     
         try
         {
@@ -197,13 +231,17 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
         return true;
     }
 
-    private final CommandDispatchTargetMeta findDispatchTarget(final String joinedArgs)
+    private final CommandDispatchTargetMeta findDispatchTarget(final String[] args)
     {
         // Just try to find a pattern that matches the arguments
         for (final Map.Entry<Pattern, CommandDispatchTargetMeta> entry : dispatchMap.entrySet())
         {
             final Pattern pat = entry.getKey();
-            if (!pat.matcher(joinedArgs).matches())
+            final CommandDispatchTargetMeta cd = entry.getValue();
+            final String sanitizedArgs = StringUtils.join((List<String>) Arrays.stream(args)
+                .filter(a -> !cd.switches.contains(a.replaceAll("^-", "")))
+                .collect(Collectors.toCollection(ArrayList::new)), " ");
+            if (!pat.matcher(sanitizedArgs).matches())
                 continue;
             return entry.getValue();
         }
@@ -502,12 +540,14 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
     private class CommandDispatchTargetMeta
     {
         private final Pattern pattern;
+        private final List<String> switches;
         private final Method method;
         private final Optional<Integer> ellipsis;
 
-        private CommandDispatchTargetMeta(Pattern pattern, Method method, Optional<Integer> ellipsis)
+        private CommandDispatchTargetMeta(Pattern pattern, List<String> switches, Method method, Optional<Integer> ellipsis)
         {
             this.pattern = pattern;
+            this.switches = switches;
             this.method = method;
             this.ellipsis = ellipsis;
         }

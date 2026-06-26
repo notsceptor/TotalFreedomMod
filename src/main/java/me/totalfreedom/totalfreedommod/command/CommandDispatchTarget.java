@@ -7,4 +7,5 @@ import java.lang.annotation.RetentionPolicy;
 public @interface CommandDispatchTarget
 {
     String pattern() default "";
+    String switches() default "";
 }
