@@ -12,16 +12,9 @@ import org.bukkit.entity.Player;
 @CommandParameters(description = "Kick a player.", usage = "/<command> [-s] <player> [reason]", aliases = "k")
 public class Command_kick extends FreedomCommand
 {
-    @CommandDispatchTarget(pattern = "<playerName> <reason..>", switches = "s")
-    public boolean kick(CommandContext ctx, String playerName, String reason, boolean silent)
+    @CommandDispatchTarget(pattern = "<player:Player> <reason..>", switches = "s")
+    public boolean kick(CommandContext ctx, Player player, String reason, boolean silent)
     {
-        Player player = getPlayer(playerName);
-        if (player == null)
-        {
-            msg(PLAYER_NOT_FOUND);
-            return true;
-        }
-
         if (isAdmin(player))
         {
             msg("Admins can not be kicked", NamedTextColor.RED);
@@ -50,10 +43,10 @@ public class Command_kick extends FreedomCommand
         return true;
     }
 
-    @CommandDispatchTarget(pattern = "<playerName>", switches = "s")
-    public boolean kickNoReason(CommandContext ctx, String playerName, boolean silent)
+    @CommandDispatchTarget(pattern = "<player:Player>", switches = "s")
+    public boolean kickNoReason(CommandContext ctx, Player player, boolean silent)
     {
-        return kick(ctx, playerName, null, silent);
+        return kick(ctx, player, null, silent);
     }
 
     @Override

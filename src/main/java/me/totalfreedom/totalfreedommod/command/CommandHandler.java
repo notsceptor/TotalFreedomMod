@@ -2,6 +2,7 @@ package me.totalfreedom.totalfreedommod.command;
 
 import io.papermc.paper.command.brigadier.Commands;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -9,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.totalfreedommod.command.resolver.AbstractArgumentResolver;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import org.bukkit.command.CommandExecutor;
 
@@ -29,11 +31,13 @@ public class CommandHandler<T extends TotalFreedomMod>
     private String onlyConsoleMessage = "\u00A7cThis command can only be used from the console.";
     private String onlyPlayerMessage = "\u00A7cThis command can only be used by players.";
     private CommandExecutorFactory executorFactory;
+    private final Map<String, AbstractArgumentResolver<?>> argumentResolvers;
 
     public CommandHandler(T plugin)
     {
         this.plugin = plugin;
         this.executors = new HashMap<>();
+        this.argumentResolvers = new HashMap<>();
     }
 
     /**
@@ -355,6 +359,35 @@ public class CommandHandler<T extends TotalFreedomMod>
                 FLog.warning("Failed to register command " + commandName + ": " + ex.getMessage());
             }
         }
+    }
+
+    public void registerArgumentResolver(Class<? extends AbstractArgumentResolver<?>> clazz)
+    {
+        try
+        {
+            AbstractArgumentResolver<?> resolver = clazz.getDeclaredConstructor().newInstance();
+            argumentResolvers.put(resolver.name(), resolver);
+        }
+        catch (InstantiationException |
+            IllegalAccessException |
+            IllegalArgumentException |
+            InvocationTargetException |
+            NoSuchMethodException e)
+        {
+            FLog.warning(String.format("Failed to register command argument resolver %s: %s", clazz.getSimpleName(), e.getMessage()));
+        }
+    }
+
+    public Object resolveArgument(String name, String arg, String strategy)
+    {
+        AbstractArgumentResolver<?> resolver = argumentResolvers.get(name);
+        if (resolver == null)
+        {
+            FLog.warning(String.format("Could not resolve argument '%s' because there is no corresponding resolver with the name '%s'",
+                arg, name));
+            return null;
+        }
+        return resolver.resolve(arg, strategy);
     }
 
     /**

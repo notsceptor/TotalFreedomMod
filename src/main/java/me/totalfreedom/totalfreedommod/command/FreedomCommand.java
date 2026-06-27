@@ -3,6 +3,7 @@ package me.totalfreedom.totalfreedommod.command;
 import lombok.Getter;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.admin.Admin;
+import me.totalfreedom.totalfreedommod.command.resolver.ArgumentResolutionException;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
@@ -43,6 +44,7 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
     //
     private static final String SIMPLE_ARGUMENT_PATTERN = "\\w+";
     private static final String VARIABLE_LENGTH_ARGUMENT_PATTERN = ".+";
+    private static final String VARIABLE_LENGTH_ARGUMENT_ENDING = "..>";
     //
     @Getter
     private final CommandParameters params;
@@ -81,25 +83,50 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
             if (ci == null)
                 continue;
 
+            final String[] items = ci.pattern().split(" ");
+
+            final String[] resolverNames = new String[items.length];
+            final String[] resolverStrategies = new String[items.length];
+
             // Convert the annotation's pattern into a regular expression:
             //  - <param> are converted to [^ ]+
             //  - <param..> are converted to .+
             // Everything else remains the same
-            final List<String> items = Arrays.stream(ci.pattern().split(" ")).map(it -> {
+            // Also map resolvers to the indices of their corresponding patterns
+            for (int i = 0; i < items.length; ++i)
+            {
+                final String it = items[i];
+
                 if (it.startsWith("<") && it.endsWith(">"))
-                    return it.endsWith("..>") ? VARIABLE_LENGTH_ARGUMENT_PATTERN : SIMPLE_ARGUMENT_PATTERN;
+                {
+                    final boolean vararg = it.endsWith(VARIABLE_LENGTH_ARGUMENT_ENDING);
+                    // Get what's inside the angle brackets
+                    final String innerContent = it.substring(1, it.length() - (vararg ? VARIABLE_LENGTH_ARGUMENT_ENDING.length() : 1));
+                    final String[] innerData = innerContent.split(":");
+                    String resolverName = null;
+                    String resolverStrategy = null;
+                    if (innerData.length >= 2)
+                        resolverName = innerData[1];
+                    if (innerData.length >= 3)
+                        resolverStrategy = innerData[2];
+                    items[i] = vararg ? VARIABLE_LENGTH_ARGUMENT_PATTERN : SIMPLE_ARGUMENT_PATTERN;
+                    resolverNames[i] = resolverName;
+                    resolverStrategies[i] = resolverStrategy;
+                    continue;
+                }
+
                 // Ensure regex metacharacters are escaped
-                return it.replaceAll("[\\W]", "\\\\$0");
-            }).collect(Collectors.toCollection(ArrayList::new));
+                items[i] = it.replaceAll("[\\W]", "\\\\$0");
+            }
 
             // Determine if the ending parameter has an ellipsis
-            final Optional<Integer> ellipsis = items.size() != 0 && items.get(items.size() - 1).equals(VARIABLE_LENGTH_ARGUMENT_PATTERN) ?
-                Optional.of(items.size() - 1) :
+            final Optional<Integer> ellipsis = items.length != 0 && items[items.length - 1].equals(VARIABLE_LENGTH_ARGUMENT_PATTERN) ?
+                Optional.of(items.length - 1) :
                 Optional.empty();
 
             // Confirm there are no other ellipsis arguments elsewhere in the pattern
-            if (items.size() != 0 && IntStream.range(0, items.size() - 1)
-                .anyMatch(i -> items.get(i).equals(VARIABLE_LENGTH_ARGUMENT_PATTERN)))
+            if (items.length != 0 && IntStream.range(0, items.length - 1)
+                .anyMatch(i -> items[i].equals(VARIABLE_LENGTH_ARGUMENT_PATTERN)))
             {
                 FLog.warning(String.format("Command %s has a pattern handler that contains an variable-length argument not at the end of the list, skipping...", commandName));
                 continue;
@@ -115,7 +142,7 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
             final String[] switches = !ci.switches().isEmpty() ? ci.switches().split(",") : new String[0];
 
             // Insert into the map
-            dispatchMap.put(pattern, new CommandDispatchTargetMeta(pattern, Arrays.asList(switches), method, ellipsis));
+            dispatchMap.put(pattern, new CommandDispatchTargetMeta(pattern, Arrays.asList(switches), method, ellipsis, resolverNames, resolverStrategies));
         }
 
         return dispatchMap;
@@ -172,15 +199,32 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
                     if (j >= patternParts.length)
                         return j;
                     final String patternPart = patternParts[j];
+                    String content = null;
                     // Add the rest of the arguments if we encounter an ellipsis
                     if (patternPart.equals(VARIABLE_LENGTH_ARGUMENT_PATTERN))
-                        passedArgs.add(StringUtils.join((List<String>) Arrays.stream(args)
+                        content = StringUtils.join((List<String>) Arrays.stream(args)
                             .skip(i)
                             .filter(a -> !cd.switches.contains(a.replaceAll("^-", "")))
-                            .collect(Collectors.toCollection(ArrayList::new)), " "));
+                            .collect(Collectors.toCollection(ArrayList::new)), " ");
                     // Add the current argument if there's a placeholder here
                     else if (patternPart.equals(SIMPLE_ARGUMENT_PATTERN))
-                        passedArgs.add(arg);
+                        content = arg;
+                    // Skip adding anything to the arguments list if there's no pattern
+                    if (content == null)
+                        return j + 1;
+                    // Otherwise, attempt to resolve the argument if it's of a different type
+                    Object passedArg = content;
+                    final String resolverName = cd.resolverNames[j];
+                    final String resolverStrategy = cd.resolverStrategies[j];
+                    if (resolverName != null)
+                    {
+                        passedArg = plugin.cl.getHandler().resolveArgument(resolverName, content, resolverStrategy);
+                        FLog.debug(String.format("Argument '%s' in '%s' command resolved to '%s'",
+                            arg,
+                            commandName,
+                            passedArg));
+                    }
+                    passedArgs.add(passedArg);
                     // Move forward in the pattern
                     return j + 1;
                 });
@@ -259,7 +303,7 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
         {
             return dispatchCommand(ctx, args);
         }
-        catch (CommandFailException ex)
+        catch (CommandFailException | ArgumentResolutionException ex)
         {
             msg(ex.getMessage());
             return true;
@@ -543,13 +587,22 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
         private final List<String> switches;
         private final Method method;
         private final Optional<Integer> ellipsis;
+        private final String[] resolverNames;
+        private final String[] resolverStrategies;
 
-        private CommandDispatchTargetMeta(Pattern pattern, List<String> switches, Method method, Optional<Integer> ellipsis)
+        private CommandDispatchTargetMeta(Pattern pattern,
+            List<String> switches,
+            Method method,
+            Optional<Integer> ellipsis,
+            String[] resolverNames,
+            String[] resolverStrategies)
         {
             this.pattern = pattern;
             this.switches = switches;
             this.method = method;
             this.ellipsis = ellipsis;
+            this.resolverNames = resolverNames;
+            this.resolverStrategies = resolverStrategies;
         }
     }
 }

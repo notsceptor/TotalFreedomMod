@@ -15,17 +15,9 @@ import org.bukkit.entity.Player;
 @CommandParameters(description = "Temporarily bans a player for five minutes.", usage = "/<command> [-s] [-rb] <player> [reason]", aliases = "noob")
 public class Command_tban extends FreedomCommand
 {
-    @CommandDispatchTarget(pattern = "<playerName> <reason..>", switches = "s,rb")
-    public boolean tban(CommandContext ctx, String playerName, String reason, boolean silent, boolean rollback)
+    @CommandDispatchTarget(pattern = "<player:Player> <reason..>", switches = "s,rb")
+    public boolean tban(CommandContext ctx, Player player, String reason, boolean silent, boolean rollback)
     {
-        final Player player = getPlayer(playerName);
-
-        if (player == null)
-        {
-            msg(FreedomCommand.PLAYER_NOT_FOUND);
-            return true;
-        }
-
         final Location targetPos = player.getLocation();
         for (int x = -1; x <= 1; x++)
         {
@@ -54,10 +46,10 @@ public class Command_tban extends FreedomCommand
         return true;
     }
 
-    @CommandDispatchTarget(pattern = "<playerName>", switches = "s,rb")
-    public boolean tbanNoReason(CommandContext ctx, String playerName, boolean silent, boolean rollback)
+    @CommandDispatchTarget(pattern = "<player:Player>", switches = "s,rb")
+    public boolean tbanNoReason(CommandContext ctx, Player player, boolean silent, boolean rollback)
     {
-        return tban(ctx, playerName, "You have been temporarily banned for 5 minutes.", silent, rollback);
+        return tban(ctx, player, "You have been temporarily banned for 5 minutes.", silent, rollback);
     }
 
     @Override

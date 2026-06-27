@@ -4,6 +4,7 @@ import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import lombok.Getter;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.totalfreedommod.command.resolver.PlayerArgumentResolver;
 import me.totalfreedom.totalfreedommod.util.FLog;
 
 @SuppressWarnings("UnstableApiUsage")
@@ -34,9 +35,13 @@ public class CommandLoader extends FreedomService
         handler.setPermissionMessage("\u00A7cYou do not have permission to use this command.");
         handler.setOnlyConsoleMessage("\u00A7cThis command can only be used from the console.");
         handler.setOnlyPlayerMessage("\u00A7cThis command can only be used by players.");
+        
+        // Argument resolver registration
+        handler.registerArgumentResolver(PlayerArgumentResolver.class);
 
         int loaded = handler.loadFrom(FreedomCommand.class.getPackage());
         FLog.info("Loaded " + loaded + " commands.");
+
         plugin.getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event ->
         {
             handler.registerAllWithLifecycle(event.registrar());
