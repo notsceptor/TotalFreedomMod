@@ -439,18 +439,9 @@ public class RankManager extends FreedomService
         Scoreboard scoreboard = manager.getMainScoreboard();
         Team currentTeam = scoreboard.getEntryTeam(player.getName());
         CustomRank rank = getAssignedAdminRank(player);
+        final boolean admin = rank != null && rank.isAdmin();
 
-        if (rank == null || !rank.isAdmin())
-        {
-            if (currentTeam != null)
-            {
-                currentTeam.removeEntry(player.getName());
-            }
-
-            return;
-        }
-
-        String teamName = createTeamName(rank);
+        final String teamName = admin ? createTeamName(rank) : DEFAULT_TEAM_NAME;
 
         if (currentTeam != null && !currentTeam.getName().equals(teamName))
         {
@@ -464,14 +455,18 @@ public class RankManager extends FreedomService
             team = scoreboard.registerNewTeam(teamName);
         }
 
-        team.color(rank.getColor());
+        team.color(admin ? rank.getColor() : NamedTextColor.WHITE);
         team.prefix(Component.empty());
         team.addEntry(player.getName());
     }
 
+    private static final String DEFAULT_TEAM_NAME = "zz_default";
+
     private String createTeamName(CustomRank rank)
     {
-        String name = rank.getId().replaceAll("[^A-Za-z0-9_\\-]", "_");
+        final int level = Math.max(0, Math.min(99, rank.getLevel()));
+        String name = String.format("%02d_%s", 99 - level,
+                rank.getId().replaceAll("[^A-Za-z0-9_\\-]", "_"));
 
         if (name.length() > 16)
         {
