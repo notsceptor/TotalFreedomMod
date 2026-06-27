@@ -1,10 +1,15 @@
 package me.totalfreedom.totalfreedommod;
 
-import org.bukkit.entity.Player;
+import me.totalfreedom.totalfreedommod.config.ConfigEntry;
+import me.totalfreedom.totalfreedommod.util.FLog;
+import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.WorldBorder;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
-import org.bukkit.event.player.PlayerLoginEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
+import org.bukkit.event.world.WorldLoadEvent;
+import org.spigotmc.event.player.PlayerSpawnLocationEvent;
 
 public class MovementValidator extends FreedomService
 {
@@ -19,6 +24,7 @@ public class MovementValidator extends FreedomService
     @Override
     protected void onStart()
     {
+        applyWorldBorders();
     }
 
     @Override
@@ -26,25 +32,83 @@ public class MovementValidator extends FreedomService
     {
     }
 
-    @EventHandler(priority = EventPriority.HIGH)
+    private long borderRadius()
+    {
+        return ConfigEntry.WORLD_BORDER.getInteger();
+    }
+
+    private long boundsLimit()
+    {
+        final long v = borderRadius();
+        return v > 0 ? v : MAX_XZ_COORD;
+    }
+
+    private boolean outOfBounds(Location loc)
+    {
+        if (loc == null)
+        {
+            return false;
+        }
+        final long limit = boundsLimit();
+        return Math.abs(loc.getX()) >= limit
+                || Math.abs(loc.getZ()) >= limit
+                || Math.abs(loc.getY()) >= limit;
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onPlayerTeleport(PlayerTeleportEvent event)
     {
-        // Check absolute value to account for negatives
-        if (Math.abs(event.getTo().getX()) >= MAX_XZ_COORD || Math.abs(event.getTo().getZ()) >= MAX_XZ_COORD)
+        if (outOfBounds(event.getTo()))
         {
             event.setCancelled(true); // illegal position, cancel it
         }
     }
 
     @EventHandler(priority = EventPriority.HIGH)
-    public void onPlayerLogin(PlayerLoginEvent event)
+    public void onPlayerSpawnLocation(PlayerSpawnLocationEvent event)
     {
-        final Player player = event.getPlayer();
-
-        // Validate position
-        if (Math.abs(player.getLocation().getX()) >= MAX_XZ_COORD || Math.abs(player.getLocation().getZ()) >= MAX_XZ_COORD)
+        final Location loc = event.getSpawnLocation();
+        if (!outOfBounds(loc))
         {
-            player.teleport(player.getWorld().getSpawnLocation()); // Illegal position, teleport to spawn
+            return;
+        }
+        final World world = loc != null ? loc.getWorld() : event.getPlayer().getWorld();
+        event.setSpawnLocation(world.getSpawnLocation());
+        FLog.warning("[MovementValidator] " + event.getPlayer().getName()
+                + " joined out of bounds; relocated to " + world.getName() + " spawn.");
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onWorldLoad(WorldLoadEvent event)
+    {
+        applyWorldBorder(event.getWorld());
+    }
+
+    private void applyWorldBorders()
+    {
+        for (World world : server.getWorlds())
+        {
+            applyWorldBorder(world);
+        }
+    }
+
+    private void applyWorldBorder(World world)
+    {
+        final long radius = borderRadius();
+        if (radius <= 0 || world == null)
+        {
+            return;
+        }
+        try
+        {
+            final WorldBorder border = world.getWorldBorder();
+            border.setCenter(0.0, 0.0);
+            border.setSize(radius * 2.0); // setSize takes the full diameter
+        }
+        catch (Throwable t)
+        {
+            FLog.warning("[MovementValidator] Failed to apply world border to "
+                    + world.getName() + ": " + t.getMessage());
         }
     }
 

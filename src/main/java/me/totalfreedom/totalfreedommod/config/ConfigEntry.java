@@ -142,6 +142,13 @@ public enum ConfigEntry
     CRASH_ENTITIES_MAX_SLIME_SIZE(Integer.class, "crash_entities.max_slime_size"),
     CRASH_ENTITIES_SCALE_SWEEP_TICKS(Integer.class, "crash_entities.scale_sweep_ticks"),
     //
+    CRASH_GAMERULES_PACKET_GUARD(Boolean.class, "crash_gamerules.packet_guard"),
+    CRASH_GAMERULES_RANDOM_TICK_SPEED(Integer.class, "crash_gamerules.random_tick_speed"),
+    CRASH_GAMERULES_MAX_NUMERIC_VALUE(Integer.class, "crash_gamerules.max_numeric_value"),
+    CRASH_GAMERULES_SWEEP_TICKS(Integer.class, "crash_gamerules.sweep_ticks"),
+    //
+    WORLD_BORDER(Integer.class, "world_border"),
+    //
     AUTOEJECT_ENABLED(Boolean.class, "autoeject.enabled"),
     AUTOEJECT_PERSIST(Boolean.class, "autoeject.persist"),
     AUTOEJECT_TIME_WINDOW(Integer.class, "autoeject.time_window"),

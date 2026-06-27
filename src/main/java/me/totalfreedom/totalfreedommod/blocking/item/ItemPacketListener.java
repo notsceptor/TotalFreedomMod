@@ -17,12 +17,15 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEn
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityMetadata;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerSetSlot;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerWindowItems;
+import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientSetGameRule;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.totalfreedommod.blocking.gamerule.GameRulePacketGuard;
 import me.totalfreedom.totalfreedommod.blocking.sign.SignPacketGuard;
+import me.totalfreedom.totalfreedommod.util.FLog;
 
 final class ItemPacketListener extends PacketListenerAbstract
 {
@@ -39,9 +42,11 @@ final class ItemPacketListener extends PacketListenerAbstract
     private final boolean signBlockEntityGuard;
     private final boolean signChunkGuard;
     private final boolean blockAllSignPackets;
+    private final boolean gameRuleGuard;
 
     ItemPacketListener(TotalFreedomMod plugin, boolean sanitizeOutbound, PacketSpamLimiter spamLimiter,
-                             boolean signBlockEntityGuard, boolean signChunkGuard, boolean blockAllSignPackets)
+                             boolean signBlockEntityGuard, boolean signChunkGuard, boolean blockAllSignPackets,
+                             boolean gameRuleGuard)
     {
         super(PacketListenerPriority.HIGH);
         this.plugin = plugin;
@@ -50,23 +55,32 @@ final class ItemPacketListener extends PacketListenerAbstract
         this.signBlockEntityGuard = signBlockEntityGuard;
         this.signChunkGuard = signChunkGuard;
         this.blockAllSignPackets = blockAllSignPackets;
+        this.gameRuleGuard = gameRuleGuard;
     }
 
     @Override
     public void onPacketReceive(PacketReceiveEvent event)
     {
-        if (spamLimiter == null)
-        {
-            return;
-        }
         try
         {
+            final PacketTypeCommon type = event.getPacketType();
+
+            if (gameRuleGuard && type == PacketType.Play.Client.SET_GAME_RULE)
+            {
+                event.setCancelled(true);
+                logBlockedGameRule(event);
+                return;
+            }
+
+            if (spamLimiter == null)
+            {
+                return;
+            }
             final UUID id = event.getUser().getUUID();
             if (id == null)
             {
                 return;
             }
-            final PacketTypeCommon type = event.getPacketType();
             if (type == PacketType.Play.Client.PLAYER_BLOCK_PLACEMENT
                     || type == PacketType.Play.Client.USE_ITEM
                     || type == PacketType.Play.Client.PLAYER_DIGGING
@@ -104,6 +118,38 @@ final class ItemPacketListener extends PacketListenerAbstract
         }
         catch (Throwable ignored)
         {
+        }
+    }
+
+    private void logBlockedGameRule(PacketReceiveEvent event)
+    {
+        String what;
+        try
+        {
+            what = GameRulePacketGuard.describe(new WrapperPlayClientSetGameRule(event));
+        }
+        catch (Throwable t)
+        {
+            what = "?";
+        }
+        FLog.warning("[GameRuleGuard] Blocked an attempt to edit a gamerule from " + describeUser(event) + ": " + what);
+    }
+
+    private static String describeUser(PacketReceiveEvent event)
+    {
+        try
+        {
+            String name = event.getUser().getName();
+            if (name != null)
+            {
+                return name;
+            }
+            UUID id = event.getUser().getUUID();
+            return id == null ? "unknown" : id.toString();
+        }
+        catch (Throwable t)
+        {
+            return "unknown";
         }
     }
 

@@ -312,6 +312,30 @@ crash_entities:
   # 0 disables.  200 ticks (10s) by default.
   scale_sweep_ticks: 200
 
+# GameRuleHandler
+# In all their wisdom, the developers of Minecraft have added a way for gamerules
+# to be directly affected using packets.
+crash_gamerules:
+  # GameRuleGuard
+  # This is what guards directly against inbound SET_GAME_RULE packets.  Does not
+  # affect the /gamerule command.  Requires packetevents.
+  packet_guard: true
+  # The maximum tick value that randomTickSpeed will be set to upon server startup.
+  # Vanilla default is 3.  Only raise this value if you want to speed things up.
+  random_tick_speed: 3
+  # The maximum numeric value for most gamerules. Defaults should be well below this.
+  max_numeric_value: 1024
+  # Time in between ticks to sweep over every loaded world (20 = 1s) for invalid
+  # values. (This may be useful if you don't have packetevents.)  Disabled by default.
+  sweep_ticks: 0
+
+# MovementValidator
+# Keeps players within the scope of the world border at a low level.  This is a global
+# world border defined by the radius from the center (0,0) with a playable area of
+# 2 x world_border on each side.  Default of 1 million (2 mil. blocks wide).
+# 0 disables the border.
+world_border: 1000000
+
 # AutoEject runs when AntiSpam, AntiNuke or a blocked command action trips.
 # Strikes are stored according to the player's IP address.
 autoeject:
