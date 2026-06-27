@@ -5,6 +5,9 @@ import io.papermc.paper.datacomponent.item.BundleContents;
 import io.papermc.paper.datacomponent.item.ChargedProjectiles;
 import io.papermc.paper.datacomponent.item.ItemContainerContents;
 import io.papermc.paper.datacomponent.item.ItemLore;
+import io.papermc.paper.datacomponent.item.WritableBookContent;
+import io.papermc.paper.datacomponent.item.WrittenBookContent;
+import io.papermc.paper.text.Filtered;
 import java.util.List;
 import me.totalfreedom.totalfreedommod.util.ComponentScanner;
 import net.kyori.adventure.text.Component;
@@ -82,17 +85,10 @@ final class ItemScanner
         if (item.hasData(DataComponentTypes.CUSTOM_NAME))
         {
             Component name = item.getData(DataComponentTypes.CUSTOM_NAME);
-            if (name != null)
+            Verdict nameVerdict = inspectNamedComponent(name, depth);
+            if (nameVerdict.isCursed())
             {
-                int len = ComponentScanner.safePlainTextLength(name, MAX_COMPONENT_NODES);
-                if (len < 0)
-                {
-                    return new Verdict(Reason.CURSED_COMPONENT, -1L, depth);
-                }
-                if (len > MAX_NAME_LENGTH)
-                {
-                    return new Verdict(Reason.OVERSIZED_NAME, len, depth);
-                }
+                return nameVerdict;
             }
         }
 
@@ -109,14 +105,42 @@ final class ItemScanner
                 }
                 for (Component line : lines)
                 {
-                    int len = ComponentScanner.safePlainTextLength(line, MAX_COMPONENT_NODES);
-                    if (len < 0)
+                    Verdict lineVerdict = inspectLoreLine(line, depth);
+                    if (lineVerdict.isCursed())
+                    {
+                        return lineVerdict;
+                    }
+                }
+            }
+        }
+
+        if (item.hasData(DataComponentTypes.WRITTEN_BOOK_CONTENT))
+        {
+            WrittenBookContent book = item.getData(DataComponentTypes.WRITTEN_BOOK_CONTENT);
+            if (book != null)
+            {
+                for (Filtered<Component> page : book.pages())
+                {
+                    Component raw = page != null ? page.raw() : null;
+                    if (ComponentScanner.isCursed(raw, MAX_COMPONENT_NODES))
                     {
                         return new Verdict(Reason.CURSED_COMPONENT, -1L, depth);
                     }
-                    if (len > MAX_LORE_LINE_LENGTH)
+                }
+            }
+        }
+
+        if (item.hasData(DataComponentTypes.WRITABLE_BOOK_CONTENT))
+        {
+            WritableBookContent book = item.getData(DataComponentTypes.WRITABLE_BOOK_CONTENT);
+            if (book != null)
+            {
+                for (Filtered<String> page : book.pages())
+                {
+                    String raw = page != null ? page.raw() : null;
+                    if (isCursedWritablePage(raw))
                     {
-                        return new Verdict(Reason.OVERSIZED_LORE, len, depth);
+                        return new Verdict(Reason.CURSED_COMPONENT, -1L, depth);
                     }
                 }
             }
@@ -188,5 +212,50 @@ final class ItemScanner
         }
 
         return Verdict.CLEAN;
+    }
+
+    private static Verdict inspectNamedComponent(Component name, int depth)
+    {
+        if (name == null)
+        {
+            return Verdict.CLEAN;
+        }
+        if (ComponentScanner.isCursed(name, MAX_COMPONENT_NODES))
+        {
+            return new Verdict(Reason.CURSED_COMPONENT, -1L, depth);
+        }
+        int len = ComponentScanner.safePlainTextLength(name, MAX_COMPONENT_NODES);
+        if (len > MAX_NAME_LENGTH)
+        {
+            return new Verdict(Reason.OVERSIZED_NAME, len, depth);
+        }
+        return Verdict.CLEAN;
+    }
+
+    private static Verdict inspectLoreLine(Component line, int depth)
+    {
+        if (line == null)
+        {
+            return Verdict.CLEAN;
+        }
+        if (ComponentScanner.isCursed(line, MAX_COMPONENT_NODES))
+        {
+            return new Verdict(Reason.CURSED_COMPONENT, -1L, depth);
+        }
+        int len = ComponentScanner.safePlainTextLength(line, MAX_COMPONENT_NODES);
+        if (len > MAX_LORE_LINE_LENGTH)
+        {
+            return new Verdict(Reason.OVERSIZED_LORE, len, depth);
+        }
+        return Verdict.CLEAN;
+    }
+
+    private static boolean isCursedWritablePage(String page)
+    {
+        if (page == null || page.isEmpty())
+        {
+            return false;
+        }
+        return page.indexOf("click_event") >= 0;
     }
 }

@@ -186,8 +186,12 @@ public class TextDisplayGuard extends FreedomService
         }
         if (text != null)
         {
+            if (ComponentScanner.isCursed(text, maxComponentNodes()))
+            {
+                return true;
+            }
             int len = ComponentScanner.safePlainTextLength(text, maxComponentNodes());
-            if (len < 0 || len > MAX_TEXT_LENGTH)
+            if (len > MAX_TEXT_LENGTH)
             {
                 return true;
             }
