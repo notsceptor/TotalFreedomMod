@@ -115,6 +115,10 @@ public enum ConfigEntry
     ANTISPAM_LIMIT(Integer.class, "antispam.limit"),
     ANTISPAM_TIME_WINDOW(Integer.class, "antispam.time_window"),
     //
+    MOVE_GUARD_ENABLED(Boolean.class, "move_guard.enabled"),
+    MOVE_GUARD_SPEED_MAX_HORIZONTAL_DELTA(Integer.class, "move_guard.speed.max_horizontal_delta"),
+    MOVE_GUARD_SPEED_MAX_TELEPORTS_PER_SECOND(Integer.class, "move_guard.speed.max_teleports_per_second"),
+    //
     CRASH_ITEMS_PREVENT(Boolean.class, "crash_items.prevent"),
     CRASH_ITEMS_PANIC_MODE(Boolean.class, "crash_items.panic_mode"),
     CRASH_ITEMS_PACKET_GUARD(Boolean.class, "crash_items.packet_guard"),

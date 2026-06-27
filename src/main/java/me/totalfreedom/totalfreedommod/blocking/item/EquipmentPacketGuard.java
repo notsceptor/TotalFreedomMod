@@ -8,6 +8,8 @@ import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerRespawnEvent;
+import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.plugin.Plugin;
 
 /**
@@ -22,6 +24,7 @@ public class EquipmentPacketGuard extends FreedomService
 
     private Object registeredListener;
     private PacketSpamLimiter spamLimiter;
+    private MovementGuard movementGuard;
     private volatile boolean stopped;
 
     public EquipmentPacketGuard(TotalFreedomMod plugin)
@@ -89,14 +92,20 @@ public class EquipmentPacketGuard extends FreedomService
             spamLimiter = new PacketSpamLimiter(snapshot.maxInteractions, snapshot.maxCommands, snapshot.maxMovement);
         }
 
+        if (snapshot.movementGuardEnabled)
+        {
+            movementGuard = new MovementGuard(snapshot.maxHorizontalDelta, snapshot.maxOversizedMovesPerSecond);
+        }
+
         registeredListener = PacketEvents.getAPI().getEventManager()
-                .registerListener(new ItemPacketListener(plugin, snapshot.itemGuard, spamLimiter,
+                .registerListener(new ItemPacketListener(plugin, snapshot.itemGuard, spamLimiter, movementGuard,
                         snapshot.signGuard, snapshot.signChunkGuard, snapshot.blockAllSignPackets,
                         snapshot.gameRuleGuard));
 
         FLog.info("[EquipmentPacketGuard] PacketEvents hooks active"
                 + (snapshot.itemGuard ? " [itemGuard]" : "")
                 + (snapshot.rateLimit ? " [rateLimit]" : "")
+                + (snapshot.movementGuardEnabled ? " [movementGuard]" : "")
                 + (snapshot.signGuard ? " [signGuard]" : "")
                 + (snapshot.signChunkGuard ? " [signChunkGuard]" : "")
                 + (snapshot.blockAllSignPackets ? " [blockAllSignPackets]" : "")
@@ -107,40 +116,75 @@ public class EquipmentPacketGuard extends FreedomService
     private record Snapshot(
             boolean itemGuard,
             boolean rateLimit,
+            boolean movementGuardEnabled,
             boolean signGuard,
             boolean signChunkGuard,
             boolean blockAllSignPackets,
             boolean gameRuleGuard,
             int maxInteractions,
             int maxCommands,
-            int maxMovement)
+            int maxMovement,
+            int maxHorizontalDelta,
+            int maxOversizedMovesPerSecond)
     {
         private static Snapshot read()
         {
             return new Snapshot(
                     Boolean.TRUE.equals(ConfigEntry.CRASH_ITEMS_PACKET_GUARD.getBoolean()),
                     Boolean.TRUE.equals(ConfigEntry.CRASH_ITEMS_PACKET_RATE_LIMIT.getBoolean()),
+                    Boolean.TRUE.equals(ConfigEntry.MOVE_GUARD_ENABLED.getBoolean()),
                     Boolean.TRUE.equals(ConfigEntry.CRASH_SIGNS_PACKET_GUARD.getBoolean()),
                     Boolean.TRUE.equals(ConfigEntry.CRASH_SIGNS_CHUNK_GUARD.getBoolean()),
                     Boolean.FALSE.equals(ConfigEntry.ALLOW_SIGN_PLACE.getBoolean()),
                     Boolean.TRUE.equals(ConfigEntry.CRASH_GAMERULES_PACKET_GUARD.getBoolean()),
                     ConfigEntry.CRASH_ITEMS_MAX_INTERACTIONS_PER_SECOND.getInteger(),
                     ConfigEntry.CRASH_ITEMS_MAX_COMMANDS_PER_SECOND.getInteger(),
-                    ConfigEntry.CRASH_ITEMS_MAX_MOVEMENT_PER_SECOND.getInteger());
+                    ConfigEntry.CRASH_ITEMS_MAX_MOVEMENT_PER_SECOND.getInteger(),
+                    intOr(ConfigEntry.MOVE_GUARD_SPEED_MAX_HORIZONTAL_DELTA.getInteger(), 128),
+                    intOr(ConfigEntry.MOVE_GUARD_SPEED_MAX_TELEPORTS_PER_SECOND.getInteger(), 5));
+        }
+
+        private static int intOr(Integer value, int fallback)
+        {
+            return value == null ? fallback : value;
         }
 
         private boolean anyHookEnabled()
         {
-            return itemGuard || rateLimit || signGuard || signChunkGuard || blockAllSignPackets || gameRuleGuard;
+            return itemGuard || rateLimit || movementGuardEnabled || signGuard || signChunkGuard
+                    || blockAllSignPackets || gameRuleGuard;
         }
     }
 
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event)
     {
+        final java.util.UUID id = event.getPlayer().getUniqueId();
         if (spamLimiter != null)
         {
-            spamLimiter.forget(event.getPlayer().getUniqueId());
+            spamLimiter.forget(id);
+        }
+        if (movementGuard != null)
+        {
+            movementGuard.forget(id);
+        }
+    }
+
+    @EventHandler
+    public void onPlayerTeleport(PlayerTeleportEvent event)
+    {
+        if (movementGuard != null)
+        {
+            movementGuard.forget(event.getPlayer().getUniqueId());
+        }
+    }
+
+    @EventHandler
+    public void onPlayerRespawn(PlayerRespawnEvent event)
+    {
+        if (movementGuard != null)
+        {
+            movementGuard.forget(event.getPlayer().getUniqueId());
         }
     }
 
@@ -153,6 +197,12 @@ public class EquipmentPacketGuard extends FreedomService
         {
             spamLimiter.clear();
             spamLimiter = null;
+        }
+
+        if (movementGuard != null)
+        {
+            movementGuard.clear();
+            movementGuard = null;
         }
 
         if (registeredListener == null)

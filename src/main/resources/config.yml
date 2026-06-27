@@ -220,6 +220,18 @@ antispam:
   # Milliseconds (ms) after which a player's spam count resets.
   time_window: 1000
 
+# MovementGuard
+# Used to monitor inbound movement packets (requires packetevents).
+move_guard:
+  enabled: true
+  # Cross-chunk player speed check.
+  speed:
+    # Maximum horizontal distance (in blocks) that a single movement packet may advance before
+    # being considered oversized.
+    max_horizontal_delta: 128
+    # Number of teleports (oversized moves) before the player is auto-ejected from the server.
+    max_teleports_per_second: 5
+
 # ItemValidator
 # For detecting items with oversized/nested NBT data.
 crash_items:
