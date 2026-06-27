@@ -67,6 +67,7 @@ allow:
   sign_place: true
   falling_signs: false
   falling_blocks: false
+  redstone: true
 
 # Blocked commands:
 #
