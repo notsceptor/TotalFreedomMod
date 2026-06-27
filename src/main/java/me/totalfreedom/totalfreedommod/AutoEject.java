@@ -82,7 +82,14 @@ public class AutoEject extends FreedomService
 
         if (timeoutMinutes < 0)
         {
-            plugin.bm.addBan(Ban.forPlayerFuzzy(player, Bukkit.getConsoleSender(), null, kickMessage));
+            if (Boolean.TRUE.equals(ConfigEntry.RANGE_BAN_IPS.getBoolean()))
+            {
+                plugin.bm.addBan(Ban.forPlayerFuzzy(player, Bukkit.getConsoleSender(), null, kickMessage));
+            }
+            else
+            {
+                plugin.bm.addBan(Ban.forPlayer(player, Bukkit.getConsoleSender(), null, kickMessage));
+            }
             FUtil.bcastMsg(player.getName() + " has been banned.", NamedTextColor.RED);
             player.kick(Component.text(kickMessage));
             return;

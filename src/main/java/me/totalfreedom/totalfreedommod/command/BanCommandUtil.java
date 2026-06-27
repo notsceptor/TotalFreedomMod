@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Set;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.banning.Ban;
+import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import org.bukkit.entity.Player;
@@ -48,13 +49,29 @@ final class BanCommandUtil
         return new ArrayList<>(ips);
     }
 
+    static void addBanIp(Ban ban, String ip)
+    {
+        ban.addIp(ip);
+        if (Boolean.TRUE.equals(ConfigEntry.RANGE_BAN_IPS.getBoolean()))
+        {
+            ban.addIp(FUtil.getFuzzyIp(ip));
+        }
+    }
+
+    static void addRangeIpIfEnabled(Ban ban, String ip)
+    {
+        if (Boolean.TRUE.equals(ConfigEntry.RANGE_BAN_IPS.getBoolean()))
+        {
+            ban.addIp(FUtil.getFuzzyIp(ip));
+        }
+    }
+
     static Ban createFullBan(String name, List<String> ips, org.bukkit.command.CommandSender sender, java.util.Date expiry, String reason)
     {
         Ban ban = Ban.forPlayerName(name, sender, expiry, reason);
         for (String ip : ips)
         {
-            ban.addIp(ip);
-            ban.addIp(FUtil.getFuzzyIp(ip));
+            addBanIp(ban, ip);
         }
         return ban;
     }

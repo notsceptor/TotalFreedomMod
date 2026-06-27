@@ -35,7 +35,7 @@ public class Command_banip extends FreedomCommand
             if (plugin.bm.getByIp(ip) == null)
             {
                 Ban ban = Ban.forPlayerIp(ip, sender, null, reason);
-                ban.addIp(FUtil.getFuzzyIp(ip));
+                BanCommandUtil.addRangeIpIfEnabled(ban, ip);
                 if (plugin.bm.addBan(ban))
                 {
                     added++;

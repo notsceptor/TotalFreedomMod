@@ -565,6 +565,9 @@ noadmin_ips:
 # The permission node `tfm.manage.showips` overrides this.
 mask_ips: false
 
+# When true, ban commands will also cover a /16 range (x.x.*.*) for each IP.
+range_ban_ips: false
+
 # Pet Protect - Prevent tamed pets from being killed.
 petprotect:
   enabled: true

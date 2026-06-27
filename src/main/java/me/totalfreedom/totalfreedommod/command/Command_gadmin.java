@@ -2,8 +2,10 @@ package me.totalfreedom.totalfreedommod.command;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
+import java.util.List;
 import java.util.UUID;
 import me.totalfreedom.totalfreedommod.banning.Ban;
+import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.freeze.FreezeData;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
@@ -138,13 +140,12 @@ public class Command_gadmin extends FreedomCommand
             case IPBAN:
             {
                 String ip = target.getAddress().getAddress().getHostAddress();
-                String[] ip_parts = ip.split("\\.");
-                if (ip_parts.length == 4)
-                {
-                    ip = String.format("%s.%s.*.*", ip_parts[0], ip_parts[1]);
-                }
-                FUtil.adminAction(sender.getName(), String.format("Banning IP: %s.", ip), true);
-                plugin.bm.addBan(Ban.forPlayerIp(ip, sender, null, null));
+                String logIp = Boolean.TRUE.equals(ConfigEntry.RANGE_BAN_IPS.getBoolean())
+                        ? FUtil.getFuzzyIp(ip) : ip;
+                FUtil.adminAction(sender.getName(), String.format("Banning IP: %s.", logIp), true);
+                Ban ban = Ban.forPlayerIp(ip, sender, null, null);
+                BanCommandUtil.addRangeIpIfEnabled(ban, ip);
+                plugin.bm.addBan(ban);
 
                 target.kick(Component.text("IP address banned by Administrator."));
 
@@ -153,14 +154,12 @@ public class Command_gadmin extends FreedomCommand
             case BAN:
             {
                 String ip = target.getAddress().getAddress().getHostAddress();
-                String[] ip_parts = ip.split("\\.");
-                if (ip_parts.length == 4)
-                {
-                    ip = String.format("%s.%s.*.*", ip_parts[0], ip_parts[1]);
-                }
-                FUtil.adminAction(sender.getName(), String.format("Banning Name: %s, IP: %s.", target.getName(), ip), true);
+                String logIp = Boolean.TRUE.equals(ConfigEntry.RANGE_BAN_IPS.getBoolean())
+                        ? FUtil.getFuzzyIp(ip) : ip;
+                FUtil.adminAction(sender.getName(), String.format("Banning Name: %s, IP: %s.", target.getName(), logIp), true);
 
-                plugin.bm.addBan(Ban.forPlayer(target, sender));
+                Ban ban = BanCommandUtil.createFullBan(target.getName(), List.of(ip), sender, null, null);
+                plugin.bm.addBan(ban);
 
                 target.kick(Component.text("IP and username banned by Administrator."));
 
