@@ -11,7 +11,9 @@ import me.totalfreedom.totalfreedommod.vault.PermissionService;
 import static me.totalfreedom.totalfreedommod.util.FUtil.playerMsg;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.ansi.ANSIComponentSerializer;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
@@ -193,7 +195,7 @@ public class ChatManager extends FreedomService
 		} else {
 			message = stripColorCodesSelectively(message, allowColors, allowSpecial);
 			if (allowColors || allowSpecial) {
-				message = AdventureUtil.translateAlternateColorCodes(message);
+				message = AdventureUtil.translateAlternateColorCodesToMiniMessage(message);
 			}
 		}
 
@@ -238,17 +240,11 @@ public class ChatManager extends FreedomService
 			event.setCancelled(true);
 			return;
 		}
-
 		// Finally, set message
 		final Component messageComponent = (allowColors || allowSpecial)
-			? LegacyComponentSerializer.legacySection().deserialize(message)
+			? MiniMessage.miniMessage().deserialize(message)
 			: Component.text(message);
 		event.message(messageComponent);
-
-		// If EssentialsChat is installed, let it handle formatting
-		if (essentialsChatInstalled) {
-			return;
-		}
 
 		// Only set format if EssentialsChat is not installed
 		// Get prefix (includes tag if present, based on enforce_prefix setting)
@@ -271,14 +267,17 @@ public class ChatManager extends FreedomService
 		final String resolvedAdminTemplate = resolvedTemplate.replace("{STRIKES}", data != null ? "*".repeat(data.getStrikes()) : "");
 
 		event.renderer((source, sourceDisplayName, msg, viewer) -> {
+			final Component displayName = data != null && data.getNickname() != null ?
+				data.getDisplayedNickname().hoverEvent(HoverEvent.showText(sourceDisplayName)) :
+				sourceDisplayName;
 			if (viewer instanceof final CommandSender sender && plugin.al.isAdmin(sender)) {
-				return buildRenderedMessage(sourceDisplayName,
+				return buildRenderedMessage(displayName,
 					msg,
 					resolvedAdminTemplate,
 					resolvedAdminTemplate.indexOf("{DISPLAYNAME}"),
 					resolvedAdminTemplate.indexOf("{MESSAGE}"));
 			}
-			return buildRenderedMessage(sourceDisplayName,
+			return buildRenderedMessage(displayName,
 				msg,
 				resolvedNonAdminTemplate,
 				resolvedNonAdminTemplate.indexOf("{DISPLAYNAME}"),

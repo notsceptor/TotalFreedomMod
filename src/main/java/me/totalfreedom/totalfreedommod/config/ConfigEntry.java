@@ -236,7 +236,6 @@ public enum ConfigEntry
     TABLIST_COLUMNS(Integer.class, "tablist.columns"),
     TABLIST_PLAYER_COMPONENT(String.class, "tablist.player_component"),
     TABLIST_AFK_TAG(String.class, "tablist.afk_tag"),
-    TABLIST_DISPLAY_NICKNAME_PREFIX(String.class, "tablist.display_nickname_prefix"),
     TABLIST_UPDATE_INTERVAL(Integer.class, "tablist.update_interval");
 
     //

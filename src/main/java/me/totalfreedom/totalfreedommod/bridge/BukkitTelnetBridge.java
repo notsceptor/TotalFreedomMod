@@ -230,8 +230,6 @@ public class BukkitTelnetBridge extends FreedomService
                 playerTags.put("tfm.admin.isSeniorAdmin", isSeniorAdmin);
 
                 playerTags.put("tfm.playerdata.getTag", plugin.pl.getPlayer(player).getTag());
-
-                playerTags.put("tfm.essentialsBridge.getNickname", plugin.esb.getNickname(player.getName()));
             }
         }
         catch (Exception ex)

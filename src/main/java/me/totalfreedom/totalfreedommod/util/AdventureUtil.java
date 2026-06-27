@@ -3,9 +3,9 @@ package me.totalfreedom.totalfreedommod.util;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.TextReplacementConfig;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -232,6 +232,43 @@ public class AdventureUtil
             String replaced = text.replace(altColorChar, '&');
             return LEGACY_AMPERSAND.deserialize(replaced);
         }
+    }
+
+    private static String colorCodeName(char c)
+    {
+        switch (c)
+        {
+            case '0': return "black";
+            case '1': return "dark_blue";
+            case '2': return "dark_green";
+            case '3': return "dark_aqua";
+            case '4': return "dark_red";
+            case '5': return "dark_purple";
+            case '6': return "gold";
+            case '7': return "gray";
+            case '8': return "dark_gray";
+            case '9': return "blue";
+            case 'a': return "green";
+            case 'b': return "aqua";
+            case 'c': return "red";
+            case 'd': return "light_purple";
+            case 'e': return "yellow";
+            case 'f': return "white";
+            case 'k': return "obfuscated";
+            case 'l': return "bold";
+            case 'm': return "strikethrough";
+            case 'n': return "underlined";
+            case 'o': return "italic";
+            case 'r': return "reset";
+        }
+        throw new IllegalArgumentException("Character supplied is not within range of valid character codes: '" + c + "'");
+    }
+
+    public static String translateAlternateColorCodesToMiniMessage(String text)
+    {
+        final Pattern pat = Pattern.compile("&([0-9a-fl-okr])");
+        final Matcher m = pat.matcher(text);
+        return m.replaceAll(result -> String.format("<%s>", colorCodeName(result.group(1).charAt(0))));
     }
 
     /**

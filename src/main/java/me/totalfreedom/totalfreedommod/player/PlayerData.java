@@ -5,9 +5,13 @@ import java.util.Collections;
 import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
+import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.ConfigInterfaces.ConfigLoadable;
 import me.totalfreedom.totalfreedommod.util.ConfigInterfaces.ConfigSavable;
 import me.totalfreedom.totalfreedommod.util.ConfigInterfaces.Validatable;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+
 import org.apache.commons.lang3.Validate;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
@@ -44,6 +48,9 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
     @Setter
     private String savedTag;
     @Getter
+    @Setter
+    private Component nickname;
+    @Getter
     private int strikes;
     private final List<String> ips = Lists.newArrayList();
 
@@ -76,6 +83,8 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
         {
             this.savedTag = null;
         }
+        final String rawNickname = cs.getString("nickname", null);
+        this.nickname = rawNickname != null && !rawNickname.isEmpty() ? AdventureUtil.legacyToComponent(rawNickname) : null;
     }
 
     @Override
@@ -93,6 +102,7 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
         cs.set("commands_blocked", commandsBlocked);
         cs.set("strikes", strikes);
         cs.set("saved_tag", savedTag);
+        cs.set("nickname", nickname != null ? AdventureUtil.componentToLegacy(nickname) : null);
     }
 
     public List<String> getIps()
@@ -125,5 +135,16 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
         if (strikes < 0 || strikes > MAX_STRIKES)
             return;
         this.strikes = strikes;
+    }
+
+    public Component getDisplayedNickname()
+    {
+        if (this.nickname == null)
+            return null;
+        return Component.text("~")
+            .color(NamedTextColor.GRAY)
+            .append(Component.text("")
+                .color(NamedTextColor.WHITE))
+            .append(this.nickname);
     }
 }

@@ -789,9 +789,6 @@ tablist:
   #   ${afk_tag}      - Replaced with the afk_tag value below when the player is AFK; empty otherwise
   player_component: "${afk_tag}${prefix}${display_name}"
 
-  # Text prepended to ${display_name} when the player has a nickname set in Essentials.
-  display_nickname_prefix: "&7~&r"
-
   # Text value for ${afk_tag} when the player is AFK (requires EssentialsX).
   afk_tag: " &7[AFK]"
 

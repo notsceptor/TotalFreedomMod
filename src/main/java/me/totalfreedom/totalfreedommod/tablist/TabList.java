@@ -3,6 +3,7 @@ package me.totalfreedom.totalfreedommod.tablist;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
+import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
@@ -115,8 +116,6 @@ public class TabList extends FreedomService
         }
         ctx.playerComponentTemplate = ConfigEntry.TABLIST_PLAYER_COMPONENT.getString();
         ctx.afkTag = ConfigEntry.TABLIST_AFK_TAG.getString();
-        String nickIndicator = ConfigEntry.TABLIST_DISPLAY_NICKNAME_PREFIX.getString();
-        ctx.nicknameIndicator = nickIndicator != null ? nickIndicator : "";
         ctx.essentialsEnabled = plugin.esb.isEssentialsEnabled();
         return ctx;
     }
@@ -159,18 +158,14 @@ public class TabList extends FreedomService
     }
 
     // Returns the player's display name for the tab list:
-    // Essentials may return § codes in the nickname; these are normalised to & for legacyToComponent.
     private String resolveDisplayName(Player player, CycleContext ctx)
     {
-        if (ctx.essentialsEnabled)
-        {
-            String nickname = plugin.esb.getNickname(player.getName());
-            if (nickname != null && !nickname.isEmpty()
-                    && !nickname.equalsIgnoreCase(player.getName()))
-            {
-                return ctx.nicknameIndicator + nickname.replace('§', '&');
-            }
-        }
+        final PlayerData data = plugin.pl.getData(player);
+        final Component nickname = data.getDisplayedNickname();
+        final String legacyNickname = AdventureUtil.componentToLegacy(nickname);
+        if (nickname != null && !legacyNickname.isEmpty()
+                && !legacyNickname.equalsIgnoreCase(player.getName()))
+            return legacyNickname.replace('§', '&');
         return "&r" + player.getName();
     }
 
@@ -254,7 +249,6 @@ public class TabList extends FreedomService
         Component footer;
         String playerComponentTemplate;
         String afkTag;
-        String nicknameIndicator;
         boolean essentialsEnabled;
     }
 }
