@@ -269,6 +269,9 @@ crash_items:
   # Whether to suppress the repretitive warnings from Paper that appear in console
   # when an item is blocked ("Can't create item stack with properties").
   hide_console_spam: true
+  # Max number of custom potion effects an item may carry before it is treated as
+  # a crash item. 0 disables.
+  max_potion_effects: 24
 
 # SignValidator
 # For detecting signs that hang the server/client.
