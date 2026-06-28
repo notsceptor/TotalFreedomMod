@@ -32,10 +32,12 @@ import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import org.bukkit.GameMode;
+import org.bukkit.command.BlockCommandSender;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.minecart.CommandMinecart;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
@@ -549,6 +551,11 @@ public class RankManager extends FreedomService
     {
         if (!(sender instanceof Player))
         {
+            if (sender instanceof BlockCommandSender || sender instanceof CommandMinecart)
+            {
+                return false;
+            }
+
             if (!RemoteDispatchContext.isActive())
             {
                 String boundRankId = plugin.csr.getRankIdForSender(sender.getName());
@@ -1188,6 +1195,11 @@ public class RankManager extends FreedomService
         if (sender instanceof Player)
         {
             return getRank((Player) sender);
+        }
+
+        if (sender instanceof BlockCommandSender || sender instanceof CommandMinecart)
+        {
+            return Rank.NON_OP;
         }
 
         RemoteDispatchSession dispatch = RemoteDispatchContext.getActiveSession();
