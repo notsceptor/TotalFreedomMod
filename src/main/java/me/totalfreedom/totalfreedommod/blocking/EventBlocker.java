@@ -4,6 +4,7 @@ import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import org.bukkit.GameMode;
+import org.bukkit.Material;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Boat;
 import org.bukkit.entity.Entity;
@@ -24,6 +25,7 @@ import org.bukkit.event.block.BlockIgniteEvent;
 import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.block.BlockPistonRetractEvent;
 import org.bukkit.event.block.BlockRedstoneEvent;
+import org.bukkit.event.block.BlockSpreadEvent;
 import org.bukkit.event.block.LeavesDecayEvent;
 import org.bukkit.event.entity.EntityCombustEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
@@ -67,7 +69,21 @@ public class EventBlocker extends FreedomService
     @EventHandler(priority = EventPriority.HIGH)
     public void onBlockIgnite(BlockIgniteEvent event)
     {
-        if (!ConfigEntry.ALLOW_FIRE_PLACE.getBoolean())
+        final boolean placement = event.getCause() == BlockIgniteEvent.IgniteCause.FLINT_AND_STEEL;
+        final boolean allowed = placement
+            ? ConfigEntry.ALLOW_FIRE_PLACE.getBoolean()
+            : ConfigEntry.ALLOW_FIRE_SPREAD.getBoolean();
+        if (!allowed)
+        {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onBlockSpread(BlockSpreadEvent event)
+    {
+        if (event.getSource().getType() == Material.FIRE
+            && !ConfigEntry.ALLOW_FIRE_SPREAD.getBoolean())
         {
             event.setCancelled(true);
         }

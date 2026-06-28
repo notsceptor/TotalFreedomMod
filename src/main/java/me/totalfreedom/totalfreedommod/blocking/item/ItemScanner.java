@@ -5,6 +5,8 @@ import io.papermc.paper.datacomponent.item.BundleContents;
 import io.papermc.paper.datacomponent.item.ChargedProjectiles;
 import io.papermc.paper.datacomponent.item.ItemContainerContents;
 import io.papermc.paper.datacomponent.item.ItemLore;
+import io.papermc.paper.datacomponent.item.PotionContents;
+import io.papermc.paper.datacomponent.item.SuspiciousStewEffects;
 import io.papermc.paper.datacomponent.item.WritableBookContent;
 import io.papermc.paper.datacomponent.item.WrittenBookContent;
 import io.papermc.paper.text.Filtered;
@@ -36,6 +38,7 @@ final class ItemScanner
         OVERSIZED_LORE,
         OVERSIZED_TOTAL,
         OVERSIZED_NBT,
+        OVERSIZED_POTION,
         UNINSPECTABLE_NBT,
         MALFORMED_ENTITY_DATA,
         CURSED_COMPONENT,
@@ -52,12 +55,12 @@ final class ItemScanner
         }
     }
 
-    static Verdict scan(ItemStack item, boolean panicMode)
+    static Verdict scan(ItemStack item, boolean panicMode, int maxPotionEffects)
     {
-        return scan(item, panicMode, 0);
+        return scan(item, panicMode, maxPotionEffects, 0);
     }
 
-    private static Verdict scan(ItemStack item, boolean panicMode, int depth)
+    private static Verdict scan(ItemStack item, boolean panicMode, int maxPotionEffects, int depth)
     {
         if (item == null || item.isEmpty())
         {
@@ -79,6 +82,13 @@ final class ItemScanner
             {
                 return new Verdict(Reason.PANIC_BLANKET_REJECT, 0L, depth);
             }
+        }
+
+        // POTION_CONTENTS / SUSPICIOUS_STEW_EFFECTS — status-effect spam bombs.
+        Verdict effects = inspectEffectBearer(item, maxPotionEffects, depth);
+        if (effects.isCursed())
+        {
+            return effects;
         }
 
         // CUSTOM_NAME — gate the serializer behind a safe-graph check
@@ -154,7 +164,7 @@ final class ItemScanner
             {
                 for (ItemStack inner : container.contents())
                 {
-                    Verdict v = scan(inner, panicMode, depth + 1);
+                    Verdict v = scan(inner, panicMode, maxPotionEffects, depth + 1);
                     if (v.isCursed())
                     {
                         return v;
@@ -171,7 +181,7 @@ final class ItemScanner
             {
                 for (ItemStack inner : bundle.contents())
                 {
-                    Verdict v = scan(inner, panicMode, depth + 1);
+                    Verdict v = scan(inner, panicMode, maxPotionEffects, depth + 1);
                     if (v.isCursed())
                     {
                         return v;
@@ -187,7 +197,7 @@ final class ItemScanner
             {
                 for (ItemStack projectile : charged.projectiles())
                 {
-                    Verdict v = scan(projectile, panicMode, depth + 1);
+                    Verdict v = scan(projectile, panicMode, maxPotionEffects, depth + 1);
                     if (v.isCursed())
                     {
                         return v;
@@ -208,6 +218,42 @@ final class ItemScanner
                 return new Verdict(Reason.UNINSPECTABLE_NBT, -1L, depth);
             }
             default -> {
+            }
+        }
+
+        return Verdict.CLEAN;
+    }
+
+    private static Verdict inspectEffectBearer(ItemStack item, int maxPotionEffects, int depth)
+    {
+        if (maxPotionEffects <= 0)
+        {
+            return Verdict.CLEAN;
+        }
+
+        if (item.hasData(DataComponentTypes.POTION_CONTENTS))
+        {
+            PotionContents contents = item.getData(DataComponentTypes.POTION_CONTENTS);
+            if (contents != null)
+            {
+                int count = contents.customEffects().size();
+                if (count > maxPotionEffects)
+                {
+                    return new Verdict(Reason.OVERSIZED_POTION, count, depth);
+                }
+            }
+        }
+
+        if (item.hasData(DataComponentTypes.SUSPICIOUS_STEW_EFFECTS))
+        {
+            SuspiciousStewEffects stew = item.getData(DataComponentTypes.SUSPICIOUS_STEW_EFFECTS);
+            if (stew != null)
+            {
+                int count = stew.effects().size();
+                if (count > maxPotionEffects)
+                {
+                    return new Verdict(Reason.OVERSIZED_POTION, count, depth);
+                }
             }
         }
 
