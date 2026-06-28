@@ -176,6 +176,6 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
         if (this.nickname == null)
             return false;
         final String plain = AdventureUtil.componentToPlainText(this.nickname).trim();
-        return !plain.isEmpty() && !plain.equalsIgnoreCase(username);
+        return !plain.isEmpty() && !AdventureUtil.componentToLegacy(this.nickname).equalsIgnoreCase(username);
     }
 }

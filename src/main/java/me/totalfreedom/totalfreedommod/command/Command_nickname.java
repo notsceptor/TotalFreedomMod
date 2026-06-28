@@ -92,7 +92,7 @@ public class Command_nickname extends FreedomCommand
         final PlayerData data = plugin.pl.getData(player);
 
         data.setNickname(colorizedNickname);
-        msg((player == playerSender ? Component.text("Nickname") : Component.text(player.getName()).append(Component.text("'s")))
+        msg((player == playerSender ? Component.text("Nickname") : Component.text(player.getName()).append(Component.text("'s nickname")))
             .append(Component.text(" set to '"))
             .color(NamedTextColor.GRAY)
             .append(data.getDisplayedNickname())
