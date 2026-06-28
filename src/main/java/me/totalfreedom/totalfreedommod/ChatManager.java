@@ -13,7 +13,6 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.ansi.ANSIComponentSerializer;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
@@ -189,15 +188,6 @@ public class ChatManager extends FreedomService
 		// Handle color and formatting codes based on config
 		boolean allowColors = ConfigEntry.VAULT_CHAT_ALLOW_COLOR_FORMATTING.getBoolean();
 		boolean allowSpecial = ConfigEntry.VAULT_CHAT_ALLOW_SPECIAL_FORMATTING.getBoolean();
-		
-		if (!allowColors && !allowSpecial) {
-			message = AdventureUtil.stripColor(message);
-		} else {
-			message = stripColorCodesSelectively(message, allowColors, allowSpecial);
-			if (allowColors || allowSpecial) {
-				message = AdventureUtil.translateAlternateColorCodesToMiniMessage(message);
-			}
-		}
 
 		// Truncate messages that are too long
 		Integer maxLengthConfig = ConfigEntry.VAULT_CHAT_MAX_MESSAGE_LENGTH.getInteger();
@@ -241,9 +231,7 @@ public class ChatManager extends FreedomService
 			return;
 		}
 		// Finally, set message
-		final Component messageComponent = (allowColors || allowSpecial)
-			? MiniMessage.miniMessage().deserialize(message)
-			: Component.text(message);
+		final Component messageComponent = AdventureUtil.formatChat(message, allowColors, allowSpecial);
 		event.message(messageComponent);
 
 		// Only set format if EssentialsChat is not installed
@@ -533,56 +521,6 @@ public class ChatManager extends FreedomService
 			return vaultChatProvider.getPlayerSuffix(player);
 		}
 		return "";
-	}
-
-	/**
-	 * Strips color/formatting codes selectively based on config.
-	 * @param text The text to process
-	 * @param allowColors Whether to allow color codes
-	 * @param allowSpecial Whether to allow formatting codes
-	 * @return Text with appropriate codes stripped
-	 */
-	private String stripColorCodesSelectively(String text, boolean allowColors, boolean allowSpecial) {
-		if (text == null || text.isEmpty()) {
-			return text;
-		}
-		
-		StringBuilder result = new StringBuilder();
-		char[] chars = text.toCharArray();
-		
-		for (int i = 0; i < chars.length; i++) {
-			char c = chars[i];
-			
-			if ((c == '&' || c == '§') && i + 1 < chars.length) {
-				char code = chars[i + 1];
-				boolean shouldKeep = false;
-				
-				if (allowColors && ((code >= '0' && code <= '9') || 
-								   (code >= 'a' && code <= 'f') || 
-								   (code >= 'A' && code <= 'F'))) {
-					shouldKeep = true;
-				}
-				else if (allowSpecial && (code == 'l' || code == 'L' ||  // bold
-										 code == 'o' || code == 'O' ||  // italic
-										 code == 'n' || code == 'N' ||  // underline
-										 code == 'm' || code == 'M' ||  // strikethrough
-										 code == 'k' || code == 'K' ||  // obfuscated
-										 code == 'r' || code == 'R')) { // reset
-					shouldKeep = true;
-				}
-				
-				if (shouldKeep) {
-					result.append(c).append(code);
-					i++;
-				} else {
-					i++;
-				}
-			} else {
-				result.append(c);
-			}
-		}
-		
-		return result.toString();
 	}
 
 }

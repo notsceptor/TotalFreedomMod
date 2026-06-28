@@ -752,9 +752,11 @@ chat:
       caps_ratio: 65
     # Sends a message to a player if their message is the same as their previous one
     prevent_spam: true
-    # Allow color codes (0-9, a-f) in chat messages using the & character
+    # Allow colors in chat: legacy & codes (0-9, a-f), hex (&#rrggbb), and the
+    # MiniMessage equivalents including <#rrggbb>, <gradient:..> and <rainbow>.
     allow_color_formatting: false
-    # Allow formatting codes (l,m,k,o,n,r) in the same manner
+    # Allow decorations in chat: legacy & codes (l,m,k,o,n,r) and the MiniMessage
+    # equivalents (<bold>, <italic>, <underlined>, <strikethrough>, <obfuscated>).
     allow_special_formatting: false
     # Maximum length in characters that a message can be (the current game limit is 256)
     max_message_length: 256

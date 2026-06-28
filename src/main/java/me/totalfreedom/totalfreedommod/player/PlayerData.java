@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
+import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.ConfigInterfaces.ConfigLoadable;
 import me.totalfreedom.totalfreedommod.util.ConfigInterfaces.ConfigSavable;
@@ -20,6 +21,8 @@ import org.bukkit.entity.Player;
 public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
 {
     public static final int MAX_STRIKES = 3;
+    // max number of IP addresses retained per player
+    public static final int MAX_IPS = 2;
 
     @Getter
     @Setter
@@ -70,6 +73,7 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
         this.username = cs.getString("username", username);
         this.ips.clear();
         this.ips.addAll(cs.getStringList("ips"));
+        trimIps();
         this.firstJoinUnix = cs.getLong("first_join", 0);
         this.lastJoinUnix = cs.getLong("last_join", 0);
         this.potionSpy = cs.getBoolean("potion_spy", false);
@@ -113,7 +117,18 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
     // IP utils
     public boolean addIp(String ip)
     {
-        return ips.contains(ip) ? false : ips.add(ip);
+        final boolean isNew = !ips.remove(ip);
+        ips.add(ip);
+        trimIps();
+        return isNew;
+    }
+
+    private void trimIps()
+    {
+        while (ips.size() > MAX_IPS)
+        {
+            ips.remove(0);
+        }
     }
 
     public boolean removeIp(String ip)
@@ -143,6 +158,9 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
         final Player player = Bukkit.getPlayerExact(username);
         if (player != null)
             player.displayName(hasCustomNickname() ? getDisplayedNickname() : null);
+        final TotalFreedomMod plugin = TotalFreedomMod.plugin();
+        if (plugin != null && plugin.pl != null)
+            plugin.pl.saveData(this);
     }
 
     public Component getDisplayedNickname()

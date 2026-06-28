@@ -65,7 +65,8 @@ public class Command_nickname extends FreedomCommand
         if (player == null)
             player = ctx.getPlayerSender();
 
-        Component colorizedNickname = FUtil.colorize(StringUtils.replaceEachRepeatedly(StringUtils.strip(nickname),
+        Component colorizedNickname = AdventureUtil.removeObfuscation(
+            FUtil.colorize(StringUtils.replaceEachRepeatedly(StringUtils.strip(nickname),
                 new String[]
                 {
                     "\u00A7", "&k"
@@ -73,7 +74,7 @@ public class Command_nickname extends FreedomCommand
                 new String[]
                 {
                     "", ""
-                }));
+                })));
         final String rawNickname = AdventureUtil.componentToPlainText(colorizedNickname).toLowerCase();
 
         if (rawNickname.length() > MAX_NICKNAME_LENGTH)

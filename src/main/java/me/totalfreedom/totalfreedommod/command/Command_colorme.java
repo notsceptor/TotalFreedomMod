@@ -52,7 +52,7 @@ public class Command_colorme extends FreedomCommand
             return true;
         }
 
-        // Build nickname with color - convert to legacy string for Essentials
+        // Build nickname with color
         final PlayerData data = plugin.pl.getData(playerSender);
         final String base = data.getNickname() != null
             ? AdventureUtil.componentToPlainText(data.getNickname()).trim()

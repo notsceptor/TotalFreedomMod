@@ -1,15 +1,19 @@
 package me.totalfreedom.totalfreedommod.util;
 
+import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
+import net.kyori.adventure.text.minimessage.tag.standard.StandardTags;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.ChatColor;
@@ -32,6 +36,21 @@ public class AdventureUtil
 
     private static final Pattern URL_PATTERN = Pattern.compile(
             "(?i)\\b(?:https?://|www\\.)[-a-z0-9+&@#/%?=~_|!:,.;]*[-a-z0-9+&@#/%=~_|]");
+
+    private static final TagResolver COLOR_TAGS = TagResolver.resolver(
+            StandardTags.color(),
+            StandardTags.gradient(),
+            StandardTags.rainbow(),
+            StandardTags.transition(),
+            StandardTags.pride());
+    private static final TagResolver DECORATION_TAGS = StandardTags.decorations();
+
+    private static final MiniMessage MM_FULL = MiniMessage.builder()
+            .tags(TagResolver.resolver(COLOR_TAGS, DECORATION_TAGS, StandardTags.reset())).build();
+    private static final MiniMessage MM_COLORS = MiniMessage.builder()
+            .tags(TagResolver.resolver(COLOR_TAGS, StandardTags.reset())).build();
+    private static final MiniMessage MM_DECORATIONS = MiniMessage.builder()
+            .tags(TagResolver.resolver(DECORATION_TAGS, StandardTags.reset())).build();
 
     private static final Map<ChatColor, NamedTextColor> CHAT_COLOR_TO_NAMED_TEXT_COLOR = new EnumMap<ChatColor, NamedTextColor>(ChatColor.class);
     private static final Map<NamedTextColor, ChatColor> NAMED_TEXT_COLOR_TO_CHAT_COLOR = new HashMap<NamedTextColor, ChatColor>();
@@ -264,11 +283,215 @@ public class AdventureUtil
         throw new IllegalArgumentException("Character supplied is not within range of valid character codes: '" + c + "'");
     }
 
-    public static String translateAlternateColorCodesToMiniMessage(String text)
+    /**
+     * Shared rich text formatter for display text (chat prefixes, tags, nicknames,
+     * ...). Accepts legacy &/§ codes — including {@code &#rrggbb} and {@code &x&r&r&g&g&b&b}
+     * (legacy hex) as well as MiniMessage.  Only non-interactive text is accepted.
+     * 
+     * @param input The raw text
+     * @return The formatted Component
+     */
+    public static Component format(String input)
     {
-        final Pattern pat = Pattern.compile("&([0-9a-fl-okr])");
-        final Matcher m = pat.matcher(text);
-        return m.replaceAll(result -> String.format("<%s>", colorCodeName(result.group(1).charAt(0))));
+        if (input == null)
+        {
+            return Component.empty();
+        }
+        return MM_FULL.deserialize(legacyToMiniMessage(input, true, true));
+    }
+
+    /**
+     * Like {@link #format(String)} but for untrusted chat, gated by config: colours
+     * (incl. hex/gradient/rainbow) and decorations are each enabled independently.
+     *
+     * @param input        The raw text
+     * @param allowColors  Whether colour/hex/gradient/rainbow tags are permitted
+     * @param allowSpecial Whether decoration tags are permitted
+     * @return The formatted Component
+     */
+    public static Component formatChat(String input, boolean allowColors, boolean allowSpecial)
+    {
+        if (input == null)
+        {
+            return Component.empty();
+        }
+        if (!allowColors && !allowSpecial)
+        {
+            return Component.text(stripColor(input));
+        }
+        final String mini = legacyToMiniMessage(input, allowColors, allowSpecial);
+        if (allowColors && allowSpecial)
+        {
+            return MM_FULL.deserialize(mini);
+        }
+        return (allowColors ? MM_COLORS : MM_DECORATIONS).deserialize(mini);
+    }
+
+    /**
+     * Converts legacy &/§ colour and format codes (including {@code &#rrggbb} and the
+     * {@code &x&r&r&g&g&b&b} hex form) into their MiniMessage equivalents, leaving any
+     * literal text and existing MiniMessage tags untouched.  Codes whose category is
+     * disabled are ignored.
+     *
+     * @param text         The text containing legacy codes
+     * @param allowColors  Whether colour/hex codes are converted (otherwise dropped)
+     * @param allowSpecial Whether decoration codes are converted (otherwise dropped)
+     * @return Text with legacy codes converted to MiniMessage tags
+     */
+    public static String legacyToMiniMessage(String text, boolean allowColors, boolean allowSpecial)
+    {
+        if (text == null)
+        {
+            return "";
+        }
+        final StringBuilder out = new StringBuilder(text.length());
+        final int len = text.length();
+        for (int i = 0; i < len; i++)
+        {
+            final char c = text.charAt(i);
+            if ((c == '&' || c == '§') && i + 1 < len)
+            {
+                final char next = text.charAt(i + 1);
+                // &x&r&r&g&g&b&b hex form
+                if (next == 'x' || next == 'X')
+                {
+                    final String hex = readSpigotHex(text, i);
+                    if (hex != null)
+                    {
+                        if (allowColors)
+                        {
+                            out.append("<#").append(hex).append('>');
+                        }
+                        i += 13;
+                        continue;
+                    }
+                }
+                // &#rrggbb hex form
+                if (next == '#' && i + 8 <= len && isHex(text, i + 2, 6))
+                {
+                    if (allowColors)
+                    {
+                        out.append("<#").append(text, i + 2, i + 8).append('>');
+                    }
+                    i += 7;
+                    continue;
+                }
+                final char code = Character.toLowerCase(next);
+                if (isColorChar(code))
+                {
+                    if (allowColors)
+                    {
+                        out.append('<').append(colorCodeName(code)).append('>');
+                    }
+                    i += 1;
+                    continue;
+                }
+                if (isDecorationChar(code))
+                {
+                    if (allowSpecial)
+                    {
+                        out.append('<').append(colorCodeName(code)).append('>');
+                    }
+                    i += 1;
+                    continue;
+                }
+                if (code == 'r')
+                {
+                    if (allowColors || allowSpecial)
+                    {
+                        out.append("<reset>");
+                    }
+                    i += 1;
+                    continue;
+                }
+            }
+            out.append(c);
+        }
+        return out.toString();
+    }
+
+    /**
+     * Recursively strips the obfuscated (magic) decoration from a component
+     * tree. Used where obfuscated text must never be allowed (e.g. nicknames).
+     *
+     * @param component The component to clean
+     * @return A component with obfuscation removed everywhere
+     */
+    public static Component removeObfuscation(Component component)
+    {
+        if (component == null)
+        {
+            return Component.empty();
+        }
+        Component result = component;
+        if (result.decoration(TextDecoration.OBFUSCATED) == TextDecoration.State.TRUE)
+        {
+            result = result.decoration(TextDecoration.OBFUSCATED, TextDecoration.State.FALSE);
+        }
+        final List<Component> children = result.children();
+        if (!children.isEmpty())
+        {
+            final List<Component> newChildren = new ArrayList<>(children.size());
+            for (Component child : children)
+            {
+                newChildren.add(removeObfuscation(child));
+            }
+            result = result.children(newChildren);
+        }
+        return result;
+    }
+
+    private static boolean isColorChar(char c)
+    {
+        return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f');
+    }
+
+    private static boolean isDecorationChar(char c)
+    {
+        return c == 'k' || c == 'l' || c == 'm' || c == 'n' || c == 'o';
+    }
+
+    private static boolean isHex(String s, int start, int count)
+    {
+        if (start + count > s.length())
+        {
+            return false;
+        }
+        for (int i = start; i < start + count; i++)
+        {
+            if (Character.digit(s.charAt(i), 16) < 0)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // Reads a &x&r&r&g&g&b&b hex sequence beginning at index i (the & before x);
+    // returns 6 hex digits (rrggbb) or NULL if the full pattern is not present.
+    private static String readSpigotHex(String text, int i)
+    {
+        if (i + 13 >= text.length())
+        {
+            return null;
+        }
+        final StringBuilder hex = new StringBuilder(6);
+        for (int p = 0; p < 6; p++)
+        {
+            final int base = i + 2 + p * 2;
+            final char sym = text.charAt(base);
+            final char dig = text.charAt(base + 1);
+            if (sym != '&' && sym != '§')
+            {
+                return null;
+            }
+            if (Character.digit(dig, 16) < 0)
+            {
+                return null;
+            }
+            hex.append(dig);
+        }
+        return hex.toString();
     }
 
     /**

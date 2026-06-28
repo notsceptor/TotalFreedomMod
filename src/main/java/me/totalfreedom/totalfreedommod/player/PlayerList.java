@@ -27,9 +27,9 @@ public class PlayerList extends FreedomService
     public static final long AUTO_PURGE_TICKS = 20L * 60L * 5L;
     //
     @Getter
-    public final Map<String, FPlayer> playerMap = Maps.newHashMap(); // ip,dataMap
+    public final Map<String, FPlayer> playerMap = Maps.newHashMap(); // key: lowercase username
     @Getter
-    public final Map<String, PlayerData> dataMap = Maps.newHashMap(); // ip,dataMap
+    public final Map<String, PlayerData> dataMap = Maps.newHashMap(); // key: lowercase username
     private final File configFolder;
     
     // Manual getter - Lombok @Getter not processing reliably
@@ -155,7 +155,7 @@ public class PlayerList extends FreedomService
     // May not return null
     public FPlayer getPlayer(Player player)
     {
-        FPlayer tPlayer = playerMap.get(player.getAddress().getAddress().getHostAddress());
+        FPlayer tPlayer = playerMap.get(player.getName().toLowerCase());
         if (tPlayer != null)
         {
             return tPlayer;
@@ -165,7 +165,7 @@ public class PlayerList extends FreedomService
         final PlayerData data = getData(player);
         tPlayer.setCommandSpy(data.isCommandSpy());
         tPlayer.setCommandsBlocked(data.isCommandsBlocked());
-        playerMap.put(player.getAddress().getAddress().getHostAddress(), tPlayer);
+        playerMap.put(player.getName().toLowerCase(), tPlayer);
 
         return tPlayer;
     }
@@ -174,7 +174,7 @@ public class PlayerList extends FreedomService
     public PlayerData getData(Player player)
     {
         // Check already loaded
-        PlayerData data = dataMap.get(player.getAddress().getAddress().getHostAddress());
+        PlayerData data = dataMap.get(player.getName().toLowerCase());
         if (data != null)
         {
             return data;
@@ -238,14 +238,9 @@ public class PlayerList extends FreedomService
         }
 
         // Only store data if the player is online
-        final Player onlinePlayer = Bukkit.getPlayerExact(data.getUsername());
-        if (onlinePlayer != null)
+        if (Bukkit.getPlayerExact(data.getUsername()) != null)
         {
-            final String onlineIp = onlinePlayer.getAddress().getAddress().getHostAddress();
-            if (data.getIps().contains(onlineIp))
-            {
-                dataMap.put(onlineIp, data);
-            }
+            dataMap.put(data.getUsername().toLowerCase(), data);
         }
 
         return data;
@@ -280,14 +275,23 @@ public class PlayerList extends FreedomService
         {
             player.displayName(data.getDisplayedNickname());
         }
+        data.setLastJoinUnix(FUtil.getUnixTime());
+        if (player.getAddress() != null)
+        {
+            data.addIp(player.getAddress().getAddress().getHostAddress());
+        }
+        if (plugin.isEnabled())
+        {
+            plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> saveOne(data));
+        }
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPlayerQuit(PlayerQuitEvent event)
     {
-        final String ip = event.getPlayer().getAddress().getAddress().getHostAddress();
-        playerMap.remove(ip);
-        final PlayerData data = dataMap.remove(ip);
+        final String username = event.getPlayer().getName().toLowerCase();
+        playerMap.remove(username);
+        final PlayerData data = dataMap.remove(username);
 
         if (data != null && plugin.isEnabled())
         {
