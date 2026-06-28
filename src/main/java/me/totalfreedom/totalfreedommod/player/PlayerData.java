@@ -89,6 +89,10 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
         }
         final String rawNickname = cs.getString("nickname", null);
         this.nickname = rawNickname != null && !rawNickname.isEmpty() ? AdventureUtil.legacyToComponent(rawNickname) : null;
+        if (this.nickname != null && !hasCustomNickname())
+        {
+            this.nickname = null;
+        }
     }
 
     @Override
@@ -155,6 +159,8 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
     public void setNickname(Component nickname)
     {
         this.nickname = nickname;
+        if (!hasCustomNickname())
+            this.nickname = null;
         final Player player = Bukkit.getPlayerExact(username);
         if (player != null)
             player.displayName(hasCustomNickname() ? getDisplayedNickname() : null);
@@ -165,7 +171,7 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
 
     public Component getDisplayedNickname()
     {
-        if (this.nickname == null)
+        if (!hasCustomNickname())
             return null;
         return Component.text("~", NamedTextColor.GRAY)
             .append(this.nickname.colorIfAbsent(NamedTextColor.WHITE));
@@ -176,6 +182,10 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
         if (this.nickname == null)
             return false;
         final String plain = AdventureUtil.componentToPlainText(this.nickname).trim();
-        return !plain.isEmpty() && !AdventureUtil.componentToLegacy(this.nickname).equalsIgnoreCase(username);
+        if (!AdventureUtil.hasVisibleText(plain))
+            return false;
+        if (!plain.equalsIgnoreCase(username))
+            return true;
+        return AdventureUtil.hasVisualStyle(this.nickname);
     }
 }

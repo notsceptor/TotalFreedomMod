@@ -1,9 +1,7 @@
 package me.totalfreedom.totalfreedommod.util;
 
-import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 import net.kyori.adventure.text.Component;
@@ -188,6 +186,83 @@ public class AdventureUtil
             return "";
         }
         return PLAIN_TEXT.serialize(component);
+    }
+
+    /**
+     * True if any inherited component applies an explicit color/decoration.
+     */
+    public static boolean hasVisualStyle(Component component)
+    {
+        if (component == null)
+        {
+            return false;
+        }
+        if (component.style().color() != null)
+        {
+            return true;
+        }
+        for (TextDecoration decoration : TextDecoration.values())
+        {
+            if (component.decoration(decoration) == TextDecoration.State.TRUE)
+            {
+                return true;
+            }
+        }
+        for (Component child : component.children())
+        {
+            if (hasVisualStyle(child))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * True if {@code text} contains visible characters after stripping legacy colour/format
+     * codes and whitespace. Used to reject nicknames that would turn up empty.
+     */
+    public static boolean hasVisibleText(String text)
+    {
+        if (text == null)
+        {
+            return false;
+        }
+        return hasVisiblePlainText(stripColor(text.replace('§', '&')));
+    }
+
+    /**
+     * True if {@code component} contains visible plaintext content.
+     */
+    public static boolean hasVisibleText(Component component)
+    {
+        if (component == null)
+        {
+            return false;
+        }
+        return hasVisiblePlainText(componentToPlainText(component));
+    }
+
+    private static boolean hasVisiblePlainText(String plain)
+    {
+        if (plain == null)
+        {
+            return false;
+        }
+        final int len = plain.length();
+        for (int i = 0; i < len; i++)
+        {
+            final char c = plain.charAt(i);
+            if (c == '\u00a0' || c == '\u200b' || c == '\u200c' || c == '\u200d' || c == '\ufeff')
+            {
+                continue;
+            }
+            if (!Character.isWhitespace(c))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -408,37 +483,6 @@ public class AdventureUtil
             out.append(c);
         }
         return out.toString();
-    }
-
-    /**
-     * Recursively strips the obfuscated (magic) decoration from a component
-     * tree. Used where obfuscated text must never be allowed (e.g. nicknames).
-     *
-     * @param component The component to clean
-     * @return A component with obfuscation removed everywhere
-     */
-    public static Component removeObfuscation(Component component)
-    {
-        if (component == null)
-        {
-            return Component.empty();
-        }
-        Component result = component;
-        if (result.decoration(TextDecoration.OBFUSCATED) == TextDecoration.State.TRUE)
-        {
-            result = result.decoration(TextDecoration.OBFUSCATED, TextDecoration.State.FALSE);
-        }
-        final List<Component> children = result.children();
-        if (!children.isEmpty())
-        {
-            final List<Component> newChildren = new ArrayList<>(children.size());
-            for (Component child : children)
-            {
-                newChildren.add(removeObfuscation(child));
-            }
-            result = result.children(newChildren);
-        }
-        return result;
     }
 
     private static boolean isColorChar(char c)

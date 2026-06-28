@@ -65,17 +65,18 @@ public class Command_nickname extends FreedomCommand
         if (player == null)
             player = ctx.getPlayerSender();
 
-        Component colorizedNickname = AdventureUtil.removeObfuscation(
-            FUtil.colorize(StringUtils.replaceEachRepeatedly(StringUtils.strip(nickname),
-                new String[]
-                {
-                    "\u00A7", "&k"
-                },
-                new String[]
-                {
-                    "", ""
-                })));
-        final String rawNickname = AdventureUtil.componentToPlainText(colorizedNickname).toLowerCase();
+        final String strippedInput = StringUtils.strip(nickname).replace('§', '&');
+
+        if (!AdventureUtil.hasVisibleText(strippedInput))
+            return true;
+
+        Component colorizedNickname = FUtil.colorize(strippedInput);
+        final String plainNickname = AdventureUtil.componentToPlainText(colorizedNickname).trim();
+
+        if (!AdventureUtil.hasVisibleText(plainNickname))
+            return true;
+
+        final String rawNickname = plainNickname.toLowerCase();
 
         if (rawNickname.length() > MAX_NICKNAME_LENGTH)
         {
@@ -90,6 +91,17 @@ public class Command_nickname extends FreedomCommand
         }
 
         final PlayerData data = plugin.pl.getData(player);
+
+        // Plaintext match to own username with no styling is equivalent to no nickname.
+        if (plainNickname.equalsIgnoreCase(player.getName()) && !AdventureUtil.hasVisualStyle(colorizedNickname))
+        {
+            if (data.hasCustomNickname())
+            {
+                clearNickname(player);
+                msg("Removed " + (player == ctx.getPlayerSender() ? "your" : (player.getName() + "'s")) + " nickname.");
+            }
+            return true;
+        }
 
         data.setNickname(colorizedNickname);
         msg((player == playerSender ? Component.text("Nickname") : Component.text(player.getName()).append(Component.text("'s nickname")))
@@ -161,6 +173,12 @@ public class Command_nickname extends FreedomCommand
     public boolean clearOwnNickname(CommandContext ctx)
     {
         return clearPlayerNickname(ctx, null);
+    }
+
+    @CommandDispatchTarget(pattern = "off")
+    public boolean clearOwnNicknameOff(CommandContext ctx)
+    {
+        return clearOwnNickname(ctx);
     }
 
     @Override
