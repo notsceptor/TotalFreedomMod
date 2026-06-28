@@ -267,8 +267,8 @@ public class ChatManager extends FreedomService
 		final String resolvedAdminTemplate = resolvedTemplate.replace("{STRIKES}", data != null ? "*".repeat(data.getStrikes()) : "");
 
 		event.renderer((source, sourceDisplayName, msg, viewer) -> {
-			final Component displayName = data != null && data.getNickname() != null ?
-				data.getDisplayedNickname().hoverEvent(HoverEvent.showText(sourceDisplayName)) :
+			final Component displayName = data != null && data.hasCustomNickname() ?
+				data.getDisplayedNickname().hoverEvent(HoverEvent.showText(Component.text(source.getName()))) :
 				sourceDisplayName;
 			if (viewer instanceof final CommandSender sender && plugin.al.isAdmin(sender)) {
 				return buildRenderedMessage(displayName,

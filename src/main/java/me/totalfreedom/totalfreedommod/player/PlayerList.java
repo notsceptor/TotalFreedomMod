@@ -275,6 +275,11 @@ public class PlayerList extends FreedomService
         {
             fPlayer.setTag(savedTag);
         }
+
+        if (data.hasCustomNickname())
+        {
+            player.displayName(data.getDisplayedNickname());
+        }
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)

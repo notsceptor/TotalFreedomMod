@@ -13,6 +13,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 
 import org.apache.commons.lang3.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 
@@ -48,7 +49,6 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
     @Setter
     private String savedTag;
     @Getter
-    @Setter
     private Component nickname;
     @Getter
     private int strikes;
@@ -137,14 +137,27 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
         this.strikes = strikes;
     }
 
+    public void setNickname(Component nickname)
+    {
+        this.nickname = nickname;
+        final Player player = Bukkit.getPlayerExact(username);
+        if (player != null)
+            player.displayName(hasCustomNickname() ? getDisplayedNickname() : null);
+    }
+
     public Component getDisplayedNickname()
     {
         if (this.nickname == null)
             return null;
-        return Component.text("~")
-            .color(NamedTextColor.GRAY)
-            .append(Component.text("")
-                .color(NamedTextColor.WHITE))
-            .append(this.nickname);
+        return Component.text("~", NamedTextColor.GRAY)
+            .append(this.nickname.colorIfAbsent(NamedTextColor.WHITE));
+    }
+
+    public boolean hasCustomNickname()
+    {
+        if (this.nickname == null)
+            return false;
+        final String plain = AdventureUtil.componentToPlainText(this.nickname).trim();
+        return !plain.isEmpty() && !plain.equalsIgnoreCase(username);
     }
 }

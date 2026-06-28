@@ -161,12 +161,9 @@ public class TabList extends FreedomService
     private String resolveDisplayName(Player player, CycleContext ctx)
     {
         final PlayerData data = plugin.pl.getData(player);
-        final Component nickname = data.getDisplayedNickname();
-        final String legacyNickname = AdventureUtil.componentToLegacy(nickname);
-        if (nickname != null && !legacyNickname.isEmpty()
-                && !legacyNickname.equalsIgnoreCase(player.getName()))
-            return legacyNickname.replace('§', '&');
-        return "&r" + player.getName();
+        if (!data.hasCustomNickname())
+            return "&r" + player.getName();
+        return AdventureUtil.componentToLegacy(data.getDisplayedNickname()).replace('§', '&');
     }
 
     private void pushRecolor()

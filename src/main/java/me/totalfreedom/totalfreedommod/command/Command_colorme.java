@@ -53,12 +53,11 @@ public class Command_colorme extends FreedomCommand
         }
 
         // Build nickname with color - convert to legacy string for Essentials
-        String displayNamePlain = AdventureUtil.stripColor(playerSender.getDisplayName()).trim();
-        Component newNick = Component.text(displayNamePlain)
-            .color(color)
-            .append(Component.text("").color(NamedTextColor.WHITE));
-        
         final PlayerData data = plugin.pl.getData(playerSender);
+        final String base = data.getNickname() != null
+            ? AdventureUtil.componentToPlainText(data.getNickname()).trim()
+            : playerSender.getName();
+        final Component newNick = Component.text(base).color(color);
         data.setNickname(newNick);
 
         msg(Component.text("Your nickname is now: ")

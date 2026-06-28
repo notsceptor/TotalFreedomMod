@@ -5,7 +5,6 @@ import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -64,7 +63,6 @@ public class Command_nicknyan extends FreedomCommand
         final char[] chars = nickPlain.toCharArray();
         for (char c : chars)
             newNick = newNick.append(Component.text(String.valueOf(c)).color(FUtil.randomChatColor()));
-        newNick = newNick.append(Component.text("").color(NamedTextColor.WHITE));
 
         data.setNickname(newNick);
 

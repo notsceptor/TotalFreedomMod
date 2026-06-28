@@ -74,7 +74,6 @@ public class Command_nickname extends FreedomCommand
                 {
                     "", ""
                 }));
-        colorizedNickname = colorizedNickname.append(Component.text("").color(NamedTextColor.WHITE));
         final String rawNickname = AdventureUtil.componentToPlainText(colorizedNickname).toLowerCase();
 
         if (rawNickname.length() > MAX_NICKNAME_LENGTH)
@@ -114,7 +113,13 @@ public class Command_nickname extends FreedomCommand
 
         int count = 0;
         for (final Player player : server.getOnlinePlayers())
-            clearNickname(player);
+        {
+            final PlayerData data = plugin.pl.getData(player);
+            if (data.getNickname() == null)
+                continue;
+            data.setNickname(null);
+            count++;
+        }
 
         msg(count + " nickname(s) removed.");
 
