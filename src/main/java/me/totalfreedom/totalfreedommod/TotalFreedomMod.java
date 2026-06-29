@@ -24,6 +24,7 @@ import me.totalfreedom.totalfreedommod.blocking.item.ConsoleSpamFilter;
 import me.totalfreedom.totalfreedommod.blocking.item.EquipmentPacketGuard;
 import me.totalfreedom.totalfreedommod.blocking.item.ItemValidator;
 import me.totalfreedom.totalfreedommod.blocking.sign.SignValidator;
+import me.totalfreedom.totalfreedommod.blocking.spawner.SpawnerValidator;
 import me.totalfreedom.totalfreedommod.bridge.BukkitTelnetBridge;
 import me.totalfreedom.totalfreedommod.bridge.CoreProtectBridge;
 import me.totalfreedom.totalfreedommod.bridge.EssentialsBridge;
@@ -217,6 +218,7 @@ public class TotalFreedomMod extends JavaPlugin
         mb = services.registerService(MobBlocker.class);
         env = services.registerService(EntityNameValidator.class);
         services.registerService(EntitySizeGuard.class);
+        services.registerService(SpawnerValidator.class);
         services.registerService(HurtProjectileGuard.class);
         services.registerService(TextDisplayGuard.class);
         ib = services.registerService(InteractBlocker.class);

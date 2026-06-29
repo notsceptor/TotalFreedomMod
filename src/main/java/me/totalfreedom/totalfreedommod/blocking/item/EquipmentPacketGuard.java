@@ -100,7 +100,7 @@ public class EquipmentPacketGuard extends FreedomService
         registeredListener = PacketEvents.getAPI().getEventManager()
                 .registerListener(new ItemPacketListener(plugin, snapshot.itemGuard, spamLimiter, movementGuard,
                         snapshot.signGuard, snapshot.signChunkGuard, snapshot.blockAllSignPackets,
-                        snapshot.gameRuleGuard));
+                        snapshot.spawnerGuard, snapshot.spawnerChunkGuard, snapshot.gameRuleGuard));
 
         FLog.info("[EquipmentPacketGuard] PacketEvents hooks active"
                 + (snapshot.itemGuard ? " [itemGuard]" : "")
@@ -109,6 +109,8 @@ public class EquipmentPacketGuard extends FreedomService
                 + (snapshot.signGuard ? " [signGuard]" : "")
                 + (snapshot.signChunkGuard ? " [signChunkGuard]" : "")
                 + (snapshot.blockAllSignPackets ? " [blockAllSignPackets]" : "")
+                + (snapshot.spawnerGuard ? " [spawnerGuard]" : "")
+                + (snapshot.spawnerChunkGuard ? " [spawnerChunkGuard]" : "")
                 + (snapshot.gameRuleGuard ? " [gameRuleGuard]" : "")
                 + ".");
     }
@@ -120,6 +122,8 @@ public class EquipmentPacketGuard extends FreedomService
             boolean signGuard,
             boolean signChunkGuard,
             boolean blockAllSignPackets,
+            boolean spawnerGuard,
+            boolean spawnerChunkGuard,
             boolean gameRuleGuard,
             int maxInteractions,
             int maxCommands,
@@ -136,6 +140,8 @@ public class EquipmentPacketGuard extends FreedomService
                     Boolean.TRUE.equals(ConfigEntry.CRASH_SIGNS_PACKET_GUARD.getBoolean()),
                     Boolean.TRUE.equals(ConfigEntry.CRASH_SIGNS_CHUNK_GUARD.getBoolean()),
                     Boolean.FALSE.equals(ConfigEntry.ALLOW_SIGN_PLACE.getBoolean()),
+                    Boolean.TRUE.equals(ConfigEntry.CRASH_SPAWNERS_PACKET_GUARD.getBoolean()),
+                    Boolean.TRUE.equals(ConfigEntry.CRASH_SPAWNERS_CHUNK_GUARD.getBoolean()),
                     Boolean.TRUE.equals(ConfigEntry.CRASH_GAMERULES_PACKET_GUARD.getBoolean()),
                     ConfigEntry.CRASH_ITEMS_MAX_INTERACTIONS_PER_SECOND.getInteger(),
                     ConfigEntry.CRASH_ITEMS_MAX_COMMANDS_PER_SECOND.getInteger(),
@@ -152,7 +158,7 @@ public class EquipmentPacketGuard extends FreedomService
         private boolean anyHookEnabled()
         {
             return itemGuard || rateLimit || movementGuardEnabled || signGuard || signChunkGuard
-                    || blockAllSignPackets || gameRuleGuard;
+                    || blockAllSignPackets || spawnerGuard || spawnerChunkGuard || gameRuleGuard;
         }
     }
 

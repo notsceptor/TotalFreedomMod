@@ -10,6 +10,7 @@ import com.github.retrooper.packetevents.protocol.packettype.PacketType;
 import com.github.retrooper.packetevents.protocol.packettype.PacketTypeCommon;
 import com.github.retrooper.packetevents.protocol.player.ClientVersion;
 import com.github.retrooper.packetevents.protocol.player.Equipment;
+import com.github.retrooper.packetevents.protocol.world.chunk.Column;
 import com.github.retrooper.packetevents.util.Vector3d;
 import io.netty.buffer.ByteBuf;
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientPlayerPosition;
@@ -29,6 +30,7 @@ import java.util.UUID;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.blocking.gamerule.GameRulePacketGuard;
 import me.totalfreedom.totalfreedommod.blocking.sign.SignPacketGuard;
+import me.totalfreedom.totalfreedommod.blocking.spawner.SpawnerPacketGuard;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FSync;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -51,11 +53,14 @@ final class ItemPacketListener extends PacketListenerAbstract
     private final boolean signBlockEntityGuard;
     private final boolean signChunkGuard;
     private final boolean blockAllSignPackets;
+    private final boolean spawnerBlockEntityGuard;
+    private final boolean spawnerChunkGuard;
     private final boolean gameRuleGuard;
 
     ItemPacketListener(TotalFreedomMod plugin, boolean sanitizeOutbound, PacketSpamLimiter spamLimiter,
                              MovementGuard movementGuard, boolean signBlockEntityGuard,
-                             boolean signChunkGuard, boolean blockAllSignPackets, boolean gameRuleGuard)
+                             boolean signChunkGuard, boolean blockAllSignPackets,
+                             boolean spawnerBlockEntityGuard, boolean spawnerChunkGuard, boolean gameRuleGuard)
     {
         super(PacketListenerPriority.HIGH);
         this.plugin = plugin;
@@ -65,6 +70,8 @@ final class ItemPacketListener extends PacketListenerAbstract
         this.signBlockEntityGuard = signBlockEntityGuard;
         this.signChunkGuard = signChunkGuard;
         this.blockAllSignPackets = blockAllSignPackets;
+        this.spawnerBlockEntityGuard = spawnerBlockEntityGuard;
+        this.spawnerChunkGuard = spawnerChunkGuard;
         this.gameRuleGuard = gameRuleGuard;
     }
 
@@ -262,11 +269,13 @@ final class ItemPacketListener extends PacketListenerAbstract
                 }
             }
 
-            if ((blockAllSignPackets || signBlockEntityGuard) && type == PacketType.Play.Server.BLOCK_ENTITY_DATA)
+            if ((blockAllSignPackets || signBlockEntityGuard || spawnerBlockEntityGuard)
+                    && type == PacketType.Play.Server.BLOCK_ENTITY_DATA)
             {
                 handleBlockEntityData(event);
             }
-            else if ((blockAllSignPackets || signChunkGuard) && type == PacketType.Play.Server.CHUNK_DATA)
+            else if ((blockAllSignPackets || signChunkGuard || spawnerChunkGuard)
+                    && type == PacketType.Play.Server.CHUNK_DATA)
             {
                 handleChunkData(event);
             }
@@ -280,11 +289,19 @@ final class ItemPacketListener extends PacketListenerAbstract
     {
         WrapperPlayServerBlockEntityData wrapper = new WrapperPlayServerBlockEntityData(event);
         NBTCompound nbt = wrapper.getNBT();
-        if (!SignPacketGuard.isSignBlockEntity(nbt))
+
+        if ((blockAllSignPackets || signBlockEntityGuard) && SignPacketGuard.isSignBlockEntity(nbt))
         {
+            if (blockAllSignPackets || SignPacketGuard.isUnsafe(nbt))
+            {
+                event.setCancelled(true);
+            }
             return;
         }
-        if (blockAllSignPackets || SignPacketGuard.isUnsafe(nbt))
+
+        if (spawnerBlockEntityGuard
+                && SpawnerPacketGuard.isSpawnerBlockEntity(nbt)
+                && SpawnerPacketGuard.isUnsafe(nbt))
         {
             event.setCancelled(true);
         }
@@ -303,17 +320,24 @@ final class ItemPacketListener extends PacketListenerAbstract
         }
 
         WrapperPlayServerChunkData wrapper = new WrapperPlayServerChunkData(event);
+        Column column = wrapper.getColumn();
+        boolean dirty = false;
+
         if (blockAllSignPackets)
         {
-            int stripped = SignPacketGuard.stripAllSignsInColumn(wrapper.getColumn());
-            if (stripped > 0)
-            {
-                event.markForReEncode(true);
-            }
-            return;
+            dirty |= SignPacketGuard.stripAllSignsInColumn(column) > 0;
         }
-        int neutralized = SignPacketGuard.sanitizeColumn(wrapper.getColumn());
-        if (neutralized > 0)
+        else if (signChunkGuard)
+        {
+            dirty |= SignPacketGuard.sanitizeColumn(column) > 0;
+        }
+
+        if (spawnerChunkGuard)
+        {
+            dirty |= SpawnerPacketGuard.sanitizeColumn(column) > 0;
+        }
+
+        if (dirty)
         {
             event.markForReEncode(true);
         }

@@ -15,7 +15,6 @@ import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.Hanging;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Painting;
 import org.bukkit.entity.Player;
@@ -23,10 +22,7 @@ import org.bukkit.entity.Slime;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.entity.CreatureSpawnEvent;
-import org.bukkit.event.entity.EntitySpawnEvent;
 import org.bukkit.event.entity.EntityTransformEvent;
-import org.bukkit.event.entity.SpawnerSpawnEvent;
-import org.bukkit.event.entity.TrialSpawnerSpawnEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
 
 /**
@@ -238,36 +234,6 @@ public class EntitySizeGuard extends FreedomService
     public void onCreatureSpawn(CreatureSpawnEvent event)
     {
         clampEntity(event.getEntity(), "spawn");
-    }
-
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    public void onSpawnerSpawn(SpawnerSpawnEvent event)
-    {
-        blockHangingFromSpawner(event, "spawner-hanging", "spawner");
-    }
-
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    public void onTrialSpawnerSpawn(TrialSpawnerSpawnEvent event)
-    {
-        blockHangingFromSpawner(event, "trial-spawner-hanging", "trial-spawner");
-    }
-
-    private void blockHangingFromSpawner(EntitySpawnEvent event, String reason, String label)
-    {
-        if (Boolean.TRUE.equals(ConfigEntry.DISABLE_SPAWNERS.getBoolean()))
-        {
-            return;
-        }
-        if (ConfigEntry.CRASH_ENTITIES_MAX_PAINTING_BLOCKS.getInteger() <= 0)
-        {
-            return;
-        }
-        Entity entity = event.getEntity();
-        if (entity instanceof Hanging)
-        {
-            event.setCancelled(true);
-            recordDetection(-1L, reason, label + " on " + entity.getType() + "@" + locShort(entity));
-        }
     }
 
     private void schedulePeriodicSweep()
