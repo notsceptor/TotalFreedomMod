@@ -9,7 +9,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.world.WorldLoadEvent;
-import org.spigotmc.event.player.PlayerSpawnLocationEvent;
+import io.papermc.paper.event.player.PlayerClientLoadedWorldEvent;
 
 public class MovementValidator extends FreedomService
 {
@@ -64,16 +64,23 @@ public class MovementValidator extends FreedomService
         }
     }
 
+    /**
+     * {@link org.bukkit.event.player.PlayerLoginEvent} is deprecated as of 1.21.7 and {@link org.spigotmc.event.player.PlayerSpawnLocationEvent} as of 1.21.9, 
+     * and the only suitable replacement I've found is {@link PlayerClientLoadedWorldEvent} in Paper 1.21.9 and later.
+     * 
+     * @param event The player join event.
+     */
     @EventHandler(priority = EventPriority.HIGH)
-    public void onPlayerSpawnLocation(PlayerSpawnLocationEvent event)
+    public void onPlayerSpawnLocation(PlayerClientLoadedWorldEvent event)
     {
-        final Location loc = event.getSpawnLocation();
+        final Location loc = event.getPlayer().getLocation();
         if (!outOfBounds(loc))
         {
             return;
         }
         final World world = loc != null ? loc.getWorld() : event.getPlayer().getWorld();
-        event.setSpawnLocation(world.getSpawnLocation());
+        event.getPlayer().setRespawnLocation(world.getSpawnLocation(), true);
+        event.getPlayer().teleport(world.getSpawnLocation()); // It doesn't actually teleport the player, so we have to do it manually.
         FLog.warning("[MovementValidator] " + event.getPlayer().getName()
                 + " joined out of bounds; relocated to " + world.getName() + " spawn.");
     }
