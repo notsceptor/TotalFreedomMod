@@ -39,6 +39,7 @@ public class Command_report extends FreedomCommand
             {
                 msg(sender, PLAYER_NOT_FOUND);
             }
+
             return;
         }
 
@@ -49,6 +50,7 @@ public class Command_report extends FreedomCommand
             {
                 msg(sender, Component.text("You can not report an admin.", NamedTextColor.RED));
             }
+
             return;
         }
 
