@@ -16,6 +16,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.serializer.ansi.ANSIComponentSerializer;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import io.papermc.paper.event.player.AsyncChatEvent;
@@ -361,7 +362,7 @@ public class ChatManager extends FreedomService
 		plugin.db.relayAdminchatMessage(sender, tag, message);
 	}
 
-	public void reportAction(Player reporter, Player reported, String report) {
+	public void reportAction(Player reporter, OfflinePlayer reported, String report) {
 		Component reportMsg = Component.text("[REPORTS] ")
 				.color(NamedTextColor.RED)
 				.append(Component.text(reporter.getName() + " has reported " + reported.getName() + " for " + report)
