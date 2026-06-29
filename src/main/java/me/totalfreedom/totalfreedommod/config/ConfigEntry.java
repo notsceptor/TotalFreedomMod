@@ -118,6 +118,13 @@ public enum ConfigEntry
     NUKE_MONITOR_COUNT_PLACE(Integer.class, "nukemonitor.count_place"),
     NUKE_MONITOR_RANGE(Double.class, "nukemonitor.range"),
     //
+    ANTIDROP_ENABLED(Boolean.class, "antidrop.enabled"),
+    ANTIDROP_TIME_WINDOW(Integer.class, "antidrop.time_window"),
+    ANTIDROP_DROP_LIMIT(Integer.class, "antidrop.drop_limit"),
+    ANTIDROP_DROP_EJECT_LIMIT(Integer.class, "antidrop.drop_eject_limit"),
+    ANTIDROP_DROP_ITEM_LIMIT(Integer.class, "antidrop.drop_item_limit"),
+    ANTIDROP_DROP_ITEM_EJECT_LIMIT(Integer.class, "antidrop.drop_item_eject_limit"),
+    //
     ANTISPAM_ENABLED(Boolean.class, "antispam.enabled"),
     ANTISPAM_LIMIT(Integer.class, "antispam.limit"),
     ANTISPAM_TIME_WINDOW(Integer.class, "antispam.time_window"),
@@ -298,6 +305,12 @@ public enum ConfigEntry
         return getConfig().getBoolean(this);
     }
 
+    public boolean getBoolean(boolean defaultValue)
+    {
+        final Boolean v = getBoolean();
+        return v == null ? defaultValue : v;
+    }
+
     public Boolean setBoolean(Boolean value)
     {
         getConfig().setBoolean(this, value);
@@ -307,6 +320,12 @@ public enum ConfigEntry
     public Integer getInteger()
     {
         return getConfig().getInteger(this);
+    }
+
+    public int getInteger(int defaultValue)
+    {
+        final Integer v = getInteger();
+        return v == null ? defaultValue : v;
     }
 
     public Integer setInteger(Integer value)

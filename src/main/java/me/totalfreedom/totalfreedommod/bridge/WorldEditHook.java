@@ -384,35 +384,32 @@ public final class WorldEditHook implements Listener
 
     public int getLimitFor(UUID uuid)
     {
-        final Integer maxLimitObj = ConfigEntry.WORLDEDIT_LIMIT_MAX.getInteger();
-        final int fallback = (maxLimitObj == null) ? Integer.MAX_VALUE : maxLimitObj;
+        final int fallback = ConfigEntry.WORLDEDIT_LIMIT_MAX.getInteger(Integer.MAX_VALUE);
         final Integer stored = playerLimits.get(uuid);
         return (stored == null) ? fallback : stored;
     }
 
     private static boolean throttleEnabled()
     {
-        final Boolean v = ConfigEntry.WORLDEDIT_THROTTLE_ENABLED.getBoolean();
-        return v == null || v;
+        return ConfigEntry.WORLDEDIT_THROTTLE_ENABLED.getBoolean(true);
     }
 
     private static int throttleMaxOps()
     {
-        final Integer v = ConfigEntry.WORLDEDIT_THROTTLE_MAX_OPS.getInteger();
-        return (v == null || v < 0) ? 5 : v;
+        final int v = ConfigEntry.WORLDEDIT_THROTTLE_MAX_OPS.getInteger(5);
+        return v < 0 ? 5 : v;
     }
 
     private static long throttleWindowMs()
     {
-        final Integer v = ConfigEntry.WORLDEDIT_THROTTLE_TIME_WINDOW.getInteger();
-        return (v == null || v <= 0) ? 1000L : v.longValue();
+        final int v = ConfigEntry.WORLDEDIT_THROTTLE_TIME_WINDOW.getInteger(1000);
+        return v <= 0 ? 1000L : v;
     }
 
     private static int throttleEjectThreshold()
     {
         // Negative disables auto-eject (throttle only).
-        final Integer v = ConfigEntry.WORLDEDIT_THROTTLE_MAX_CANCELLED_OPS.getInteger();
-        return (v == null) ? 5 : v;
+        return ConfigEntry.WORLDEDIT_THROTTLE_MAX_CANCELLED_OPS.getInteger(5);
     }
 
     private static boolean isWorldEditOp(String message)
@@ -548,7 +545,7 @@ public final class WorldEditHook implements Listener
                     player.sendMessage(Component.text(
                         "The block type '" + id + "' cannot be used in your operation.",
                         NamedTextColor.RED));
-                    FLog.warning("Operator " + player.getName() + " tried use a disallowed W/E block type (" + id
+                    FLog.warning(player.getName() + " tried to use a disallowed W/E block type (" + id
                         + "): " + message);
                     return true;
                 }

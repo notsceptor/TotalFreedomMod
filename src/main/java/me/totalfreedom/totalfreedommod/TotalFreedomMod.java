@@ -93,6 +93,7 @@ public class TotalFreedomMod extends JavaPlugin
     public PotionBlocker pb; // PotionBlocker - Blocks potion effects
     public LoginProcess lp; // LoginProcess - Handles player login processing
     public AntiNuke nu; // AntiNuke - Prevents rapid command execution (nuking)
+    public AntiDrop adr; // AntiDrop - Throttles item drop flooding
     public AntiSpam as; // AntiSpam - Prevents chat spam
     public PlayerList pl; // PlayerList - Manages player data and lists
     public Announcer an; // Announcer - Handles server announcements
@@ -222,6 +223,7 @@ public class TotalFreedomMod extends JavaPlugin
         pb = services.registerService(PotionBlocker.class);
         lp = services.registerService(LoginProcess.class);
         nu = services.registerService(AntiNuke.class);
+        adr = services.registerService(AntiDrop.class);
         as = services.registerService(AntiSpam.class);
 
         pl = services.registerService(PlayerList.class);

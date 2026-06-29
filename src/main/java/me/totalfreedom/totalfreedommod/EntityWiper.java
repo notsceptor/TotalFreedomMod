@@ -34,7 +34,7 @@ import org.bukkit.scheduler.BukkitTask;
 public class EntityWiper extends FreedomService
 {
 
-    public static final long ENTITY_WIPE_RATE = 5 * 20L;
+    public static final int AUTO_WIPE_INTERVAL_DEFAULT = 15;
     public static final long ITEM_DESPAWN_RATE = 20L * 20L;
     public static final int CHUNK_ENTITY_MAX = 20;
     //
@@ -64,7 +64,7 @@ public class EntityWiper extends FreedomService
     @Override
     protected void onStart()
     {
-        if (!ConfigEntry.AUTO_ENTITY_WIPE.getBoolean())
+        if (!isAutoWipeEnabled())
         {
             return;
         }
@@ -74,14 +74,15 @@ public class EntityWiper extends FreedomService
 
     }
 
+    public static boolean isAutoWipeEnabled()
+    {
+        return ConfigEntry.AUTO_ENTITY_WIPE.getBoolean(true);
+    }
+
     private static long wipeRateTicks()
     {
-        final Integer seconds = ConfigEntry.AUTO_ENTITY_WIPE_INTERVAL.getInteger();
-        if (seconds == null || seconds <= 0)
-        {
-            return ENTITY_WIPE_RATE;
-        }
-        return seconds * 20L;
+        final int seconds = ConfigEntry.AUTO_ENTITY_WIPE_INTERVAL.getInteger(AUTO_WIPE_INTERVAL_DEFAULT);
+        return Math.max(seconds, 1) * 20L;
     }
 
     @Override

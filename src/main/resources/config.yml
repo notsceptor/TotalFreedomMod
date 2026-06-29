@@ -202,10 +202,25 @@ server_command_blocker:
   # 20 ticks = 1 second
   log_interval_ticks: 1200
 
-# Automatically wipe dropped objects
+# Automatically wipes dropped entities from every world on the server in
+# auto_wipe_interval seconds.  Set false to disable.
 auto_wipe: true
-# How often in seconds. Minimum 1.
 auto_wipe_interval: 15
+
+# AntiDrop rate limiting for item/entity drops.
+# Exceeding an eject limit within time_window triggers AutoEject.
+antidrop:
+  enabled: true
+  # Milliseconds (ms) after which a player's drop count resets.
+  time_window: 1000
+  # The number of drop *events* per window.  A dropped stack is one entity, so
+  # a stack of 64 individual items is counted as one drop.
+  drop_limit: 15
+  drop_eject_limit: 32
+  # The total item *quantity* per window.  A dropped stack is counted by the
+  # number of items, so a stack of 64 is counted as 64.
+  drop_item_limit: 512
+  drop_item_eject_limit: -1
 
 # Nuking prevention
 nukemonitor:
@@ -354,7 +369,7 @@ crash_gamerules:
 # 0 disables the border.
 world_border: 1000000
 
-# AutoEject runs when AntiSpam, AntiNuke or a blocked command action trips.
+# AutoEject runs when AntiSpam, AntiDrop, AntiNuke or a blocked command action trips.
 # Strikes are stored according to the player's IP address.
 autoeject:
   # When false, the spam/etc still gets cancelled; no punishment happens.
