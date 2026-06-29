@@ -430,6 +430,10 @@ protectarea:
   auto_protect_radius: 25.0
   protect_players: true
   block_potions: true
+  # Block non-admins from picking up dropped items inside protected areas, and
+  # periodically remove loose items that fall/land inside them. Stops the
+  # "fly above spawn, drop items in for others to grab" delivery exploit.
+  block_items: true
 
 # WorldEdit settings
 worldedit:

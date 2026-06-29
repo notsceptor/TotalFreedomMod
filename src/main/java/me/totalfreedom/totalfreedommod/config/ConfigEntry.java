@@ -99,6 +99,7 @@ public enum ConfigEntry
     PROTECTAREA_RADIUS(Double.class, "protectarea.auto_protect_radius"),
     PROTECTAREA_PROTECT_PLAYERS(Boolean.class, "protectarea.protect_players"),
     PROTECTAREA_BLOCK_POTIONS(Boolean.class, "protectarea.block_potions"),
+    PROTECTAREA_BLOCK_ITEMS(Boolean.class, "protectarea.block_items"),
     //
     WORLDEDIT_ENABLED(Boolean.class, "worldedit.enabled"),
     WORLDEDIT_LIMIT_MAX(Integer.class, "worldedit.limit_max"),
