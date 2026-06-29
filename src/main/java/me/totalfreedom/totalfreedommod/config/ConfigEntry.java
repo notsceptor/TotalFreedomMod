@@ -160,6 +160,7 @@ public enum ConfigEntry
     CRASH_ENTITIES_STRIP_NAME_VISIBLE(Boolean.class, "crash_entities.strip_name_visible"),
     CRASH_ENTITIES_MAX_SCALE(Double.class, "crash_entities.max_scale"),
     CRASH_ENTITIES_MAX_SLIME_SIZE(Integer.class, "crash_entities.max_slime_size"),
+    CRASH_ENTITIES_MAX_PAINTING_BLOCKS(Integer.class, "crash_entities.max_painting_size"),
     CRASH_ENTITIES_SCALE_SWEEP_TICKS(Integer.class, "crash_entities.scale_sweep_ticks"),
     //
     CRASH_GAMERULES_PACKET_GUARD(Boolean.class, "crash_gamerules.packet_guard"),

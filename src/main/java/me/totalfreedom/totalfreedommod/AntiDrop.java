@@ -43,25 +43,21 @@ public class AntiDrop extends FreedomService
         return v <= 0 ? 1000L : v;
     }
 
-    // Max drops per window before drops are cancelled; -1 disables the throttle.
     private static int dropLimit()
     {
         return ConfigEntry.ANTIDROP_DROP_LIMIT.getInteger(20);
     }
 
-    // Drops per window that trigger an auto-eject; -1 throttles only.
     private static int dropEjectLimit()
     {
         return ConfigEntry.ANTIDROP_DROP_EJECT_LIMIT.getInteger(60);
     }
 
-    // Max item quantity per window before drops are cancelled; -1 disables.
     private static int dropItemLimit()
     {
         return ConfigEntry.ANTIDROP_DROP_ITEM_LIMIT.getInteger(512);
     }
 
-    // Item quantity per window that triggers an auto-eject; -1 throttles only.
     private static int dropItemEjectLimit()
     {
         return ConfigEntry.ANTIDROP_DROP_ITEM_EJECT_LIMIT.getInteger(-1);
@@ -91,8 +87,7 @@ public class AntiDrop extends FreedomService
         boolean eject = false;
         boolean justCrossed = false;
 
-        // Axis 1: number of drop events this window (entity-flood protection).
-        // A dropped stack is one entity, so a 64-stack counts as a single drop.
+        // 64 stack counts as a single drop.
         final int eventLimit = dropLimit();
         if (eventLimit >= 0)
         {
@@ -109,8 +104,7 @@ public class AntiDrop extends FreedomService
             }
         }
 
-        // Axis 2: total item quantity this window (mass-dump / over-stacked
-        // crash-item protection). A 64-stack counts as 64.
+        // 64 stack counts as 64 (items).
         final int itemLimit = dropItemLimit();
         if (itemLimit >= 0)
         {
@@ -146,16 +140,6 @@ public class AntiDrop extends FreedomService
         }
     }
 
-    // Container breaks (chests, barrels, dispensers, etc.) spill their entire
-    // contents as a batch of item entities in a single event, which never fires
-    // PlayerDropItemEvent. We still throttle the spill so a stuffed container
-    // can't lag-bomb the server, BUT this path never auto-ejects and never
-    // touches the per-player drop counters used by drop_eject_limit /
-    // drop_item_eject_limit: an unwitting player can break a chest that someone
-    // else filled, and must not be punished (nor pushed toward a punishment on
-    // their next manual drop) for contents they didn't create. Throttling is
-    // therefore local to this single break. Shulker boxes drop as a single NBT
-    // item and so naturally count as one. (Admins exempt.)
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onBlockDropItem(BlockDropItemEvent event)
     {
