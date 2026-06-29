@@ -1,11 +1,5 @@
 package me.totalfreedom.totalfreedommod.ssh;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.security.GeneralSecurityException;
-import java.security.PublicKey;
-import java.util.List;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import org.apache.sshd.common.config.keys.AuthorizedKeyEntry;
 import org.apache.sshd.common.config.keys.KeyUtils;
@@ -13,58 +7,56 @@ import org.apache.sshd.common.config.keys.PublicKeyEntryResolver;
 import org.apache.sshd.server.auth.pubkey.PublickeyAuthenticator;
 import org.apache.sshd.server.session.ServerSession;
 
-/**
- * Authenticates SSH users via public key.
- * Keys are stored in the ssh_auth_keys/ directory under the plugin data folder.
- * Each file is named after the username (no extension) and contains one or more
- * OpenSSH-format authorized_keys entries (ssh-rsa, ssh-ed25519, ecdsa-sha2-*,
- * etc.).
- */
-public class SshPublicKeyAuthenticator implements PublickeyAuthenticator {
+import java.security.PublicKey;
 
-    private final File authorizedKeysDir;
+public class SshPublicKeyAuthenticator implements PublickeyAuthenticator
+{
+    private final SshIdentityStore identityStore;
 
-    public SshPublicKeyAuthenticator(File authorizedKeysDir) {
-        this.authorizedKeysDir = authorizedKeysDir;
+    public SshPublicKeyAuthenticator(SshIdentityStore identityStore)
+    {
+        this.identityStore = identityStore;
     }
 
     @Override
-    public boolean authenticate(String username, PublicKey key, ServerSession session) {
-        File keyFile = new File(authorizedKeysDir, username);
-
-        if (!keyFile.exists()) {
-            FLog.warning("SSH public key auth failed for '" + username
-                    + "': no authorized_keys file found. Create plugins/TotalFreedomMod/ssh_auth_keys/"
-                    + username + " with the user's public key.");
+    public boolean authenticate(String username, PublicKey key, ServerSession session)
+    {
+        String fingerprint;
+        try
+        {
+            fingerprint = KeyUtils.getFingerPrint(key);
+        }
+        catch (Exception e)
+        {
+            FLog.warning("[SSH] Could not compute key fingerprint: " + e.getMessage());
             return false;
         }
 
-        try {
-            List<String> lines = Files.readAllLines(keyFile.toPath());
-            for (String line : lines) {
-                String trimmed = line.trim();
-                if (trimmed.isEmpty() || trimmed.startsWith("#")) {
-                    continue;
-                }
-
-                try {
-                    AuthorizedKeyEntry entry = AuthorizedKeyEntry.parseAuthorizedKeyEntry(trimmed);
-                    PublicKey authorizedKey = entry.resolvePublicKey(null, PublicKeyEntryResolver.FAILING);
-
-                    if (KeyUtils.compareKeys(key, authorizedKey)) {
-                        session.setAttribute(SshDaemon.AUTH_METHOD_KEY, SshAuthMethod.PUBLIC_KEY);
-                        FLog.info("SSH public key login successful for user: " + username);
+        for (SshIdentity identity : identityStore.getAll())
+        {
+            for (String keyStr : identity.keys().values())
+            {
+                try
+                {
+                    AuthorizedKeyEntry entry = AuthorizedKeyEntry.parseAuthorizedKeyEntry(keyStr.trim());
+                    PublicKey registered = entry.resolvePublicKey(null, PublicKeyEntryResolver.FAILING);
+                    if (KeyUtils.compareKeys(key, registered))
+                    {
+                        session.setAttribute(SshDaemon.FINGERPRINT_KEY, fingerprint);
+                        session.setAttribute(SshDaemon.IDENTITY_KEY, identity.identifier());
+                        FLog.info("[SSH] Key matched identity '" + identity.identifier()
+                                + "' (MC: " + identity.username() + ") for SSH user: " + username);
                         return true;
                     }
-                } catch (GeneralSecurityException e) {
-                    FLog.warning("SSH failed to parse key entry in " + keyFile.getName() + ": " + e.getMessage());
+                }
+                catch (Exception e)
+                {
+                    FLog.warning("[SSH] Bad key in identity '" + identity.identifier() + "': " + e.getMessage());
                 }
             }
-        } catch (IOException e) {
-            FLog.severe("SSH error reading authorized_keys file for '" + username + "': " + e.getMessage());
         }
 
-        FLog.info("SSH public key auth failed for '" + username + "': no matching key found.");
+        FLog.warning("[SSH] No matching key found for SSH user: " + username);
         return false;
     }
 }

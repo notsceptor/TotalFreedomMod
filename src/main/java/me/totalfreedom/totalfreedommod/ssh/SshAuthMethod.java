@@ -6,5 +6,6 @@ package me.totalfreedom.totalfreedommod.ssh;
 public enum SshAuthMethod
 {
     PASSWORD,
-    PUBLIC_KEY
+    PUBLIC_KEY,
+    KEY_TOKEN
 }

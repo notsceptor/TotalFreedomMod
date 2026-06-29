@@ -2,6 +2,7 @@ package me.totalfreedom.totalfreedommod;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
@@ -53,7 +54,7 @@ public class ServiceChecker extends FreedomService
                         serviceUrl = "https://mcping.me/api/services";
                     }
 
-                    final URL url = new URL(serviceUrl);
+                    final URL url = URI.create(serviceUrl).toURL();
                     final URLConnection connection = url.openConnection();
                     connection.setConnectTimeout(10000);
                     connection.setReadTimeout(10000);

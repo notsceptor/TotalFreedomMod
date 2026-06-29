@@ -1,13 +1,15 @@
 package me.totalfreedom.totalfreedommod.ssh;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.totalfreedommod.command.FreedomCommandExecutor;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchContext;
 import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchSession;
+import org.bukkit.command.CommandExecutor;
+import me.totalfreedom.totalfreedommod.util.CallbackLogAppender;
 import me.totalfreedom.totalfreedommod.util.FLog;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.Logger;
 import org.apache.sshd.server.Environment;
 import org.apache.sshd.server.ExitCallback;
 import org.apache.sshd.server.channel.ChannelSession;
@@ -15,12 +17,17 @@ import org.apache.sshd.server.command.Command;
 import org.apache.sshd.server.command.CommandFactory;
 import org.bukkit.Bukkit;
 
-/**
- * Handles one-shot SSH command execution (e.g. {@code ssh user@host 'list'}).
- */
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+
 public class SshConsoleCommandFactory implements CommandFactory
 {
-
     private final TotalFreedomMod plugin;
 
     public SshConsoleCommandFactory(TotalFreedomMod plugin)
@@ -36,13 +43,10 @@ public class SshConsoleCommandFactory implements CommandFactory
 
     public static class SshConsoleCommand implements Command
     {
-
         private final TotalFreedomMod plugin;
         private final String command;
 
-        private InputStream in;
         private OutputStream out;
-        private OutputStream err;
         private ExitCallback callback;
 
         public SshConsoleCommand(TotalFreedomMod plugin, String command)
@@ -52,10 +56,7 @@ public class SshConsoleCommandFactory implements CommandFactory
         }
 
         @Override
-        public void setInputStream(InputStream in)
-        {
-            this.in = in;
-        }
+        public void setInputStream(InputStream in) {}
 
         @Override
         public void setOutputStream(OutputStream out)
@@ -64,10 +65,7 @@ public class SshConsoleCommandFactory implements CommandFactory
         }
 
         @Override
-        public void setErrorStream(OutputStream err)
-        {
-            this.err = err;
-        }
+        public void setErrorStream(OutputStream err) {}
 
         @Override
         public void setExitCallback(ExitCallback callback)
@@ -78,46 +76,80 @@ public class SshConsoleCommandFactory implements CommandFactory
         @Override
         public void start(ChannelSession channel, Environment env) throws IOException
         {
-            String username = env.getEnv().get(Environment.ENV_USER);
+            String sshUsername = env.getEnv().get(Environment.ENV_USER);
+            String resolvedName = resolveDisplayName(channel, sshUsername);
 
             final RemoteDispatchSession session;
             if (ConfigEntry.SSH_SHOW_USER.getBoolean())
             {
                 SshAuthMethod method = channel.getSession().getAttribute(SshDaemon.AUTH_METHOD_KEY);
                 String prefix = ConfigEntry.SSH_USER_PREFIX.getString();
-                String displayName = (prefix == null ? "" : prefix) + username;
+                String displayName = (prefix == null ? "" : prefix) + resolvedName;
                 session = new RemoteDispatchSession(
                         RemoteDispatchSession.Channel.SSH,
-                        username,
+                        resolvedName,
                         displayName,
-                        method == SshAuthMethod.PUBLIC_KEY);
+                        method == SshAuthMethod.PUBLIC_KEY || method == SshAuthMethod.KEY_TOKEN);
             }
             else
             {
                 session = null;
             }
 
-            try
+            PrintWriter writer = new PrintWriter(new OutputStreamWriter(out, StandardCharsets.UTF_8), true);
+
+            CallbackLogAppender appender = new CallbackLogAppender(
+                    "SshCmdAppender-" + resolvedName,
+                    (line, level) ->
+                    {
+                        writer.println(line);
+                        writer.flush();
+                    });
+            appender.start();
+            ((Logger) LogManager.getRootLogger()).addAppender(appender);
+
+            Executor mainExecutor = Bukkit.getScheduler().getMainThreadExecutor(plugin);
+            CompletableFuture.runAsync(() ->
             {
-                Bukkit.getScheduler().runTask(plugin, () ->
+                FLog.info("[SSH: " + resolvedName + "] " + command);
+                RemoteDispatchContext.runWithSession(session, () ->
                 {
-                    FLog.info("[SSH: " + username + "] " + command);
-                    RemoteDispatchContext.dispatch(session, command);
+                    String stripped = command.startsWith("/") ? command.substring(1) : command;
+                    int sp = stripped.indexOf(' ');
+                    String name = (sp < 0 ? stripped : stripped.substring(0, sp)).toLowerCase();
+                    String[] args = sp < 0 ? new String[0] : stripped.substring(sp + 1).split("\\s+");
+                    CommandExecutor executor = plugin.cl.getHandler().getExecutors().get(name);
+                    if (executor instanceof FreedomCommandExecutor fce)
+                        fce.executePaper(Bukkit.getConsoleSender(), name, args);
+                    else
+                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), stripped);
                 });
-            }
-            catch (Exception e)
+            }, mainExecutor).whenComplete((v, ex) ->
             {
-                FLog.severe("Error processing SSH command from " + username + ": " + e.getMessage());
-            }
-            finally
+                ((Logger) LogManager.getRootLogger()).removeAppender(appender);
+                appender.stop();
+                writer.flush();
+                callback.onExit(ex != null ? 1 : 0);
+            });
+        }
+
+        private String resolveDisplayName(ChannelSession channel, String fallback)
+        {
+            String identityId = channel.getSession().getAttribute(SshDaemon.IDENTITY_KEY);
+            if (identityId == null || plugin.sd == null)
             {
-                callback.onExit(0);
+                return fallback;
             }
+            SshIdentityStore store = plugin.sd.getIdentityStore();
+            if (store == null)
+            {
+                return fallback;
+            }
+            SshIdentity identity = store.get(identityId);
+            return identity != null && identity.username() != null ? identity.username() : fallback;
         }
 
         @Override
-        public void destroy(ChannelSession channel)
-        {
-        }
+        public void destroy(ChannelSession channel) {}
     }
 }

@@ -117,7 +117,7 @@ public class Muter extends FreedomService
         // TODO: Should this go here?
         if (ConfigEntry.ENABLE_PREPROCESS_LOG.getBoolean())
         {
-            FLog.info(String.format("[PREPROCESS_COMMAND] %s(%s): %s", player.getName(), me.totalfreedom.totalfreedommod.util.AdventureUtil.stripColor(player.getDisplayName()), message), true);
+            FLog.info(String.format("[PREPROCESS_COMMAND] %s(%s): %s", player.getName(), me.totalfreedom.totalfreedommod.util.AdventureUtil.stripColor(player.displayName().toString()), message), true);
         }
     }
 
