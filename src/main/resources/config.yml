@@ -451,6 +451,22 @@ worldedit:
   # Set to -1 to disable the cap entirely.
   radius_max: 100
 
+  # Maximum number of block types that an operator may combine in a single WorldEdit
+  # pattern (e.g. "//set a,b,c"). Set to -1 to disable.
+  max_pattern_blocks: 7
+
+  # Rate limits the number of WorldEdit operations for an operator.
+  throttle:
+    enabled: true
+    # The max number of operations allowed within window_ms before being cancelled.
+    max_operations: 3
+    # Time window in milliseconds (1000 = 1 second) that max_operations must be exceeded
+    # before being cancelled.
+    time_window: 1000
+    # The number of cancelled operations within the window_ms (any operations attempted
+    # after max_operations) before AutoEject is triggered for that player. -1 to never eject.
+    max_cancelled_operations: 5
+
 # Host senders — binds automated services or host-based consoles to an admin rank.
 #
 # Format: '<rank_id>:<sender_name>'. Sender names are case-insensitive.
