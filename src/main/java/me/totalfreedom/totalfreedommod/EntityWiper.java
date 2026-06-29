@@ -69,8 +69,19 @@ public class EntityWiper extends FreedomService
             return;
         }
 
-        wipeTask = plugin.getServer().getScheduler().runTaskTimer(plugin, () -> wipeEntities(false), ENTITY_WIPE_RATE, ENTITY_WIPE_RATE);
+        final long rate = wipeRateTicks();
+        wipeTask = plugin.getServer().getScheduler().runTaskTimer(plugin, () -> wipeEntities(false), rate, rate);
 
+    }
+
+    private static long wipeRateTicks()
+    {
+        final Integer seconds = ConfigEntry.AUTO_ENTITY_WIPE_INTERVAL.getInteger();
+        if (seconds == null || seconds <= 0)
+        {
+            return ENTITY_WIPE_RATE;
+        }
+        return seconds * 20L;
     }
 
     @Override

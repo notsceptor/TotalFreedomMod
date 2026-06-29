@@ -215,6 +215,7 @@ public enum ConfigEntry
     ADMIN_ONLY_MODE(Boolean.class, "admin_only_mode"),
     ADMIN_INFO(List.class, "admininfo"),
     AUTO_ENTITY_WIPE(Boolean.class, "auto_wipe"),
+    AUTO_ENTITY_WIPE_INTERVAL(Integer.class, "auto_wipe_interval"),
     DISGUISES_FORBIDDEN_TYPES(List.class, "disguises.forbidden_types"),
     //
     VAULT_CHAT_PROVIDER_ENABLED(Boolean.class, "chat.provider.enabled"),
