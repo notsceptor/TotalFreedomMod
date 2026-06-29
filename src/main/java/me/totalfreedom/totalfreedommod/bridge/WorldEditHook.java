@@ -16,6 +16,7 @@ import com.sk89q.worldedit.regions.Region;
 import com.sk89q.worldedit.session.SessionManager;
 import com.sk89q.worldedit.world.block.BlockStateHolder;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -55,6 +56,8 @@ public final class WorldEditHook implements Listener
 
     private static final Pattern LIMIT_COMMAND = Pattern.compile(
         "^/(?:limit|/limit)\\s+(\\d+|-1)(?:\\s+(.+))?$", Pattern.CASE_INSENSITIVE);
+
+    private static final Pattern BLOCK_TOKEN = Pattern.compile("[a-z0-9_]+(?::[a-z0-9_]+)?");
 
     private static final Map<String, Integer> RADIUS_COMMANDS = new HashMap<>();
 
@@ -278,6 +281,11 @@ public final class WorldEditHook implements Listener
             return;
         }
 
+        if (checkPatternTypes(event))
+        {
+            return;
+        }
+
         if (checkRadiusCommand(event))
         {
             return;
@@ -492,6 +500,73 @@ public final class WorldEditHook implements Listener
         return true;
     }
 
+    private boolean checkPatternTypes(PlayerCommandPreprocessEvent event)
+    {
+        final List<String> blocked = ConfigEntry.WORLDEDIT_BLOCKED_BLOCK_TYPES.getStringList();
+        if (blocked == null || blocked.isEmpty())
+        {
+            return false;
+        }
+
+        final Player player = event.getPlayer();
+        if (plugin.al.isAdmin(player))
+        {
+            return false;
+        }
+
+        final String message = event.getMessage();
+        if (!isWorldEditOp(message))
+        {
+            return false;
+        }
+
+        final int sp = message.indexOf(' ');
+        if (sp < 0)
+        {
+            return false;
+        }
+        final String args = message.substring(sp + 1).toLowerCase(Locale.ROOT);
+
+        final Matcher m = BLOCK_TOKEN.matcher(args);
+        while (m.find())
+        {
+            String id = m.group();
+            final int colon = id.indexOf(':');
+            if (colon >= 0)
+            {
+                id = id.substring(colon + 1);
+            }
+            for (String entry : blocked)
+            {
+                if (entry == null || entry.isEmpty())
+                {
+                    continue;
+                }
+                if (blockedIdMatches(id, entry.toLowerCase(Locale.ROOT)))
+                {
+                    event.setCancelled(true);
+                    player.sendMessage(Component.text(
+                        "The block type '" + id + "' cannot be used in your operation.",
+                        NamedTextColor.RED));
+                    FLog.warning("Operator " + player.getName() + " tried use a disallowed W/E block type (" + id
+                        + "): " + message);
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean blockedIdMatches(String id, String entry)
+    {
+        if (entry.indexOf('*') >= 0)
+        {
+            final String needle = entry.replace("*", "");
+            return !needle.isEmpty() && id.contains(needle);
+        }
+        return id.equals(entry);
+    }
+
     private boolean checkPatternComplexity(PlayerCommandPreprocessEvent event)
     {
         final Integer maxObj = ConfigEntry.WORLDEDIT_MAX_PATTERN_BLOCKS.getInteger();
@@ -551,18 +626,18 @@ public final class WorldEditHook implements Listener
         for (int i = 0; i < token.length(); i++)
         {
             final char c = token.charAt(i);
-            if (c == '[' || c == '(' || c == '{')
+            if (c == '[')
             {
                 depth++;
             }
-            else if (c == ']' || c == ')' || c == '}')
+            else if (c == ']')
             {
                 if (depth > 0)
                 {
                     depth--;
                 }
             }
-            else if (c == ',' && depth == 0)
+            else if ((c == ',' || c == '&') && depth == 0)
             {
                 components++;
             }

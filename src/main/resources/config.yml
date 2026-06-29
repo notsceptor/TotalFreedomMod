@@ -467,6 +467,25 @@ worldedit:
     # after max_operations) before AutoEject is triggered for that player. -1 to never eject.
     max_cancelled_operations: 5
 
+  # Block types that may not be used by operators in a WorldEdit pattern/mask.
+  # Matches along namespace and weight.  An entry containing '*' matches as a substring
+  # (e.g. '*sculk_sensor*' includes calibrated_sculk_sensor).  Leave empty to disable.
+  blocked_types:
+  - '*sculk_sensor*'
+  - 'sculk_shrieker'
+  - '*command_block*'
+  - '*spawner*'
+  - 'jigsaw'
+  - 'structure_block'
+  - 'structure_void'
+  - 'barrier'
+  - 'light'
+  - 'moving_piston'
+  - 'vault'
+  - 'nether_portal'
+  - 'end_portal'
+  - 'end_gateway'
+
 # Host senders — binds automated services or host-based consoles to an admin rank.
 #
 # Format: '<rank_id>:<sender_name>'. Sender names are case-insensitive.
