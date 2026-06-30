@@ -1,6 +1,7 @@
 package me.totalfreedom.totalfreedommod.blocking.entity;
 
 import com.destroystokyo.paper.event.entity.EntityAddToWorldEvent;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import me.totalfreedom.totalfreedommod.FreedomService;
@@ -250,10 +251,11 @@ public class HurtProjectileGuard extends FreedomService
 
     private void sweepSpawnersInChunk(Chunk chunk)
     {
-        BlockState[] tileEntities;
+        Collection<BlockState> tileEntities;
         try
         {
             tileEntities = chunk.getTileEntities();
+            tileEntities = chunk.getTileEntities(block -> block.getType() == Material.SPAWNER, false);
         }
         catch (Throwable t)
         {
