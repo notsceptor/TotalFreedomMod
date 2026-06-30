@@ -39,7 +39,7 @@ public class HurtProjectileGuard extends FreedomService
 {
 
     private static final long LOG_INTERVAL_TICKS = 100L;
-    private static final long SWEEP_INTERVAL_TICKS = 20L;
+    private static final long SWEEP_INTERVAL_TICKS = 100L;
     private static final double MAX_PROJECTILE_SPEED_SQ = 3.5 * 3.5;
     private static final Set<EntityType> UNCONDITIONAL_PROJECTILE_TYPES = Set.of(
             EntityType.FIREWORK_ROCKET,
