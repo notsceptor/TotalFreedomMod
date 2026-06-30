@@ -1,5 +1,6 @@
 package me.totalfreedom.totalfreedommod.tablist;
 
+import me.totalfreedom.totalfreedommod.ChatManager;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
@@ -133,7 +134,7 @@ public class TabList extends FreedomService
     private Component buildPlayerListName(Player player, CycleContext ctx)
     {
         // ${prefix} — rank tag / custom tag, same logic as chat prefix
-        String prefix = plugin.cm.buildPlayerPrefix(player);
+        String prefix = plugin.cm.buildPlayerPrefix(player, ChatManager.PrefixFormat.AMPERSAND);
 
         // ${afk_tag} — AFK indicator (empty if not AFK or Essentials unavailable)
         String afkTag = "";

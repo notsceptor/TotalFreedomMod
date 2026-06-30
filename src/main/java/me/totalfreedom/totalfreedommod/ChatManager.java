@@ -6,8 +6,7 @@ import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FSync;
-import me.totalfreedom.totalfreedommod.vault.ChatService;
-import me.totalfreedom.totalfreedommod.vault.PermissionService;
+import me.totalfreedom.totalfreedommod.vault.VaultProviderRegistry;
 import static me.totalfreedom.totalfreedommod.util.FUtil.playerMsg;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
@@ -26,16 +25,12 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.server.PluginEnableEvent;
 import org.bukkit.plugin.Plugin;
 
-import net.milkbowl.vault.chat.Chat;
-import net.milkbowl.vault.permission.Permission;
-
 public class ChatManager extends FreedomService
 {
     // The maximum message length that the Java Minecraft client can currently handle.
     private static final int MAX_MESSAGE_LENGTH_HARD_LIMIT = 32767;
 
-    private ChatService vaultChatProvider = null;
-    private PermissionService vaultPermissionProvider = null;
+    private VaultProviderRegistry vaultRegistry = null;
     private boolean essentialsChatInstalled = false;
 
     private String cachedRawFormat = null;
@@ -66,51 +61,16 @@ public class ChatManager extends FreedomService
             return;
         }
 
-		Plugin vaultPlugin = server.getPluginManager().getPlugin("Vault");
-		if (vaultPlugin == null || !vaultPlugin.isEnabled()) {
-			return;
-		}
+        VaultProviderRegistry registry = VaultProviderRegistry.create(plugin);
+        if (registry == null) {
+            return;
+        }
 
-		try {
-			org.bukkit.plugin.RegisteredServiceProvider<net.milkbowl.vault.chat.Chat> existingProvider = server
-					.getServicesManager().getRegistration(net.milkbowl.vault.chat.Chat.class);
-
-			boolean shouldOverride = ConfigEntry.VAULT_CHAT_PROVIDER_OVERRIDE_EXISTING.getBoolean();
-			if (existingProvider != null && !shouldOverride && !essentialsChatInstalled) {
-				if (vaultChatProvider == null) {
-					FLog.info("Using a registered chat provider (" + existingProvider.getProvider().getName()
-							+ "). To avoid this, set 'override_existing' to 'true' in config.yml.");
-				}
-				return;
-			}
-
-			if (!essentialsChatInstalled && existingProvider != null) {
-				FLog.info("Overriding existing chat provider (" + existingProvider.getProvider().getName() + ".");
-			}
-
-			// Register Permission provider (required to use the Vault handler)
-			vaultPermissionProvider = new PermissionService(plugin);
-			server.getServicesManager().register(
-					Permission.class,
-					vaultPermissionProvider,
-					plugin,
-					org.bukkit.plugin.ServicePriority.High);
-
-			// Register Chat provider
-			vaultChatProvider = new ChatService(plugin, vaultPermissionProvider);
-			server.getServicesManager().register(
-					Chat.class,
-					vaultChatProvider,
-					plugin,
-					org.bukkit.plugin.ServicePriority.High);
-
-			// Trigger EssentialsX to re-check permissions provider
-			triggerEssentialsPermissionRecheck();
-		} catch (Exception ex) {
-			FLog.warning("Failed to register chat provider: " + ex.getMessage());
-			FLog.warning(ex);
-		}
-	}
+        boolean shouldOverride = ConfigEntry.VAULT_CHAT_PROVIDER_OVERRIDE_EXISTING.getBoolean();
+        if (registry.register(shouldOverride, essentialsChatInstalled)) {
+            vaultRegistry = registry;
+        }
+    }
 
 	/**
 	 * Handles PluginEnableEvent to re-register Vault Chat Provider when Vault
@@ -126,48 +86,11 @@ public class ChatManager extends FreedomService
 		}
 	}
 
-	/**
-	 * Triggers EssentialsX to re-check permissions providers.
-	 * EssentialsX checks for Vault providers on startup, but TFM registers after.
-	 * This forces a re-check so EssentialsX uses TFM's Vault provider instead of
-	 * superperms.
-	 */
-	private void triggerEssentialsPermissionRecheck() {
-		Plugin essentials = server.getPluginManager().getPlugin("Essentials");
-		if (essentials == null || !essentials.isEnabled()) {
-			return;
-		}
-
-		try {
-			// Use reflection to call PermissionsHandler.checkPermissions()
-			Object permissionsHandler = essentials.getClass().getMethod("getPermissionsHandler").invoke(essentials);
-			if (permissionsHandler != null) {
-				permissionsHandler.getClass().getMethod("checkPermissions").invoke(permissionsHandler);
-			}
-		} catch (Exception ex) {
-			// If reflection fails, log a warning but don't break TFM
-			FLog.info(
-					"Could not trigger EssentialsX to re-check permissions. Server restart may be required for prefixes to work.");
-		}
-	}
-
 	@Override
 	protected void onStop() {
-		if (vaultChatProvider != null) {
-			try {
-				server.getServicesManager().unregister(Chat.class, vaultChatProvider);
-			} catch (Exception ex) {
-				FLog.warning("Failed to unregister Vault chat provider: " + ex.getMessage());
-			}
-			vaultChatProvider = null;
-		}
-		if (vaultPermissionProvider != null) {
-			try {
-				server.getServicesManager().unregister(Permission.class, vaultPermissionProvider);
-			} catch (Exception ex) {
-				FLog.warning("Failed to unregister Vault permission provider: " + ex.getMessage());
-			}
-			vaultPermissionProvider = null;
+		if (vaultRegistry != null) {
+			vaultRegistry.unregister();
+			vaultRegistry = null;
 		}
 		cachedRawFormat = null;
 		cachedTranslatedFormat = null;
@@ -235,12 +158,10 @@ public class ChatManager extends FreedomService
 		final Component messageComponent = AdventureUtil.formatChat(message, allowColors, allowSpecial);
 		event.message(messageComponent);
 
-		// Only set format if EssentialsChat is not installed
-		// Get prefix (includes tag if present, based on enforce_prefix setting)
-		String prefix = (vaultChatProvider != null)
-			? vaultChatProvider.getPlayerPrefix(player)
-			: getPlayerRankPrefix(player);
-		String suffix = getPlayerSuffix(player);
+		// Prefix and suffix come from the shared builder so chat, the tab list, and
+		// the Vault Chat export all render identically — with or without Vault.
+		String prefix = buildPlayerPrefix(player, PrefixFormat.SECTION);
+		String suffix = "";
 		String worldName = player.getWorld().getName();
 
 		final String formatTemplate = getTranslatedChatFormat();
@@ -380,36 +301,6 @@ public class ChatManager extends FreedomService
 	}
 
 	/**
-	 * Gets the player's rank prefix only (without custom tag).
-	 */
-	private String getPlayerRankPrefix(Player player) {
-		if (vaultChatProvider != null) {
-			String prefix = vaultChatProvider.getPlayerPrefix(player);
-			return prefix != null ? prefix : "";
-		}
-
-		// Build rank prefix directly
-		me.totalfreedom.totalfreedommod.rank.Displayable display = plugin.rm.getDisplay(player);
-		if (display == null) {
-			return "";
-		}
-
-		// Get configurable prefix for this rank/title
-		String configPrefix = getConfigPrefix(display);
-		if (configPrefix != null && !configPrefix.isEmpty()) {
-			return AdventureUtil.translateAlternateColorCodes(configPrefix);
-		}
-
-		// Fall back to default rank tag
-		Component coloredTag = display.getColoredTag();
-		if (coloredTag != null && !coloredTag.equals(Component.empty())) {
-			return AdventureUtil.componentToLegacySection(coloredTag);
-		}
-
-		return "";
-	}
-
-	/**
 	 * Gets the player's custom tag (from /tag command).
 	 */
 	private String getPlayerCustomTag(Player player) {
@@ -457,12 +348,23 @@ public class ChatManager extends FreedomService
 	/**
 	 * Used by TabList so the same logic and config settings apply in chat and in the tab list.
 	 */
-	public String buildPlayerPrefix(Player player)
+	public enum PrefixFormat
 	{
-		if (vaultChatProvider != null)
+		SECTION,
+		AMPERSAND
+	}
+
+	public String buildPlayerPrefix(Player player, PrefixFormat format)
+	{
+		String prefix = buildPrefixSection(player);
+		return format == PrefixFormat.AMPERSAND ? prefix.replace('§', '&') : prefix;
+	}
+
+	private String buildPrefixSection(Player player)
+	{
+		if (player == null)
 		{
-			// ChatService already contains the full logic; just normalise § → &.
-			return vaultChatProvider.getPlayerPrefix(player).replace('§', '&');
+			return "";
 		}
 
 		me.totalfreedom.totalfreedommod.rank.Displayable display = plugin.rm.getDisplay(player);
@@ -499,29 +401,13 @@ public class ChatManager extends FreedomService
 			formattedTag = AdventureUtil.translateAlternateColorCodes(tagTemplate).replace("{TAG}", customTag);
 		}
 
-		String result;
 		if (!enforcePrefix)
 		{
-			result = formattedTag != null ? formattedTag : rankPrefix;
+			return formattedTag != null ? formattedTag : rankPrefix;
 		}
-		else
-		{
-			result = formattedTag != null
-					? (!rankPrefix.isEmpty() ? rankPrefix + formattedTag : formattedTag)
-					: rankPrefix;
-		}
-
-		return result.replace('§', '&');
-	}
-
-	/**
-	 * Gets the player's suffix (currently returns an empty string).
-	 */
-	private String getPlayerSuffix(Player player) {
-		if (vaultChatProvider != null) {
-			return vaultChatProvider.getPlayerSuffix(player);
-		}
-		return "";
+		return formattedTag != null
+				? (!rankPrefix.isEmpty() ? rankPrefix + formattedTag : formattedTag)
+				: rankPrefix;
 	}
 
 }
