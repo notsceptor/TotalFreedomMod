@@ -254,7 +254,6 @@ public class HurtProjectileGuard extends FreedomService
         Collection<BlockState> tileEntities;
         try
         {
-            tileEntities = chunk.getTileEntities();
             tileEntities = chunk.getTileEntities(block -> block.getType() == Material.SPAWNER, false);
         }
         catch (Throwable t)
