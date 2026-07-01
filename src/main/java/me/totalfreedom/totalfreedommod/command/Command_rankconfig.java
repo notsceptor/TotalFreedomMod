@@ -14,7 +14,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-@CommandPermissions(level = Rank.SENIOR_ADMIN, source = SourceType.BOTH, permission = "tfm.manage.ranks")
+@CommandPermissions(level = Rank.SENIOR_ADMIN, source = SourceType.ONLY_CONSOLE, permission = "tfm.manage.ranks")
 @CommandParameters(description = "Configure custom ranks with an interactive menu.",
         usage = "/<command> [list | create | edit <rank> | delete <rank> | set <rank> <property> [value] | setrank <player> <rank> | reload | save]",
         aliases = "rankconf,rankcfg")

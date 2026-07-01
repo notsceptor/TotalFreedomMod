@@ -173,6 +173,39 @@ final class EntityDataRules
     }
 
     /**
+     * Returns true when any compound in the tree carries a {@code click_event} tag,
+     * which can make clients execute commands from item or block NBT text.
+     */
+    static boolean containsClickEvent(Object node)
+    {
+        if (!isAvailable() || node == null || !COMPOUND_TAG.equals(node.getClass().getName()))
+        {
+            return false;
+        }
+        try
+        {
+            for (Object keyObj : (Iterable<?>) COMPOUND_KEYS.invoke(node))
+            {
+                String key = keyObj.toString();
+                if ("click_event".equals(key))
+                {
+                    return true;
+                }
+                Object child = unwrap(COMPOUND_GET.invoke(node, key));
+                if (child != null && COMPOUND_TAG.equals(child.getClass().getName())
+                        && containsClickEvent(child))
+                {
+                    return true;
+                }
+            }
+        }
+        catch (Throwable ignored)
+        {
+        }
+        return false;
+    }
+
+    /**
      * Recursively scan nested compounds for malformed int-array list encodings.
      */
     static Violation checkNested(Object node)

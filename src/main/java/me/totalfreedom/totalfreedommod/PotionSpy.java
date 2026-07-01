@@ -80,9 +80,9 @@ public class PotionSpy extends FreedomService
             if (!data.isPotionSpy())
                 continue;
 
-            // Issue the message along a natural exponential curve, so less messages occur over time
-            final double lg = Math.log(amount);
-            if (Math.abs(lg - Math.round(lg)) >= 0.01) 
+            // Issue the message along 3^n, so less messages occur over time
+            final double lg = Math.log(amount) / Math.log(3.0);
+            if (Math.abs(lg - Math.floor(lg)) >= 0.01) 
                 continue;
 
             FUtil.playerMsg(player, Component.text(thrower.getName()).color(NamedTextColor.GRAY)

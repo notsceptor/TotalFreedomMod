@@ -81,11 +81,11 @@ public class Command_tag extends FreedomCommand
         Component colorizedTag = FUtil.colorize(StringUtils.replaceEachRepeatedly(StringUtils.strip(tag),
                 new String[]
                 {
-                    "\u00A7", "&k"
+                    "\u00A7"
                 },
                 new String[]
                 {
-                    "", ""
+                    ""
                 }));
         colorizedTag = colorizedTag.append(Component.text("").color(NamedTextColor.WHITE));
         final String outputTag = AdventureUtil.componentToLegacySection(colorizedTag);

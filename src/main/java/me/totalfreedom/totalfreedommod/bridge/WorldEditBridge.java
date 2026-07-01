@@ -93,6 +93,15 @@ public class WorldEditBridge extends FreedomService
         }
     }
 
+    public int cancel(Player player)
+    {
+        if (hook != null)
+        {
+            return hook.cancel(player);
+        }
+        return 0;
+    }
+
     public void refreshBypassNegation(Player player)
     {
         if (hook != null)

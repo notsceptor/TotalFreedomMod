@@ -5,16 +5,24 @@ import java.util.Collections;
 import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
+import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.ConfigInterfaces.ConfigLoadable;
 import me.totalfreedom.totalfreedommod.util.ConfigInterfaces.ConfigSavable;
 import me.totalfreedom.totalfreedommod.util.ConfigInterfaces.Validatable;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+
 import org.apache.commons.lang3.Validate;
+import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 
 public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
 {
     public static final int MAX_STRIKES = 3;
+    // max number of IP addresses retained per player
+    public static final int MAX_IPS = 2;
 
     @Getter
     @Setter
@@ -44,6 +52,8 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
     @Setter
     private String savedTag;
     @Getter
+    private Component nickname;
+    @Getter
     private int strikes;
     private final List<String> ips = Lists.newArrayList();
 
@@ -63,6 +73,7 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
         this.username = cs.getString("username", username);
         this.ips.clear();
         this.ips.addAll(cs.getStringList("ips"));
+        trimIps();
         this.firstJoinUnix = cs.getLong("first_join", 0);
         this.lastJoinUnix = cs.getLong("last_join", 0);
         this.potionSpy = cs.getBoolean("potion_spy", false);
@@ -75,6 +86,12 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
         if (this.savedTag != null && this.savedTag.isEmpty())
         {
             this.savedTag = null;
+        }
+        final String rawNickname = cs.getString("nickname", null);
+        this.nickname = rawNickname != null && !rawNickname.isEmpty() ? AdventureUtil.legacyToComponent(rawNickname) : null;
+        if (this.nickname != null && !hasCustomNickname())
+        {
+            this.nickname = null;
         }
     }
 
@@ -93,6 +110,7 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
         cs.set("commands_blocked", commandsBlocked);
         cs.set("strikes", strikes);
         cs.set("saved_tag", savedTag);
+        cs.set("nickname", nickname != null ? AdventureUtil.componentToLegacy(nickname) : null);
     }
 
     public List<String> getIps()
@@ -103,7 +121,18 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
     // IP utils
     public boolean addIp(String ip)
     {
-        return ips.contains(ip) ? false : ips.add(ip);
+        final boolean isNew = !ips.remove(ip);
+        ips.add(ip);
+        trimIps();
+        return isNew;
+    }
+
+    private void trimIps()
+    {
+        while (ips.size() > MAX_IPS)
+        {
+            ips.remove(0);
+        }
     }
 
     public boolean removeIp(String ip)
@@ -125,5 +154,38 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
         if (strikes < 0 || strikes > MAX_STRIKES)
             return;
         this.strikes = strikes;
+    }
+
+    public void setNickname(Component nickname)
+    {
+        this.nickname = nickname;
+        if (!hasCustomNickname())
+            this.nickname = null;
+        final Player player = Bukkit.getPlayerExact(username);
+        if (player != null)
+            player.displayName(hasCustomNickname() ? getDisplayedNickname() : null);
+        final TotalFreedomMod plugin = TotalFreedomMod.plugin();
+        if (plugin != null && plugin.pl != null)
+            plugin.pl.saveData(this);
+    }
+
+    public Component getDisplayedNickname()
+    {
+        if (!hasCustomNickname())
+            return null;
+        return Component.text("~", NamedTextColor.GRAY)
+            .append(this.nickname.colorIfAbsent(NamedTextColor.WHITE));
+    }
+
+    public boolean hasCustomNickname()
+    {
+        if (this.nickname == null)
+            return false;
+        final String plain = AdventureUtil.componentToPlainText(this.nickname).trim();
+        if (!AdventureUtil.hasVisibleText(plain))
+            return false;
+        if (!plain.equalsIgnoreCase(username))
+            return true;
+        return AdventureUtil.hasVisualStyle(this.nickname);
     }
 }

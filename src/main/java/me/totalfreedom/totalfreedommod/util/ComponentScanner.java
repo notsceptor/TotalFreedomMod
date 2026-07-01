@@ -69,6 +69,58 @@ public final class ComponentScanner
         return safeNodeCount(root, maxNodes) < 0;
     }
 
+    public static boolean isCursed(Component root, int maxNodes)
+    {
+        return isUnsafe(root, maxNodes) || hasClickEvent(root, maxNodes);
+    }
+
+    /**
+     * Returns true when the component graph contains a {@code clickEvent}, which
+     * lets clients run commands as the interacting player.
+     */
+    public static boolean hasClickEvent(Component root, int maxNodes)
+    {
+        if (root == null)
+        {
+            return false;
+        }
+        if (safeNodeCount(root, maxNodes) < 0)
+        {
+            return true;
+        }
+        IdentityHashMap<Component, Boolean> seen = new IdentityHashMap<>();
+        Deque<Component> stack = new ArrayDeque<>();
+        stack.push(root);
+        while (!stack.isEmpty())
+        {
+            Component current = stack.pop();
+            if (seen.put(current, Boolean.TRUE) != null)
+            {
+                continue;
+            }
+            if (current.clickEvent() != null)
+            {
+                return true;
+            }
+            for (Component child : current.children())
+            {
+                stack.push(child);
+            }
+            if (current instanceof TranslatableComponent translatable)
+            {
+                for (TranslationArgument arg : translatable.arguments())
+                {
+                    Object value = arg.value();
+                    if (value instanceof Component vc)
+                    {
+                        stack.push(vc);
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
     private static boolean containsFormatSpecifier(String key)
     {
         if (key == null || key.indexOf('%') < 0)
