@@ -2,8 +2,6 @@ package me.totalfreedom.totalfreedommod.command;
 
 import java.util.Iterator;
 import java.util.Map;
-
-import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FUtil;
@@ -52,16 +50,16 @@ public class Command_colorme extends FreedomCommand
             return true;
         }
 
-        // Build nickname with color
-        final PlayerData data = plugin.pl.getData(playerSender);
-        final String base = data.getNickname() != null
-            ? AdventureUtil.componentToPlainText(data.getNickname()).trim()
-            : playerSender.getName();
-        final Component newNick = Component.text(base).color(color);
-        data.setNickname(newNick);
+        // Build nickname with color - convert to legacy string for Essentials
+        String displayNamePlain = AdventureUtil.stripColor(playerSender.getDisplayName()).trim();
+        String newNick = AdventureUtil.componentToLegacy(
+                Component.text(displayNamePlain)
+                        .color(color)
+                        .append(Component.text("").color(NamedTextColor.WHITE)));
 
-        msg(Component.text("Your nickname is now: ")
-            .append(newNick));
+        plugin.esb.setNickname(sender.getName(), newNick);
+
+        msg("Your nickname is now: " + newNick);
 
         return true;
     }

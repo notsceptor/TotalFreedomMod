@@ -11,7 +11,6 @@ import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
-import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Interaction;
 import org.bukkit.entity.TextDisplay;
@@ -30,8 +29,6 @@ public class TextDisplayGuard extends FreedomService
     private static final float MAX_VIEW_RANGE = 64.0f;
     private static final int MAX_TEXT_LENGTH = 512;
     private static final float MAX_INTERACTION_SIZE = 16.0f;
-    private static final float MAX_SHADOW_RADIUS = 8.0f;
-    private static final float MAX_SHADOW_STRENGTH = 16.0f;
 
     private int sweepTaskId = -1;
 
@@ -53,8 +50,6 @@ public class TextDisplayGuard extends FreedomService
         FLog.info("[TextDisplayGuard] active"
                 + " [max_text_length=" + MAX_TEXT_LENGTH + "]"
                 + " [max_view_range=" + MAX_VIEW_RANGE + "]"
-                + " [max_shadow_radius=" + MAX_SHADOW_RADIUS + "]"
-                + " [max_shadow_strength=" + MAX_SHADOW_STRENGTH + "]"
                 + " [max_interaction_size=" + MAX_INTERACTION_SIZE + "]"
                 + " [periodic sweep every " + ticks + "t]");
     }
@@ -167,10 +162,6 @@ public class TextDisplayGuard extends FreedomService
 
     private boolean isCursed(Entity entity)
     {
-        if (entity instanceof Display display && hasCursedShadow(display))
-        {
-            return true;
-        }
         if (entity instanceof TextDisplay display)
         {
             return isCursedTextDisplay(display);
@@ -180,21 +171,6 @@ public class TextDisplayGuard extends FreedomService
             return isOversizedInteraction(interaction);
         }
         return false;
-    }
-
-    private boolean hasCursedShadow(Display display)
-    {
-        try
-        {
-            float radius = display.getShadowRadius();
-            float strength = display.getShadowStrength();
-            return !Float.isFinite(radius) || radius < 0.0f || radius > MAX_SHADOW_RADIUS
-                    || !Float.isFinite(strength) || strength < 0.0f || strength > MAX_SHADOW_STRENGTH;
-        }
-        catch (Throwable t)
-        {
-            return false;
-        }
     }
 
     private boolean isCursedTextDisplay(TextDisplay display)
@@ -210,12 +186,8 @@ public class TextDisplayGuard extends FreedomService
         }
         if (text != null)
         {
-            if (ComponentScanner.isCursed(text, maxComponentNodes()))
-            {
-                return true;
-            }
             int len = ComponentScanner.safePlainTextLength(text, maxComponentNodes());
-            if (len > MAX_TEXT_LENGTH)
+            if (len < 0 || len > MAX_TEXT_LENGTH)
             {
                 return true;
             }

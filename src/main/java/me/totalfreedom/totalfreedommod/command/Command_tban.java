@@ -39,8 +39,7 @@ public class Command_tban extends FreedomCommand
 
         final PlayerData data = plugin.pl.getData(player);
         assert data != null;
-        if (!plugin.al.isAdmin(player))
-            data.setStrikes(data.getStrikes() + 1);
+        data.setStrikes(data.getStrikes() + 1);
 
         player.kick(Component.text("You have been temporarily banned for five minutes. Please read totalfreedom.me for more info.", NamedTextColor.RED));
 

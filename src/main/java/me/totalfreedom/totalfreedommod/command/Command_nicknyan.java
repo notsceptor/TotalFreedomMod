@@ -1,10 +1,10 @@
 package me.totalfreedom.totalfreedommod.command;
 
-import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -23,11 +23,9 @@ public class Command_nicknyan extends FreedomCommand
             return false;
         }
 
-        final PlayerData data = plugin.pl.getData(playerSender);
-
         if ("off".equals(args[0]))
         {
-            data.setNickname(null);
+            plugin.esb.setNickname(sender.getName(), null);
             msg("Nickname cleared.");
             return true;
         }
@@ -59,15 +57,19 @@ public class Command_nicknyan extends FreedomCommand
             }
         }
 
-        Component newNick = Component.empty();
+        Component newNickComponent = Component.empty();
         final char[] chars = nickPlain.toCharArray();
         for (char c : chars)
-            newNick = newNick.append(Component.text(String.valueOf(c)).color(FUtil.randomChatColor()));
+        {
+            newNickComponent = newNickComponent.append(Component.text(String.valueOf(c)).color(FUtil.randomChatColor()));
+        }
+        newNickComponent = newNickComponent.append(Component.text("").color(NamedTextColor.WHITE));
+        
+        String newNick = AdventureUtil.componentToLegacy(newNickComponent);
 
-        data.setNickname(newNick);
+        plugin.esb.setNickname(sender.getName(), newNick);
 
-        msg(Component.text("Your nickname is now: ")
-            .append(newNick));
+        msg("Your nickname is now: " + newNick);
 
         return true;
     }

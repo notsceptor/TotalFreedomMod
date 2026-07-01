@@ -5,11 +5,6 @@ import io.papermc.paper.datacomponent.item.BundleContents;
 import io.papermc.paper.datacomponent.item.ChargedProjectiles;
 import io.papermc.paper.datacomponent.item.ItemContainerContents;
 import io.papermc.paper.datacomponent.item.ItemLore;
-import io.papermc.paper.datacomponent.item.PotionContents;
-import io.papermc.paper.datacomponent.item.SuspiciousStewEffects;
-import io.papermc.paper.datacomponent.item.WritableBookContent;
-import io.papermc.paper.datacomponent.item.WrittenBookContent;
-import io.papermc.paper.text.Filtered;
 import java.util.List;
 import me.totalfreedom.totalfreedommod.util.ComponentScanner;
 import net.kyori.adventure.text.Component;
@@ -38,7 +33,6 @@ final class ItemScanner
         OVERSIZED_LORE,
         OVERSIZED_TOTAL,
         OVERSIZED_NBT,
-        OVERSIZED_POTION,
         UNINSPECTABLE_NBT,
         MALFORMED_ENTITY_DATA,
         CURSED_COMPONENT,
@@ -55,12 +49,12 @@ final class ItemScanner
         }
     }
 
-    static Verdict scan(ItemStack item, boolean panicMode, int maxPotionEffects)
+    static Verdict scan(ItemStack item, boolean panicMode)
     {
-        return scan(item, panicMode, maxPotionEffects, 0);
+        return scan(item, panicMode, 0);
     }
 
-    private static Verdict scan(ItemStack item, boolean panicMode, int maxPotionEffects, int depth)
+    private static Verdict scan(ItemStack item, boolean panicMode, int depth)
     {
         if (item == null || item.isEmpty())
         {
@@ -84,21 +78,21 @@ final class ItemScanner
             }
         }
 
-        // POTION_CONTENTS / SUSPICIOUS_STEW_EFFECTS — status-effect spam bombs.
-        Verdict effects = inspectEffectBearer(item, maxPotionEffects, depth);
-        if (effects.isCursed())
-        {
-            return effects;
-        }
-
         // CUSTOM_NAME — gate the serializer behind a safe-graph check
         if (item.hasData(DataComponentTypes.CUSTOM_NAME))
         {
             Component name = item.getData(DataComponentTypes.CUSTOM_NAME);
-            Verdict nameVerdict = inspectNamedComponent(name, depth);
-            if (nameVerdict.isCursed())
+            if (name != null)
             {
-                return nameVerdict;
+                int len = ComponentScanner.safePlainTextLength(name, MAX_COMPONENT_NODES);
+                if (len < 0)
+                {
+                    return new Verdict(Reason.CURSED_COMPONENT, -1L, depth);
+                }
+                if (len > MAX_NAME_LENGTH)
+                {
+                    return new Verdict(Reason.OVERSIZED_NAME, len, depth);
+                }
             }
         }
 
@@ -115,42 +109,14 @@ final class ItemScanner
                 }
                 for (Component line : lines)
                 {
-                    Verdict lineVerdict = inspectLoreLine(line, depth);
-                    if (lineVerdict.isCursed())
-                    {
-                        return lineVerdict;
-                    }
-                }
-            }
-        }
-
-        if (item.hasData(DataComponentTypes.WRITTEN_BOOK_CONTENT))
-        {
-            WrittenBookContent book = item.getData(DataComponentTypes.WRITTEN_BOOK_CONTENT);
-            if (book != null)
-            {
-                for (Filtered<Component> page : book.pages())
-                {
-                    Component raw = page != null ? page.raw() : null;
-                    if (ComponentScanner.isCursed(raw, MAX_COMPONENT_NODES))
+                    int len = ComponentScanner.safePlainTextLength(line, MAX_COMPONENT_NODES);
+                    if (len < 0)
                     {
                         return new Verdict(Reason.CURSED_COMPONENT, -1L, depth);
                     }
-                }
-            }
-        }
-
-        if (item.hasData(DataComponentTypes.WRITABLE_BOOK_CONTENT))
-        {
-            WritableBookContent book = item.getData(DataComponentTypes.WRITABLE_BOOK_CONTENT);
-            if (book != null)
-            {
-                for (Filtered<String> page : book.pages())
-                {
-                    String raw = page != null ? page.raw() : null;
-                    if (isCursedWritablePage(raw))
+                    if (len > MAX_LORE_LINE_LENGTH)
                     {
-                        return new Verdict(Reason.CURSED_COMPONENT, -1L, depth);
+                        return new Verdict(Reason.OVERSIZED_LORE, len, depth);
                     }
                 }
             }
@@ -164,7 +130,7 @@ final class ItemScanner
             {
                 for (ItemStack inner : container.contents())
                 {
-                    Verdict v = scan(inner, panicMode, maxPotionEffects, depth + 1);
+                    Verdict v = scan(inner, panicMode, depth + 1);
                     if (v.isCursed())
                     {
                         return v;
@@ -181,7 +147,7 @@ final class ItemScanner
             {
                 for (ItemStack inner : bundle.contents())
                 {
-                    Verdict v = scan(inner, panicMode, maxPotionEffects, depth + 1);
+                    Verdict v = scan(inner, panicMode, depth + 1);
                     if (v.isCursed())
                     {
                         return v;
@@ -197,7 +163,7 @@ final class ItemScanner
             {
                 for (ItemStack projectile : charged.projectiles())
                 {
-                    Verdict v = scan(projectile, panicMode, maxPotionEffects, depth + 1);
+                    Verdict v = scan(projectile, panicMode, depth + 1);
                     if (v.isCursed())
                     {
                         return v;
@@ -222,86 +188,5 @@ final class ItemScanner
         }
 
         return Verdict.CLEAN;
-    }
-
-    private static Verdict inspectEffectBearer(ItemStack item, int maxPotionEffects, int depth)
-    {
-        if (maxPotionEffects <= 0)
-        {
-            return Verdict.CLEAN;
-        }
-
-        if (item.hasData(DataComponentTypes.POTION_CONTENTS))
-        {
-            PotionContents contents = item.getData(DataComponentTypes.POTION_CONTENTS);
-            if (contents != null)
-            {
-                int count = contents.customEffects().size();
-                if (count > maxPotionEffects)
-                {
-                    return new Verdict(Reason.OVERSIZED_POTION, count, depth);
-                }
-            }
-        }
-
-        if (item.hasData(DataComponentTypes.SUSPICIOUS_STEW_EFFECTS))
-        {
-            SuspiciousStewEffects stew = item.getData(DataComponentTypes.SUSPICIOUS_STEW_EFFECTS);
-            if (stew != null)
-            {
-                int count = stew.effects().size();
-                if (count > maxPotionEffects)
-                {
-                    return new Verdict(Reason.OVERSIZED_POTION, count, depth);
-                }
-            }
-        }
-
-        return Verdict.CLEAN;
-    }
-
-    private static Verdict inspectNamedComponent(Component name, int depth)
-    {
-        if (name == null)
-        {
-            return Verdict.CLEAN;
-        }
-        if (ComponentScanner.isCursed(name, MAX_COMPONENT_NODES))
-        {
-            return new Verdict(Reason.CURSED_COMPONENT, -1L, depth);
-        }
-        int len = ComponentScanner.safePlainTextLength(name, MAX_COMPONENT_NODES);
-        if (len > MAX_NAME_LENGTH)
-        {
-            return new Verdict(Reason.OVERSIZED_NAME, len, depth);
-        }
-        return Verdict.CLEAN;
-    }
-
-    private static Verdict inspectLoreLine(Component line, int depth)
-    {
-        if (line == null)
-        {
-            return Verdict.CLEAN;
-        }
-        if (ComponentScanner.isCursed(line, MAX_COMPONENT_NODES))
-        {
-            return new Verdict(Reason.CURSED_COMPONENT, -1L, depth);
-        }
-        int len = ComponentScanner.safePlainTextLength(line, MAX_COMPONENT_NODES);
-        if (len > MAX_LORE_LINE_LENGTH)
-        {
-            return new Verdict(Reason.OVERSIZED_LORE, len, depth);
-        }
-        return Verdict.CLEAN;
-    }
-
-    private static boolean isCursedWritablePage(String page)
-    {
-        if (page == null || page.isEmpty())
-        {
-            return false;
-        }
-        return page.indexOf("click_event") >= 0;
     }
 }

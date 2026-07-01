@@ -128,11 +128,11 @@ public class EntityNameValidator extends FreedomService
         {
             return Verdict.CLEAN;
         }
-        if (ComponentScanner.isCursed(name, maxComponentNodes()))
+        int len = ComponentScanner.safePlainTextLength(name, maxComponentNodes());
+        if (len < 0)
         {
             return new Verdict(Reason.CURSED_COMPONENT, -1L);
         }
-        int len = ComponentScanner.safePlainTextLength(name, maxComponentNodes());
         if (len > maxNameLength())
         {
             return new Verdict(Reason.OVERSIZED_NAME, len);

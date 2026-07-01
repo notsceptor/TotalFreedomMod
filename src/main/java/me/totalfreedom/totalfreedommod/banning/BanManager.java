@@ -391,8 +391,6 @@ public class BanManager extends FreedomService
 
     public boolean addBan(Ban ban)
     {
-        cancelWorldEditFor(ban);
-
         final boolean added;
         final boolean sql;
         synchronized (lock)
@@ -418,27 +416,6 @@ public class BanManager extends FreedomService
         }
 
         return added;
-    }
-
-    private void cancelWorldEditFor(Ban ban)
-    {
-        if (plugin.web == null)
-        {
-            return;
-        }
-        Player player = null;
-        if (ban.getUuid() != null)
-        {
-            player = server.getPlayer(ban.getUuid());
-        }
-        if (player == null && ban.getUsername() != null)
-        {
-            player = server.getPlayerExact(ban.getUsername());
-        }
-        if (player != null)
-        {
-            plugin.web.cancel(player);
-        }
     }
 
     /**

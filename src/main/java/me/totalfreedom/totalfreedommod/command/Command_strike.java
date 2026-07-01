@@ -10,7 +10,7 @@ import org.bukkit.entity.Player;
 
 @CommandPermissions(level = Rank.SUPER_ADMIN, source = SourceType.BOTH, permission = "tfm.admin.strike")
 @CommandParameters(description = "Manages the strikes for a player.", usage = "/<command> <add | remove | clear> <player>", aliases = "strike")
-public class Command_strikes extends FreedomCommand
+public class Command_strike extends FreedomCommand
 {
     public boolean modify(final CommandContext ctx, final String playerName, int mod)
     {

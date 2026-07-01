@@ -1,10 +1,8 @@
 package me.totalfreedom.totalfreedommod.tablist;
 
-import me.totalfreedom.totalfreedommod.ChatManager;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
-import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
@@ -117,6 +115,8 @@ public class TabList extends FreedomService
         }
         ctx.playerComponentTemplate = ConfigEntry.TABLIST_PLAYER_COMPONENT.getString();
         ctx.afkTag = ConfigEntry.TABLIST_AFK_TAG.getString();
+        String nickIndicator = ConfigEntry.TABLIST_DISPLAY_NICKNAME_PREFIX.getString();
+        ctx.nicknameIndicator = nickIndicator != null ? nickIndicator : "";
         ctx.essentialsEnabled = plugin.esb.isEssentialsEnabled();
         return ctx;
     }
@@ -134,7 +134,7 @@ public class TabList extends FreedomService
     private Component buildPlayerListName(Player player, CycleContext ctx)
     {
         // ${prefix} — rank tag / custom tag, same logic as chat prefix
-        String prefix = plugin.cm.buildPlayerPrefix(player, ChatManager.PrefixFormat.AMPERSAND);
+        String prefix = plugin.cm.buildPlayerPrefix(player);
 
         // ${afk_tag} — AFK indicator (empty if not AFK or Essentials unavailable)
         String afkTag = "";
@@ -159,12 +159,19 @@ public class TabList extends FreedomService
     }
 
     // Returns the player's display name for the tab list:
+    // Essentials may return § codes in the nickname; these are normalised to & for legacyToComponent.
     private String resolveDisplayName(Player player, CycleContext ctx)
     {
-        final PlayerData data = plugin.pl.getData(player);
-        if (!data.hasCustomNickname())
-            return "&r" + player.getName();
-        return AdventureUtil.componentToLegacy(data.getDisplayedNickname()).replace('§', '&');
+        if (ctx.essentialsEnabled)
+        {
+            String nickname = plugin.esb.getNickname(player.getName());
+            if (nickname != null && !nickname.isEmpty()
+                    && !nickname.equalsIgnoreCase(player.getName()))
+            {
+                return ctx.nicknameIndicator + nickname.replace('§', '&');
+            }
+        }
+        return "&r" + player.getName();
     }
 
     private void pushRecolor()
@@ -247,6 +254,7 @@ public class TabList extends FreedomService
         Component footer;
         String playerComponentTemplate;
         String afkTag;
+        String nicknameIndicator;
         boolean essentialsEnabled;
     }
 }

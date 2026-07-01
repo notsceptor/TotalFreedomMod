@@ -16,7 +16,9 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -48,7 +50,7 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
     private final CommandParameters params;
     @Getter
     private final CommandPermissions perms;
-    private final List<CommandDispatchTargetMeta> dispatchers;
+    private final Map<Pattern, CommandDispatchTargetMeta> dispatchMap;
 
     public FreedomCommand()
     {
@@ -64,14 +66,14 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
             FLog.warning("Ignoring permissions for command " + getClass().getSimpleName() + ". Command is not annotated!");
         }
 
-        this.dispatchers = buildDispatchers();
+        this.dispatchMap = buildDispatchMap();
     }
 
-    private final List<CommandDispatchTargetMeta> buildDispatchers()
+    private final Map<Pattern, CommandDispatchTargetMeta> buildDispatchMap()
     {
         final String commandName = getClass().getSimpleName();
 
-        final List<CommandDispatchTargetMeta> dispatchers = new ArrayList<>();
+        final Map<Pattern, CommandDispatchTargetMeta> dispatchMap = new HashMap<>();
 
         // Go through all the methods in the class
         for (final Method method : getClass().getMethods())
@@ -140,12 +142,10 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
             final String[] switches = !ci.switches().isEmpty() ? ci.switches().split(",") : new String[0];
 
             // Insert into the map
-            dispatchers.add(new CommandDispatchTargetMeta(pattern, Arrays.asList(switches), ci.priority(), method, ellipsis, resolverNames, resolverStrategies));
+            dispatchMap.put(pattern, new CommandDispatchTargetMeta(pattern, Arrays.asList(switches), method, ellipsis, resolverNames, resolverStrategies));
         }
 
-        dispatchers.sort((a, b) -> b.priority.compareTo(a.priority));
-
-        return dispatchers;
+        return dispatchMap;
     }
 
     private final boolean dispatchCommand(CommandContext ctx, final String[] args)
@@ -278,15 +278,16 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
     private final CommandDispatchTargetMeta findDispatchTarget(final String[] args)
     {
         // Just try to find a pattern that matches the arguments
-        for (CommandDispatchTargetMeta cd : dispatchers)
+        for (final Map.Entry<Pattern, CommandDispatchTargetMeta> entry : dispatchMap.entrySet())
         {
-            final Pattern pat = cd.pattern;
+            final Pattern pat = entry.getKey();
+            final CommandDispatchTargetMeta cd = entry.getValue();
             final String sanitizedArgs = StringUtils.join((List<String>) Arrays.stream(args)
                 .filter(a -> !cd.switches.contains(a.replaceAll("^-", "")))
                 .collect(Collectors.toCollection(ArrayList::new)), " ");
             if (!pat.matcher(sanitizedArgs).matches())
                 continue;
-            return cd;
+            return entry.getValue();
         }
         return null;
     }
@@ -584,7 +585,6 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
     {
         private final Pattern pattern;
         private final List<String> switches;
-        private final DispatchTargetPriority priority;
         private final Method method;
         private final Optional<Integer> ellipsis;
         private final String[] resolverNames;
@@ -592,7 +592,6 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
 
         private CommandDispatchTargetMeta(Pattern pattern,
             List<String> switches,
-            DispatchTargetPriority priority,
             Method method,
             Optional<Integer> ellipsis,
             String[] resolverNames,
@@ -600,7 +599,6 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
         {
             this.pattern = pattern;
             this.switches = switches;
-            this.priority = priority;
             this.method = method;
             this.ellipsis = ellipsis;
             this.resolverNames = resolverNames;
