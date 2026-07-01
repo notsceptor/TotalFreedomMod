@@ -1,7 +1,10 @@
 package me.totalfreedom.totalfreedommod.vault;
 
-import me.totalfreedom.totalfreedommod.ChatManager;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.totalfreedommod.config.ConfigEntry;
+import me.totalfreedom.totalfreedommod.player.FPlayer;
+import me.totalfreedom.totalfreedommod.util.AdventureUtil;
+import net.kyori.adventure.text.Component;
 import net.milkbowl.vault.chat.Chat;
 import net.milkbowl.vault.permission.Permission;
 import org.bukkit.OfflinePlayer;
@@ -30,7 +33,94 @@ public class ChatService extends Chat {
 		if (player == null || !player.isOnline()) {
 			return "";
 		}
-		return plugin.cm.buildPlayerPrefix(player, ChatManager.PrefixFormat.SECTION);
+
+		FPlayer fPlayer = plugin.pl.getPlayer(player);
+		if (fPlayer == null) {
+			return "";
+		}
+
+		// Get player's custom tag
+		String customTag = fPlayer.getTag();
+		
+		Boolean enforcePrefixConfig = ConfigEntry.VAULT_CHAT_ENFORCE_PREFIX.getBoolean();
+		boolean enforcePrefix = enforcePrefixConfig != null ? enforcePrefixConfig : false;
+		
+		// Get rank prefix
+		me.totalfreedom.totalfreedommod.rank.Displayable display = plugin.rm.getDisplay(player);
+		String rankPrefix = "";
+		
+		if (display != null) {
+			// Get configurable prefix for this rank/title
+			String configPrefix = getConfigPrefix(display);
+			if (configPrefix != null && !configPrefix.isEmpty()) {
+				// Convert & color codes to § codes
+				rankPrefix = AdventureUtil.translateAlternateColorCodes(configPrefix);
+			} else {
+				// Fall back to default rank tag
+				Component coloredTag = display.getColoredTag();
+				if (coloredTag != null && !coloredTag.equals(Component.empty())) {
+					rankPrefix = AdventureUtil.componentToLegacySection(coloredTag);
+				}
+			}
+		}
+		
+		// Format custom tag if it exists
+		String formattedTag = null;
+		if (customTag != null && !customTag.isEmpty()) {
+			String tagTemplate = ConfigEntry.VAULT_CHAT_TAG.getString();
+			if (tagTemplate == null || tagTemplate.isEmpty()) {
+				tagTemplate = "&7{TAG} "; // Default template
+			}
+			// Replace {TAG} placeholder with actual tag value
+			formattedTag = tagTemplate.replace("{TAG}", customTag);
+			// Convert & color codes to § codes
+			formattedTag = AdventureUtil.translateAlternateColorCodes(formattedTag);
+		}
+		
+		if (!enforcePrefix) {
+			if (formattedTag != null) {
+				return formattedTag;
+			}
+			return customTag != null && customTag.isEmpty() ? "" : rankPrefix;
+		} else {
+			if (formattedTag != null) {
+				return rankPrefix != null && !rankPrefix.isEmpty() ? rankPrefix + formattedTag : formattedTag;
+			}
+			return rankPrefix != null && !rankPrefix.isEmpty() ? rankPrefix : "";
+		}
+	}
+
+	/**
+	 * Gets the configured prefix for a display (rank or title).
+	 * Returns null if not configured (will use default).
+	 */
+	private String getConfigPrefix(me.totalfreedom.totalfreedommod.rank.Displayable display) {
+		if (display instanceof me.totalfreedom.totalfreedommod.rank.CustomRank) {
+			me.totalfreedom.totalfreedommod.rank.CustomRank custom = (me.totalfreedom.totalfreedommod.rank.CustomRank) display;
+			if (custom.getPrefix() != null && !custom.getPrefix().isEmpty()) {
+				return custom.getPrefix();
+			}
+		}
+		if (display instanceof me.totalfreedom.totalfreedommod.rank.Rank) {
+			me.totalfreedom.totalfreedommod.rank.Rank rank = (me.totalfreedom.totalfreedommod.rank.Rank) display;
+			switch (rank) {
+				case IMPOSTOR:
+					return ConfigEntry.VAULT_PREFIX_IMPOSTOR.getString();
+				case NON_OP:
+					return ConfigEntry.VAULT_PREFIX_NON_OP.getString();
+				case OP:
+					return ConfigEntry.VAULT_PREFIX_OP.getString();
+				case SUPER_ADMIN:
+					return ConfigEntry.VAULT_PREFIX_SUPER_ADMIN.getString();
+				case SENIOR_ADMIN:
+					return ConfigEntry.VAULT_PREFIX_SENIOR_ADMIN.getString();
+				case SENIOR_CONSOLE:
+					return ConfigEntry.VAULT_PREFIX_SENIOR_CONSOLE.getString();
+				default:
+					return null;
+			}
+		}
+		return null;
 	}
 
 	@Override

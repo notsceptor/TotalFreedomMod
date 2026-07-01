@@ -137,10 +137,6 @@ public final class SignPacketGuard
         }
         if (nbt instanceof NBTCompound compound)
         {
-            if (compound.getTags().containsKey("click_event"))
-            {
-                return false;
-            }
             for (NBT child : compound.getTags().values())
             {
                 if (!walk(child, budget, depth + 1))

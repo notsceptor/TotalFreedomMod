@@ -20,7 +20,6 @@ import org.bukkit.block.Block;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.Item;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -40,18 +39,15 @@ import org.bukkit.event.entity.AreaEffectCloudApplyEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
-import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.entity.LingeringPotionSplashEvent;
 import org.bukkit.event.entity.PotionSplashEvent;
 import org.bukkit.event.hanging.HangingBreakByEntityEvent;
 import org.bukkit.event.hanging.HangingPlaceEvent;
-import org.bukkit.event.inventory.InventoryPickupItemEvent;
 import org.bukkit.event.player.PlayerBucketEmptyEvent;
 import org.bukkit.event.player.PlayerBucketFillEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.vehicle.VehicleDestroyEvent;
-import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 
 public class ProtectArea extends FreedomService
@@ -60,11 +56,8 @@ public class ProtectArea extends FreedomService
     public static final String DATA_FILENAME = "protectedareas.yml";
     public static final String LEGACY_DATA_FILENAME = "protectedareas.dat";
     public static final double MAX_RADIUS = 50.0;
-    // How often (in ticks) to sweep loose items out of protected areas.
-    private static final long ITEM_SWEEP_RATE = 40L;
     //
     private final Map<String, ProtectedRegion> areas = Maps.newHashMap();
-    private BukkitTask itemSweepTask;
 
     public ProtectArea(TotalFreedomMod plugin)
     {
@@ -89,9 +82,6 @@ public class ProtectArea extends FreedomService
 
         loadFromYaml(ymlFile);
         Bukkit.getScheduler().runTask(plugin, this::cleanProtectedAreas);
-
-        itemSweepTask = Bukkit.getScheduler().runTaskTimer(
-            plugin, this::sweepItems, ITEM_SWEEP_RATE, ITEM_SWEEP_RATE);
     }
 
     @SuppressWarnings("unchecked")
@@ -183,11 +173,6 @@ public class ProtectArea extends FreedomService
     @Override
     protected void onStop()
     {
-        if (itemSweepTask != null)
-        {
-            itemSweepTask.cancel();
-            itemSweepTask = null;
-        }
         save();
     }
 
@@ -688,39 +673,6 @@ public class ProtectArea extends FreedomService
                 entity -> entity instanceof Player && isInProtectedArea(entity.getLocation()));
     }
 
-    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
-    public void onItemPickup(EntityPickupItemEvent event)
-    {
-        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean() || !ConfigEntry.PROTECTAREA_BLOCK_ITEMS.getBoolean())
-        {
-            return;
-        }
-
-        if (event.getEntity() instanceof Player player && plugin.al.isAdmin(player))
-        {
-            return;
-        }
-
-        if (isInProtectedArea(event.getItem().getLocation()))
-        {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
-    public void onInventoryPickupItem(InventoryPickupItemEvent event)
-    {
-        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean() || !ConfigEntry.PROTECTAREA_BLOCK_ITEMS.getBoolean())
-        {
-            return;
-        }
-
-        if (isInProtectedArea(event.getItem().getLocation()))
-        {
-            event.setCancelled(true);
-        }
-    }
-
     private boolean shouldBlockInteraction(Player player, Location location)
     {
         if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
@@ -907,54 +859,6 @@ public class ProtectArea extends FreedomService
             {
                 it.remove();
                 doSave = true;
-            }
-        }
-
-        if (doSave)
-        {
-            save();
-        }
-    }
-
-    private void sweepItems()
-    {
-        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean() || !ConfigEntry.PROTECTAREA_BLOCK_ITEMS.getBoolean())
-        {
-            return;
-        }
-
-        boolean doSave = false;
-        final Iterator<Map.Entry<String, ProtectedRegion>> it = areas.entrySet().iterator();
-
-        while (it.hasNext())
-        {
-            final ProtectedRegion region = it.next().getValue();
-
-            final Location center;
-            try
-            {
-                center = region.getLocation();
-            }
-            catch (ProtectedRegion.CantFindWorldException ex)
-            {
-                it.remove();
-                doSave = true;
-                continue;
-            }
-
-            if (center == null || center.getWorld() == null)
-            {
-                continue;
-            }
-
-            final double radius = region.getRadius();
-            final double radiusSquared = radius * radius;
-            for (Entity entity : center.getWorld().getNearbyEntities(center, radius, radius, radius))
-            {
-                if (entity instanceof Item && entity.getLocation().distanceSquared(center) <= radiusSquared)
-                {
-                    entity.remove();
-                }
             }
         }
 

@@ -10,7 +10,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
 @CommandPermissions(level = Rank.SUPER_ADMIN, source = SourceType.BOTH, permission = "tfm.admin.aeclear")
-@CommandParameters(description = "Bans an online or previously known player and their known IP addresses.", usage = "/<command>", aliases = "aec")
+@CommandParameters(description = "Bans an online or previously known player and their known IP addresses.", usage = "/<command>")
 public class Command_aeclear extends FreedomCommand
 {
     @Override

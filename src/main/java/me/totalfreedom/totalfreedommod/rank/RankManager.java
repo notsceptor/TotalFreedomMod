@@ -32,12 +32,10 @@ import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import org.bukkit.GameMode;
-import org.bukkit.command.BlockCommandSender;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.minecart.CommandMinecart;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
@@ -441,9 +439,18 @@ public class RankManager extends FreedomService
         Scoreboard scoreboard = manager.getMainScoreboard();
         Team currentTeam = scoreboard.getEntryTeam(player.getName());
         CustomRank rank = getAssignedAdminRank(player);
-        final boolean admin = rank != null && rank.isAdmin();
 
-        final String teamName = admin ? createTeamName(rank) : DEFAULT_TEAM_NAME;
+        if (rank == null || !rank.isAdmin())
+        {
+            if (currentTeam != null)
+            {
+                currentTeam.removeEntry(player.getName());
+            }
+
+            return;
+        }
+
+        String teamName = createTeamName(rank);
 
         if (currentTeam != null && !currentTeam.getName().equals(teamName))
         {
@@ -457,18 +464,14 @@ public class RankManager extends FreedomService
             team = scoreboard.registerNewTeam(teamName);
         }
 
-        team.color(admin ? rank.getColor() : NamedTextColor.WHITE);
+        team.color(rank.getColor());
         team.prefix(Component.empty());
         team.addEntry(player.getName());
     }
 
-    private static final String DEFAULT_TEAM_NAME = "zz_default";
-
     private String createTeamName(CustomRank rank)
     {
-        final int level = Math.max(0, Math.min(99, rank.getLevel()));
-        String name = String.format("%02d_%s", 99 - level,
-                rank.getId().replaceAll("[^A-Za-z0-9_\\-]", "_"));
+        String name = rank.getId().replaceAll("[^A-Za-z0-9_\\-]", "_");
 
         if (name.length() > 16)
         {
@@ -551,11 +554,6 @@ public class RankManager extends FreedomService
     {
         if (!(sender instanceof Player))
         {
-            if (sender instanceof BlockCommandSender || sender instanceof CommandMinecart)
-            {
-                return false;
-            }
-
             if (!RemoteDispatchContext.isActive())
             {
                 String boundRankId = plugin.csr.getRankIdForSender(sender.getName());
@@ -1195,11 +1193,6 @@ public class RankManager extends FreedomService
         if (sender instanceof Player)
         {
             return getRank((Player) sender);
-        }
-
-        if (sender instanceof BlockCommandSender || sender instanceof CommandMinecart)
-        {
-            return Rank.NON_OP;
         }
 
         RemoteDispatchSession dispatch = RemoteDispatchContext.getActiveSession();

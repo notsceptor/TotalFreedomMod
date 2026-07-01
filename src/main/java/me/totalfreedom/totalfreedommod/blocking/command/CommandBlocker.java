@@ -215,20 +215,17 @@ public class CommandBlocker extends FreedomService
         final boolean isAtNamedSender = "@".equals(sender.getName());
         final boolean isCommandBlockHolder = sender instanceof BlockCommandSender || sender instanceof CommandMinecart;
 
+        final boolean shouldApply =
+                (blockAtNamedSenders && isAtNamedSender)
+                        || (blockCommandBlockHolders && isCommandBlockHolder);
+
+        if (!shouldApply)
+        {
+            return;
+        }
+
         final String rawCommand = event.getCommand();
         if (rawCommand == null || rawCommand.isEmpty())
-        {
-            return;
-        }
-
-        if (blockCommandBlockHolders && isCommandBlockHolder)
-        {
-            event.setCancelled(true);
-            logThrottledBlock(sender, rawCommand);
-            return;
-        }
-
-        if (!(blockAtNamedSenders && isAtNamedSender))
         {
             return;
         }

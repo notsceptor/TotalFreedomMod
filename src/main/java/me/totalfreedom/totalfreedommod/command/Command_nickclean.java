@@ -2,13 +2,8 @@ package me.totalfreedom.totalfreedommod.command;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.rank.Rank;
-import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import net.kyori.adventure.text.Component;
-
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
@@ -39,17 +34,15 @@ public class Command_nickclean extends FreedomCommand
         for (final Player player : server.getOnlinePlayers())
         {
             final String playerName = player.getName();
-            final PlayerData data = plugin.pl.getData(player);
-            final Component nickName = data.getNickname();
-            final String legacyNickname = AdventureUtil.componentToLegacy(nickName);
-            if (nickName != null && !legacyNickname.isEmpty() && !legacyNickname.equalsIgnoreCase(playerName))
+            final String nickName = plugin.esb.getNickname(playerName);
+            if (nickName != null && !nickName.isEmpty() && !nickName.equalsIgnoreCase(playerName))
             {
-                final Matcher matcher = REGEX.matcher(legacyNickname);
+                final Matcher matcher = REGEX.matcher(nickName);
                 if (matcher.find())
                 {
                     final String newNickName = matcher.replaceAll("");
                     msg(ChatColor.RESET + playerName + ": \"" + nickName + ChatColor.RESET + "\" -> \"" + newNickName + ChatColor.RESET + "\".");
-                    data.setNickname(AdventureUtil.legacyToComponent(newNickName));
+                    plugin.esb.setNickname(playerName, newNickName);
                 }
             }
         }

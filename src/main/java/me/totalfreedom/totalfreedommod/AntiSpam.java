@@ -32,12 +32,14 @@ public class AntiSpam extends FreedomService
 
     private static boolean enabled()
     {
-        return ConfigEntry.ANTISPAM_ENABLED.getBoolean(true);
+        final Boolean v = ConfigEntry.ANTISPAM_ENABLED.getBoolean();
+        return v == null || v;
     }
 
     private static int limit()
     {
-        return ConfigEntry.ANTISPAM_LIMIT.getInteger(8);
+        final Integer v = ConfigEntry.ANTISPAM_LIMIT.getInteger();
+        return v == null ? 8 : v;
     }
 
     @EventHandler(priority = EventPriority.LOW)

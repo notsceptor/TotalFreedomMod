@@ -27,13 +27,13 @@ public class Command_entitywipe extends FreedomCommand
             }
             FUtil.adminAction(sender.getName(), "Removing entities in world " + world.getName(), true);
             int removed = plugin.ew.wipeEntities(world, true);
-            msg(removed + " " + (removed == 1 ? "entity" : "entities") + " removed from \"" + world.getName() + "\".");
+            msg(removed + " entities removed from \"" + world.getName() + "\".");
             return true;
         }
 
-        FUtil.adminAction(sender.getName(), "Removing all server entities", true);
-        int removed = plugin.ew.wipeEntities(true);
-        msg(removed + " " + (removed == 1 ? "entity" : "entities") + " removed.");
+        FUtil.adminAction(sender.getName(), "Removing all server entities.", true);
+        msg((plugin.ew.wipeEntities(true)) + " entities removed.");
+
         return true;
     }
 }

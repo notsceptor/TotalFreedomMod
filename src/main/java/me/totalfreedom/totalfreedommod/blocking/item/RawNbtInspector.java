@@ -302,12 +302,6 @@ final class RawNbtInspector
         {
             return false;
         }
-        if (COMPOUND_TAG.equals(node.getClass().getName())
-                && EntityDataRules.isAvailable()
-                && EntityDataRules.containsClickEvent(node))
-        {
-            return false;
-        }
 
         if (node instanceof Map<?, ?> map)
         {

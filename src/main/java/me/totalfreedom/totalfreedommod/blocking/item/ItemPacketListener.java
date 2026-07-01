@@ -10,32 +10,19 @@ import com.github.retrooper.packetevents.protocol.packettype.PacketType;
 import com.github.retrooper.packetevents.protocol.packettype.PacketTypeCommon;
 import com.github.retrooper.packetevents.protocol.player.ClientVersion;
 import com.github.retrooper.packetevents.protocol.player.Equipment;
-import com.github.retrooper.packetevents.protocol.world.chunk.Column;
-import com.github.retrooper.packetevents.util.Vector3d;
 import io.netty.buffer.ByteBuf;
-import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientPlayerPosition;
-import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientPlayerPositionAndRotation;
-import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientVehicleMove;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerBlockEntityData;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerChunkData;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityEquipment;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityMetadata;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerSetSlot;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerWindowItems;
-import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientSetGameRule;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
-import me.totalfreedom.totalfreedommod.blocking.gamerule.GameRulePacketGuard;
 import me.totalfreedom.totalfreedommod.blocking.sign.SignPacketGuard;
-import me.totalfreedom.totalfreedommod.blocking.spawner.SpawnerPacketGuard;
-import me.totalfreedom.totalfreedommod.util.FLog;
-import me.totalfreedom.totalfreedommod.util.FSync;
-import net.kyori.adventure.text.format.NamedTextColor;
-import org.bukkit.Bukkit;
-import org.bukkit.entity.Player;
 
 final class ItemPacketListener extends PacketListenerAbstract
 {
@@ -49,66 +36,37 @@ final class ItemPacketListener extends PacketListenerAbstract
     private final TotalFreedomMod plugin;
     private final boolean sanitizeOutbound;
     private final PacketSpamLimiter spamLimiter;
-    private final MovementGuard movementGuard;
     private final boolean signBlockEntityGuard;
     private final boolean signChunkGuard;
     private final boolean blockAllSignPackets;
-    private final boolean spawnerBlockEntityGuard;
-    private final boolean spawnerChunkGuard;
-    private final boolean gameRuleGuard;
 
     ItemPacketListener(TotalFreedomMod plugin, boolean sanitizeOutbound, PacketSpamLimiter spamLimiter,
-                             MovementGuard movementGuard, boolean signBlockEntityGuard,
-                             boolean signChunkGuard, boolean blockAllSignPackets,
-                             boolean spawnerBlockEntityGuard, boolean spawnerChunkGuard, boolean gameRuleGuard)
+                             boolean signBlockEntityGuard, boolean signChunkGuard, boolean blockAllSignPackets)
     {
         super(PacketListenerPriority.HIGH);
         this.plugin = plugin;
         this.sanitizeOutbound = sanitizeOutbound;
         this.spamLimiter = spamLimiter;
-        this.movementGuard = movementGuard;
         this.signBlockEntityGuard = signBlockEntityGuard;
         this.signChunkGuard = signChunkGuard;
         this.blockAllSignPackets = blockAllSignPackets;
-        this.spawnerBlockEntityGuard = spawnerBlockEntityGuard;
-        this.spawnerChunkGuard = spawnerChunkGuard;
-        this.gameRuleGuard = gameRuleGuard;
     }
 
     @Override
     public void onPacketReceive(PacketReceiveEvent event)
     {
+        if (spamLimiter == null)
+        {
+            return;
+        }
         try
         {
-            final PacketTypeCommon type = event.getPacketType();
-
-            if (gameRuleGuard && type == PacketType.Play.Client.SET_GAME_RULE)
-            {
-                event.setCancelled(true);
-                logBlockedGameRule(event);
-                return;
-            }
-
-            if (spamLimiter == null && movementGuard == null)
-            {
-                return;
-            }
             final UUID id = event.getUser().getUUID();
             if (id == null)
             {
                 return;
             }
-
-            // see if it's already been canceled
-            if (movementGuard != null && handleMovementSpeed(event, type, id))
-            {
-                return;
-            }
-
-            if (spamLimiter == null)
-            {
-                return;
-            }
+            final PacketTypeCommon type = event.getPacketType();
             if (type == PacketType.Play.Client.PLAYER_BLOCK_PLACEMENT
                     || type == PacketType.Play.Client.USE_ITEM
                     || type == PacketType.Play.Client.PLAYER_DIGGING
@@ -149,95 +107,6 @@ final class ItemPacketListener extends PacketListenerAbstract
         }
     }
 
-    private void logBlockedGameRule(PacketReceiveEvent event)
-    {
-        String what;
-        try
-        {
-            what = GameRulePacketGuard.describe(new WrapperPlayClientSetGameRule(event));
-        }
-        catch (Throwable t)
-        {
-            what = "?";
-        }
-        FLog.warning("[GameRuleGuard] Blocked an attempt to edit a gamerule from " + describeUser(event) + ": " + what);
-    }
-
-    private static String describeUser(PacketReceiveEvent event)
-    {
-        try
-        {
-            String name = event.getUser().getName();
-            if (name != null)
-            {
-                return name;
-            }
-            UUID id = event.getUser().getUUID();
-            return id == null ? "unknown" : id.toString();
-        }
-        catch (Throwable t)
-        {
-            return "unknown";
-        }
-    }
-
-    private boolean handleMovementSpeed(PacketReceiveEvent event, PacketTypeCommon type, UUID id)
-    {
-        final Vector3d position = movementPosition(event, type);
-        if (position == null)
-        {
-            return false;
-        }
-
-        final MovementGuard.Decision decision = movementGuard.recordAndCheck(id, position.getX(), position.getZ());
-        if (decision == MovementGuard.Decision.ALLOW)
-        {
-            return false;
-        }
-
-        event.setCancelled(true);
-        if (decision == MovementGuard.Decision.PUNISH)
-        {
-            punishSpeed(event, id);
-        }
-        return true;
-    }
-
-    private static Vector3d movementPosition(PacketReceiveEvent event, PacketTypeCommon type)
-    {
-        if (type == PacketType.Play.Client.PLAYER_POSITION)
-        {
-            return new WrapperPlayClientPlayerPosition(event).getPosition();
-        }
-        if (type == PacketType.Play.Client.PLAYER_POSITION_AND_ROTATION)
-        {
-            return new WrapperPlayClientPlayerPositionAndRotation(event).getPosition();
-        }
-        if (type == PacketType.Play.Client.VEHICLE_MOVE)
-        {
-            return new WrapperPlayClientVehicleMove(event).getPosition();
-        }
-        // PLAYER_FLYING / PLAYER_ROTATION carry no position.
-        return null;
-    }
-
-    private void punishSpeed(PacketReceiveEvent event, UUID id)
-    {
-        final String name = event.getUser().getName();
-        final String who = name != null ? name : id.toString();
-
-        FSync.bcastMsg(who + " is moving too quickly across chunks!", NamedTextColor.RED);
-
-        Bukkit.getScheduler().runTask(plugin, () ->
-        {
-            final Player player = Bukkit.getPlayer(id);
-            if (player != null)
-            {
-                plugin.ae.autoEject(player, "Moving too quickly across chunks is not permitted.");
-            }
-        });
-    }
-
     @Override
     public void onPacketSend(PacketSendEvent event)
     {
@@ -269,13 +138,11 @@ final class ItemPacketListener extends PacketListenerAbstract
                 }
             }
 
-            if ((blockAllSignPackets || signBlockEntityGuard || spawnerBlockEntityGuard)
-                    && type == PacketType.Play.Server.BLOCK_ENTITY_DATA)
+            if ((blockAllSignPackets || signBlockEntityGuard) && type == PacketType.Play.Server.BLOCK_ENTITY_DATA)
             {
                 handleBlockEntityData(event);
             }
-            else if ((blockAllSignPackets || signChunkGuard || spawnerChunkGuard)
-                    && type == PacketType.Play.Server.CHUNK_DATA)
+            else if ((blockAllSignPackets || signChunkGuard) && type == PacketType.Play.Server.CHUNK_DATA)
             {
                 handleChunkData(event);
             }
@@ -289,19 +156,11 @@ final class ItemPacketListener extends PacketListenerAbstract
     {
         WrapperPlayServerBlockEntityData wrapper = new WrapperPlayServerBlockEntityData(event);
         NBTCompound nbt = wrapper.getNBT();
-
-        if ((blockAllSignPackets || signBlockEntityGuard) && SignPacketGuard.isSignBlockEntity(nbt))
+        if (!SignPacketGuard.isSignBlockEntity(nbt))
         {
-            if (blockAllSignPackets || SignPacketGuard.isUnsafe(nbt))
-            {
-                event.setCancelled(true);
-            }
             return;
         }
-
-        if (spawnerBlockEntityGuard
-                && SpawnerPacketGuard.isSpawnerBlockEntity(nbt)
-                && SpawnerPacketGuard.isUnsafe(nbt))
+        if (blockAllSignPackets || SignPacketGuard.isUnsafe(nbt))
         {
             event.setCancelled(true);
         }
@@ -320,24 +179,17 @@ final class ItemPacketListener extends PacketListenerAbstract
         }
 
         WrapperPlayServerChunkData wrapper = new WrapperPlayServerChunkData(event);
-        Column column = wrapper.getColumn();
-        boolean dirty = false;
-
         if (blockAllSignPackets)
         {
-            dirty |= SignPacketGuard.stripAllSignsInColumn(column) > 0;
+            int stripped = SignPacketGuard.stripAllSignsInColumn(wrapper.getColumn());
+            if (stripped > 0)
+            {
+                event.markForReEncode(true);
+            }
+            return;
         }
-        else if (signChunkGuard)
-        {
-            dirty |= SignPacketGuard.sanitizeColumn(column) > 0;
-        }
-
-        if (spawnerChunkGuard)
-        {
-            dirty |= SpawnerPacketGuard.sanitizeColumn(column) > 0;
-        }
-
-        if (dirty)
+        int neutralized = SignPacketGuard.sanitizeColumn(wrapper.getColumn());
+        if (neutralized > 0)
         {
             event.markForReEncode(true);
         }
