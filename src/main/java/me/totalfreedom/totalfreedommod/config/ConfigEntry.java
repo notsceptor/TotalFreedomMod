@@ -220,7 +220,6 @@ public enum ConfigEntry
     BLOCK_SERVER_COMMANDS_LOG_INTERVAL_TICKS(Integer.class, "server_command_blocker.log_interval_ticks"),
     HOST_SENDERS(List.class, "host_senders"),
     FAMOUS_PLAYERS(List.class, "famous_players"),
-    OVERLORD_IPS(List.class, "overlord_ips"),
     NOADMIN_IPS(List.class, "noadmin_ips"),
     MASK_IPS(Boolean.class, "mask_ips"),
     RANGE_BAN_IPS(Boolean.class, "range_ban_ips"),
