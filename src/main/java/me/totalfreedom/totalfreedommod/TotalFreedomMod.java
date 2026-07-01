@@ -127,7 +127,6 @@ public class TotalFreedomMod extends JavaPlugin
     public HTTPDaemon hd; // HTTPDaemon - HTTP server for web interface
     public SshDaemon sd; // SshDaemon - SSH server for remote console access
     public DiscordBridge db; // DiscordBridge - Built-in Discord chat/console relay
-    public ServiceChecker sc; // ServiceChecker - Checks Mojang service status
     public TabList tl; // TabList - Customizable tab list header, footer, and player names
     //
     // Bridges
@@ -272,7 +271,6 @@ public class TotalFreedomMod extends JavaPlugin
         // Discord
         db = services.registerService(DiscordBridge.class);
 
-        sc = services.registerService(ServiceChecker.class);
         tl = services.registerService(TabList.class);
         services.start();
 
