@@ -5,12 +5,14 @@ import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.ThrownPotion;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.entity.LingeringPotionSplashEvent;
 import org.bukkit.event.entity.PotionSplashEvent;
+import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.potion.PotionEffect;
@@ -40,7 +42,7 @@ public class PotionBlocker extends FreedomService
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onThrowPotion(PotionSplashEvent event)
     {
-        if (isLethalPotion(event.getEntity()))
+        if (isLethalPotion(event.getEntity()) || hasTooManyEffects(event.getEntity(), plugin.iv.getMaxPotionEffects()))
         {
             event.setCancelled(true);
             return;
@@ -76,7 +78,7 @@ public class PotionBlocker extends FreedomService
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onLingeringPotion(LingeringPotionSplashEvent event)
     {
-        if (isLethalPotion(event.getEntity()))
+        if (isLethalPotion(event.getEntity()) || hasTooManyEffects(event.getEntity(), plugin.iv.getMaxPotionEffects()))
         {
             event.setCancelled(true);
         }
@@ -94,6 +96,33 @@ public class PotionBlocker extends FreedomService
             return false;
         }
         return hasLethalInstantEffect(meta.getCustomEffects());
+    }
+
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+    public void onProjectileLaunch(ProjectileLaunchEvent event)
+    {
+        int cap = plugin.iv.getMaxPotionEffects();
+        if (cap > 0
+                && event.getEntity() instanceof Arrow arrow
+                && arrow.hasCustomEffects()
+                && arrow.getCustomEffects().size() > cap)
+        {
+            event.setCancelled(true);
+        }
+    }
+
+    private static boolean hasTooManyEffects(ThrownPotion potion, int cap)
+    {
+        if (cap <= 0 || potion == null)
+        {
+            return false;
+        }
+        ItemStack item = potion.getItem();
+        if (item == null || !(item.getItemMeta() instanceof PotionMeta meta) || !meta.hasCustomEffects())
+        {
+            return false;
+        }
+        return meta.getCustomEffects().size() > cap;
     }
 
     private static boolean hasLethalInstantEffect(Collection<PotionEffect> effects)

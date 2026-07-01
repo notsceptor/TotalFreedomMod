@@ -446,7 +446,7 @@ public class FUtil
 
     public static Component colorize(String string)
     {
-        return AdventureUtil.translateAlternateColorCodes('&', string);
+        return AdventureUtil.format(string);
     }
 
     @Deprecated

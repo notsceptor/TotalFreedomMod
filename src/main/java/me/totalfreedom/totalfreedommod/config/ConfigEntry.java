@@ -19,6 +19,7 @@ public enum ConfigEntry
     ALLOW_LAVA_PLACE(Boolean.class, "allow.lava_place"),
     ALLOW_TNT_MINECARTS(Boolean.class, "allow.tnt_minecarts"),
     ALLOW_WATER_PLACE(Boolean.class, "allow.water_place"),
+    ALLOW_REDSTONE(Boolean.class, "allow.redstone"),
     ALLOW_SIGN_PLACE(Boolean.class, "allow.sign_place"),
     ALLOW_FALLING_SIGNS(Boolean.class, "allow.falling_signs"),
     ALLOW_FALLING_BLOCKS(Boolean.class, "allow.falling_blocks"),
@@ -98,21 +99,39 @@ public enum ConfigEntry
     PROTECTAREA_RADIUS(Double.class, "protectarea.auto_protect_radius"),
     PROTECTAREA_PROTECT_PLAYERS(Boolean.class, "protectarea.protect_players"),
     PROTECTAREA_BLOCK_POTIONS(Boolean.class, "protectarea.block_potions"),
+    PROTECTAREA_BLOCK_ITEMS(Boolean.class, "protectarea.block_items"),
     //
     WORLDEDIT_ENABLED(Boolean.class, "worldedit.enabled"),
     WORLDEDIT_LIMIT_MAX(Integer.class, "worldedit.limit_max"),
     WORLDEDIT_DEOP_ON_LIMIT_ABUSE(Boolean.class, "worldedit.deop_on_limit_abuse"),
     WORLDEDIT_MAX_SELECTION_VOLUME(Integer.class, "worldedit.max_selection_volume"),
     WORLDEDIT_RADIUS_MAX(Integer.class, "worldedit.radius_max"),
+    WORLDEDIT_MAX_PATTERN_BLOCKS(Integer.class, "worldedit.max_pattern_blocks"),
+    WORLDEDIT_BLOCKED_BLOCK_TYPES(List.class, "worldedit.blocked_types"),
+    WORLDEDIT_THROTTLE_ENABLED(Boolean.class, "worldedit.throttle.enabled"),
+    WORLDEDIT_THROTTLE_MAX_OPS(Integer.class, "worldedit.throttle.max_operations"),
+    WORLDEDIT_THROTTLE_TIME_WINDOW(Integer.class, "worldedit.throttle.time_window"),
+    WORLDEDIT_THROTTLE_MAX_CANCELLED_OPS(Integer.class, "worldedit.throttle.max_cancelled_operations"),
     //
     NUKE_MONITOR_ENABLED(Boolean.class, "nukemonitor.enabled"),
     NUKE_MONITOR_COUNT_BREAK(Integer.class, "nukemonitor.count_break"),
     NUKE_MONITOR_COUNT_PLACE(Integer.class, "nukemonitor.count_place"),
     NUKE_MONITOR_RANGE(Double.class, "nukemonitor.range"),
     //
+    ANTIDROP_ENABLED(Boolean.class, "antidrop.enabled"),
+    ANTIDROP_TIME_WINDOW(Integer.class, "antidrop.time_window"),
+    ANTIDROP_DROP_LIMIT(Integer.class, "antidrop.drop_limit"),
+    ANTIDROP_DROP_EJECT_LIMIT(Integer.class, "antidrop.drop_eject_limit"),
+    ANTIDROP_DROP_ITEM_LIMIT(Integer.class, "antidrop.drop_item_limit"),
+    ANTIDROP_DROP_ITEM_EJECT_LIMIT(Integer.class, "antidrop.drop_item_eject_limit"),
+    //
     ANTISPAM_ENABLED(Boolean.class, "antispam.enabled"),
     ANTISPAM_LIMIT(Integer.class, "antispam.limit"),
     ANTISPAM_TIME_WINDOW(Integer.class, "antispam.time_window"),
+    //
+    MOVE_GUARD_ENABLED(Boolean.class, "move_guard.enabled"),
+    MOVE_GUARD_SPEED_MAX_HORIZONTAL_DELTA(Integer.class, "move_guard.speed.max_horizontal_delta"),
+    MOVE_GUARD_SPEED_MAX_TELEPORTS_PER_SECOND(Integer.class, "move_guard.speed.max_teleports_per_second"),
     //
     CRASH_ITEMS_PREVENT(Boolean.class, "crash_items.prevent"),
     CRASH_ITEMS_PANIC_MODE(Boolean.class, "crash_items.panic_mode"),
@@ -124,6 +143,11 @@ public enum ConfigEntry
     CRASH_ITEMS_EQUIPMENT_SWEEP_TICKS(Integer.class, "crash_items.equipment_sweep_ticks"),
     CRASH_ITEMS_BASE_COMMANDS(List.class, "crash_items.base_commands"),
     CRASH_ITEMS_HIDE_CONSOLE_SPAM(Boolean.class, "crash_items.hide_console_spam"),
+    CRASH_ITEMS_MAX_POTION_EFFECTS(Integer.class, "crash_items.max_potion_effects"),
+    //
+    CRASH_SPAWNERS_PREVENT(Boolean.class, "crash_spawners.prevent"),
+    CRASH_SPAWNERS_PACKET_GUARD(Boolean.class, "crash_spawners.packet_guard"),
+    CRASH_SPAWNERS_CHUNK_GUARD(Boolean.class, "crash_spawners.chunk_guard"),
     //
     CRASH_SIGNS_PREVENT(Boolean.class, "crash_signs.prevent"),
     CRASH_SIGNS_SCAN_CHUNK_LOAD(Boolean.class, "crash_signs.scan_chunk_load"),
@@ -140,7 +164,15 @@ public enum ConfigEntry
     CRASH_ENTITIES_STRIP_NAME_VISIBLE(Boolean.class, "crash_entities.strip_name_visible"),
     CRASH_ENTITIES_MAX_SCALE(Double.class, "crash_entities.max_scale"),
     CRASH_ENTITIES_MAX_SLIME_SIZE(Integer.class, "crash_entities.max_slime_size"),
+    CRASH_ENTITIES_MAX_PAINTING_BLOCKS(Integer.class, "crash_entities.max_painting_size"),
     CRASH_ENTITIES_SCALE_SWEEP_TICKS(Integer.class, "crash_entities.scale_sweep_ticks"),
+    //
+    CRASH_GAMERULES_PACKET_GUARD(Boolean.class, "crash_gamerules.packet_guard"),
+    CRASH_GAMERULES_RANDOM_TICK_SPEED(Integer.class, "crash_gamerules.random_tick_speed"),
+    CRASH_GAMERULES_MAX_NUMERIC_VALUE(Integer.class, "crash_gamerules.max_numeric_value"),
+    CRASH_GAMERULES_SWEEP_TICKS(Integer.class, "crash_gamerules.sweep_ticks"),
+    //
+    WORLD_BORDER(Integer.class, "world_border"),
     //
     AUTOEJECT_ENABLED(Boolean.class, "autoeject.enabled"),
     AUTOEJECT_PERSIST(Boolean.class, "autoeject.persist"),
@@ -188,13 +220,13 @@ public enum ConfigEntry
     BLOCK_SERVER_COMMANDS_LOG_INTERVAL_TICKS(Integer.class, "server_command_blocker.log_interval_ticks"),
     HOST_SENDERS(List.class, "host_senders"),
     FAMOUS_PLAYERS(List.class, "famous_players"),
-    OVERLORD_IPS(List.class, "overlord_ips"),
     NOADMIN_IPS(List.class, "noadmin_ips"),
     MASK_IPS(Boolean.class, "mask_ips"),
     RANGE_BAN_IPS(Boolean.class, "range_ban_ips"),
     ADMIN_ONLY_MODE(Boolean.class, "admin_only_mode"),
     ADMIN_INFO(List.class, "admininfo"),
     AUTO_ENTITY_WIPE(Boolean.class, "auto_wipe"),
+    AUTO_ENTITY_WIPE_INTERVAL(Integer.class, "auto_wipe_interval"),
     DISGUISES_FORBIDDEN_TYPES(List.class, "disguises.forbidden_types"),
     //
     VAULT_CHAT_PROVIDER_ENABLED(Boolean.class, "chat.provider.enabled"),
@@ -228,7 +260,6 @@ public enum ConfigEntry
     TABLIST_COLUMNS(Integer.class, "tablist.columns"),
     TABLIST_PLAYER_COMPONENT(String.class, "tablist.player_component"),
     TABLIST_AFK_TAG(String.class, "tablist.afk_tag"),
-    TABLIST_DISPLAY_NICKNAME_PREFIX(String.class, "tablist.display_nickname_prefix"),
     TABLIST_UPDATE_INTERVAL(Integer.class, "tablist.update_interval");
 
     //
@@ -278,6 +309,12 @@ public enum ConfigEntry
         return getConfig().getBoolean(this);
     }
 
+    public boolean getBoolean(boolean defaultValue)
+    {
+        final Boolean v = getBoolean();
+        return v == null ? defaultValue : v;
+    }
+
     public Boolean setBoolean(Boolean value)
     {
         getConfig().setBoolean(this, value);
@@ -287,6 +324,12 @@ public enum ConfigEntry
     public Integer getInteger()
     {
         return getConfig().getInteger(this);
+    }
+
+    public int getInteger(int defaultValue)
+    {
+        final Integer v = getInteger();
+        return v == null ? defaultValue : v;
     }
 
     public Integer setInteger(Integer value)

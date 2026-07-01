@@ -40,7 +40,11 @@ public class Command_ban extends FreedomCommand
         Ban ban = BanCommandUtil.createFullBan(name, ips, sender, null, reason);
 
         if (!silent && player != null)
+        {
             FUtil.bcastMsg(player.getName() + " has been a VERY naughty, naughty boy.", NamedTextColor.RED);
+            if (reason != null)
+                FUtil.bcastMsg("  Reason: " + reason, NamedTextColor.YELLOW);
+        }
 
         plugin.bm.addBan(ban);
         if (!silent)
@@ -51,7 +55,8 @@ public class Command_ban extends FreedomCommand
             plugin.cpb.rollback(name);
         }
 
-        data.setStrikes(0);
+        if (!plugin.al.isAdmin(player))
+            data.setStrikes(0);
 
         if (player != null)
         {

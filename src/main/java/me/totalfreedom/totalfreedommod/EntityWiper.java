@@ -34,7 +34,7 @@ import org.bukkit.scheduler.BukkitTask;
 public class EntityWiper extends FreedomService
 {
 
-    public static final long ENTITY_WIPE_RATE = 5 * 20L;
+    public static final int AUTO_WIPE_INTERVAL_DEFAULT = 15;
     public static final long ITEM_DESPAWN_RATE = 20L * 20L;
     public static final int CHUNK_ENTITY_MAX = 20;
     //
@@ -64,13 +64,25 @@ public class EntityWiper extends FreedomService
     @Override
     protected void onStart()
     {
-        if (!ConfigEntry.AUTO_ENTITY_WIPE.getBoolean())
+        if (!isAutoWipeEnabled())
         {
             return;
         }
 
-        wipeTask = plugin.getServer().getScheduler().runTaskTimer(plugin, () -> wipeEntities(false), ENTITY_WIPE_RATE, ENTITY_WIPE_RATE);
+        final long rate = wipeRateTicks();
+        wipeTask = plugin.getServer().getScheduler().runTaskTimer(plugin, () -> wipeEntities(false), rate, rate);
 
+    }
+
+    public static boolean isAutoWipeEnabled()
+    {
+        return ConfigEntry.AUTO_ENTITY_WIPE.getBoolean(true);
+    }
+
+    private static long wipeRateTicks()
+    {
+        final int seconds = ConfigEntry.AUTO_ENTITY_WIPE_INTERVAL.getInteger(AUTO_WIPE_INTERVAL_DEFAULT);
+        return Math.max(seconds, 1) * 20L;
     }
 
     @Override
@@ -123,6 +135,7 @@ public class EntityWiper extends FreedomService
             {
                 entity.remove();
                 removed++;
+                continue;
             }
 
             // Only wipeable entities can be wiped (duh!)
@@ -135,12 +148,11 @@ public class EntityWiper extends FreedomService
             List<Entity> cel = cem.get(c);
             if (cel == null)
             {
-                cem.put(c, new ArrayList<>(Arrays.asList(entity)));
+                cel = new ArrayList<>();
+                cem.put(c, cel);
             }
-            else
-            {
-                cel.add(entity);
-            }
+
+            cel.add(entity);
         }
 
         // Now purge the entities if necessary
@@ -156,6 +168,15 @@ public class EntityWiper extends FreedomService
             // Too many entities in this chunk, wipe them all
             for (Entity e : cel)
             {
+                if (e instanceof Item item)
+                {
+                    removed += item.getItemStack().getAmount();
+                }
+                else
+                {
+                    removed++;
+                }
+
                 e.remove();
             }
         }
@@ -171,5 +192,4 @@ public class EntityWiper extends FreedomService
         plugin.getServer().getScheduler().runTaskLater(plugin, entity::remove, ITEM_DESPAWN_RATE);
 
     }
-
 }

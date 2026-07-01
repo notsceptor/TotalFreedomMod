@@ -8,6 +8,7 @@ import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.Art;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
@@ -15,6 +16,7 @@ import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Painting;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Slime;
 import org.bukkit.event.EventHandler;
@@ -50,8 +52,9 @@ public class EntitySizeGuard extends FreedomService
     {
         schedulePeriodicSweep();
         FLog.info("[EntitySizeGuard] active"
-                + " [scale cap=" + describeCap(ConfigEntry.CRASH_ENTITIES_MAX_SCALE.getDouble()) + "]"
-                + " [slime size cap=" + describeCap(ConfigEntry.CRASH_ENTITIES_MAX_SLIME_SIZE.getInteger()) + "]"
+                + " [max scale=" + describeCap(ConfigEntry.CRASH_ENTITIES_MAX_SCALE.getDouble()) + "]"
+                + " [max slime size=" + describeCap(ConfigEntry.CRASH_ENTITIES_MAX_SLIME_SIZE.getInteger()) + "]"
+                + " [max painting size=" + describeCap(ConfigEntry.CRASH_ENTITIES_MAX_PAINTING_BLOCKS.getInteger()) + "]"
                 + " [periodic sweep every " + ConfigEntry.CRASH_ENTITIES_SCALE_SWEEP_TICKS.getInteger() + "t]");
     }
 
@@ -120,7 +123,62 @@ public class EntitySizeGuard extends FreedomService
             }
         }
 
+        if (entity instanceof Painting painting && clampPainting(painting, context))
+        {
+            changed = true;
+        }
+
         return changed;
+    }
+
+    private boolean clampPainting(Painting painting, String context)
+    {
+        int maxBlocks = ConfigEntry.CRASH_ENTITIES_MAX_PAINTING_BLOCKS.getInteger();
+        if (maxBlocks <= 0)
+        {
+            return false;
+        }
+
+        boolean corrupt = false;
+        long observed = -1L;
+        try
+        {
+            Art art = painting.getArt();
+            if (art == null)
+            {
+                corrupt = true;
+            }
+            else
+            {
+                int w = art.getBlockWidth();
+                int h = art.getBlockHeight();
+                observed = Math.max(w, h);
+                if (w <= 0 || h <= 0 || w > maxBlocks || h > maxBlocks)
+                {
+                    corrupt = true;
+                }
+            }
+        }
+        catch (Throwable t)
+        {
+            // getArt() could not deserialize a corrupted/unregistered variant.
+            corrupt = true;
+        }
+
+        if (!corrupt)
+        {
+            return false;
+        }
+
+        try
+        {
+            painting.remove();
+        }
+        catch (Throwable ignored)
+        {
+        }
+        recordDetection(observed, "painting-variant", context + " on " + painting.getType() + "@" + locShort(painting));
+        return true;
     }
 
     private static String locShort(Entity entity)

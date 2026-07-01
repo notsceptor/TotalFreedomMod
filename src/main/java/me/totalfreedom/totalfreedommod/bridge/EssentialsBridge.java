@@ -2,7 +2,6 @@ package me.totalfreedom.totalfreedommod.bridge;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
-import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
@@ -58,48 +57,6 @@ public class EssentialsBridge extends FreedomService
                 if (userMap != null)
                 {
                     return userMap.getClass().getMethod("getUser", String.class).invoke(userMap, username);
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            FLog.severe(ex);
-        }
-        return null;
-    }
-
-    public void setNickname(String username, String nickname)
-    {
-        try
-        {
-            final Object user = getEssentialsUser(username);
-            if (user != null)
-            {
-                if (nickname != null && nickname.indexOf('&') >= 0)
-                {
-                    nickname = AdventureUtil.translateAlternateColorCodes(nickname);
-                }
-                user.getClass().getMethod("setNickname", String.class).invoke(user, nickname);
-                user.getClass().getMethod("setDisplayNick").invoke(user);
-            }
-        }
-        catch (Exception ex)
-        {
-            FLog.severe(ex);
-        }
-    }
-
-    public String getNickname(String username)
-    {
-        try
-        {
-            final Object user = getEssentialsUser(username);
-            if (user != null)
-            {
-                Object result = user.getClass().getMethod("getNickname").invoke(user);
-                if (result instanceof String)
-                {
-                    return (String) result;
                 }
             }
         }

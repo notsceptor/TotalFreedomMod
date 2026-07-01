@@ -28,6 +28,7 @@ import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.event.inventory.PrepareItemCraftEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
+import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.event.server.ServerCommandEvent;
 import org.bukkit.event.world.LootGenerateEvent;
 import org.bukkit.inventory.Inventory;
@@ -39,8 +40,10 @@ public class ItemValidator extends FreedomService
     private static final long LOG_INTERVAL_TICKS = 100L;
     private static final int MAX_COMMAND_LENGTH = 16384;
     private static final int MAX_COMMAND_BRACE_DEPTH = 8;
+    private static final int DEFAULT_MAX_POTION_EFFECTS = 24;
 
     private volatile boolean panicMode;
+    private volatile int maxPotionEffects = DEFAULT_MAX_POTION_EFFECTS;
 
     private int sweepTaskId = -1;
 
@@ -59,6 +62,8 @@ public class ItemValidator extends FreedomService
     protected void onStart()
     {
         panicMode = Boolean.TRUE.equals(ConfigEntry.CRASH_ITEMS_PANIC_MODE.getBoolean());
+        Integer cap = ConfigEntry.CRASH_ITEMS_MAX_POTION_EFFECTS.getInteger();
+        maxPotionEffects = cap != null ? cap : DEFAULT_MAX_POTION_EFFECTS;
         if (!RawNbtInspector.isAvailable())
         {
             FLog.warning("[ItemValidator] Raw NBT inspection is unavailable on this server runtime.");
@@ -167,6 +172,11 @@ public class ItemValidator extends FreedomService
         return scan(item).isCursed();
     }
 
+    public int getMaxPotionEffects()
+    {
+        return maxPotionEffects;
+    }
+
     private boolean enabled()
     {
         return Boolean.TRUE.equals(ConfigEntry.CRASH_ITEMS_PREVENT.getBoolean());
@@ -174,7 +184,7 @@ public class ItemValidator extends FreedomService
 
     private ItemScanner.Verdict scan(ItemStack item)
     {
-        return ItemScanner.scan(item, panicMode);
+        return ItemScanner.scan(item, panicMode, maxPotionEffects);
     }
 
     private ItemScanner.Verdict scanInventory(Inventory inv)
@@ -541,6 +551,23 @@ public class ItemValidator extends FreedomService
         event.setCancelled(true);
         recordDetection(v, "drop by " + event.getPlayer().getName());
         FUtil.playerMsg(event.getPlayer(), "You cannot drop a cursed item.", NamedTextColor.RED);
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onPlayerItemConsume(PlayerItemConsumeEvent event)
+    {
+        if (!enabled())
+        {
+            return;
+        }
+        ItemScanner.Verdict v = scan(event.getItem());
+        if (!v.isCursed())
+        {
+            return;
+        }
+        event.setCancelled(true);
+        recordDetection(v, "consume by " + event.getPlayer().getName());
+        FUtil.playerMsg(event.getPlayer(), "You cannot consume a cursed item.", NamedTextColor.RED);
     }
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)

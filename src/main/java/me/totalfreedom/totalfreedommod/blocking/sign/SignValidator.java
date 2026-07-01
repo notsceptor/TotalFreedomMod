@@ -171,7 +171,7 @@ public class SignValidator extends FreedomService
         boolean cursed = false;
         for (int i = 0; i < LINES_PER_SIDE; i++)
         {
-            if (ComponentScanner.isUnsafe(event.line(i), MAX_COMPONENT_NODES))
+            if (isCursedLine(event.line(i)))
             {
                 cursed = true;
                 break;
@@ -327,12 +327,17 @@ public class SignValidator extends FreedomService
     {
         for (int i = 0; i < LINES_PER_SIDE; i++)
         {
-            if (ComponentScanner.isUnsafe(side.line(i), MAX_COMPONENT_NODES))
+            if (isCursedLine(side.line(i)))
             {
                 return true;
             }
         }
         return false;
+    }
+
+    private static boolean isCursedLine(net.kyori.adventure.text.Component line)
+    {
+        return ComponentScanner.isCursed(line, MAX_COMPONENT_NODES);
     }
 
     private void removeSign(Block block)
