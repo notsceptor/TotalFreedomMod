@@ -85,7 +85,8 @@ public class Command_mobpurge extends FreedomCommand
         }
 
         FUtil.adminAction(sender.getName(), "Purging all mobs", true);
-        msg(purgeMobs() + " mobs removed.");
+        int removed = purgeMobs();
+        msg(removed + " " + (removed == 1 ? "mob" : "mobs") + " removed.");
         return true;
     }
 
@@ -209,7 +210,7 @@ public class Command_mobpurge extends FreedomCommand
     {
         if (notify != null)
         {
-            notify.sendMessage(Component.text("[MobPurge] World \"" + worldName + "\" chunk (" + chunkX + "," + chunkZ + "): " + total + " mobs removed.", NamedTextColor.GRAY));
+            notify.sendMessage(Component.text("[MobPurge] World \"" + worldName + "\" chunk (" + chunkX + "," + chunkZ + "): " + total + " " + (total == 1 ? "mob" : "mobs") + " removed.", NamedTextColor.GRAY));
         }
     }
 
@@ -230,7 +231,7 @@ public class Command_mobpurge extends FreedomCommand
     {
         if (notify != null)
         {
-            notify.sendMessage(Component.text("[MobPurge] World \"" + worldName + "\": " + total + " mobs removed.", NamedTextColor.GRAY));
+            notify.sendMessage(Component.text("[MobPurge] World \"" + worldName + "\": " + total + " " + (total == 1 ? "mob" : "mobs") + " removed.", NamedTextColor.GRAY));
             if (suggestReload)
             {
                 notify.sendMessage(Component.text("[MobPurge] No entities in loaded chunks. Run again after spawn area loaded, or have a player enter the world so more chunks load, then run again.", NamedTextColor.GRAY));

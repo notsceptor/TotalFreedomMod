@@ -135,6 +135,7 @@ public class EntityWiper extends FreedomService
             {
                 entity.remove();
                 removed++;
+                continue;
             }
 
             // Only wipeable entities can be wiped (duh!)
@@ -147,12 +148,11 @@ public class EntityWiper extends FreedomService
             List<Entity> cel = cem.get(c);
             if (cel == null)
             {
-                cem.put(c, new ArrayList<>(Arrays.asList(entity)));
+                cel = new ArrayList<>();
+                cem.put(c, cel);
             }
-            else
-            {
-                cel.add(entity);
-            }
+
+            cel.add(entity);
         }
 
         // Now purge the entities if necessary
@@ -168,6 +168,15 @@ public class EntityWiper extends FreedomService
             // Too many entities in this chunk, wipe them all
             for (Entity e : cel)
             {
+                if (e instanceof Item item)
+                {
+                    removed += item.getItemStack().getAmount();
+                }
+                else
+                {
+                    removed++;
+                }
+
                 e.remove();
             }
         }
@@ -183,5 +192,4 @@ public class EntityWiper extends FreedomService
         plugin.getServer().getScheduler().runTaskLater(plugin, entity::remove, ITEM_DESPAWN_RATE);
 
     }
-
 }
