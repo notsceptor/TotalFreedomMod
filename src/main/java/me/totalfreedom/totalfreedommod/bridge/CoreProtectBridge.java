@@ -104,7 +104,7 @@ public class CoreProtectBridge extends FreedomService
         return true;
     }
 
-    private CoreProtectAPI getCoreProtectAPI()
+    public CoreProtectAPI getCoreProtectAPI()
     {
         if (coreProtectAPI != null && coreProtectAPI.isEnabled())
         {

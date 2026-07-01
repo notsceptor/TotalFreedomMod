@@ -127,6 +127,7 @@ public class TotalFreedomMod extends JavaPlugin
     public DiscordBridge db; // DiscordBridge - Built-in Discord chat/console relay
     public ServiceChecker sc; // ServiceChecker - Checks Mojang service status
     public TabList tl; // TabList - Customizable tab list header, footer, and player names
+    public LogstickManager lsm;
     //
     // Bridges
     public ServiceManager<TotalFreedomMod> bridges;
@@ -270,6 +271,7 @@ public class TotalFreedomMod extends JavaPlugin
 
         sc = services.registerService(ServiceChecker.class);
         tl = services.registerService(TabList.class);
+        lsm = services.registerService(LogstickManager.class);
         services.start();
 
         // Start bridges
@@ -280,6 +282,11 @@ public class TotalFreedomMod extends JavaPlugin
         ldb = bridges.registerService(LibsDisguisesBridge.class);
         web = bridges.registerService(WorldEditBridge.class);
         bridges.start();
+
+        if (cpb == null || !cpb.isEnabled())
+        {
+            FLog.warning("CoreProtect integration is missing or disabled! Logstick features will be disabled.");
+        }
 
         timer.update();
         FLog.info("Version " + pluginVersion + " for " + ServerInterface.COMPILE_NMS_VERSION + " enabled in " + timer.getTotal() + "ms");
