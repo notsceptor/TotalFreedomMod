@@ -704,14 +704,6 @@ disguises:
     - AREA_EFFECT_CLOUD
     - WITHER
 
-# Logviewer
-logs:
-  url: ''
-  secret: ''
-
-# Mojang service checker
-service_checker_url: http://status.mojang.com/check
-
 # HTTPD server
 httpd:
   enabled: false

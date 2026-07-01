@@ -645,14 +645,6 @@ public class AdminList extends FreedomService
 
     public boolean removeAdmin(Admin admin)
     {
-        if (admin.getRank().isAtLeast(Rank.SENIOR_ADMIN))
-        {
-            if (plugin.btb != null)
-            {
-                plugin.btb.killTelnetSessions(admin.getName());
-            }
-        }
-
         // Remove admin, update views
         if (allAdmins.remove(admin.getConfigKey()) == null)
         {
