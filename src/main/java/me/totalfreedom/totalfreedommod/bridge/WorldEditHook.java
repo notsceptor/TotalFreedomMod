@@ -16,6 +16,7 @@ import com.sk89q.worldedit.regions.Region;
 import com.sk89q.worldedit.session.SessionManager;
 import com.sk89q.worldedit.world.block.BlockStateHolder;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -55,6 +56,8 @@ public final class WorldEditHook implements Listener
 
     private static final Pattern LIMIT_COMMAND = Pattern.compile(
         "^/(?:limit|/limit)\\s+(\\d+|-1)(?:\\s+(.+))?$", Pattern.CASE_INSENSITIVE);
+
+    private static final Pattern BLOCK_TOKEN = Pattern.compile("[a-z0-9_]+(?::[a-z0-9_]+)?");
 
     private static final Map<String, Integer> RADIUS_COMMANDS = new HashMap<>();
 
@@ -101,6 +104,7 @@ public final class WorldEditHook implements Listener
     private final Map<UUID, RegionSnapshot> lastSelections = new HashMap<>();
     private final Map<UUID, Integer> playerLimits = new ConcurrentHashMap<>();
     private final Map<UUID, PermissionAttachment> bypassAttachments = new HashMap<>();
+    private final Map<UUID, OpThrottle> opThrottles = new ConcurrentHashMap<>();
 
     private BukkitTask selectionPollTask;
     private Object editSessionSubscriber;
@@ -198,6 +202,7 @@ public final class WorldEditHook implements Listener
         // lets the subscriber be GC'd once the bus releases it on shutdown.
         editSessionSubscriber = null;
         lastSelections.clear();
+        opThrottles.clear();
 
         for (Map.Entry<UUID, PermissionAttachment> e : bypassAttachments.entrySet())
         {
@@ -266,6 +271,21 @@ public final class WorldEditHook implements Listener
     @EventHandler(priority = EventPriority.LOWEST)
     public void onPlayerCommand(PlayerCommandPreprocessEvent event)
     {
+        if (checkOpThrottle(event))
+        {
+            return;
+        }
+
+        if (checkPatternComplexity(event))
+        {
+            return;
+        }
+
+        if (checkPatternTypes(event))
+        {
+            return;
+        }
+
         if (checkRadiusCommand(event))
         {
             return;
@@ -336,6 +356,7 @@ public final class WorldEditHook implements Listener
         final UUID uuid = event.getPlayer().getUniqueId();
         lastSelections.remove(uuid);
         playerLimits.remove(uuid);
+        opThrottles.remove(uuid);
         final PermissionAttachment att = bypassAttachments.remove(uuid);
         if (att != null)
         {
@@ -363,10 +384,262 @@ public final class WorldEditHook implements Listener
 
     public int getLimitFor(UUID uuid)
     {
-        final Integer maxLimitObj = ConfigEntry.WORLDEDIT_LIMIT_MAX.getInteger();
-        final int fallback = (maxLimitObj == null) ? Integer.MAX_VALUE : maxLimitObj;
+        final int fallback = ConfigEntry.WORLDEDIT_LIMIT_MAX.getInteger(Integer.MAX_VALUE);
         final Integer stored = playerLimits.get(uuid);
         return (stored == null) ? fallback : stored;
+    }
+
+    private static boolean throttleEnabled()
+    {
+        return ConfigEntry.WORLDEDIT_THROTTLE_ENABLED.getBoolean(true);
+    }
+
+    private static int throttleMaxOps()
+    {
+        final int v = ConfigEntry.WORLDEDIT_THROTTLE_MAX_OPS.getInteger(5);
+        return v < 0 ? 5 : v;
+    }
+
+    private static long throttleWindowMs()
+    {
+        final int v = ConfigEntry.WORLDEDIT_THROTTLE_TIME_WINDOW.getInteger(1000);
+        return v <= 0 ? 1000L : v;
+    }
+
+    private static int throttleEjectThreshold()
+    {
+        // Negative disables auto-eject (throttle only).
+        return ConfigEntry.WORLDEDIT_THROTTLE_MAX_CANCELLED_OPS.getInteger(5);
+    }
+
+    private static boolean isWorldEditOp(String message)
+    {
+        if (message == null || message.length() < 2 || message.charAt(0) != '/')
+        {
+            return false;
+        }
+        if (message.charAt(1) == '/')
+        {
+            return true;
+        }
+        String label = message.substring(1);
+        final int sp = label.indexOf(' ');
+        if (sp >= 0)
+        {
+            label = label.substring(0, sp);
+        }
+        final int colon = label.indexOf(':');
+        if (colon <= 0)
+        {
+            return false;
+        }
+        final String ns = label.substring(0, colon).toLowerCase(Locale.ROOT);
+        return ns.equals("worldedit") || ns.equals("fawe") || ns.equals("we");
+    }
+
+    private boolean checkOpThrottle(PlayerCommandPreprocessEvent event)
+    {
+        if (!throttleEnabled())
+        {
+            return false;
+        }
+        final Player player = event.getPlayer();
+        if (plugin.al.isAdmin(player))
+        {
+            return false;
+        }
+        if (!isWorldEditOp(event.getMessage()))
+        {
+            return false;
+        }
+
+        final UUID uuid = player.getUniqueId();
+        final OpThrottle throttle = opThrottles.computeIfAbsent(uuid, k -> new OpThrottle());
+        final long now = System.currentTimeMillis();
+        final long window = throttleWindowMs();
+
+        // Roll the rate window.
+        if (now - throttle.windowStart > window)
+        {
+            throttle.windowStart = now;
+            throttle.count = 0;
+        }
+        throttle.count++;
+        if (throttle.count <= throttleMaxOps())
+        {
+            return false;
+        }
+
+        event.setCancelled(true);
+
+        if (now - throttle.lastViolation > window * 5L)
+        {
+            throttle.violations = 0;
+        }
+        throttle.lastViolation = now;
+        throttle.violations++;
+
+        final int ejectThreshold = throttleEjectThreshold();
+        if (ejectThreshold >= 0 && throttle.violations >= ejectThreshold)
+        {
+            opThrottles.remove(uuid);
+            FUtil.bcastMsg(player.getName()
+                + " was automatically ejected for spamming WorldEdit operations.", NamedTextColor.RED);
+            plugin.ae.autoEject(player, "Kicked for spamming WorldEdit operations.");
+        }
+        else if (now - throttle.lastWarn > window)
+        {
+            throttle.lastWarn = now;
+            player.sendMessage(Component.text(
+                "You are issuing WorldEdit operations too quickly. Slow down.",
+                NamedTextColor.RED));
+        }
+        return true;
+    }
+
+    private boolean checkPatternTypes(PlayerCommandPreprocessEvent event)
+    {
+        final List<String> blocked = ConfigEntry.WORLDEDIT_BLOCKED_BLOCK_TYPES.getStringList();
+        if (blocked == null || blocked.isEmpty())
+        {
+            return false;
+        }
+
+        final Player player = event.getPlayer();
+        if (plugin.al.isAdmin(player))
+        {
+            return false;
+        }
+
+        final String message = event.getMessage();
+        if (!isWorldEditOp(message))
+        {
+            return false;
+        }
+
+        final int sp = message.indexOf(' ');
+        if (sp < 0)
+        {
+            return false;
+        }
+        final String args = message.substring(sp + 1).toLowerCase(Locale.ROOT);
+
+        final Matcher m = BLOCK_TOKEN.matcher(args);
+        while (m.find())
+        {
+            String id = m.group();
+            final int colon = id.indexOf(':');
+            if (colon >= 0)
+            {
+                id = id.substring(colon + 1);
+            }
+            for (String entry : blocked)
+            {
+                if (entry == null || entry.isEmpty())
+                {
+                    continue;
+                }
+                if (blockedIdMatches(id, entry.toLowerCase(Locale.ROOT)))
+                {
+                    event.setCancelled(true);
+                    player.sendMessage(Component.text(
+                        "The block type '" + id + "' cannot be used in your operation.",
+                        NamedTextColor.RED));
+                    FLog.warning(player.getName() + " tried to use a disallowed W/E block type (" + id
+                        + "): " + message);
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean blockedIdMatches(String id, String entry)
+    {
+        if (entry.indexOf('*') >= 0)
+        {
+            final String needle = entry.replace("*", "");
+            return !needle.isEmpty() && id.contains(needle);
+        }
+        return id.equals(entry);
+    }
+
+    private boolean checkPatternComplexity(PlayerCommandPreprocessEvent event)
+    {
+        final Integer maxObj = ConfigEntry.WORLDEDIT_MAX_PATTERN_BLOCKS.getInteger();
+        if (maxObj == null || maxObj < 0)
+        {
+            return false;
+        }
+        final int max = maxObj;
+
+        final Player player = event.getPlayer();
+        if (plugin.al.isAdmin(player))
+        {
+            return false;
+        }
+
+        final String message = event.getMessage();
+        if (!isWorldEditOp(message))
+        {
+            return false;
+        }
+
+        String msg = message.substring(1);
+        if (!msg.isEmpty() && msg.charAt(0) == '/')
+        {
+            msg = msg.substring(1);
+        }
+        final String[] tokens = msg.trim().split("\\s+");
+        // Skip token 0 (the command label); pattern/mask args follow.
+        for (int i = 1; i < tokens.length; i++)
+        {
+            final int components = countPatternComponents(tokens[i]);
+            if (components > max)
+            {
+                event.setCancelled(true);
+                player.sendMessage(Component.text(
+                    "You must use less than " + max
+                        + " different kinds of block types in your operation.",
+                    NamedTextColor.RED));
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * groups "(...)", or "{...}" — do not count, so "oak_log[axis=x]" is one
+     * block, while "a,b,c" is three.
+     */
+    private static int countPatternComponents(String token)
+    {
+        if (token == null || token.isEmpty())
+        {
+            return 0;
+        }
+        int depth = 0;
+        int components = 1;
+        for (int i = 0; i < token.length(); i++)
+        {
+            final char c = token.charAt(i);
+            if (c == '[')
+            {
+                depth++;
+            }
+            else if (c == ']')
+            {
+                if (depth > 0)
+                {
+                    depth--;
+                }
+            }
+            else if ((c == ',' || c == '&') && depth == 0)
+            {
+                components++;
+            }
+        }
+        return components;
     }
 
     private boolean checkRadiusCommand(PlayerCommandPreprocessEvent event)
@@ -420,7 +693,7 @@ public final class WorldEditHook implements Listener
 
         event.setCancelled(true);
         player.sendMessage(Component.text(
-            "WorldEdit radius capped at " + max + " for non-admins. Requested: " + radius + ".",
+            "You must use a radius of " + max + " or lesser.",
             NamedTextColor.RED));
         return true;
     }
@@ -607,6 +880,32 @@ public final class WorldEditHook implements Listener
         catch (Throwable t)
         {
             FLog.severe(t);
+        }
+    }
+
+    public int cancel(Player player)
+    {
+        if (worldEditPlugin == null || player == null)
+        {
+            return 0;
+        }
+        try
+        {
+            final com.sk89q.worldedit.entity.Player wePlayer = worldEditPlugin.wrapPlayer(player);
+            final java.lang.reflect.Method cancelMethod =
+                wePlayer.getClass().getMethod("cancel", boolean.class);
+            final Object result = cancelMethod.invoke(wePlayer, true);
+            return (result instanceof Integer) ? (Integer) result : 0;
+        }
+        catch (NoSuchMethodException ex)
+        {
+            return 0;
+        }
+        catch (Throwable t)
+        {
+            FLog.warning("Failed to cancel WorldEdit operations for "
+                + player.getName() + ": " + t.getMessage());
+            return 0;
         }
     }
 
@@ -811,6 +1110,15 @@ public final class WorldEditHook implements Listener
             }
             return super.setBlock(pos, block);
         }
+    }
+
+    private static final class OpThrottle
+    {
+        long windowStart;
+        int count;
+        long lastViolation;
+        int violations;
+        long lastWarn;
     }
 
     private static final class RegionSnapshot

@@ -1,9 +1,11 @@
 package me.totalfreedom.totalfreedommod.blocking;
 
+import me.totalfreedom.totalfreedommod.EntityWiper;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import org.bukkit.GameMode;
+import org.bukkit.Material;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Boat;
 import org.bukkit.entity.Entity;
@@ -23,6 +25,8 @@ import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.BlockIgniteEvent;
 import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.block.BlockPistonRetractEvent;
+import org.bukkit.event.block.BlockRedstoneEvent;
+import org.bukkit.event.block.BlockSpreadEvent;
 import org.bukkit.event.block.LeavesDecayEvent;
 import org.bukkit.event.entity.EntityCombustEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
@@ -33,6 +37,7 @@ import org.bukkit.event.entity.EntitySpawnEvent;
 import org.bukkit.event.entity.ExplosionPrimeEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.entity.SpawnerSpawnEvent;
+import org.bukkit.event.entity.TrialSpawnerSpawnEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.world.PortalCreateEvent;
 
@@ -66,7 +71,21 @@ public class EventBlocker extends FreedomService
     @EventHandler(priority = EventPriority.HIGH)
     public void onBlockIgnite(BlockIgniteEvent event)
     {
-        if (!ConfigEntry.ALLOW_FIRE_PLACE.getBoolean())
+        final boolean placement = event.getCause() == BlockIgniteEvent.IgniteCause.FLINT_AND_STEEL;
+        final boolean allowed = placement
+            ? ConfigEntry.ALLOW_FIRE_PLACE.getBoolean()
+            : ConfigEntry.ALLOW_FIRE_SPREAD.getBoolean();
+        if (!allowed)
+        {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onBlockSpread(BlockSpreadEvent event)
+    {
+        if (event.getSource().getType() == Material.FIRE
+            && !ConfigEntry.ALLOW_FIRE_SPREAD.getBoolean())
         {
             event.setCancelled(true);
         }
@@ -129,7 +148,7 @@ public class EventBlocker extends FreedomService
     @EventHandler(priority = EventPriority.HIGH)
     public void onEntityDeath(EntityDeathEvent event)
     {
-        if (ConfigEntry.AUTO_ENTITY_WIPE.getBoolean())
+        if (EntityWiper.isAutoWipeEnabled())
         {
             event.setDroppedExp(0);
         }
@@ -203,7 +222,7 @@ public class EventBlocker extends FreedomService
     @EventHandler(priority = EventPriority.NORMAL)
     public void onPlayerDropItem(PlayerDropItemEvent event)
     {
-        if (!ConfigEntry.AUTO_ENTITY_WIPE.getBoolean())
+        if (!EntityWiper.isAutoWipeEnabled())
         {
             return;
         }
@@ -222,6 +241,15 @@ public class EventBlocker extends FreedomService
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onSpawnerSpawn(SpawnerSpawnEvent event)
+    {
+        if (ConfigEntry.DISABLE_SPAWNERS.getBoolean())
+        {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onTrialSpawnerSpawn(TrialSpawnerSpawnEvent event)
     {
         if (ConfigEntry.DISABLE_SPAWNERS.getBoolean())
         {
@@ -283,4 +311,12 @@ public class EventBlocker extends FreedomService
         }
     }
 
+    @EventHandler(priority = EventPriority.HIGH)
+     public void onBlockRedstone(BlockRedstoneEvent event)
+    {
+        if (!ConfigEntry.ALLOW_REDSTONE.getBoolean())
+        {
+            event.setNewCurrent(0);
+        }
+    }
 }

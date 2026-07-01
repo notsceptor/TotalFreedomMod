@@ -24,6 +24,7 @@ import me.totalfreedom.totalfreedommod.blocking.item.ConsoleSpamFilter;
 import me.totalfreedom.totalfreedommod.blocking.item.EquipmentPacketGuard;
 import me.totalfreedom.totalfreedommod.blocking.item.ItemValidator;
 import me.totalfreedom.totalfreedommod.blocking.sign.SignValidator;
+import me.totalfreedom.totalfreedommod.blocking.spawner.SpawnerValidator;
 import me.totalfreedom.totalfreedommod.bridge.BukkitTelnetBridge;
 import me.totalfreedom.totalfreedommod.bridge.CoreProtectBridge;
 import me.totalfreedom.totalfreedommod.bridge.EssentialsBridge;
@@ -93,6 +94,7 @@ public class TotalFreedomMod extends JavaPlugin
     public PotionBlocker pb; // PotionBlocker - Blocks potion effects
     public LoginProcess lp; // LoginProcess - Handles player login processing
     public AntiNuke nu; // AntiNuke - Prevents rapid command execution (nuking)
+    public AntiDrop adr; // AntiDrop - Throttles item drop flooding
     public AntiSpam as; // AntiSpam - Prevents chat spam
     public PlayerList pl; // PlayerList - Manages player data and lists
     public Announcer an; // Announcer - Handles server announcements
@@ -125,7 +127,6 @@ public class TotalFreedomMod extends JavaPlugin
     public HTTPDaemon hd; // HTTPDaemon - HTTP server for web interface
     public SshDaemon sd; // SshDaemon - SSH server for remote console access
     public DiscordBridge db; // DiscordBridge - Built-in Discord chat/console relay
-    public ServiceChecker sc; // ServiceChecker - Checks Mojang service status
     public TabList tl; // TabList - Customizable tab list header, footer, and player names
     public LogstickManager lsm;
     //
@@ -217,12 +218,14 @@ public class TotalFreedomMod extends JavaPlugin
         mb = services.registerService(MobBlocker.class);
         env = services.registerService(EntityNameValidator.class);
         services.registerService(EntitySizeGuard.class);
+        services.registerService(SpawnerValidator.class);
         services.registerService(HurtProjectileGuard.class);
         services.registerService(TextDisplayGuard.class);
         ib = services.registerService(InteractBlocker.class);
         pb = services.registerService(PotionBlocker.class);
         lp = services.registerService(LoginProcess.class);
         nu = services.registerService(AntiNuke.class);
+        adr = services.registerService(AntiDrop.class);
         as = services.registerService(AntiSpam.class);
 
         pl = services.registerService(PlayerList.class);
@@ -269,7 +272,6 @@ public class TotalFreedomMod extends JavaPlugin
         // Discord
         db = services.registerService(DiscordBridge.class);
 
-        sc = services.registerService(ServiceChecker.class);
         tl = services.registerService(TabList.class);
         lsm = services.registerService(LogstickManager.class);
         services.start();

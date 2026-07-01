@@ -3,15 +3,31 @@ package me.totalfreedom.totalfreedommod;
 import java.util.EnumMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
+import me.totalfreedom.totalfreedommod.util.FLog;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 
 public class GameRuleHandler extends FreedomService
 {
 
+    private static final int DEFAULT_RANDOM_TICK_SPEED = 3;
+    private static final int DEFAULT_MAX_NUMERIC_VALUE = 1024;
+
+    private static final Set<String> INT_RULES = Set.of(
+            "maxentitycramming",
+            "spawnchunkradius",
+            "snowaccumulationheight",
+            "playerssleepingpercentage",
+            "minecartmaxspeed",
+            "spawnradius");
+
     private final Map<GameRule, Boolean> rules = new EnumMap<>(GameRule.class);
+
+    private int sweepTaskId = -1;
 
     public GameRuleHandler(TotalFreedomMod plugin)
     {
@@ -34,12 +50,97 @@ public class GameRuleHandler extends FreedomService
         setGameRule(GameRule.MOB_GRIEFING, false, false);
         setGameRule(GameRule.COMMAND_BLOCK_OUTPUT, false);
         setGameRule(GameRule.NATURAL_REGENERATION, true, false);
-        Bukkit.getScheduler().runTask(plugin, this::commitGameRules);
+        Bukkit.getScheduler().runTask(plugin, () ->
+        {
+            commitGameRules();
+            enforceNumericLimits();
+        });
+        schedulePeriodicEnforcement();
     }
 
     @Override
     protected void onStop()
     {
+        if (sweepTaskId != -1)
+        {
+            server.getScheduler().cancelTask(sweepTaskId);
+            sweepTaskId = -1;
+        }
+    }
+
+    private void schedulePeriodicEnforcement()
+    {
+        long interval = ConfigEntry.CRASH_GAMERULES_SWEEP_TICKS.getInteger();
+        if (interval <= 0)
+        {
+            return;
+        }
+        sweepTaskId = server.getScheduler()
+                .runTaskTimer(plugin, this::enforceNumericLimits, interval, interval)
+                .getTaskId();
+    }
+
+    private int randomTickSpeedCap()
+    {
+        int v = ConfigEntry.CRASH_GAMERULES_RANDOM_TICK_SPEED.getInteger();
+        return v > 0 ? v : DEFAULT_RANDOM_TICK_SPEED;
+    }
+
+    private int maxNumericValue()
+    {
+        int v = ConfigEntry.CRASH_GAMERULES_MAX_NUMERIC_VALUE.getInteger();
+        return v > 0 ? v : DEFAULT_MAX_NUMERIC_VALUE;
+    }
+    private void enforceNumericLimits()
+    {
+        final int rtsCap = randomTickSpeedCap();
+        final int maxNumeric = maxNumericValue();
+        for (World world : Bukkit.getWorlds())
+        {
+            for (org.bukkit.GameRule<?> rule : org.bukkit.GameRule.values())
+            {
+                if (rule.getType() != Integer.class)
+                {
+                    continue;
+                }
+                final String name = rule.getName().toLowerCase(Locale.ROOT);
+                final boolean randomTick = "randomtickspeed".equals(name);
+                if (!randomTick && !INT_RULES.contains(name))
+                {
+                    continue;
+                }
+                @SuppressWarnings("unchecked")
+                final org.bukkit.GameRule<Integer> intRule = (org.bukkit.GameRule<Integer>) rule;
+                final Integer current;
+                try
+                {
+                    current = world.getGameRuleValue(intRule);
+                }
+                catch (Throwable t)
+                {
+                    continue;
+                }
+                if (current == null)
+                {
+                    continue;
+                }
+                final int cap = randomTick ? rtsCap : maxNumeric;
+                if (current <= cap && current >= 0)
+                {
+                    continue;
+                }
+                final int clamped = current < 0 ? 0 : cap;
+                try
+                {
+                    world.setGameRule(intRule, clamped);
+                    FLog.warning("[GameRuleHandler] Clamped " + rule.getName() + " from " + current
+                            + " to " + clamped + " in world '" + world.getName() + "'.");
+                }
+                catch (Throwable ignored)
+                {
+                }
+            }
+        }
     }
 
     public void setGameRule(GameRule gameRule, boolean value)
