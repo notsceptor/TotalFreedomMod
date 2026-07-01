@@ -42,13 +42,13 @@ public class Command_ban extends FreedomCommand
         if (!silent && player != null)
         {
             FUtil.bcastMsg(player.getName() + " has been a VERY naughty, naughty boy.", NamedTextColor.RED);
-            if (reason != null)
-                FUtil.bcastMsg("  Reason: " + reason, NamedTextColor.YELLOW);
         }
 
         plugin.bm.addBan(ban);
         if (!silent)
             FUtil.adminAction(sender.getName(), "Banning " + name, true);
+        if (reason != null)
+            FUtil.bcastMsg("  Reason: " + reason, NamedTextColor.YELLOW);
 
         if (!noRollback)
         {
