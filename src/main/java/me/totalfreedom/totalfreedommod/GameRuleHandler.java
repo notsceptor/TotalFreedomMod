@@ -231,5 +231,8 @@ public class GameRuleHandler extends FreedomService
     public <T> void setGameRule(GameRule<T> rule, T newValue)
     {
         defaultGameRuleValues.put(rule, newValue);
+
+        // Commit our changes across all worlds
+        enforceGameRuleDefaults();
     }
 }
