@@ -74,350 +74,354 @@ public class ChatManager extends FreedomService
         }
     }
 
-	/**
-	 * Handles PluginEnableEvent to re-register Vault Chat Provider when Vault
-	 * loads.
-	 * This ensures we register even if Vault loads after TotalFreedomMod.
-	 */
-	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-	public void onPluginEnable(PluginEnableEvent event) {
-		if (event.getPlugin().getName().equals("Vault")) {
-			server.getScheduler().runTaskLater(plugin, () -> {
-				registerVaultChatProvider();
-			}, 5L);
-		}
-	}
+    /**
+     * Handles PluginEnableEvent to re-register Vault Chat Provider when Vault
+     * loads.
+     * This ensures we register even if Vault loads after TotalFreedomMod.
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPluginEnable(PluginEnableEvent event) {
+        if (event.getPlugin().getName().equals("Vault")) {
+            server.getScheduler().runTaskLater(plugin, () -> {
+                registerVaultChatProvider();
+            }, 5L);
+        }
+    }
 
-	@Override
-	protected void onStop() {
-		if (vaultRegistry != null) {
-			vaultRegistry.unregister();
-			vaultRegistry = null;
-		}
-		cachedRawFormat = null;
-		cachedTranslatedFormat = null;
-	}
+    @Override
+    protected void onStop() {
+        if (vaultRegistry != null) {
+            vaultRegistry.unregister();
+            vaultRegistry = null;
+        }
+        cachedRawFormat = null;
+        cachedTranslatedFormat = null;
+    }
 
-	@EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)
-	public void onPlayerChatFormat(AsyncChatEvent event) {
-		try {
-			handleChatEvent(event);
-		} catch (Exception ex) {
-			FLog.severe(ex);
-		}
-	}
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)
+    public void onPlayerChatFormat(AsyncChatEvent event) {
+        try {
+            handleChatEvent(event);
+        } catch (Exception ex) {
+            FLog.severe(ex);
+        }
+    }
 
-	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-	public void onPlayerChatMentionPing(AsyncChatEvent event)
-	{
-		ChatMentionUtil.pingMentions(plugin, event.message(), plugin.al.isAdminSync(event.getPlayer()));
-	}
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPlayerChatMentionPing(AsyncChatEvent event)
+    {
+        ChatMentionUtil.pingMentions(plugin, event.message(), plugin.al.isAdminSync(event.getPlayer()));
+    }
 
-	private void handleChatEvent(AsyncChatEvent event) {
-		final Player player = event.getPlayer();
-		String message = PlainTextComponentSerializer.plainText().serialize(event.message()).trim();
+    private void handleChatEvent(AsyncChatEvent event) {
+        final Player player = event.getPlayer();
+        String message = PlainTextComponentSerializer.plainText().serialize(event.message()).trim();
 
-		// Handle color and formatting codes based on config
-		boolean allowColors = ConfigEntry.VAULT_CHAT_ALLOW_COLOR_FORMATTING.getBoolean();
-		boolean allowSpecial = ConfigEntry.VAULT_CHAT_ALLOW_SPECIAL_FORMATTING.getBoolean();
+        // Handle color and formatting codes based on config
+        boolean allowColors = ConfigEntry.VAULT_CHAT_ALLOW_COLOR_FORMATTING.getBoolean();
+        boolean allowSpecial = ConfigEntry.VAULT_CHAT_ALLOW_SPECIAL_FORMATTING.getBoolean();
 
-		// Truncate messages that are too long
-		Integer maxLengthConfig = ConfigEntry.VAULT_CHAT_MAX_MESSAGE_LENGTH.getInteger();
-		int maxLength = 256; // Default fallback
-		if (maxLengthConfig != null && maxLengthConfig >= 1) {
-			maxLength = maxLengthConfig;
-		}
-		maxLength = Math.min(maxLength, MAX_MESSAGE_LENGTH_HARD_LIMIT);
-		maxLength = Math.max(1, maxLength); // Ensure at least 1
-		
-		if (message.length() > maxLength) {
-			message = message.substring(0, maxLength);
-			if (ConfigEntry.VAULT_CHAT_NOTIFY_TRUNCATED.getBoolean()) {
-				FSync.playerMsg(player, "Message was shortened because it was too long to send.");
-			}
-		}
+        // Truncate messages that are too long
+        Integer maxLengthConfig = ConfigEntry.VAULT_CHAT_MAX_MESSAGE_LENGTH.getInteger();
+        int maxLength = 256; // Default fallback
+        if (maxLengthConfig != null && maxLengthConfig >= 1) {
+            maxLength = maxLengthConfig;
+        }
+        maxLength = Math.min(maxLength, MAX_MESSAGE_LENGTH_HARD_LIMIT);
+        maxLength = Math.max(1, maxLength); // Ensure at least 1
 
-		// Check for caps (if enabled)
-		if (ConfigEntry.VAULT_CHAT_NO_CAPS.getBoolean() && message.length() >= 6) {
-			int caps = 0;
-			for (char c : message.toCharArray()) {
-				if (Character.isUpperCase(c)) {
-					caps++;
-				}
-			}
-			Integer capsRatioConfig = ConfigEntry.VAULT_CHAT_CAPS_RATIO.getInteger();
-			double capsRatio = 0.65; // integer fallback
-			if (capsRatioConfig != null && capsRatioConfig >= 0 && capsRatioConfig <= 100) {
-				capsRatio = capsRatioConfig / 100.0;
-			}
-			if (((float) caps / (float) message.length()) > capsRatio) {
-				message = message.toLowerCase();
-			}
-		}
+        if (message.length() > maxLength) {
+            message = message.substring(0, maxLength);
+            if (ConfigEntry.VAULT_CHAT_NOTIFY_TRUNCATED.getBoolean()) {
+                FSync.playerMsg(player, "Message was shortened because it was too long to send.");
+            }
+        }
 
-		// Check for adminchat
-		final FPlayer fPlayer = plugin.pl.getPlayerSync(player);
-		if (fPlayer.inAdminChat()) {
-			FSync.adminChatMessage(player, message);
-			event.setCancelled(true);
-			return;
-		}
-		// Finally, set message
-		Component messageComponent = AdventureUtil.formatChat(message, allowColors, allowSpecial);
-		messageComponent = ChatMentionUtil.highlight(messageComponent, plugin.al.isAdmin(player));
-		event.message(messageComponent);
+        // Check for caps (if enabled)
+        if (ConfigEntry.VAULT_CHAT_NO_CAPS.getBoolean() && message.length() >= 6) {
+            int caps = 0;
+            for (char c : message.toCharArray()) {
+                if (Character.isUpperCase(c)) {
+                    caps++;
+                }
+            }
+            Integer capsRatioConfig = ConfigEntry.VAULT_CHAT_CAPS_RATIO.getInteger();
+            double capsRatio = 0.65; // integer fallback
+            if (capsRatioConfig != null && capsRatioConfig >= 0 && capsRatioConfig <= 100) {
+                capsRatio = capsRatioConfig / 100.0;
+            }
+            if (((float) caps / (float) message.length()) > capsRatio) {
+                message = message.toLowerCase();
+            }
+        }
 
-		// Prefix and suffix come from the shared builder so chat, the tab list, and
-		// the Vault Chat export all render identically — with or without Vault.
-		String prefix = buildPlayerPrefix(player, PrefixFormat.SECTION);
-		String suffix = "";
-		String worldName = player.getWorld().getName();
+        // Check for adminchat
+        final FPlayer fPlayer = plugin.pl.getPlayerSync(player);
+        if (fPlayer.inAdminChat()) {
+            FSync.adminChatMessage(player, message);
+            event.setCancelled(true);
+            return;
+        }
+        // Finally, set message
+        Component messageComponent = AdventureUtil.formatChat(message, allowColors, allowSpecial);
+        messageComponent = ChatMentionUtil.highlight(messageComponent, plugin.al.isAdmin(player));
+        event.message(messageComponent);
 
-		final String formatTemplate = getTranslatedChatFormat();
+        // Prefix and suffix come from the shared builder so chat, the tab list, and
+        // the Vault Chat export all render identically — with or without Vault.
+        String prefix = buildPlayerPrefix(player, PrefixFormat.SECTION);
+        String suffix = "";
+        String worldName = player.getWorld().getName();
 
-		final PlayerData data = player != null ? plugin.pl.getData(player) : null;
+        final String formatTemplate = getTranslatedChatFormat();
 
-		final String resolvedTemplate = formatTemplate
-			.replace("{PREFIX}", prefix)
-			.replace("{SUFFIX}", suffix)
-			.replace("{WORLD}", worldName)
-			.replace("{GROUP}", "");
-		final String resolvedNonAdminTemplate = resolvedTemplate.replace("{STRIKES}", "");
-		final String resolvedAdminTemplate = resolvedTemplate.replace("{STRIKES}", data != null ? "*".repeat(data.getStrikes()) : "");
+        final PlayerData data = player != null ? plugin.pl.getData(player) : null;
 
-		event.renderer((source, sourceDisplayName, msg, viewer) -> {
-			final Component displayName = data != null && data.hasCustomNickname() ?
-				data.getDisplayedNickname().hoverEvent(HoverEvent.showText(Component.text(source.getName()))) :
-				sourceDisplayName;
-			if (viewer instanceof final CommandSender sender && plugin.al.isAdmin(sender)) {
-				return buildRenderedMessage(displayName,
-					msg,
-					resolvedAdminTemplate,
-					resolvedAdminTemplate.indexOf("{DISPLAYNAME}"),
-					resolvedAdminTemplate.indexOf("{MESSAGE}"));
-			}
-			return buildRenderedMessage(displayName,
-				msg,
-				resolvedNonAdminTemplate,
-				resolvedNonAdminTemplate.indexOf("{DISPLAYNAME}"),
-				resolvedNonAdminTemplate.indexOf("{MESSAGE}"));
-		});
-	}
+        final String resolvedTemplate = formatTemplate
+                .replace("{PREFIX}", prefix)
+                .replace("{SUFFIX}", suffix)
+                .replace("{WORLD}", worldName)
+                .replace("{GROUP}", "");
+        final String resolvedNonAdminTemplate = resolvedTemplate.replace("{STRIKES}", "");
+        final String resolvedAdminTemplate = resolvedTemplate.replace("{STRIKES}", data != null ? "*".repeat(data.getStrikes()) : "");
 
-	private String getTranslatedChatFormat()
-	{
-		String raw = ConfigEntry.VAULT_CHAT_FORMAT.getString();
-		if (raw == null || raw.isEmpty()) {
-			raw = "{PREFIX}<{DISPLAYNAME}> {MESSAGE}";
-		}
-		if (raw == cachedRawFormat || raw.equals(cachedRawFormat)) {
-			return cachedTranslatedFormat;
-		}
-		cachedRawFormat = raw;
-		cachedTranslatedFormat = AdventureUtil.translateAlternateColorCodes(raw);
-		return cachedTranslatedFormat;
-	}
+        event.renderer((source, sourceDisplayName, msg, viewer) -> {
+            final Component displayName = data != null && data.hasCustomNickname() ?
+                    data.getDisplayedNickname().hoverEvent(HoverEvent.showText(Component.text(source.getName()))) :
+                    sourceDisplayName;
+            if (viewer instanceof final CommandSender sender && plugin.al.isAdmin(sender)) {
+                return buildRenderedMessage(displayName,
+                        msg,
+                        resolvedAdminTemplate,
+                        resolvedAdminTemplate.indexOf("{DISPLAYNAME}"),
+                        resolvedAdminTemplate.indexOf("{MESSAGE}"));
+            }
+            return buildRenderedMessage(displayName,
+                    msg,
+                    resolvedNonAdminTemplate,
+                    resolvedNonAdminTemplate.indexOf("{DISPLAYNAME}"),
+                    resolvedNonAdminTemplate.indexOf("{MESSAGE}"));
+        });
+    }
 
-	private Component buildRenderedMessage(Component sourceDisplayName, Component message,
-		String resolved, int dnIdx, int msgIdx) {
+    private String getTranslatedChatFormat()
+    {
+        String raw = ConfigEntry.VAULT_CHAT_FORMAT.getString();
+        if (raw == null || raw.isEmpty()) {
+            raw = "{PREFIX}<{DISPLAYNAME}> {MESSAGE}";
+        }
+        if (raw == cachedRawFormat || raw.equals(cachedRawFormat)) {
+            return cachedTranslatedFormat;
+        }
+        cachedRawFormat = raw;
+        cachedTranslatedFormat = AdventureUtil.translateAlternateColorCodes(raw);
+        return cachedTranslatedFormat;
+    }
 
-		if (dnIdx < 0 && msgIdx < 0) {
-			return legacySection(resolved).append(message);
-		}
+    private Component buildRenderedMessage(Component sourceDisplayName, Component message,
+                                           String resolved, int dnIdx, int msgIdx) {
 
-		if (dnIdx >= 0 && msgIdx >= 0) {
-			if (dnIdx < msgIdx) {
-				return legacySection(resolved.substring(0, dnIdx))
-					.append(sourceDisplayName)
-					.append(legacySection(resolved.substring(dnIdx + "{DISPLAYNAME}".length(), msgIdx)))
-					.append(message)
-					.append(legacySection(resolved.substring(msgIdx + "{MESSAGE}".length())));
-			} else {
-				return legacySection(resolved.substring(0, msgIdx))
-					.append(message)
-					.append(legacySection(resolved.substring(msgIdx + "{MESSAGE}".length(), dnIdx)))
-					.append(sourceDisplayName)
-					.append(legacySection(resolved.substring(dnIdx + "{DISPLAYNAME}".length())));
-			}
-		}
+        if (dnIdx < 0 && msgIdx < 0) {
+            return legacySection(resolved).append(message);
+        }
 
-		if (dnIdx >= 0) {
-			return legacySection(resolved.substring(0, dnIdx))
-				.append(sourceDisplayName)
-				.append(legacySection(resolved.substring(dnIdx + "{DISPLAYNAME}".length())))
-				.append(message);
-		}
+        if (dnIdx >= 0 && msgIdx >= 0) {
+            if (dnIdx < msgIdx) {
+                return legacySection(resolved.substring(0, dnIdx))
+                        .append(sourceDisplayName)
+                        .append(legacySection(resolved.substring(dnIdx + "{DISPLAYNAME}".length(), msgIdx)))
+                        .append(message)
+                        .append(legacySection(resolved.substring(msgIdx + "{MESSAGE}".length())));
+            } else {
+                return legacySection(resolved.substring(0, msgIdx))
+                        .append(message)
+                        .append(legacySection(resolved.substring(msgIdx + "{MESSAGE}".length(), dnIdx)))
+                        .append(sourceDisplayName)
+                        .append(legacySection(resolved.substring(dnIdx + "{DISPLAYNAME}".length())));
+            }
+        }
 
-		// msgIdx >= 0
-		return legacySection(resolved.substring(0, msgIdx))
-			.append(message)
-			.append(legacySection(resolved.substring(msgIdx + "{MESSAGE}".length())));
-	}
+        if (dnIdx >= 0) {
+            return legacySection(resolved.substring(0, dnIdx))
+                    .append(sourceDisplayName)
+                    .append(legacySection(resolved.substring(dnIdx + "{DISPLAYNAME}".length())))
+                    .append(message);
+        }
 
-	private static Component legacySection(String s) {
-		if (s == null || s.isEmpty()) {
-			return Component.empty();
-		}
-		return LegacyComponentSerializer.legacySection().deserialize(s);
-	}
+        // msgIdx >= 0
+        return legacySection(resolved.substring(0, msgIdx))
+                .append(message)
+                .append(legacySection(resolved.substring(msgIdx + "{MESSAGE}".length())));
+    }
 
-	public void adminChat(CommandSender sender, String message) {
-		Component tag = plugin.rm.getDisplay(sender).getColoredTag();
-		Component formattedMessage = FUtil.colorizeWithLinks(message, NamedTextColor.GOLD);
+    private static Component legacySection(String s) {
+        if (s == null || s.isEmpty()) {
+            return Component.empty();
+        }
+        return LegacyComponentSerializer.legacySection().deserialize(s);
+    }
 
-		Component nameComponent = Component.text(sender.getName() + " ")
-				.append(tag)
-				.append(Component.text("").color(NamedTextColor.WHITE));
+    public void adminChat(CommandSender sender, String message) {
+        Component tag = sender instanceof Player
+                ? plugin.rm.getDisplay(sender).getColoredTag()
+                : Component.text("[", NamedTextColor.DARK_GRAY)
+                .append(Component.text("CONSOLE", NamedTextColor.DARK_PURPLE))
+                .append(Component.text("]", NamedTextColor.DARK_GRAY));
+        Component formattedMessage = FUtil.colorizeWithLinks(message, NamedTextColor.GOLD);
 
-		Component adminMsg = Component.text("[")
-				.color(NamedTextColor.WHITE)
-				.append(Component.text("ADMIN").color(NamedTextColor.AQUA))
-				.append(Component.text("] ").color(NamedTextColor.WHITE))
-				.append(nameComponent.color(NamedTextColor.DARK_RED))
-				.append(Component.text(": ").color(NamedTextColor.DARK_RED))
-				.append(formattedMessage);
+        Component nameComponent = Component.text(sender.getName() + " ")
+                .append(tag)
+                .append(Component.text("").color(NamedTextColor.WHITE));
 
-		// Serialize console message to ANSI for terminal colors
-		Component consoleMsg = Component.text("[ADMIN] ")
-				.color(NamedTextColor.AQUA)
-				.append(nameComponent)
-				.append(Component.text(": ").color(NamedTextColor.WHITE))
-				.append(formattedMessage);
-		String ansiMessage = ANSIComponentSerializer.ansi().serialize(consoleMsg);
-		Bukkit.getConsoleSender().sendMessage(ansiMessage);
+        Component adminMsg = Component.text("[")
+                .color(NamedTextColor.WHITE)
+                .append(Component.text("ADMIN").color(NamedTextColor.AQUA))
+                .append(Component.text("] ").color(NamedTextColor.WHITE))
+                .append(nameComponent.color(NamedTextColor.DARK_RED))
+                .append(Component.text(": ").color(NamedTextColor.DARK_RED))
+                .append(formattedMessage);
 
-		for (Player player : plugin.al.getOnlineAdmins()) {
-			player.sendMessage(adminMsg);
-		}
+        // Serialize console message to ANSI for terminal colors
+        Component consoleMsg = Component.text("[ADMIN] ")
+                .color(NamedTextColor.AQUA)
+                .append(nameComponent)
+                .append(Component.text(": ").color(NamedTextColor.WHITE))
+                .append(formattedMessage);
+        String ansiMessage = ANSIComponentSerializer.ansi().serialize(consoleMsg);
+        Bukkit.getConsoleSender().sendMessage(ansiMessage);
 
-		plugin.db.relayAdminchatMessage(sender, tag, formattedMessage);
-	}
+        for (Player player : plugin.al.getOnlineAdmins()) {
+            player.sendMessage(adminMsg);
+        }
 
-	public void reportAction(Player reporter, OfflinePlayer reported, String report) {
-		Component reportMsg = Component.text("[REPORTS] ")
-				.color(NamedTextColor.RED)
-				.append(Component.text(reporter.getName() + " has reported " + reported.getName() + " for ", NamedTextColor.GOLD))
-				.append(FUtil.colorizeWithLinks(report, NamedTextColor.GOLD))
-				.append(Component.text(" (", NamedTextColor.GOLD))
+        plugin.db.relayAdminchatMessage(sender, tag, formattedMessage);
+    }
+
+    public void reportAction(Player reporter, OfflinePlayer reported, String report) {
+        Component reportMsg = Component.text("[REPORTS] ")
+                .color(NamedTextColor.RED)
+                .append(Component.text(reporter.getName() + " has reported " + reported.getName() + " for ", NamedTextColor.GOLD))
+                .append(FUtil.colorizeWithLinks(report, NamedTextColor.GOLD))
+                .append(Component.text(" (", NamedTextColor.GOLD))
                 .append(Component.text("click to teleport", NamedTextColor.GOLD)
-					.clickEvent(ClickEvent.runCommand(String.format("%s %s",
-						plugin.esb.isEssentialsEnabled() ? "tpo" : "tp",
-						reported.getName()))))
-				.append(Component.text(")", NamedTextColor.GOLD));
+                        .clickEvent(ClickEvent.runCommand(String.format("%s %s",
+                                plugin.esb.isEssentialsEnabled() ? "tpo" : "tp",
+                                reported.getName()))))
+                .append(Component.text(")", NamedTextColor.GOLD));
 
-		for (Player player : plugin.al.getOnlineAdmins()) {
-			playerMsg(player, reportMsg);
-		}
-	}
+        for (Player player : plugin.al.getOnlineAdmins()) {
+            playerMsg(player, reportMsg);
+        }
+    }
 
-	/**
-	 * Gets the player's custom tag (from /tag command).
-	 */
-	private String getPlayerCustomTag(Player player) {
-		FPlayer fPlayer = plugin.pl.getPlayer(player);
-		if (fPlayer == null) {
-			return "";
-		}
-		String tag = fPlayer.getTag();
-		return tag != null ? tag : "";
-	}
+    /**
+     * Gets the player's custom tag (from /tag command).
+     */
+    private String getPlayerCustomTag(Player player) {
+        FPlayer fPlayer = plugin.pl.getPlayer(player);
+        if (fPlayer == null) {
+            return "";
+        }
+        String tag = fPlayer.getTag();
+        return tag != null ? tag : "";
+    }
 
-	/**
-	 * Gets the configured prefix for a display rank/title.
-	 * Returns null if not configured (will use default).
-	 */
-	private String getConfigPrefix(me.totalfreedom.totalfreedommod.rank.Displayable display) {
-		if (display instanceof me.totalfreedom.totalfreedommod.rank.CustomRank) {
-			me.totalfreedom.totalfreedommod.rank.CustomRank custom = (me.totalfreedom.totalfreedommod.rank.CustomRank) display;
-			if (custom.getPrefix() != null && !custom.getPrefix().isEmpty()) {
-				return custom.getPrefix();
-			}
-		}
-		if (display instanceof me.totalfreedom.totalfreedommod.rank.Rank) {
-			me.totalfreedom.totalfreedommod.rank.Rank rank = (me.totalfreedom.totalfreedommod.rank.Rank) display;
-			switch (rank) {
-				case IMPOSTOR:
-					return ConfigEntry.VAULT_PREFIX_IMPOSTOR.getString();
-				case NON_OP:
-					return ConfigEntry.VAULT_PREFIX_NON_OP.getString();
-				case OP:
-					return ConfigEntry.VAULT_PREFIX_OP.getString();
-				case SUPER_ADMIN:
-					return ConfigEntry.VAULT_PREFIX_SUPER_ADMIN.getString();
-				case SENIOR_ADMIN:
-					return ConfigEntry.VAULT_PREFIX_SENIOR_ADMIN.getString();
-				case SENIOR_CONSOLE:
-					return ConfigEntry.VAULT_PREFIX_SENIOR_CONSOLE.getString();
-				default:
-					return null;
-			}
-		}
-		return null;
-	}
+    /**
+     * Gets the configured prefix for a display rank/title.
+     * Returns null if not configured (will use default).
+     */
+    private String getConfigPrefix(me.totalfreedom.totalfreedommod.rank.Displayable display) {
+        if (display instanceof me.totalfreedom.totalfreedommod.rank.CustomRank) {
+            me.totalfreedom.totalfreedommod.rank.CustomRank custom = (me.totalfreedom.totalfreedommod.rank.CustomRank) display;
+            if (custom.getPrefix() != null && !custom.getPrefix().isEmpty()) {
+                return custom.getPrefix();
+            }
+        }
+        if (display instanceof me.totalfreedom.totalfreedommod.rank.Rank) {
+            me.totalfreedom.totalfreedommod.rank.Rank rank = (me.totalfreedom.totalfreedommod.rank.Rank) display;
+            switch (rank) {
+                case IMPOSTOR:
+                    return ConfigEntry.VAULT_PREFIX_IMPOSTOR.getString();
+                case NON_OP:
+                    return ConfigEntry.VAULT_PREFIX_NON_OP.getString();
+                case OP:
+                    return ConfigEntry.VAULT_PREFIX_OP.getString();
+                case SUPER_ADMIN:
+                    return ConfigEntry.VAULT_PREFIX_SUPER_ADMIN.getString();
+                case SENIOR_ADMIN:
+                    return ConfigEntry.VAULT_PREFIX_SENIOR_ADMIN.getString();
+                case SENIOR_CONSOLE:
+                    return ConfigEntry.VAULT_PREFIX_SENIOR_CONSOLE.getString();
+                default:
+                    return null;
+            }
+        }
+        return null;
+    }
 
-	/**
-	 * Used by TabList so the same logic and config settings apply in chat and in the tab list.
-	 */
-	public enum PrefixFormat
-	{
-		SECTION,
-		AMPERSAND
-	}
+    /**
+     * Used by TabList so the same logic and config settings apply in chat and in the tab list.
+     */
+    public enum PrefixFormat
+    {
+        SECTION,
+        AMPERSAND
+    }
 
-	public String buildPlayerPrefix(Player player, PrefixFormat format)
-	{
-		String prefix = buildPrefixSection(player);
-		return format == PrefixFormat.AMPERSAND ? prefix.replace('§', '&') : prefix;
-	}
+    public String buildPlayerPrefix(Player player, PrefixFormat format)
+    {
+        String prefix = buildPrefixSection(player);
+        return format == PrefixFormat.AMPERSAND ? prefix.replace('§', '&') : prefix;
+    }
 
-	private String buildPrefixSection(Player player)
-	{
-		if (player == null)
-		{
-			return "";
-		}
+    private String buildPrefixSection(Player player)
+    {
+        if (player == null)
+        {
+            return "";
+        }
 
-		me.totalfreedom.totalfreedommod.rank.Displayable display = plugin.rm.getDisplay(player);
-		String rankPrefix = "";
+        me.totalfreedom.totalfreedommod.rank.Displayable display = plugin.rm.getDisplay(player);
+        String rankPrefix = "";
 
-		if (display != null)
-		{
-			String configPrefix = getConfigPrefix(display);
-			if (configPrefix != null && !configPrefix.isEmpty())
-			{
-				rankPrefix = AdventureUtil.componentToLegacySection(FUtil.colorize(configPrefix));
-			}
-			else
-			{
-				Component coloredTag = display.getColoredTag();
-				if (coloredTag != null && !coloredTag.equals(Component.empty()))
-				{
-					rankPrefix = AdventureUtil.componentToLegacySection(coloredTag);
-				}
-			}
-		}
+        if (display != null)
+        {
+            String configPrefix = getConfigPrefix(display);
+            if (configPrefix != null && !configPrefix.isEmpty())
+            {
+                rankPrefix = AdventureUtil.componentToLegacySection(FUtil.colorize(configPrefix));
+            }
+            else
+            {
+                Component coloredTag = display.getColoredTag();
+                if (coloredTag != null && !coloredTag.equals(Component.empty()))
+                {
+                    rankPrefix = AdventureUtil.componentToLegacySection(coloredTag);
+                }
+            }
+        }
 
-		String customTag = getPlayerCustomTag(player);
-		boolean enforcePrefix = Boolean.TRUE.equals(ConfigEntry.VAULT_CHAT_ENFORCE_PREFIX.getBoolean());
+        String customTag = getPlayerCustomTag(player);
+        boolean enforcePrefix = Boolean.TRUE.equals(ConfigEntry.VAULT_CHAT_ENFORCE_PREFIX.getBoolean());
 
-		String formattedTag = null;
-		if (customTag != null && !customTag.isEmpty())
-		{
-			String tagTemplate = ConfigEntry.VAULT_CHAT_TAG.getString();
-			if (tagTemplate == null || tagTemplate.isEmpty())
-			{
-				tagTemplate = "&7{TAG} ";
-			}
-			formattedTag = AdventureUtil.translateAlternateColorCodes(tagTemplate).replace("{TAG}", customTag);
-		}
+        String formattedTag = null;
+        if (customTag != null && !customTag.isEmpty())
+        {
+            String tagTemplate = ConfigEntry.VAULT_CHAT_TAG.getString();
+            if (tagTemplate == null || tagTemplate.isEmpty())
+            {
+                tagTemplate = "&7{TAG} ";
+            }
+            formattedTag = AdventureUtil.translateAlternateColorCodes(tagTemplate).replace("{TAG}", customTag);
+        }
 
-		if (!enforcePrefix)
-		{
-			return formattedTag != null ? formattedTag : rankPrefix;
-		}
-		return formattedTag != null
-				? (!rankPrefix.isEmpty() ? rankPrefix + formattedTag : formattedTag)
-				: rankPrefix;
-	}
+        if (!enforcePrefix)
+        {
+            return formattedTag != null ? formattedTag : rankPrefix;
+        }
+        return formattedTag != null
+                ? (!rankPrefix.isEmpty() ? rankPrefix + formattedTag : formattedTag)
+                : rankPrefix;
+    }
 
 }
