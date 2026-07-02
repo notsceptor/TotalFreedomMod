@@ -144,8 +144,7 @@ public class Command_myadmin extends FreedomCommand
                 FUtil.adminAction(sender.getName(), "Setting personal login message" + (init == null ? "" : " for " + targetPlayer.getName()), false);
                 target.setLoginMessage(msg);
                 msg((init == null ? "Your" : targetPlayer.getName() + "'s") + " login message is now: ");
-                msg(Component.text("> ").append(Component.text(targetPlayer.getName() + " is ", NamedTextColor.AQUA))
-                        .append(FUtil.colorizeWithLinks(target.getLoginMessage())));
+                msg(Component.text("> ").append(plugin.rm.formatLoginMessage(targetPlayer)));
                 plugin.al.save();
                 plugin.al.updateTables();
                 return true;
