@@ -396,23 +396,6 @@ crash_entities:
   # 0 disables.  200 ticks (10s) by default.
   scale_sweep_ticks: 200
 
-# GameRuleHandler
-# In all their wisdom, the developers of Minecraft have added a way for gamerules
-# to be directly affected using packets.
-crash_gamerules:
-  # GameRuleGuard
-  # This is what guards directly against inbound SET_GAME_RULE packets.  Does not
-  # affect the /gamerule command.  Requires packetevents.
-  packet_guard: true
-  # The maximum tick value that randomTickSpeed will be set to upon server startup.
-  # Vanilla default is 3.  Only raise this value if you want to speed things up.
-  random_tick_speed: 3
-  # The maximum numeric value for most gamerules. Defaults should be well below this.
-  max_numeric_value: 1024
-  # Time in between ticks to sweep over every loaded world (20 = 1s) for invalid
-  # values. (This may be useful if you don't have packetevents.)  Disabled by default.
-  sweep_ticks: 0
-
 # MovementValidator
 # Keeps players within the scope of the world border at a low level.  This is a global
 # world border defined by the radius from the center (0,0) with a playable area of
@@ -931,7 +914,7 @@ gamerules:
 
   # Game rules that should be set by default
   defaults:
-    "minecraft:fire_damage": false
+    "minecraft:fire_spread_radius_around_player": 0
     "minecraft:mob_griefing": false
     "minecraft:mob_drops": false
     "minecraft:spawn_mobs": false
@@ -948,3 +931,11 @@ gamerules:
     - "minecraft:max_minecart_speed"
     - "minecraft:max_command_sequence_length"
     - "minecraft:max_block_modifications"
+
+  # Game rules with limitations on how large the numerical value can be. Enforced when attempting to set them
+  caps:
+    "minecraft:random_tick_speed": [0, 3]
+    "minecraft:respawn_radius": [1, 1024]
+    "minecraft:max_snow_accumulation_height": [0, 1024]
+    "minecraft:players_sleeping_percentage": [0, 1024]
+    "minecraft:max_minecart_speed": [0, 1000]

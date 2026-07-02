@@ -26,7 +26,6 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerSp
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerUpdateAttributes;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerMerchantOffers;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerWindowItems;
-import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientSetGameRule;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,11 +33,9 @@ import java.util.Optional;
 import java.util.UUID;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.blocking.entity.EntityMetaPacketGuard;
-import me.totalfreedom.totalfreedommod.blocking.gamerule.GameRulePacketGuard;
 import me.totalfreedom.totalfreedommod.blocking.item.ContainerPacketGuard;
 import me.totalfreedom.totalfreedommod.blocking.sign.SignPacketGuard;
 import me.totalfreedom.totalfreedommod.blocking.spawner.SpawnerPacketGuard;
-import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FSync;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -155,20 +152,6 @@ final class CrashPacketListener extends PacketListenerAbstract
         catch (Throwable ignored)
         {
         }
-    }
-
-    private void logBlockedGameRule(PacketReceiveEvent event)
-    {
-        String what;
-        try
-        {
-            what = GameRulePacketGuard.describe(new WrapperPlayClientSetGameRule(event));
-        }
-        catch (Throwable t)
-        {
-            what = "?";
-        }
-        FLog.warning("[GameRuleGuard] Blocked an attempt to edit a gamerule from " + describeUser(event) + ": " + what);
     }
 
     private static String describeUser(PacketReceiveEvent event)

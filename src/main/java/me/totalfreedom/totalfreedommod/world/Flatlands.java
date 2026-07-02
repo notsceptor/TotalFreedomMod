@@ -4,7 +4,6 @@ import java.io.File;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
-import me.totalfreedom.totalfreedommod.util.FUtil;
 import org.apache.commons.io.FileUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -72,8 +71,7 @@ public class Flatlands extends CustomWorld
 
         welcomeSign.update();
 
-        plugin.gr.commitGameRules();
-
+        plugin.gr.enforceGameRuleDefaultsForWorld(world);
         return world;
     }
 

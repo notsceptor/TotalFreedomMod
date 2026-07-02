@@ -1,8 +1,8 @@
 package me.totalfreedom.totalfreedommod.command;
 
-import me.totalfreedom.totalfreedommod.GameRuleHandler;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.rank.Rank;
+import org.bukkit.GameRules;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -77,7 +77,7 @@ public class Command_moblimiter extends FreedomCommand
             msg("Moblimiter is disabled. No mob restrictions are in effect.");
         }
 
-        plugin.gr.setGameRule(GameRuleHandler.GameRule.DO_MOB_SPAWNING, !ConfigEntry.MOB_LIMITER_ENABLED.getBoolean());
+        plugin.gr.setGameRule(GameRules.SPAWN_MOBS, !ConfigEntry.MOB_LIMITER_ENABLED.getBoolean());
 
         return true;
     }
