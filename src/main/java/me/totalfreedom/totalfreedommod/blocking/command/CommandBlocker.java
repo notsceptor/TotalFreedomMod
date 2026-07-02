@@ -33,7 +33,6 @@ public class CommandBlocker extends FreedomService
 
     private final Pattern flagPattern = Pattern.compile("(:([0-9]){5,})");
     private final Pattern restrictedSelectorPattern = Pattern.compile("(?i)(?<![a-z0-9_])(?:@[aenrs](?=\\[|\\b)|@p(?=\\[))");
-    private final Pattern essentialsWildcardPattern = Pattern.compile("(?<!\\S)\\*{1,2}(?=\\s|$)");
     //
     private final Map<String, List<CommandBlockerEntry>> entriesByBaseCommand = Maps.newHashMap();
     private final List<String> unknownCommands = Lists.newArrayList();
@@ -190,7 +189,7 @@ public class CommandBlocker extends FreedomService
 
         if (!plugin.al.isAdmin(player) && containsRestrictedTarget(command))
         {
-            FUtil.playerMsg(player, "You may not use player selectors or wildcards in commands.");
+            FUtil.playerMsg(player, "You may not use player selectors in commands.");
             event.setCancelled(true);
             return;
         }
@@ -205,8 +204,7 @@ public class CommandBlocker extends FreedomService
 
     private boolean containsRestrictedTarget(String command)
     {
-        return restrictedSelectorPattern.matcher(command).find()
-                || essentialsWildcardPattern.matcher(command).find();
+        return restrictedSelectorPattern.matcher(command).find();
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
