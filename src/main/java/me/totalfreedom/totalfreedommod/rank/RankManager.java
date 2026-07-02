@@ -5,7 +5,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -24,7 +23,7 @@ import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.ComponentBuilder;
+import net.kyori.adventure.text.TextReplacementConfig;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -1353,24 +1352,11 @@ public class RankManager extends FreedomService
         if (isAdmin || FUtil.DEVELOPERS.contains(player.getName()))
         {
             final Displayable display = getDisplay(player);
-            Component loginMsg = display.getColoredLoginMessage();
-
-            if (isAdmin)
-            {
-                Admin admin = plugin.al.getAdmin(player);
-                if (admin.hasLoginMessage())
-                {
-                    loginMsg = FUtil.colorizeWithLinks(admin.getLoginMessage());
-                }
-            }
-
-            Component broadcastMsg = Component.text(player.getName() + " is ")
-                    .color(NamedTextColor.AQUA)
-                    .append(loginMsg);
-            FUtil.bcastMsg(broadcastMsg);
+            Component loginMsg = formatLoginMessage(player);
+            FUtil.bcastMsg(loginMsg);
             if (plugin.db != null)
             {
-                plugin.db.relayLoginMessage(broadcastMsg);
+                plugin.db.relayLoginMessage(loginMsg);
             }
 
             // Skip rank tag when the player has a saved custom tag.
@@ -1382,6 +1368,40 @@ public class RankManager extends FreedomService
             }
 
         }
+    }
+
+    public Component formatLoginMessage(Player player)
+    {
+        final Displayable display = getDisplay(player);
+        final boolean isAdmin = plugin.al.isAdmin(player);
+        Component loginMsg = Component.text(player.getName() + " is ")
+                .color(NamedTextColor.AQUA)
+                .append(display.getColoredLoginMessage());
+
+        if (isAdmin)
+        {
+            Admin admin = plugin.al.getAdmin(player);
+            if (admin.hasLoginMessage())
+            {
+
+                loginMsg = FUtil.colorizeWithLinks(admin.getLoginMessage())
+                        .replaceText(TextReplacementConfig.builder()
+                                .matchLiteral("%name%")
+                                .replacement(Component.text(admin.getName()))
+                                .build())
+                        .replaceText(TextReplacementConfig.builder()
+                                .matchLiteral("%rank%")
+                                .replacement(Component.text(admin.getRank().getName()))
+                                .build())
+                        .replaceText(TextReplacementConfig.builder()
+                                .matchLiteral("%coloredrank%")
+                                .replacement(admin.getRank().getColoredName())
+                                .build());
+
+            }
+        }
+
+        return loginMsg;
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
