@@ -1,6 +1,7 @@
 package me.totalfreedom.totalfreedommod.command;
 
 import me.totalfreedom.totalfreedommod.rank.Rank;
+import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.commons.lang3.ArrayUtils;
@@ -46,6 +47,10 @@ public class Command_warn extends FreedomCommand
         }
 
         String warnReason = StringUtils.join(ArrayUtils.subarray(args, 1, args.length), " ");
+
+        FUtil.adminAction(sender.getName(), "Warned " + player.getName(), true);
+        if (warnReason != null)
+            FUtil.bcastMsg("  Reason: " + warnReason, NamedTextColor.YELLOW);
 
         msg(player, Component.text("[WARNING] You received a warning: " + warnReason, NamedTextColor.RED));
         msg("You have successfully warned " + player.getName(), NamedTextColor.GREEN);

@@ -23,6 +23,8 @@ public enum ConfigEntry
     ALLOW_SIGN_PLACE(Boolean.class, "allow.sign_place"),
     ALLOW_FALLING_SIGNS(Boolean.class, "allow.falling_signs"),
     ALLOW_FALLING_BLOCKS(Boolean.class, "allow.falling_blocks"),
+    AUTO_TP(Boolean.class, "allow.auto_tp"),
+    AUTO_CLEAR(Boolean.class, "allow.auto_clear"),
     //
     MOB_LIMITER_ENABLED(Boolean.class, "moblimiter.enabled"),
     MOB_LIMITER_MAX(Integer.class, "moblimiter.max"),
@@ -69,6 +71,7 @@ public enum ConfigEntry
     SERVER_ADDRESS(String.class, "server.address"),
     SERVER_MOTD(String.class, "server.motd"),
     SERVER_OWNERS(List.class, "server.owners"),
+    SERVER_WEB_URL(List.class, "server.web_url"),
     SERVER_BAN_URL(String.class, "server.ban_url"),
     SERVER_PERMBAN_URL(String.class, "server.permban_url"),
     //

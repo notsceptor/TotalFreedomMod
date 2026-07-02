@@ -84,10 +84,6 @@ public class Command_banlist extends FreedomCommand
         {
             msg(buildSection("IP bans: ", NamedTextColor.GOLD, new ArrayList<>(ipOnly)));
         }
-        if (!permbanNames.isEmpty())
-        {
-            msg(buildSection("Permbans: ", NamedTextColor.DARK_RED, permbanNames));
-        }
     }
 
     private Component buildSection(String header, NamedTextColor headerColor, List<String> entries)

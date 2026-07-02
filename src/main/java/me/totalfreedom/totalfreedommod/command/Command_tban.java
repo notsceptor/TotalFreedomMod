@@ -1,6 +1,7 @@
 package me.totalfreedom.totalfreedommod.command;
 
 import me.totalfreedom.totalfreedommod.banning.Ban;
+import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
@@ -15,42 +16,57 @@ import org.bukkit.entity.Player;
 @CommandParameters(description = "Temporarily bans a player for five minutes.", usage = "/<command> [-s] [-rb] <player> [reason]", aliases = "noob")
 public class Command_tban extends FreedomCommand
 {
-    @CommandDispatchTarget(pattern = "<player:Player> <reason..>", switches = "s,rb")
-    public boolean tban(CommandContext ctx, Player player, String reason, boolean silent, boolean rollback)
+    @CommandDispatchTarget(pattern = "<player> <reason..>", switches = "s,rb")
+    public boolean tban(CommandContext ctx, String playerName, String reason, boolean silent, boolean rollback)
     {
-        final Location targetPos = player.getLocation();
-        for (int x = -1; x <= 1; x++)
+        final Player player = getPlayer(playerName);
+        final PlayerData data = BanCommandUtil.getData(plugin, playerName, player);
+        final String name = BanCommandUtil.getCanonicalName(playerName, player, data);
+
+        if (player != null)
         {
-            for (int z = -1; z <= 1; z++)
+            final Location targetPos = player.getLocation();
+            for (int x = -1; x <= 1; x++)
             {
-                final Location strikePos = new Location(targetPos.getWorld(), targetPos.getBlockX() + x, targetPos.getBlockY(), targetPos.getBlockZ() + z);
-                targetPos.getWorld().strikeLightning(strikePos);
+                for (int z = -1; z <= 1; z++)
+                {
+                    final Location strikePos = new Location(targetPos.getWorld(), targetPos.getBlockX() + x, targetPos.getBlockY(), targetPos.getBlockZ() + z);
+                    targetPos.getWorld().strikeLightning(strikePos);
+                }
             }
         }
 
         if (!silent)
-            FUtil.adminAction(sender.getName(), "Tempbanning: " + player.getName() + " for 5 minutes.", true);
-        plugin.bm.addBan(Ban.forPlayer(player, sender, FUtil.parseDateOffset("5m"), reason));
+            FUtil.adminAction(sender.getName(), "Tempbanning: " + name + " for 5 minutes.", true);
+        if (reason != null)
+            FUtil.bcastMsg("  Reason: " + reason, NamedTextColor.YELLOW);
+
+        final Ban ban = BanCommandUtil.createFullBan(name, BanCommandUtil.getIps(player, data), sender, FUtil.parseDateOffset("5m"), reason);
+        plugin.bm.addBan(ban);
 
         if (rollback)
         {
-            plugin.cpb.rollback(player.getName());
+            plugin.cpb.rollback(name);
         }
 
-        final PlayerData data = plugin.pl.getData(player);
-        assert data != null;
-        if (!plugin.al.isAdmin(player))
+        if (data != null && plugin.al.getEntryByName(name) == null)
+        {
             data.setStrikes(data.getStrikes() + 1);
+            plugin.pl.saveData(data);
+        }
 
-        player.kick(Component.text("You have been temporarily banned for five minutes. Please read totalfreedom.me for more info.", NamedTextColor.RED));
+        if (player != null)
+        {
+            player.kick(Component.text("You have been temporarily banned for five minutes. Please read " + ConfigEntry.SERVER_WEB_URL +  "for more info.", NamedTextColor.RED));
+        }
 
         return true;
     }
 
-    @CommandDispatchTarget(pattern = "<player:Player>", switches = "s,rb")
-    public boolean tbanNoReason(CommandContext ctx, Player player, boolean silent, boolean rollback)
+    @CommandDispatchTarget(pattern = "<player>", switches = "s,rb")
+    public boolean tbanNoReason(CommandContext ctx, String playerName, boolean silent, boolean rollback)
     {
-        return tban(ctx, player, "You have been temporarily banned for 5 minutes.", silent, rollback);
+        return tban(ctx, playerName, "You have been temporarily banned for 5 minutes.", silent, rollback);
     }
 
     @Override

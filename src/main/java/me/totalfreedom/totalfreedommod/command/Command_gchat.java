@@ -9,8 +9,8 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 @CommandPermissions(level = Rank.SUPER_ADMIN, source = SourceType.BOTH)
-@CommandParameters(description = "Send a command as someone else.", usage = "/<command> <fromname> <outcommand>")
-public class Command_gcmd extends FreedomCommand
+@CommandParameters(description = "Send a chat message as someone else.", usage = "/<command> <fromname> <message>")
+public class Command_gchat extends FreedomCommand
 {
 
     @Override
@@ -29,44 +29,47 @@ public class Command_gcmd extends FreedomCommand
             return true;
         }
 
-        final String outCommand = StringUtils.join(args, " ", 1, args.length);
-
-        if (plugin.cb.isCommandBlocked(outCommand, sender))
-        {
-            return true;
-        }
-
         if (plugin.al.isAdmin(player) && !plugin.rm.getRank(sender).isAtLeast(Rank.SENIOR_ADMIN))
         {
             msg(Component.text(
-                    "You cannot gcmd other admins.",
+                    "You cannot gchat other admins.",
                     NamedTextColor.RED));
+            return true;
+        }
+
+        final String message = StringUtils.join(args, " ", 1, args.length).strip();
+
+        if (message.isEmpty())
+        {
+            msg(Component.text("You must provide a message.", NamedTextColor.RED));
+            return true;
+        }
+
+        if (message.startsWith("/"))
+        {
+            msg(Component.text("Commands cannot be sent through /gchat. Use /gcmd instead.", NamedTextColor.RED));
             return true;
         }
 
         try
         {
-            msg(Component.text("Sending command as ", NamedTextColor.GRAY)
+            msg(Component.text("Sending chat as ", NamedTextColor.GRAY)
                     .append(Component.text(player.getName(), NamedTextColor.YELLOW))
                     .append(Component.text(": ", NamedTextColor.GRAY))
-                    .append(Component.text(outCommand, NamedTextColor.WHITE)));
+                    .append(Component.text(message, NamedTextColor.WHITE)));
 
-            if (server.dispatchCommand(player, outCommand))
-            {
-                msg(Component.text("Command sent.", NamedTextColor.GREEN));
-            }
-            else
-            {
-                msg(Component.text("Unknown error sending command.", NamedTextColor.RED));
-            }
+            player.chat(message);
+
+            msg(Component.text("Chat message sent.", NamedTextColor.GREEN));
         }
         catch (Throwable ex)
         {
             msg(Component.text(
-                    "Error sending command: " + ex.getMessage(),
+                    "Error sending chat message: " + ex.getMessage(),
                     NamedTextColor.RED));
         }
 
         return true;
     }
 }
+

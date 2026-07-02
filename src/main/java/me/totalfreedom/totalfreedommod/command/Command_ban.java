@@ -37,7 +37,7 @@ public class Command_ban extends FreedomCommand
         }
 
         List<String> ips = BanCommandUtil.getIps(player, data);
-        Ban ban = BanCommandUtil.createFullBan(name, ips, sender, null, reason);
+        Ban ban = BanCommandUtil.createFullBan(name, ips, sender, FUtil.parseDateOffset("24h"), reason);
 
         if (!silent && player != null)
         {

@@ -34,6 +34,8 @@ public class Command_toggle extends FreedomCommand
             msg("- entitywipe");
             msg("- nonuke [range] [count]");
             msg("- explosives [radius]");
+            msg("- autoclear");
+            msg("- autotp");
             return false;
         }
 
@@ -174,6 +176,16 @@ public class Command_toggle extends FreedomCommand
             {
                 msg("Radius set to " + ConfigEntry.EXPLOSIVE_RADIUS.getDouble());
             }
+            return true;
+        }
+        if (args[0].equals("autoclear"))
+        {
+            toggle("Clearing inventories on join is", ConfigEntry.AUTO_CLEAR);
+            return true;
+        }
+        if (args[0].equals("autotp"))
+        {
+            toggle("Teleportation on join is", ConfigEntry.AUTO_TP);
             return true;
         }
 

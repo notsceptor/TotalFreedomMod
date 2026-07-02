@@ -40,7 +40,7 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
     public static final String NOT_FROM_CONSOLE = "This command may not be used from the console.";
     public static final String PLAYER_NOT_FOUND = "\u00A77Player not found!";
     //
-    private static final String SIMPLE_ARGUMENT_PATTERN = "\\w+";
+    private static final String SIMPLE_ARGUMENT_PATTERN = "\\S+";
     private static final String VARIABLE_LENGTH_ARGUMENT_PATTERN = ".+";
     private static final String VARIABLE_LENGTH_ARGUMENT_ENDING = "..>";
     //

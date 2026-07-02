@@ -3,6 +3,7 @@ package me.totalfreedom.totalfreedommod.command;
 import java.util.Arrays;
 import java.util.List;
 import me.totalfreedom.totalfreedommod.admin.Admin;
+import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchContext;
 import me.totalfreedom.totalfreedommod.rank.CustomRank;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.rank.RankManager;
@@ -30,6 +31,12 @@ public class Command_rankconfig extends FreedomCommand
     @Override
     public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
     {
+        if (RemoteDispatchContext.isActive() || !sender.getName().equalsIgnoreCase("CONSOLE"))
+        {
+            msg("This command can only be used from the server panel console.", NamedTextColor.RED);
+            return true;
+        }
+
         final RankManager rm = plugin.rm;
         
         // Check internal permission (not Bukkit)
