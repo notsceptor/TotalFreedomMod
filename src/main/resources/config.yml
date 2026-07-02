@@ -902,7 +902,6 @@ tablist:
   # 20 ticks = 1 second.  Default is every 3 seconds.
   update_interval: 60
 
-
 # GameRuleHandler
 # Controls game rules on a global scale and regulates which players can and can't change gamerules
 gamerules:
@@ -932,7 +931,7 @@ gamerules:
     - "minecraft:max_command_sequence_length"
     - "minecraft:max_block_modifications"
 
-  # Game rules with limitations on how large the numerical value can be. Enforced when attempting to set them
+  # Game rules with limitations on how large or small the numerical value can be. Enforced when attempting to set them
   caps:
     "minecraft:random_tick_speed": [0, 3]
     "minecraft:respawn_radius": [1, 1024]
