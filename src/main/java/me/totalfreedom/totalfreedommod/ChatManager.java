@@ -6,6 +6,7 @@ import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FSync;
+import me.totalfreedom.totalfreedommod.util.ChatMentionUtil;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import me.totalfreedom.totalfreedommod.vault.VaultProviderRegistry;
 import static me.totalfreedom.totalfreedommod.util.FUtil.playerMsg;
@@ -106,6 +107,12 @@ public class ChatManager extends FreedomService
 		}
 	}
 
+	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+	public void onPlayerChatMentionPing(AsyncChatEvent event)
+	{
+		ChatMentionUtil.pingMentions(plugin, event.message(), plugin.al.isAdminSync(event.getPlayer()));
+	}
+
 	private void handleChatEvent(AsyncChatEvent event) {
 		final Player player = event.getPlayer();
 		String message = PlainTextComponentSerializer.plainText().serialize(event.message()).trim();
@@ -156,7 +163,8 @@ public class ChatManager extends FreedomService
 			return;
 		}
 		// Finally, set message
-		final Component messageComponent = AdventureUtil.formatChat(message, allowColors, allowSpecial);
+		Component messageComponent = AdventureUtil.formatChat(message, allowColors, allowSpecial);
+		messageComponent = ChatMentionUtil.highlight(messageComponent, plugin.al.isAdmin(player));
 		event.message(messageComponent);
 
 		// Prefix and suffix come from the shared builder so chat, the tab list, and

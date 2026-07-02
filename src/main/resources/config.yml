@@ -564,13 +564,15 @@ discord:
   console_channel_id: ''
 
   # Format applied to Discord messages broadcast into in-game chat.
-  chat_format: '&9[Discord] &r{user}&7: &f{message}'
+  # Available placeholders: {user}, {role}, {rolecolor}, {reply}, and {message}.
+  chat_format: '&9[Discord] &r[{rolecolor}{role}&r] {user}{reply}&7: &f{message}'
 
   # Format applied to in-game chat posted into the Discord public channel.
   channel_format: '{message}'
 
   # Format applied to Discord messages broadcast into admin chat.
-  adminchat_format: '&8[&9Discord&8] &f[&bADMIN&f] &4{user}: &6{message}'
+  # Available placeholders: {user}, {role}, {rolecolor}, {reply}, and {message}.
+  adminchat_format: '&8[&9Discord&8] &f[&bADMIN&f] [{rolecolor}{role}&f] &4{user}{reply}: &6{message}'
 
   # Format applied to in-game chat posted in the Discord admin chat channel.
   adminchat_channel_format: '{message}'
