@@ -80,7 +80,6 @@ public class FPlayer
     @Getter
     @Setter
     private boolean superadminIdVerified = false;
-    private String lastCommand = "";
     private CommandSpyMode commandSpyMode = CommandSpyMode.OFF;
     private String tag = null;
     private int warningCount = 0;
@@ -426,16 +425,6 @@ public class FPlayer
             data.setCommandsBlocked(commandsBlocked);
             plugin.pl.saveData(data);
         }
-    }
-
-    public String getLastCommand()
-    {
-        return lastCommand;
-    }
-
-    public void setLastCommand(String lastCommand)
-    {
-        this.lastCommand = lastCommand;
     }
 
     public void setCommandSpy(boolean enabled)
