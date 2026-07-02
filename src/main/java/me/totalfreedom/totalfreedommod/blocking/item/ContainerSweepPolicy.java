@@ -2,6 +2,7 @@ package me.totalfreedom.totalfreedommod.blocking.item;
 
 enum ContainerSweepPolicy
 {
+
     FILTER,
     CLEAR,
     DESTROY;
@@ -13,13 +14,13 @@ enum ContainerSweepPolicy
         DESTROY_BLOCK
     }
 
-    static ContainerSweepPolicy fromConfig(String value)
+    static ContainerSweepPolicy fromConfig(String raw)
     {
-        if (value == null || value.isBlank())
+        if (raw == null || raw.isBlank())
         {
             return CLEAR;
         }
-        return switch (value.trim().toLowerCase().replace('-', '_'))
+        return switch (raw.trim().toLowerCase().replace('-', '_'))
         {
             case "filter" -> FILTER;
             case "destroy" -> DESTROY;

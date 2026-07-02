@@ -1,18 +1,17 @@
 package me.totalfreedom.totalfreedommod.blocking.sweep;
 
 import java.util.ArrayDeque;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.function.BooleanSupplier;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.util.FLog;
+import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 import org.bukkit.block.BlockState;
@@ -30,7 +29,7 @@ public class SweepScheduler extends FreedomService
     private final Deque<Job> pending = new ArrayDeque<>();
     private final Set<String> pendingKeys = new HashSet<>();
 
-    private int nextVisitorId;
+    private int nextVisitorId = 0;
     private int drainTaskId = -1;
     private boolean started;
 
@@ -44,11 +43,11 @@ public class SweepScheduler extends FreedomService
     {
         started = true;
         ensureDrainTask();
-        for (Registered registered : registry.values())
+        for (Registered r : registry.values())
         {
-            activate(registered);
+            activate(r);
         }
-        FLog.info("[SweepScheduler] active [budget=5ms/tick]");
+        FLog.info("[SweepScheduler] active [budget=" + (DRAIN_BUDGET_NANOS / 1_000_000L) + "ms/tick]");
     }
 
     @Override
@@ -60,12 +59,12 @@ public class SweepScheduler extends FreedomService
             server.getScheduler().cancelTask(drainTaskId);
             drainTaskId = -1;
         }
-        for (Registered registered : registry.values())
+        for (Registered r : registry.values())
         {
-            if (registered.periodicTaskId != -1)
+            if (r.periodicTaskId != -1)
             {
-                server.getScheduler().cancelTask(registered.periodicTaskId);
-                registered.periodicTaskId = -1;
+                server.getScheduler().cancelTask(r.periodicTaskId);
+                r.periodicTaskId = -1;
             }
         }
         registry.clear();
@@ -75,95 +74,81 @@ public class SweepScheduler extends FreedomService
 
     public void register(EntityVisitor visitor)
     {
-        Objects.requireNonNull(visitor);
-        Registered registered = new Registered(nextVisitorId++, visitor::enabled, visitor.sweepIntervalTicks(),
-                (chunk, context) ->
+        Registered r = new Registered(nextVisitorId++, visitor::enabled, visitor.sweepIntervalTicks(),
+                (chunk, ctx) ->
                 {
                     Entity[] entities;
                     try
                     {
                         entities = chunk.getEntities();
                     }
-                    catch (Throwable ignored)
+                    catch (Throwable t)
                     {
                         return;
                     }
                     for (Entity entity : entities)
                     {
-                        visitor.visit(entity, context);
+                        visitor.visit(entity, ctx);
                     }
                 });
-        registry.put(registered.id, registered);
+        registry.put(r.id, r);
         if (started)
         {
-            activate(registered);
+            activate(r);
         }
     }
 
     public void register(TileEntityVisitor visitor)
     {
-        Objects.requireNonNull(visitor);
-        Registered registered = new Registered(nextVisitorId++, visitor::enabled, visitor.sweepIntervalTicks(),
-                (chunk, context) ->
+        Registered r = new Registered(nextVisitorId++, visitor::enabled, visitor.sweepIntervalTicks(),
+                (chunk, ctx) ->
                 {
-                    Collection<BlockState> states;
+                    Collection<BlockState> tiles;
                     try
                     {
-                        states = chunk.getTileEntities(visitor.blockFilter(), false);
+                        tiles = chunk.getTileEntities(visitor.blockFilter(), false);
                     }
-                    catch (Throwable ignored)
+                    catch (Throwable t)
                     {
-                        try
-                        {
-                            states = Arrays.asList(chunk.getTileEntities(false));
-                        }
-                        catch (Throwable ignoredAgain)
-                        {
-                            return;
-                        }
+                        return;
                     }
-                    for (BlockState state : states)
+                    for (BlockState state : tiles)
                     {
-                        if (state != null && visitor.blockFilter().test(state.getBlock()))
-                        {
-                            visitor.visit(state, context);
-                        }
+                        visitor.visit(state, ctx);
                     }
                 });
-        registry.put(registered.id, registered);
+        registry.put(r.id, r);
         if (started)
         {
-            activate(registered);
+            activate(r);
         }
     }
 
-    private void activate(Registered registered)
+    private void activate(Registered r)
     {
-        if (!registered.enabled.getAsBoolean())
+        if (r.intervalTicks > 0 && r.periodicTaskId == -1)
         {
-            return;
+            r.periodicTaskId = server.getScheduler().runTaskTimer(plugin, () ->
+            {
+                if (r.enabled.getAsBoolean())
+                {
+                    enqueueAllLoaded(r, SweepContext.PERIODIC);
+                }
+            }, r.intervalTicks, r.intervalTicks).getTaskId();
         }
-        enqueueAllLoaded(registered, SweepContext.INITIAL);
-        if (registered.intervalTicks > 0L)
+        if (r.intervalTicks >= 0 && r.enabled.getAsBoolean())
         {
-            registered.periodicTaskId = server.getScheduler().runTaskTimer(plugin,
-                    () -> enqueueAllLoaded(registered, SweepContext.PERIODIC),
-                    registered.intervalTicks,
-                    registered.intervalTicks).getTaskId();
+            enqueueAllLoaded(r, SweepContext.INITIAL);
         }
     }
 
-    private void enqueueAllLoaded(Registered registered, SweepContext context)
+    private void enqueueAllLoaded(Registered r, SweepContext ctx)
     {
-        if (!started || !registered.enabled.getAsBoolean())
-        {
-            return;
-        }
-        for (World world : server.getWorlds())
+        for (World world : Bukkit.getWorlds())
         {
             for (Chunk chunk : world.getLoadedChunks())
             {
-                enqueue(registered, chunk, context);
+                enqueue(r, chunk, ctx);
             }
         }
     }
@@ -176,44 +161,35 @@ public class SweepScheduler extends FreedomService
             return;
         }
         Chunk chunk = event.getChunk();
-        server.getScheduler().runTask(plugin, () ->
+        for (Registered r : registry.values())
         {
-            if (!chunk.isLoaded())
+            if (r.enabled.getAsBoolean())
             {
-                return;
+                enqueue(r, chunk, SweepContext.CHUNK_LOAD);
             }
-            for (Registered registered : registry.values())
-            {
-                if (registered.enabled.getAsBoolean())
-                {
-                    enqueue(registered, chunk, SweepContext.CHUNK_LOAD);
-                }
-            }
-        });
+        }
     }
 
-    private void enqueue(Registered registered, Chunk chunk, SweepContext context)
+    private void enqueue(Registered r, Chunk chunk, SweepContext ctx)
     {
-        if (chunk == null || !chunk.isLoaded())
+        if (chunk == null)
         {
             return;
         }
-        String key = registered.id + ":" + chunk.getWorld().getUID() + ":" + chunk.getX() + ":" + chunk.getZ();
-        if (!pendingKeys.add(key))
+        String key = r.id + ":" + chunk.getWorld().getName() + ':' + chunk.getChunkKey();
+        if (pendingKeys.add(key))
         {
-            return;
+            pending.add(new Job(r.id, chunk, key, ctx));
+            ensureDrainTask();
         }
-        pending.add(new Job(registered.id, chunk, key, context));
-        ensureDrainTask();
     }
 
     private void ensureDrainTask()
     {
-        if (!started || drainTaskId != -1)
+        if (started && drainTaskId == -1)
         {
-            return;
+            drainTaskId = server.getScheduler().runTaskTimer(plugin, this::drain, 1L, 1L).getTaskId();
         }
-        drainTaskId = server.getScheduler().runTaskTimer(plugin, this::drain, 1L, 1L).getTaskId();
     }
 
     private void drain()
@@ -226,25 +202,21 @@ public class SweepScheduler extends FreedomService
         do
         {
             Job job = pending.poll();
-            if (job == null)
-            {
-                return;
-            }
             pendingKeys.remove(job.key);
-            Registered registered = registry.get(job.visitorId);
-            if (registered != null && registered.enabled.getAsBoolean())
+            Registered r = registry.get(job.visitorId);
+            if (r == null || !r.enabled.getAsBoolean())
             {
-                Chunk chunk = job.chunk;
-                if (chunk != null && chunk.isLoaded())
+                continue;
+            }
+            Chunk chunk = job.chunk;
+            if (chunk != null && chunk.isLoaded())
+            {
+                try
                 {
-                    try
-                    {
-                        registered.applier.apply(chunk, job.context);
-                    }
-                    catch (Throwable t)
-                    {
-                        FLog.warning("[SweepScheduler] Visitor failed in " + job.context.label() + ": " + t.getMessage());
-                    }
+                    r.applier.apply(chunk, job.context);
+                }
+                catch (Throwable ignored)
+                {
                 }
             }
         }

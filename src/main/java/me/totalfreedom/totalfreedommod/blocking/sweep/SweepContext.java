@@ -1,5 +1,6 @@
 package me.totalfreedom.totalfreedommod.blocking.sweep;
 
+/** Why a chunk visit was scheduled. */
 public enum SweepContext
 {
     INITIAL("initial"),

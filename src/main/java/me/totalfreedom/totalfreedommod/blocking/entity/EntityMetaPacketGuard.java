@@ -17,17 +17,17 @@ public final class EntityMetaPacketGuard
 
     private static final GsonComponentSerializer GSON = GsonComponentSerializer.gson();
 
-    private EntityMetaPacketGuard()
+    public record Limits(int maxNameLength, int maxComponentNodes, double maxScale)
     {
     }
 
-    public record Limits(int maxNameLength, int maxComponentNodes, double maxScale)
+    private EntityMetaPacketGuard()
     {
     }
 
     public static boolean sanitizeMetadata(List<EntityData<?>> metadata, Limits limits)
     {
-        if (metadata == null || metadata.isEmpty() || limits == null)
+        if (metadata == null || metadata.isEmpty())
         {
             return false;
         }
@@ -44,7 +44,7 @@ public final class EntityMetaPacketGuard
 
     public static boolean sanitizeAttributes(List<WrapperPlayServerUpdateAttributes.Property> properties, double maxScale)
     {
-        if (properties == null || properties.isEmpty() || maxScale <= 0.0D)
+        if (properties == null || properties.isEmpty() || maxScale <= 0.0)
         {
             return false;
         }
@@ -55,10 +55,10 @@ public final class EntityMetaPacketGuard
             {
                 continue;
             }
-            double value = clampScaleMagnitude(property.getValue(), maxScale);
-            if (value != property.getValue())
+            double clampedBase = clampScaleMagnitude(property.getValue(), maxScale);
+            if (clampedBase != property.getValue())
             {
-                property.setValue(value);
+                property.setValue(clampedBase);
                 dirty = true;
             }
             for (WrapperPlayServerUpdateAttributes.PropertyModifier modifier : property.getModifiers())
@@ -67,10 +67,10 @@ public final class EntityMetaPacketGuard
                 {
                     continue;
                 }
-                double amount = clampScaleMagnitude(modifier.getAmount(), maxScale);
-                if (amount != modifier.getAmount())
+                double clamped = clampScaleMagnitude(modifier.getAmount(), maxScale);
+                if (clamped != modifier.getAmount())
                 {
-                    modifier.setAmount(amount);
+                    modifier.setAmount(clamped);
                     dirty = true;
                 }
             }
@@ -78,7 +78,7 @@ public final class EntityMetaPacketGuard
         return dirty;
     }
 
-    @SuppressWarnings({"rawtypes", "unchecked"})
+    @SuppressWarnings({"unchecked", "rawtypes"})
     private static boolean sanitizeMetadataEntry(EntityData<?> data, Limits limits)
     {
         if (data == null)
@@ -95,9 +95,14 @@ public final class EntityMetaPacketGuard
         {
             return false;
         }
-        if (value instanceof Optional<?> optional)
+        if (value instanceof Optional<?> opt)
         {
-            if (optional.isEmpty() || !isCursedNameValue(optional.get(), limits))
+            if (opt.isEmpty())
+            {
+                return false;
+            }
+            Object inner = opt.get();
+            if (!isCursedNameValue(inner, limits))
             {
                 return false;
             }
@@ -127,9 +132,9 @@ public final class EntityMetaPacketGuard
         {
             return isCursedComponent(component, limits);
         }
-        if (value instanceof String string)
+        if (value instanceof String raw)
         {
-            return isCursedRawName(string, limits);
+            return isCursedRawName(raw, limits);
         }
         return false;
     }
@@ -143,29 +148,36 @@ public final class EntityMetaPacketGuard
         return ComponentScanner.safePlainTextLength(component, limits.maxComponentNodes()) > limits.maxNameLength();
     }
 
-    private static boolean isCursedRawName(String value, Limits limits)
+    private static boolean isCursedRawName(String raw, Limits limits)
     {
-        if (value == null || value.isEmpty())
+        if (raw == null || raw.isEmpty())
         {
             return false;
         }
-        if (value.length() > limits.maxNameLength() || containsSuspiciousJson(value))
+        if (raw.length() > limits.maxNameLength())
+        {
+            return true;
+        }
+        if (containsSuspiciousJson(raw))
         {
             return true;
         }
         try
         {
-            return isCursedComponent(GSON.deserialize(value), limits);
+            Component parsed = GSON.deserialize(raw);
+            return isCursedComponent(parsed, limits);
         }
         catch (Throwable ignored)
         {
-            return value.length() > limits.maxNameLength();
+            return raw.length() > limits.maxNameLength();
         }
     }
 
-    private static boolean containsSuspiciousJson(String value)
+    private static boolean containsSuspiciousJson(String raw)
     {
-        return value.contains("click_event") || value.contains("hover_event") || value.contains("%1$");
+        return raw.contains("click_event")
+                || raw.contains("hover_event")
+                || raw.contains("%1$");
     }
 
     private static Object emptyOptional(EntityDataType<?> type)
@@ -191,12 +203,12 @@ public final class EntityMetaPacketGuard
         return attribute == Attributes.SCALE || attribute == Attributes.GENERIC_SCALE;
     }
 
-    private static double clampScaleMagnitude(double value, double max)
+    private static double clampScaleMagnitude(double value, double maxScale)
     {
-        if (Math.abs(value) <= max)
+        if (Math.abs(value) <= maxScale)
         {
             return value;
         }
-        return Math.copySign(max, value == 0.0D ? 1.0D : value);
+        return Math.copySign(maxScale, value == 0.0 ? 1.0 : value);
     }
 }

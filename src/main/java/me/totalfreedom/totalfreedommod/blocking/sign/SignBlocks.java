@@ -17,7 +17,7 @@ public final class SignBlocks
 
     public static boolean isSignBlock(Block block)
     {
-        if (block == null)
+        if (block == null || !isSignMaterial(block.getType()))
         {
             return false;
         }

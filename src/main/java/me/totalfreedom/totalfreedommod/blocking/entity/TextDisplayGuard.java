@@ -1,7 +1,6 @@
 package me.totalfreedom.totalfreedommod.blocking.entity;
 
 import com.destroystokyo.paper.event.entity.EntityAddToWorldEvent;
-import java.util.List;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.blocking.sweep.EntityVisitor;
@@ -11,9 +10,6 @@ import me.totalfreedom.totalfreedommod.util.ComponentScanner;
 import me.totalfreedom.totalfreedommod.util.DetectionReporter;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import net.kyori.adventure.text.Component;
-import org.bukkit.Bukkit;
-import org.bukkit.Chunk;
-import org.bukkit.World;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Interaction;
@@ -21,7 +17,6 @@ import org.bukkit.entity.TextDisplay;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.entity.EntitySpawnEvent;
-import org.bukkit.event.world.ChunkLoadEvent;
 
 /**
  * Removes certain text display entities that can be used to crash clients.
@@ -36,46 +31,42 @@ public class TextDisplayGuard extends FreedomService
     private static final float MAX_SHADOW_RADIUS = 8.0f;
     private static final float MAX_SHADOW_STRENGTH = 16.0f;
 
-    private final EntityVisitor displayVisitor;
-    private final DetectionReporter reporter;
+    private final EntityVisitor displayVisitor = new EntityVisitor()
+    {
+        @Override
+        public boolean enabled()
+        {
+            return TextDisplayGuard.this.enabled();
+        }
+
+        @Override
+        public long sweepIntervalTicks()
+        {
+            return ConfigEntry.CRASH_ENTITIES_SWEEP_TICKS.getInteger();
+        }
+
+        @Override
+        public void visit(Entity entity, SweepContext context)
+        {
+            removeEntity(entity, context.label());
+        }
+    };
+
+    private final DetectionReporter reporter = new DetectionReporter(
+            LOG_INTERVAL_TICKS, server::getCurrentTick,
+            (count, reason, max, sample) -> "[EntityValidator] Removed " + count
+                    + " bad text display(s). Sample: " + sample,
+            DetectionReporter.warnOnly());
 
     public TextDisplayGuard(TotalFreedomMod plugin)
     {
         super(plugin);
-        reporter = new DetectionReporter(LOG_INTERVAL_TICKS, server::getCurrentTick,
-                (count, reason, max, sample) -> "[EntityValidator] Removed " + count
-                        + " bad display entity/entities. Sample: " + sample,
-                DetectionReporter.warnOnly());
-        displayVisitor = new EntityVisitor()
-        {
-            @Override
-            public boolean enabled()
-            {
-                return TextDisplayGuard.this.enabled();
-            }
-
-            @Override
-            public long sweepIntervalTicks()
-            {
-                Integer ticks = ConfigEntry.CRASH_ENTITIES_SWEEP_TICKS.getInteger();
-                return ticks == null ? 0L : ticks;
-            }
-
-            @Override
-            public void visit(Entity entity, SweepContext context)
-            {
-                removeEntity(entity, context.label());
-            }
-        };
-        if (plugin.sweepScheduler != null)
-        {
-            plugin.sweepScheduler.register(displayVisitor);
-        }
     }
 
     @Override
     protected void onStart()
     {
+        plugin.sweepScheduler.register(displayVisitor);
         long ticks = ConfigEntry.CRASH_ENTITIES_SWEEP_TICKS.getInteger();
         FLog.info("[TextDisplayGuard] active"
                 + " [max_text_length=" + MAX_TEXT_LENGTH + "]"
@@ -98,8 +89,7 @@ public class TextDisplayGuard extends FreedomService
 
     private int maxComponentNodes()
     {
-        int v = ConfigEntry.CRASH_ENTITIES_MAX_COMPONENT_NODES.getInteger();
-        return v > 0 ? v : 1024;
+        return ConfigEntry.maxComponentNodes();
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
@@ -240,7 +230,6 @@ public class TextDisplayGuard extends FreedomService
 
     private void recordDetection(String context)
     {
-        reporter.record("display", context);
+        reporter.record(context);
     }
-
 }

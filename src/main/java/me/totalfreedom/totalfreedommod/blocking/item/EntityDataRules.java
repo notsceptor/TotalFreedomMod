@@ -192,6 +192,10 @@ final class EntityDataRules
                     return true;
                 }
                 Object child = unwrap(COMPOUND_GET.invoke(node, key));
+                if ("hover_event".equals(key) && isDangerousHover(child))
+                {
+                    return true;
+                }
                 if (child != null && COMPOUND_TAG.equals(child.getClass().getName())
                         && containsClickEvent(child))
                 {
@@ -203,6 +207,33 @@ final class EntityDataRules
         {
         }
         return false;
+    }
+
+    private static boolean isDangerousHover(Object hoverTag)
+    {
+        if (hoverTag == null)
+        {
+            return false;
+        }
+        if (!COMPOUND_TAG.equals(hoverTag.getClass().getName()))
+        {
+            return true;
+        }
+        String action;
+        try
+        {
+            action = getString(hoverTag, "action");
+        }
+        catch (Throwable t)
+        {
+            return true;
+        }
+        if (action == null || action.isEmpty())
+        {
+            return true;
+        }
+        String normalized = action.toLowerCase(Locale.ROOT);
+        return !normalized.equals("show_text") && !normalized.equals("minecraft:show_text");
     }
 
     /**

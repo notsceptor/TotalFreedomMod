@@ -13,21 +13,21 @@ import com.github.retrooper.packetevents.protocol.player.Equipment;
 import com.github.retrooper.packetevents.protocol.recipe.data.MerchantOffer;
 import com.github.retrooper.packetevents.protocol.world.chunk.Column;
 import com.github.retrooper.packetevents.util.Vector3d;
+import io.netty.buffer.ByteBuf;
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientPlayerPosition;
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientPlayerPositionAndRotation;
-import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientSetGameRule;
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientVehicleMove;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerBlockEntityData;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerChunkData;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityEquipment;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityMetadata;
-import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerMerchantOffers;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerSetSlot;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerSpawnLivingEntity;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerUpdateAttributes;
+import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerMerchantOffers;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerWindowItems;
+import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientSetGameRule;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
-import io.netty.buffer.ByteBuf;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -49,6 +49,7 @@ final class CrashPacketListener extends PacketListenerAbstract
 
     private static final int MAX_PACKET_BYTES = 2_097_152;
     private static final int CHUNK_REENCODE_SAFE_BYTES = MAX_PACKET_BYTES - 256_000;
+
     private static final com.github.retrooper.packetevents.protocol.item.ItemStack EMPTY =
             com.github.retrooper.packetevents.protocol.item.ItemStack.EMPTY;
 
@@ -68,10 +69,11 @@ final class CrashPacketListener extends PacketListenerAbstract
     private final boolean gameRuleGuard;
 
     CrashPacketListener(TotalFreedomMod plugin, boolean sanitizeOutbound, boolean entityMetadataGuard,
-            EntityMetaPacketGuard.Limits entityLimits, PacketSpamLimiter spamLimiter, MovementGuard movementGuard,
-            boolean signBlockEntityGuard, boolean signChunkGuard, boolean blockAllSignPackets,
-            boolean spawnerBlockEntityGuard, boolean spawnerChunkGuard,
-            boolean containerBlockEntityGuard, boolean containerChunkGuard, boolean gameRuleGuard)
+                             EntityMetaPacketGuard.Limits entityLimits, PacketSpamLimiter spamLimiter,
+                             MovementGuard movementGuard, boolean signBlockEntityGuard,
+                             boolean signChunkGuard, boolean blockAllSignPackets,
+                             boolean spawnerBlockEntityGuard, boolean spawnerChunkGuard,
+                             boolean containerBlockEntityGuard, boolean containerChunkGuard, boolean gameRuleGuard)
     {
         super(PacketListenerPriority.HIGH);
         this.plugin = plugin;
@@ -95,26 +97,31 @@ final class CrashPacketListener extends PacketListenerAbstract
     {
         try
         {
-            PacketTypeCommon type = event.getPacketType();
+            final PacketTypeCommon type = event.getPacketType();
+
             if (gameRuleGuard && type == PacketType.Play.Client.SET_GAME_RULE)
             {
                 event.setCancelled(true);
                 logBlockedGameRule(event);
                 return;
             }
+
             if (spamLimiter == null && movementGuard == null)
             {
                 return;
             }
-            UUID id = event.getUser().getUUID();
+            final UUID id = event.getUser().getUUID();
             if (id == null)
             {
                 return;
             }
+
+            // see if it's already been canceled
             if (movementGuard != null && handleMovementSpeed(event, type, id))
             {
                 return;
             }
+
             if (spamLimiter == null)
             {
                 return;
@@ -193,16 +200,18 @@ final class CrashPacketListener extends PacketListenerAbstract
 
     private boolean handleMovementSpeed(PacketReceiveEvent event, PacketTypeCommon type, UUID id)
     {
-        Vector3d position = movementPosition(event, type);
+        final Vector3d position = movementPosition(event, type);
         if (position == null)
         {
             return false;
         }
-        MovementGuard.Decision decision = movementGuard.recordAndCheck(id, position.getX(), position.getZ());
+
+        final MovementGuard.Decision decision = movementGuard.recordAndCheck(id, position.getX(), position.getZ());
         if (decision == MovementGuard.Decision.ALLOW)
         {
             return false;
         }
+
         event.setCancelled(true);
         if (decision == MovementGuard.Decision.PUNISH)
         {
@@ -225,17 +234,20 @@ final class CrashPacketListener extends PacketListenerAbstract
         {
             return new WrapperPlayClientVehicleMove(event).getPosition();
         }
+        // PLAYER_FLYING / PLAYER_ROTATION carry no position.
         return null;
     }
 
     private void punishSpeed(PacketReceiveEvent event, UUID id)
     {
-        String name = event.getUser().getName();
-        String who = name != null ? name : id.toString();
+        final String name = event.getUser().getName();
+        final String who = name != null ? name : id.toString();
+
         FSync.bcastMsg(who + " is moving too quickly across chunks!", NamedTextColor.RED);
+
         Bukkit.getScheduler().runTask(plugin, () ->
         {
-            Player player = Bukkit.getPlayer(id);
+            final Player player = Bukkit.getPlayer(id);
             if (player != null)
             {
                 plugin.ae.autoEject(player, "Moving too quickly across chunks is not permitted.");
@@ -248,8 +260,10 @@ final class CrashPacketListener extends PacketListenerAbstract
     {
         try
         {
-            PacketTypeCommon type = event.getPacketType();
-            if (type == PacketType.Play.Server.ENTITY_METADATA && (sanitizeOutbound || entityMetadataGuard))
+            final PacketTypeCommon type = event.getPacketType();
+
+            if (type == PacketType.Play.Server.ENTITY_METADATA
+                    && (sanitizeOutbound || entityMetadataGuard))
             {
                 handleEntityMetadata(event);
                 return;
@@ -290,6 +304,7 @@ final class CrashPacketListener extends PacketListenerAbstract
                     return;
                 }
             }
+
             if ((blockAllSignPackets || signBlockEntityGuard || spawnerBlockEntityGuard || containerBlockEntityGuard)
                     && type == PacketType.Play.Server.BLOCK_ENTITY_DATA)
             {
@@ -310,6 +325,7 @@ final class CrashPacketListener extends PacketListenerAbstract
     {
         WrapperPlayServerBlockEntityData wrapper = new WrapperPlayServerBlockEntityData(event);
         NBTCompound nbt = wrapper.getNBT();
+
         if ((blockAllSignPackets || signBlockEntityGuard) && SignPacketGuard.isSignBlockEntity(nbt))
         {
             if (blockAllSignPackets || SignPacketGuard.isUnsafe(nbt))
@@ -318,12 +334,17 @@ final class CrashPacketListener extends PacketListenerAbstract
             }
             return;
         }
-        if (spawnerBlockEntityGuard && SpawnerPacketGuard.isSpawnerBlockEntity(nbt) && SpawnerPacketGuard.isUnsafe(nbt))
+
+        if (spawnerBlockEntityGuard
+                && SpawnerPacketGuard.isSpawnerBlockEntity(nbt)
+                && SpawnerPacketGuard.isUnsafe(nbt))
         {
             event.setCancelled(true);
             return;
         }
-        if (containerBlockEntityGuard && ContainerPacketGuard.isItemBearingBlockEntity(nbt)
+
+        if (containerBlockEntityGuard
+                && ContainerPacketGuard.isItemBearingBlockEntity(nbt)
                 && ContainerPacketGuard.isUnsafe(nbt))
         {
             event.setCancelled(true);
@@ -336,9 +357,11 @@ final class CrashPacketListener extends PacketListenerAbstract
         {
             return;
         }
+
         WrapperPlayServerChunkData wrapper = new WrapperPlayServerChunkData(event);
         Column column = wrapper.getColumn();
         boolean dirty = false;
+
         if (blockAllSignPackets)
         {
             dirty |= SignPacketGuard.stripAllSignsInColumn(column) > 0;
@@ -347,14 +370,17 @@ final class CrashPacketListener extends PacketListenerAbstract
         {
             dirty |= SignPacketGuard.sanitizeColumn(column) > 0;
         }
+
         if (spawnerChunkGuard)
         {
             dirty |= SpawnerPacketGuard.sanitizeColumn(column) > 0;
         }
+
         if (containerChunkGuard)
         {
             dirty |= ContainerPacketGuard.sanitizeColumn(column) > 0;
         }
+
         if (dirty)
         {
             event.markForReEncode(true);
@@ -416,6 +442,7 @@ final class CrashPacketListener extends PacketListenerAbstract
     {
         WrapperPlayServerWindowItems wrapper = new WrapperPlayServerWindowItems(event);
         boolean dirty = false;
+
         List<com.github.retrooper.packetevents.protocol.item.ItemStack> items = wrapper.getItems();
         for (int i = 0; i < items.size(); i++)
         {
@@ -429,12 +456,14 @@ final class CrashPacketListener extends PacketListenerAbstract
         {
             wrapper.setItems(items);
         }
+
         Optional<com.github.retrooper.packetevents.protocol.item.ItemStack> carried = wrapper.getCarriedItem();
         if (carried.isPresent() && isCursed(carried.get()))
         {
             wrapper.setCarriedItem(EMPTY);
             dirty = true;
         }
+
         if (dirty)
         {
             event.markForReEncode(true);
@@ -449,8 +478,10 @@ final class CrashPacketListener extends PacketListenerAbstract
         boolean dirty = false;
         for (MerchantOffer offer : offers)
         {
-            if (offer != null && (isCursed(offer.getFirstInputItem())
-                    || isCursed(offer.getSecondInputItem()) || isCursed(offer.getOutputItem())))
+            if (offer != null
+                    && (isCursed(offer.getFirstInputItem())
+                    || isCursed(offer.getSecondInputItem())
+                    || isCursed(offer.getOutputItem())))
             {
                 dirty = true;
                 continue;
@@ -473,7 +504,10 @@ final class CrashPacketListener extends PacketListenerAbstract
         {
             for (EntityData<?> data : metadata)
             {
-                dirty |= sanitizeItemMetadataEntry(data);
+                if (sanitizeItemMetadataEntry(data))
+                {
+                    dirty = true;
+                }
             }
         }
         if (entityMetadataGuard && entityLimits != null)
@@ -496,7 +530,10 @@ final class CrashPacketListener extends PacketListenerAbstract
         {
             for (EntityData<?> data : metadata)
             {
-                dirty |= sanitizeItemMetadataEntry(data);
+                if (sanitizeItemMetadataEntry(data))
+                {
+                    dirty = true;
+                }
             }
         }
         if (entityLimits != null)
@@ -512,7 +549,7 @@ final class CrashPacketListener extends PacketListenerAbstract
 
     private void handleUpdateAttributes(PacketSendEvent event)
     {
-        if (entityLimits == null || entityLimits.maxScale() <= 0.0D)
+        if (entityLimits == null || entityLimits.maxScale() <= 0.0)
         {
             return;
         }
@@ -538,8 +575,9 @@ final class CrashPacketListener extends PacketListenerAbstract
             }
             return false;
         }
-        if (value instanceof Optional<?> optional && optional.isPresent()
-                && optional.get() instanceof com.github.retrooper.packetevents.protocol.item.ItemStack peItem
+        if (value instanceof Optional<?> opt
+                && opt.isPresent()
+                && opt.get() instanceof com.github.retrooper.packetevents.protocol.item.ItemStack peItem
                 && isCursed(peItem))
         {
             ((EntityData) data).setValue(Optional.empty());
@@ -554,13 +592,16 @@ final class CrashPacketListener extends PacketListenerAbstract
         {
             return false;
         }
+        org.bukkit.inventory.ItemStack bukkit;
         try
         {
-            return plugin.iv.isCursed(SpigotConversionUtil.toBukkitItemStack(peItem));
+            bukkit = SpigotConversionUtil.toBukkitItemStack(peItem);
         }
-        catch (Throwable ignored)
+        catch (Throwable t)
         {
             return false;
         }
+        return plugin.iv.isCursed(bukkit);
     }
+
 }

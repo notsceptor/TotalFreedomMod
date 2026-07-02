@@ -4,6 +4,7 @@ import org.bukkit.entity.Entity;
 
 public interface EntityVisitor
 {
+
     boolean enabled();
 
     long sweepIntervalTicks();

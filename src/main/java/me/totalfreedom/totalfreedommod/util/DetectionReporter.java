@@ -1,11 +1,11 @@
 package me.totalfreedom.totalfreedommod.util;
 
-import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.LongSupplier;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 public final class DetectionReporter
@@ -14,7 +14,7 @@ public final class DetectionReporter
     @FunctionalInterface
     public interface Summary
     {
-        String format(long count, String reason, long maxObservedSize, String sample);
+        String format(long count, String dominantReason, long maxObservedSize, String sample);
     }
 
     private final long intervalTicks;
@@ -30,65 +30,80 @@ public final class DetectionReporter
 
     public DetectionReporter(long intervalTicks, LongSupplier clock, Summary summary, Consumer<String> sink)
     {
-        this.intervalTicks = Math.max(1L, intervalTicks);
-        this.clock = Objects.requireNonNull(clock);
-        this.summary = Objects.requireNonNull(summary);
-        this.sink = Objects.requireNonNull(sink);
+        this.intervalTicks = intervalTicks;
+        this.clock = clock;
+        this.summary = summary;
+        this.sink = sink;
     }
 
-    public synchronized void record(String sample)
+    public void record(String context)
     {
-        record(null, 0L, sample);
+        record(null, 0L, context);
     }
 
-    public synchronized void record(String reason, String sample)
+    public void record(String reason, String context)
     {
-        record(reason, 0L, sample);
+        record(reason, 0L, context);
     }
 
-    public synchronized void record(String reason, long observedSize, String sample)
+    public void record(String reason, long observedSize, String context)
     {
+        long now = clock.getAsLong();
+        if (count > 0 && lastSummaryTick != 0L && now - lastSummaryTick >= intervalTicks)
+        {
+            emit(now);
+        }
+
         count++;
-        maxObservedSize = Math.max(maxObservedSize, observedSize);
+        if (observedSize > maxObservedSize)
+        {
+            maxObservedSize = observedSize;
+        }
         if (dominantReason == null && reason != null)
         {
             dominantReason = reason;
         }
-        if (this.sample == null)
+        if (sample == null)
         {
-            this.sample = sample;
+            sample = context;
         }
 
-        long now = clock.getAsLong();
-        if (lastSummaryTick != 0L && now - lastSummaryTick < intervalTicks)
+        if (lastSummaryTick == 0L || now - lastSummaryTick >= intervalTicks)
+        {
+            emit(now);
+        }
+    }
+
+    private void emit(long now)
+    {
+        if (count == 0L)
         {
             return;
         }
-
-        sink.accept(summary.format(count, dominantReason, maxObservedSize, this.sample));
+        sink.accept(summary.format(count, dominantReason, maxObservedSize, sample));
         lastSummaryTick = now;
         count = 0L;
         maxObservedSize = 0L;
         dominantReason = null;
-        this.sample = null;
+        sample = null;
     }
 
     public static Consumer<String> warnOnly()
     {
-        return FLog::warning;
+        return message -> FLog.warning(message, true);
     }
 
     public static Consumer<String> warnAndBroadcastAdmins(TotalFreedomMod plugin)
     {
         return message ->
         {
-            FLog.warning(message);
+            FLog.warning(message, true);
             Component component = Component.text(message, NamedTextColor.RED);
-            for (Player player : plugin.getServer().getOnlinePlayers())
+            for (Player p : Bukkit.getOnlinePlayers())
             {
-                if (plugin.al != null && plugin.al.isAdmin(player))
+                if (plugin.al.isAdmin(p))
                 {
-                    player.sendMessage(component);
+                    p.sendMessage(component);
                 }
             }
         };

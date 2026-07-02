@@ -1,7 +1,6 @@
 package me.totalfreedom.totalfreedommod.blocking.entity;
 
 import com.destroystokyo.paper.event.entity.EntityAddToWorldEvent;
-import java.util.List;
 import java.util.regex.Pattern;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
@@ -14,16 +13,11 @@ import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import org.bukkit.Bukkit;
-import org.bukkit.Chunk;
-import org.bukkit.World;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.server.ServerCommandEvent;
-import org.bukkit.event.world.ChunkLoadEvent;
 
 /**
  * Strips format bomb / oversized custom names from entities before the client
@@ -44,48 +38,44 @@ public class EntityNameValidator extends FreedomService
             "summon", "data", "execute", "entitydata", "nick", "rename"
     };
 
-    private final EntityVisitor nameVisitor;
-    private final DetectionReporter reporter;
+    private final EntityVisitor nameVisitor = new EntityVisitor()
+    {
+        @Override
+        public boolean enabled()
+        {
+            return EntityNameValidator.this.enabled();
+        }
+
+        @Override
+        public long sweepIntervalTicks()
+        {
+            return ConfigEntry.CRASH_ENTITIES_SWEEP_TICKS.getInteger();
+        }
+
+        @Override
+        public void visit(Entity entity, SweepContext context)
+        {
+            inspectAndClean(entity, context.label());
+        }
+    };
+
+    private final DetectionReporter reporter = new DetectionReporter(
+            LOG_INTERVAL_TICKS, server::getCurrentTick,
+            (count, reason, max, sample) -> "[EntityNameValidator] Blocked " + count
+                    + " cursed entity name(s). Reason: " + reason
+                    + " | max observed size: " + max
+                    + " | sample: " + sample,
+            DetectionReporter.warnAndBroadcastAdmins(plugin));
 
     public EntityNameValidator(TotalFreedomMod plugin)
     {
         super(plugin);
-        reporter = new DetectionReporter(LOG_INTERVAL_TICKS, server::getCurrentTick,
-                (count, reason, max, sample) -> "[EntityNameValidator] Blocked " + count
-                        + " cursed entity name(s). Reason: " + reason
-                        + " | max observed size: " + max
-                        + " | sample: " + sample,
-                DetectionReporter.warnAndBroadcastAdmins(plugin));
-        nameVisitor = new EntityVisitor()
-        {
-            @Override
-            public boolean enabled()
-            {
-                return EntityNameValidator.this.enabled();
-            }
-
-            @Override
-            public long sweepIntervalTicks()
-            {
-                Integer ticks = ConfigEntry.CRASH_ENTITIES_SWEEP_TICKS.getInteger();
-                return ticks == null ? 0L : ticks;
-            }
-
-            @Override
-            public void visit(Entity entity, SweepContext context)
-            {
-                inspectAndClean(entity, context.label());
-            }
-        };
-        if (plugin.sweepScheduler != null)
-        {
-            plugin.sweepScheduler.register(nameVisitor);
-        }
     }
 
     @Override
     protected void onStart()
     {
+        plugin.sweepScheduler.register(nameVisitor);
         long ticks = ConfigEntry.CRASH_ENTITIES_SWEEP_TICKS.getInteger();
         FLog.info("[EntityNameValidator] active"
                 + " [entity name filter]"
@@ -111,8 +101,7 @@ public class EntityNameValidator extends FreedomService
 
     private int maxComponentNodes()
     {
-        int v = ConfigEntry.CRASH_ENTITIES_MAX_COMPONENT_NODES.getInteger();
-        return v > 0 ? v : 1024;
+        return ConfigEntry.maxComponentNodes();
     }
 
     enum Reason
@@ -314,9 +303,8 @@ public class EntityNameValidator extends FreedomService
         return false;
     }
 
-    private void recordDetection(Verdict verdict, String context)
+    private void recordDetection(Verdict v, String context)
     {
-        reporter.record(verdict.reason().name(), verdict.observedSize(), context);
+        reporter.record(v.reason().name(), v.observedSize(), context);
     }
-
 }

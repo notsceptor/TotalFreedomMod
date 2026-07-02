@@ -13,6 +13,7 @@ public final class ContainerPacketGuard
     private static final int MAX_NODES = 2048;
     private static final int MAX_DEPTH = 16;
     private static final int MAX_STRING_LENGTH = 4096;
+
     private static final String[] ITEM_BEARING_TAGS = {"Items", "item", "Book", "RecordItem"};
 
     private ContainerPacketGuard()
@@ -44,8 +45,8 @@ public final class ContainerPacketGuard
         Budget budget = new Budget();
         for (String tag : ITEM_BEARING_TAGS)
         {
-            NBT child = nbt.getTags().get(tag);
-            if (child != null && !walk(child, budget, 0))
+            NBT value = nbt.getTags().get(tag);
+            if (value != null && !walk(value, budget, 0))
             {
                 return true;
             }
@@ -55,19 +56,28 @@ public final class ContainerPacketGuard
 
     public static int sanitizeColumn(Column column)
     {
-        if (column == null || column.getTileEntities() == null)
+        if (column == null)
+        {
+            return 0;
+        }
+        TileEntity[] tileEntities = column.getTileEntities();
+        if (tileEntities == null)
         {
             return 0;
         }
         int changed = 0;
-        for (TileEntity tileEntity : column.getTileEntities())
+        for (TileEntity tileEntity : tileEntities)
         {
             if (tileEntity == null)
             {
                 continue;
             }
             NBTCompound nbt = tileEntity.getNBT();
-            if (isItemBearingBlockEntity(nbt) && isUnsafe(nbt))
+            if (nbt == null || !isItemBearingBlockEntity(nbt))
+            {
+                continue;
+            }
+            if (isUnsafe(nbt))
             {
                 neutralize(nbt);
                 changed++;
@@ -78,10 +88,6 @@ public final class ContainerPacketGuard
 
     static void neutralize(NBTCompound nbt)
     {
-        if (nbt == null)
-        {
-            return;
-        }
         for (String tag : ITEM_BEARING_TAGS)
         {
             nbt.removeTag(tag);
@@ -145,26 +151,27 @@ public final class ContainerPacketGuard
         for (int i = 0; i < value.length(); i++)
         {
             char c = value.charAt(i);
-            if (escaped)
+            if (inString)
             {
-                escaped = false;
-                continue;
-            }
-            if (c == '\\' && inString)
-            {
-                escaped = true;
+                if (escaped)
+                {
+                    escaped = false;
+                }
+                else if (c == '\\')
+                {
+                    escaped = true;
+                }
+                else if (c == '"')
+                {
+                    inString = false;
+                }
                 continue;
             }
             if (c == '"')
             {
-                inString = !inString;
-                continue;
+                inString = true;
             }
-            if (inString)
-            {
-                continue;
-            }
-            if (c == '{' || c == '[')
+            else if (c == '{' || c == '[')
             {
                 if (++depth > MAX_DEPTH)
                 {
@@ -173,7 +180,10 @@ public final class ContainerPacketGuard
             }
             else if (c == '}' || c == ']')
             {
-                depth = Math.max(0, depth - 1);
+                if (depth > 0)
+                {
+                    depth--;
+                }
             }
         }
         return false;
@@ -181,11 +191,11 @@ public final class ContainerPacketGuard
 
     private static final class Budget
     {
-        private int remaining = MAX_NODES;
+        private int remainingNodes = MAX_NODES;
 
         private boolean consume()
         {
-            return --remaining >= 0;
+            return --remainingNodes >= 0;
         }
     }
 }

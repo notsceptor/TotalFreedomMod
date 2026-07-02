@@ -6,6 +6,7 @@ import org.bukkit.block.BlockState;
 
 public interface TileEntityVisitor
 {
+
     boolean enabled();
 
     long sweepIntervalTicks();

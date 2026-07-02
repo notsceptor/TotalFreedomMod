@@ -1,7 +1,6 @@
 package me.totalfreedom.totalfreedommod.blocking.entity;
 
 import com.destroystokyo.paper.event.entity.EntityAddToWorldEvent;
-import java.util.List;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.blocking.sweep.EntityVisitor;
@@ -9,24 +8,17 @@ import me.totalfreedom.totalfreedommod.blocking.sweep.SweepContext;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.DetectionReporter;
 import me.totalfreedom.totalfreedommod.util.FLog;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Art;
-import org.bukkit.Bukkit;
-import org.bukkit.Chunk;
-import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Painting;
-import org.bukkit.entity.Player;
 import org.bukkit.entity.Slime;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityTransformEvent;
-import org.bukkit.event.world.ChunkLoadEvent;
 
 /**
  * Hard cap on Slime#setSize and the SCALE attribute.
@@ -37,48 +29,44 @@ public class EntitySizeGuard extends FreedomService
 
     private static final long LOG_INTERVAL_TICKS = 100L;
 
-    private final EntityVisitor sizeVisitor;
-    private final DetectionReporter reporter;
+    private final EntityVisitor sizeVisitor = new EntityVisitor()
+    {
+        @Override
+        public boolean enabled()
+        {
+            return true;
+        }
+
+        @Override
+        public long sweepIntervalTicks()
+        {
+            return ConfigEntry.CRASH_ENTITIES_SCALE_SWEEP_TICKS.getInteger();
+        }
+
+        @Override
+        public void visit(Entity entity, SweepContext context)
+        {
+            clampEntity(entity, context.label());
+        }
+    };
+
+    private final DetectionReporter reporter = new DetectionReporter(
+            LOG_INTERVAL_TICKS, server::getCurrentTick,
+            (count, reason, max, sample) -> "[EntitySizeGuard] Detected " + count
+                    + " oversized entity/entities. Reason: " + reason
+                    + " | max observed: " + max
+                    + " | sample: " + sample,
+            DetectionReporter.warnAndBroadcastAdmins(plugin));
 
     public EntitySizeGuard(TotalFreedomMod plugin)
     {
         super(plugin);
-        reporter = new DetectionReporter(LOG_INTERVAL_TICKS, server::getCurrentTick,
-                (count, reason, max, sample) -> "[EntitySizeGuard] Detected " + count
-                        + " oversized entity/entities. Reason: " + reason
-                        + " | max observed: " + max
-                        + " | sample: " + sample,
-                DetectionReporter.warnAndBroadcastAdmins(plugin));
-        sizeVisitor = new EntityVisitor()
-        {
-            @Override
-            public boolean enabled()
-            {
-                return true;
-            }
-
-            @Override
-            public long sweepIntervalTicks()
-            {
-                Integer ticks = ConfigEntry.CRASH_ENTITIES_SCALE_SWEEP_TICKS.getInteger();
-                return ticks == null ? 0L : ticks;
-            }
-
-            @Override
-            public void visit(Entity entity, SweepContext context)
-            {
-                clampEntity(entity, context.label());
-            }
-        };
-        if (plugin.sweepScheduler != null)
-        {
-            plugin.sweepScheduler.register(sizeVisitor);
-        }
     }
 
     @Override
     protected void onStart()
     {
+        plugin.sweepScheduler.register(sizeVisitor);
         FLog.info("[EntitySizeGuard] active"
                 + " [max scale=" + describeCap(ConfigEntry.CRASH_ENTITIES_MAX_SCALE.getDouble()) + "]"
                 + " [max slime size=" + describeCap(ConfigEntry.CRASH_ENTITIES_MAX_SLIME_SIZE.getInteger()) + "]"
@@ -244,5 +232,4 @@ public class EntitySizeGuard extends FreedomService
     {
         reporter.record(reason, observed, context);
     }
-
 }

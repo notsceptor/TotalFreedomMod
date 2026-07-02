@@ -6,6 +6,7 @@ import java.util.IdentityHashMap;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TranslatableComponent;
 import net.kyori.adventure.text.TranslationArgument;
+import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 
 /**
@@ -14,64 +15,69 @@ import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 public final class ComponentScanner
 {
 
+    public record ComponentMetrics(boolean unsafe, int plainTextLength)
+    {
+        static ComponentMetrics markUnsafe()
+        {
+            return new ComponentMetrics(true, -1);
+        }
+    }
+
+    private static final class GraphProbe
+    {
+        int nodes;
+        boolean oversized;
+        boolean cyclic;
+        boolean translatableUnsafe;
+        boolean clickEvent;
+        boolean unsafeHover;
+        boolean budgetExceeded;
+
+        boolean unsafe()
+        {
+            return budgetExceeded || cyclic || oversized || translatableUnsafe || clickEvent || unsafeHover;
+        }
+    }
+
     private ComponentScanner()
     {
     }
 
     public static int safeNodeCount(Component root, int maxNodes)
     {
-        if (root == null)
-        {
-            return 0;
-        }
-        IdentityHashMap<Component, Boolean> seen = new IdentityHashMap<>();
-        Deque<Component> stack = new ArrayDeque<>();
-        stack.push(root);
-        int count = 0;
-        while (!stack.isEmpty())
-        {
-            Component current = stack.pop();
-            if (seen.put(current, Boolean.TRUE) != null)
-            {
-                return -1;
-            }
-            count++;
-            if (count > maxNodes)
-            {
-                return -1;
-            }
-            if (current instanceof TranslatableComponent translatable
-                    && (!translatable.arguments().isEmpty() || containsFormatSpecifier(translatable.key())))
-            {
-                return -1;
-            }
-            for (Component child : current.children())
-            {
-                stack.push(child);
-            }
-            if (current instanceof TranslatableComponent translatable)
-            {
-                for (TranslationArgument arg : translatable.arguments())
-                {
-                    Object value = arg.value();
-                    if (value instanceof Component vc)
-                    {
-                        stack.push(vc);
-                    }
-                }
-            }
-        }
-        return count;
+        return probe(root, maxNodes, 0L).nodes;
     }
 
     public static boolean isUnsafe(Component root, int maxNodes)
     {
-        return safeNodeCount(root, maxNodes) < 0;
+        return probe(root, maxNodes, 0L).unsafe();
     }
 
     public static boolean isCursed(Component root, int maxNodes)
     {
-        return isUnsafe(root, maxNodes) || hasClickEvent(root, maxNodes);
+        return isCursed(root, maxNodes, 0L);
+    }
+
+    public static boolean isCursed(Component root, int maxNodes, long deadlineNanos)
+    {
+        return probe(root, maxNodes, deadlineNanos).unsafe();
+    }
+
+    /**
+     * Single-pass component inspection: graph safety plus plain-text length when safe.
+     */
+    public static ComponentMetrics inspectComponent(Component root, int maxNodes, long deadlineNanos)
+    {
+        GraphProbe graph = probe(root, maxNodes, deadlineNanos);
+        if (graph.unsafe())
+        {
+            return ComponentMetrics.markUnsafe();
+        }
+        if (budgetExceeded(deadlineNanos))
+        {
+            return ComponentMetrics.markUnsafe();
+        }
+        return new ComponentMetrics(false, PlainTextComponentSerializer.plainText().serialize(root).length());
     }
 
     /**
@@ -80,30 +86,98 @@ public final class ComponentScanner
      */
     public static boolean hasClickEvent(Component root, int maxNodes)
     {
+        return probe(root, maxNodes, 0L).clickEvent;
+    }
+
+    public static int safePlainTextLength(Component root, int maxNodes)
+    {
+        return safePlainTextLength(root, maxNodes, 0L);
+    }
+
+    public static int safePlainTextLength(Component root, int maxNodes, long deadlineNanos)
+    {
+        GraphProbe graph = probe(root, maxNodes, deadlineNanos);
+        if (graph.unsafe())
+        {
+            return -1;
+        }
+        if (budgetExceeded(deadlineNanos))
+        {
+            return -1;
+        }
+        return PlainTextComponentSerializer.plainText().serialize(root).length();
+    }
+
+    private static GraphProbe probe(Component root, int maxNodes, long deadlineNanos)
+    {
+        GraphProbe result = new GraphProbe();
         if (root == null)
         {
-            return false;
+            return result;
         }
-        if (safeNodeCount(root, maxNodes) < 0)
-        {
-            return true;
-        }
+
         IdentityHashMap<Component, Boolean> seen = new IdentityHashMap<>();
         Deque<Component> stack = new ArrayDeque<>();
         stack.push(root);
+        int discovered = 1;
         while (!stack.isEmpty())
         {
+            if (budgetExceeded(deadlineNanos))
+            {
+                result.budgetExceeded = true;
+                return result;
+            }
+
             Component current = stack.pop();
             if (seen.put(current, Boolean.TRUE) != null)
             {
-                continue;
+                result.cyclic = true;
+                return result;
+            }
+            result.nodes++;
+            if (result.nodes > maxNodes)
+            {
+                result.oversized = true;
+                return result;
+            }
+            if (current instanceof TranslatableComponent translatable
+                    && (!translatable.arguments().isEmpty() || containsFormatSpecifier(translatable.key())))
+            {
+                result.translatableUnsafe = true;
+                return result;
             }
             if (current.clickEvent() != null)
             {
-                return true;
+                result.clickEvent = true;
+            }
+            HoverEvent<?> hover = current.hoverEvent();
+            if (hover != null)
+            {
+                if (hover.action() == HoverEvent.Action.SHOW_TEXT)
+                {
+                    if (hover.value() instanceof Component hoverText)
+                    {
+                        if (++discovered > maxNodes)
+                        {
+                            result.oversized = true;
+                            return result;
+                        }
+                        stack.push(hoverText);
+                    }
+                }
+                else
+                {
+                    result.unsafeHover = true;
+                    return result;
+                }
             }
             for (Component child : current.children())
             {
+                if (++discovered > maxNodes)
+                {
+                    result.oversized = true;
+                    return result;
+                }
                 stack.push(child);
             }
             if (current instanceof TranslatableComponent translatable)
@@ -113,12 +187,22 @@ public final class ComponentScanner
                     Object value = arg.value();
                     if (value instanceof Component vc)
                     {
+                        if (++discovered > maxNodes)
+                        {
+                            result.oversized = true;
+                            return result;
+                        }
                         stack.push(vc);
                     }
                 }
             }
         }
-        return false;
+        return result;
+    }
+
+    private static boolean budgetExceeded(long deadlineNanos)
+    {
+        return deadlineNanos > 0L && System.nanoTime() > deadlineNanos;
     }
 
     private static boolean containsFormatSpecifier(String key)
@@ -128,14 +212,5 @@ public final class ComponentScanner
             return false;
         }
         return key.replace("%%", "").indexOf('%') >= 0;
-    }
-
-    public static int safePlainTextLength(Component root, int maxNodes)
-    {
-        if (safeNodeCount(root, maxNodes) < 0)
-        {
-            return -1;
-        }
-        return PlainTextComponentSerializer.plainText().serialize(root).length();
     }
 }
