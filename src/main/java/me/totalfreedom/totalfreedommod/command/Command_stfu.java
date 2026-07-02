@@ -137,7 +137,8 @@ public class Command_stfu extends FreedomCommand
             if (reason != null)
             {
                 FUtil.bcastMsg("  Reason: " + reason, NamedTextColor.YELLOW);
-                msg(player, Component.text("You have been muted. Reason: " + reason, NamedTextColor.RED));
+                msg(player, Component.text("You have been muted. Reason: ", NamedTextColor.RED)
+                        .append(FUtil.colorizeWithLinks(reason, NamedTextColor.RED)));
             }
             else
             {

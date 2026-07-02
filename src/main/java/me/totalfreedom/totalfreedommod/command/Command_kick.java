@@ -29,7 +29,7 @@ public class Command_kick extends FreedomCommand
         {
             kickMessage = kickMessage
                     .append(Component.text("\nReason: ", NamedTextColor.RED))
-                    .append(Component.text(reason, NamedTextColor.GOLD));
+                    .append(FUtil.colorizeWithLinks(reason, NamedTextColor.GOLD));
             if (!silent)
                 FUtil.adminAction(sender.getName(), "Kicking " + player.getName() + " - Reason: " + reason, true);
         }

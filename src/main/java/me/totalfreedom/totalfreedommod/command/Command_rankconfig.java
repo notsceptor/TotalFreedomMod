@@ -221,7 +221,7 @@ public class Command_rankconfig extends FreedomCommand
             Component prompt = Component.text("Are you sure you want to delete rank '")
                     .color(NamedTextColor.RED)
                     .append(rank.getColoredTag())
-                    .append(Component.text(" " + rank.getName()).color(rank.getColor()))
+                    .append(Component.text(" ").append(rank.getColoredName()))
                     .append(Component.text("'? Type 'confirm' to proceed:").color(NamedTextColor.RED));
             
             rm.getChatInputHandler().awaitInput(playerSender, prompt, input -> {
@@ -298,7 +298,8 @@ public class Command_rankconfig extends FreedomCommand
                 rm.getChatInputHandler().awaitInput(player, prompt, input -> {
                     rank.setName(input);
                     rm.setCustomRank(rank);
-                    player.sendMessage(Component.text("Name updated to: " + input).color(NamedTextColor.GREEN));
+                    player.sendMessage(Component.text("Name updated to: ", NamedTextColor.GREEN)
+                            .append(FUtil.colorizeWithLinks(input, NamedTextColor.GREEN)));
                     player.sendMessage(rm.buildEditMenu(rank));
                 }, 60);
                 return true;
@@ -311,7 +312,8 @@ public class Command_rankconfig extends FreedomCommand
                 rm.getChatInputHandler().awaitInput(player, prompt, input -> {
                     rank.setAbbreviation(input);
                     rm.setCustomRank(rank);
-                    player.sendMessage(Component.text("Abbreviation updated to: " + input).color(NamedTextColor.GREEN));
+                    player.sendMessage(Component.text("Abbreviation updated to: ", NamedTextColor.GREEN)
+                            .append(FUtil.colorizeWithLinks(input, NamedTextColor.GREEN)));
                     player.sendMessage(rm.buildEditMenu(rank));
                 }, 60);
                 return true;
@@ -385,7 +387,8 @@ public class Command_rankconfig extends FreedomCommand
                 rm.getChatInputHandler().awaitInput(player, prompt, input -> {
                     rank.setPrefix(input);
                     rm.setCustomRank(rank);
-                    player.sendMessage(Component.text("Prefix updated to: " + input).color(NamedTextColor.GREEN));
+                    player.sendMessage(Component.text("Prefix updated to: ", NamedTextColor.GREEN)
+                            .append(FUtil.colorizeWithLinks(input, NamedTextColor.GREEN)));
                     player.sendMessage(rm.buildEditMenu(rank));
                 }, 60);
                 return true;
@@ -590,7 +593,7 @@ public class Command_rankconfig extends FreedomCommand
         CustomRank rank = plugin.rm.getCustomRank(rankId);
         msg(Component.text("Set " + target.getName() + "'s custom rank to: ").color(NamedTextColor.GREEN)
                 .append(rank.getColoredTag())
-                .append(Component.text(" " + rank.getName()).color(rank.getColor())));
+                .append(Component.text(" ").append(rank.getColoredName())));
         
         FUtil.adminAction(sender.getName(), "Set " + target.getName() + "'s custom rank to " + rank.getName(), false);
         return true;

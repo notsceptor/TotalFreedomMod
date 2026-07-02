@@ -24,7 +24,7 @@ public class FSync
 
     public static void playerKick(final Player player, final String reason)
     {
-        playerKick(player, Component.text(reason));
+        playerKick(player, FUtil.colorizeWithLinks(reason));
     }
 
     public static void adminChatMessage(final CommandSender sender, final String message)

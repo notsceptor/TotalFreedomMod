@@ -7,7 +7,6 @@ import me.totalfreedom.totalfreedommod.banning.Ban;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
@@ -76,7 +75,7 @@ public class AutoEject extends FreedomService
         if (timeoutMinutes == 0)
         {
             FUtil.bcastMsg(player.getName() + " has been kicked.", NamedTextColor.RED);
-            player.kick(Component.text(kickMessage));
+            player.kick(FUtil.colorizeWithLinks(kickMessage));
             return;
         }
 
@@ -91,7 +90,7 @@ public class AutoEject extends FreedomService
                 plugin.bm.addBan(Ban.forPlayer(player, Bukkit.getConsoleSender(), null, kickMessage));
             }
             FUtil.bcastMsg(player.getName() + " has been banned.", NamedTextColor.RED);
-            player.kick(Component.text(kickMessage));
+            player.kick(FUtil.colorizeWithLinks(kickMessage));
             return;
         }
 
@@ -101,6 +100,6 @@ public class AutoEject extends FreedomService
 
         FUtil.bcastMsg(player.getName() + " has been banned for " + timeoutMinutes + " minutes.", NamedTextColor.RED);
         plugin.bm.addBan(Ban.forPlayer(player, Bukkit.getConsoleSender(), expires, kickMessage));
-        player.kick(Component.text(kickMessage));
+        player.kick(FUtil.colorizeWithLinks(kickMessage));
     }
 }

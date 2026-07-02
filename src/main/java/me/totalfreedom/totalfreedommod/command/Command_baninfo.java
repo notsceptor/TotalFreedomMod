@@ -205,7 +205,7 @@ public class Command_baninfo extends FreedomCommand
                 .append(Component.text(header).color(NamedTextColor.WHITE)));
 
         msg(Component.text("  Reason: ").color(NamedTextColor.GRAY)
-                .append(Component.text(blankOr(ban.getReason(), "(none)")).color(NamedTextColor.WHITE)));
+                .append(FUtil.colorizeWithLinks(blankOr(ban.getReason(), "(none)"), NamedTextColor.WHITE)));
 
         msg(Component.text("  Banned by: ").color(NamedTextColor.GRAY)
                 .append(Component.text(blankOr(ban.getBy(), "(unknown)")).color(NamedTextColor.WHITE)));
@@ -235,7 +235,7 @@ public class Command_baninfo extends FreedomCommand
                 .append(Component.text(header).color(NamedTextColor.WHITE)));
 
         msg(Component.text("  Reason: ").color(NamedTextColor.GRAY)
-                .append(Component.text(blankOr(permban.getReason(), "(none)")).color(NamedTextColor.WHITE)));
+                .append(FUtil.colorizeWithLinks(blankOr(permban.getReason(), "(none)"), NamedTextColor.WHITE)));
 
         msg(Component.text("  IPs: ").color(NamedTextColor.GRAY)
                 .append(Component.text(formatIps(sender, permban.getIps())).color(NamedTextColor.WHITE)));

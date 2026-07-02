@@ -126,12 +126,7 @@ public class FUtil
 
     public static void bcastMsg(String message, NamedTextColor color)
     {
-        Component component = Component.text(message);
-        if (color != null)
-        {
-            component = component.color(color);
-        }
-        bcastMsg(component);
+        bcastMsg(colorizeWithLinks(message, color));
     }
 
     @Deprecated
@@ -143,7 +138,7 @@ public class FUtil
 
     public static void bcastMsg(String message)
     {
-        bcastMsg(Component.text(message));
+        bcastMsg(colorizeWithLinks(message));
     }
 
     public static void playerMsg(CommandSender sender, Component component)
@@ -157,12 +152,7 @@ public class FUtil
 
     public static void playerMsg(CommandSender sender, String message, NamedTextColor color)
     {
-        Component component = Component.text(message);
-        if (color != null)
-        {
-            component = component.color(color);
-        }
-        playerMsg(sender, component);
+        playerMsg(sender, colorizeWithLinks(message, color));
     }
 
     @Deprecated
@@ -447,6 +437,22 @@ public class FUtil
     public static Component colorize(String string)
     {
         return AdventureUtil.format(string);
+    }
+
+    public static Component colorize(String string, NamedTextColor defaultColor)
+    {
+        Component component = colorize(string);
+        return defaultColor == null ? component : component.colorIfAbsent(defaultColor);
+    }
+
+    public static Component colorizeWithLinks(String string)
+    {
+        return AdventureUtil.addLinks(colorize(string));
+    }
+
+    public static Component colorizeWithLinks(String string, NamedTextColor defaultColor)
+    {
+        return AdventureUtil.addLinks(colorize(string, defaultColor));
     }
 
     @Deprecated

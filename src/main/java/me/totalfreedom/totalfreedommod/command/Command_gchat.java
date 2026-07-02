@@ -1,6 +1,7 @@
 package me.totalfreedom.totalfreedommod.command;
 
 import me.totalfreedom.totalfreedommod.rank.Rank;
+import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.commons.lang3.StringUtils;
@@ -56,7 +57,7 @@ public class Command_gchat extends FreedomCommand
             msg(Component.text("Sending chat as ", NamedTextColor.GRAY)
                     .append(Component.text(player.getName(), NamedTextColor.YELLOW))
                     .append(Component.text(": ", NamedTextColor.GRAY))
-                    .append(Component.text(message, NamedTextColor.WHITE)));
+                    .append(FUtil.colorizeWithLinks(message, NamedTextColor.WHITE)));
 
             player.chat(message);
 

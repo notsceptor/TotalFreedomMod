@@ -1,11 +1,9 @@
 package me.totalfreedom.totalfreedommod.command;
 
 import me.totalfreedom.totalfreedommod.banning.Ban;
-import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Location;
 import org.bukkit.command.Command;
@@ -57,7 +55,7 @@ public class Command_tban extends FreedomCommand
 
         if (player != null)
         {
-            player.kick(Component.text("You have been temporarily banned for five minutes. Please read " + ConfigEntry.SERVER_WEB_URL +  "for more info.", NamedTextColor.RED));
+            player.kick(ban.bakeKickMessage());
         }
 
         return true;

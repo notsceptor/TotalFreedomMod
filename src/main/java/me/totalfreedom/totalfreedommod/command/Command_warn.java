@@ -52,7 +52,8 @@ public class Command_warn extends FreedomCommand
         if (warnReason != null)
             FUtil.bcastMsg("  Reason: " + warnReason, NamedTextColor.YELLOW);
 
-        msg(player, Component.text("[WARNING] You received a warning: " + warnReason, NamedTextColor.RED));
+        msg(player, Component.text("[WARNING] You received a warning: ", NamedTextColor.RED)
+                .append(FUtil.colorizeWithLinks(warnReason, NamedTextColor.RED)));
         msg("You have successfully warned " + player.getName(), NamedTextColor.GREEN);
 
         plugin.pl.getPlayer(player).incrementWarnings();

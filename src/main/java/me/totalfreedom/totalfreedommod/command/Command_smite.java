@@ -84,7 +84,7 @@ public class Command_smite extends FreedomCommand
         if (reason != null)
         {
             player.sendMessage(Component.text("You've been smitten. Reason: ", NamedTextColor.RED)
-                    .append(Component.text(reason, NamedTextColor.YELLOW)));
+                    .append(FUtil.colorizeWithLinks(reason, NamedTextColor.YELLOW)));
         }
     }
 }
