@@ -918,3 +918,33 @@ tablist:
   # How often (in ticks) the header, footer, and player names are refreshed.
   # 20 ticks = 1 second.  Default is every 3 seconds.
   update_interval: 60
+
+
+# GameRuleHandler
+# Controls game rules on a global scale and regulates which players can and can't change gamerules
+gamerules:
+  # Controls whether to change game rules and enforce defaults listed in this configuration
+  enabled: true
+
+  # Interval in ticks between enforcement periods
+  enforcement_interval: 600
+
+  # Game rules that should be set by default
+  defaults:
+    "minecraft:fire_damage": false
+    "minecraft:mob_griefing": false
+    "minecraft:mob_drops": false
+    "minecraft:spawn_mobs": false
+    "minecraft:block_drops": false
+    "minecraft:command_block_output": false
+    "minecraft:natural_health_regeneration": true
+
+  # Game rules that are known to be malicious and will be logged when a player attempts to change them
+  malicious:
+    - "minecraft:random_tick_speed"
+    - "minecraft:max_entity_cramming"
+    - "minecraft:max_snow_accumulation_height"
+    - "minecraft:players_sleeping_percentage"
+    - "minecraft:max_minecart_speed"
+    - "minecraft:max_command_sequence_length"
+    - "minecraft:max_block_modifications"

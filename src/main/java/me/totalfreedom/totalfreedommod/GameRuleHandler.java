@@ -42,7 +42,7 @@ public class GameRuleHandler extends FreedomService
     @Override
     protected void onStart()
     {
-        setGameRule(GameRule.DO_DAYLIGHT_CYCLE, !ConfigEntry.DISABLE_NIGHT.getBoolean(), false);
+        /*setGameRule(GameRule.DO_DAYLIGHT_CYCLE, !ConfigEntry.DISABLE_NIGHT.getBoolean(), false);
         setGameRule(GameRule.DO_FIRE_TICK, ConfigEntry.ALLOW_FIRE_SPREAD.getBoolean(), false);
         setGameRule(GameRule.DO_MOB_LOOT, false, false);
         setGameRule(GameRule.DO_MOB_SPAWNING, !ConfigEntry.MOB_LIMITER_ENABLED.getBoolean(), false);
@@ -55,17 +55,17 @@ public class GameRuleHandler extends FreedomService
             commitGameRules();
             enforceNumericLimits();
         });
-        schedulePeriodicEnforcement();
+        schedulePeriodicEnforcement();*/
     }
 
     @Override
     protected void onStop()
     {
-        if (sweepTaskId != -1)
+        /*if (sweepTaskId != -1)
         {
             server.getScheduler().cancelTask(sweepTaskId);
             sweepTaskId = -1;
-        }
+        }*/
     }
 
     private void schedulePeriodicEnforcement()
@@ -188,7 +188,7 @@ public class GameRuleHandler extends FreedomService
         }
     }
 
-    public static enum GameRule
+    public enum GameRule
     {
 
         DO_FIRE_TICK("do_fire_tick", true),

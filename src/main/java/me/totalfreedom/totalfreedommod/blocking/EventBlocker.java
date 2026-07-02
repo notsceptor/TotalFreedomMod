@@ -1,11 +1,15 @@
 package me.totalfreedom.totalfreedommod.blocking;
 
+import io.papermc.paper.event.world.WorldGameRuleChangeEvent;
 import me.totalfreedom.totalfreedommod.EntityWiper;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import org.bukkit.GameMode;
+import org.bukkit.GameRule;
+import org.bukkit.GameRules;
 import org.bukkit.Material;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Boat;
 import org.bukkit.entity.Entity;
@@ -41,8 +45,21 @@ import org.bukkit.event.entity.TrialSpawnerSpawnEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.world.PortalCreateEvent;
 
+import java.util.Set;
+
 public class EventBlocker extends FreedomService
 {
+
+    private static final Set<GameRule<?>> HIGH_RISK_GAMERULES = Set.of(
+            GameRules.RANDOM_TICK_SPEED,
+            GameRules.RESPAWN_RADIUS,
+            GameRules.MAX_ENTITY_CRAMMING,
+            GameRules.MAX_SNOW_ACCUMULATION_HEIGHT,
+            GameRules.PLAYERS_SLEEPING_PERCENTAGE,
+            GameRules.MAX_COMMAND_SEQUENCE_LENGTH,
+            GameRules.COMMAND_BLOCKS_WORK,
+            GameRules.MAX_BLOCK_MODIFICATIONS
+    );
 
     public EventBlocker(TotalFreedomMod plugin)
     {
@@ -312,7 +329,7 @@ public class EventBlocker extends FreedomService
     }
 
     @EventHandler(priority = EventPriority.HIGH)
-     public void onBlockRedstone(BlockRedstoneEvent event)
+    public void onBlockRedstone(BlockRedstoneEvent event)
     {
         if (!ConfigEntry.ALLOW_REDSTONE.getBoolean())
         {

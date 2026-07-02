@@ -3,6 +3,7 @@ package me.totalfreedom.totalfreedommod.config;
 import java.util.Collections;
 import java.util.List;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import org.bukkit.configuration.ConfigurationSection;
 
 public enum ConfigEntry
 {
@@ -268,7 +269,12 @@ public enum ConfigEntry
     TABLIST_COLUMNS(Integer.class, "tablist.columns"),
     TABLIST_PLAYER_COMPONENT(String.class, "tablist.player_component"),
     TABLIST_AFK_TAG(String.class, "tablist.afk_tag"),
-    TABLIST_UPDATE_INTERVAL(Integer.class, "tablist.update_interval");
+    TABLIST_UPDATE_INTERVAL(Integer.class, "tablist.update_interval"),
+    //
+    GAMERULES_ENABLED(Boolean.class, "gamerules.enabled"),
+    GAMERULES_ENFORCEMENT_DELAY(Integer.class, "gamerules.enforcement_interval"),
+    GAMERULES_DEFAULTS(ConfigurationSection.class, "gamerules.defaults"),
+    GAMERULES_MALICIOUS(List.class, "gamerules.malicious");
 
     //
     private final Class<?> type;
@@ -356,6 +362,11 @@ public enum ConfigEntry
     public List<String> getStringList()
     {
         return (List<String>) getList();
+    }
+
+    public ConfigurationSection getSection()
+    {
+        return getConfig().get(this, ConfigurationSection.class);
     }
 
     private MainConfig getConfig()

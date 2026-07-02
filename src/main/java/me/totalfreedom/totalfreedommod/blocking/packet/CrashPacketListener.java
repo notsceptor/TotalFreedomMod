@@ -66,14 +66,13 @@ final class CrashPacketListener extends PacketListenerAbstract
     private final boolean spawnerChunkGuard;
     private final boolean containerBlockEntityGuard;
     private final boolean containerChunkGuard;
-    private final boolean gameRuleGuard;
 
     CrashPacketListener(TotalFreedomMod plugin, boolean sanitizeOutbound, boolean entityMetadataGuard,
                              EntityMetaPacketGuard.Limits entityLimits, PacketSpamLimiter spamLimiter,
                              MovementGuard movementGuard, boolean signBlockEntityGuard,
                              boolean signChunkGuard, boolean blockAllSignPackets,
                              boolean spawnerBlockEntityGuard, boolean spawnerChunkGuard,
-                             boolean containerBlockEntityGuard, boolean containerChunkGuard, boolean gameRuleGuard)
+                             boolean containerBlockEntityGuard, boolean containerChunkGuard)
     {
         super(PacketListenerPriority.HIGH);
         this.plugin = plugin;
@@ -89,7 +88,6 @@ final class CrashPacketListener extends PacketListenerAbstract
         this.spawnerChunkGuard = spawnerChunkGuard;
         this.containerBlockEntityGuard = containerBlockEntityGuard;
         this.containerChunkGuard = containerChunkGuard;
-        this.gameRuleGuard = gameRuleGuard;
     }
 
     @Override
@@ -98,13 +96,6 @@ final class CrashPacketListener extends PacketListenerAbstract
         try
         {
             final PacketTypeCommon type = event.getPacketType();
-
-            if (gameRuleGuard && type == PacketType.Play.Client.SET_GAME_RULE)
-            {
-                event.setCancelled(true);
-                logBlockedGameRule(event);
-                return;
-            }
 
             if (spamLimiter == null && movementGuard == null)
             {

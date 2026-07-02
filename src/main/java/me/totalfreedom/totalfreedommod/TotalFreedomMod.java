@@ -103,6 +103,7 @@ public class TotalFreedomMod extends JavaPlugin
     public StrikeList sl; // StrikeList - Tracks per-IP AutoEject strike counts
     public ProtectArea pa; // ProtectArea - Manages protected areas and spawnpoints
     public SpawnManager sm; // SpawnManager - Handles configured spawn behavior
+    public CoolerGameRuleHandler cgr;
     public GameRuleHandler gr; // GameRuleHandler - Manages game rules
     public RollbackManager rb; // RollbackManager - Handles rollback operations
     public CommandSpy cs; // CommandSpy - Logs and monitors command usage
@@ -230,6 +231,7 @@ public class TotalFreedomMod extends JavaPlugin
         sl = services.registerService(StrikeList.class);
         pa = services.registerService(ProtectArea.class);
         sm = services.registerService(SpawnManager.class);
+        cgr = services.registerService(CoolerGameRuleHandler.class);
         gr = services.registerService(GameRuleHandler.class);
         services.registerService(me.totalfreedom.totalfreedommod.disguise.DisallowedDisguises.class);
 
