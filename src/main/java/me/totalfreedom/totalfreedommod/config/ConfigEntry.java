@@ -71,7 +71,7 @@ public enum ConfigEntry
     SERVER_ADDRESS(String.class, "server.address"),
     SERVER_MOTD(String.class, "server.motd"),
     SERVER_OWNERS(List.class, "server.owners"),
-    SERVER_WEB_URL(List.class, "server.web_url"),
+    SERVER_WEB_URL(String.class, "server.web_url"),
     SERVER_BAN_URL(String.class, "server.ban_url"),
     SERVER_PERMBAN_URL(String.class, "server.permban_url"),
     //
