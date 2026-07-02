@@ -1387,7 +1387,7 @@ public class RankManager extends FreedomService
                 loginMsg = FUtil.colorizeWithLinks(admin.getLoginMessage())
                         .replaceText(TextReplacementConfig.builder()
                                 .matchLiteral("%name%")
-                                .replacement(Component.text(admin.getName()))
+                                .replacement(Component.text(player.getName()))
                                 .build())
                         .replaceText(TextReplacementConfig.builder()
                                 .matchLiteral("%rank%")
@@ -1395,7 +1395,7 @@ public class RankManager extends FreedomService
                                 .build())
                         .replaceText(TextReplacementConfig.builder()
                                 .matchLiteral("%coloredrank%")
-                                .replacement(admin.getRank().getColoredName())
+                                .replacement(display.getColoredName())
                                 .build());
 
             }
