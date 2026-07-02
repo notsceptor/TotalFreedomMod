@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import org.bukkit.GameMode;
 import org.bukkit.Tag;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
@@ -53,6 +54,12 @@ public class Jumppads extends FreedomService
         }
 
         final Player player = event.getPlayer();
+
+        if (player.getGameMode() == GameMode.SPECTATOR)
+        {
+            return;
+        }
+
         final Block block = event.getTo().getBlock();
         final Vector velocity = player.getVelocity().clone();
 

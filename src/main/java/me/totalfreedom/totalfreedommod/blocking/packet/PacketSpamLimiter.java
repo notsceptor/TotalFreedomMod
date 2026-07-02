@@ -1,4 +1,4 @@
-package me.totalfreedom.totalfreedommod.blocking.item;
+package me.totalfreedom.totalfreedommod.blocking.packet;
 
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;

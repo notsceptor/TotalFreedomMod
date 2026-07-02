@@ -3,6 +3,7 @@ package me.totalfreedom.totalfreedommod.command;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchContext;
 import me.totalfreedom.totalfreedommod.util.FUtil;
+import me.totalfreedom.totalfreedommod.util.ChatMentionUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.commons.lang3.StringUtils;
@@ -42,7 +43,11 @@ public class Command_say extends FreedomCommand
             }
         }
 
-        FUtil.bcastMsg(String.format("[Server:%s] %s", sender.getName(), message), NamedTextColor.LIGHT_PURPLE);
+        Component formattedMessage = FUtil.colorizeWithLinks(message, NamedTextColor.LIGHT_PURPLE);
+        formattedMessage = ChatMentionUtil.highlightAndPing(plugin, formattedMessage, true);
+        Component broadcast = Component.text("[Server:" + sender.getName() + "] ", NamedTextColor.LIGHT_PURPLE)
+                .append(formattedMessage);
+        FUtil.bcastMsg(broadcast);
 
         return true;
     }

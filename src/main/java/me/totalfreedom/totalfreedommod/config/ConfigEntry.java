@@ -23,6 +23,8 @@ public enum ConfigEntry
     ALLOW_SIGN_PLACE(Boolean.class, "allow.sign_place"),
     ALLOW_FALLING_SIGNS(Boolean.class, "allow.falling_signs"),
     ALLOW_FALLING_BLOCKS(Boolean.class, "allow.falling_blocks"),
+    AUTO_TP(Boolean.class, "allow.auto_tp"),
+    AUTO_CLEAR(Boolean.class, "allow.auto_clear"),
     //
     MOB_LIMITER_ENABLED(Boolean.class, "moblimiter.enabled"),
     MOB_LIMITER_MAX(Integer.class, "moblimiter.max"),
@@ -69,6 +71,7 @@ public enum ConfigEntry
     SERVER_ADDRESS(String.class, "server.address"),
     SERVER_MOTD(String.class, "server.motd"),
     SERVER_OWNERS(List.class, "server.owners"),
+    SERVER_WEB_URL(List.class, "server.web_url"),
     SERVER_BAN_URL(String.class, "server.ban_url"),
     SERVER_PERMBAN_URL(String.class, "server.permban_url"),
     //
@@ -112,6 +115,8 @@ public enum ConfigEntry
     WORLDEDIT_THROTTLE_MAX_OPS(Integer.class, "worldedit.throttle.max_operations"),
     WORLDEDIT_THROTTLE_TIME_WINDOW(Integer.class, "worldedit.throttle.time_window"),
     WORLDEDIT_THROTTLE_MAX_CANCELLED_OPS(Integer.class, "worldedit.throttle.max_cancelled_operations"),
+    WORLDEDIT_MAX_CONTAINERS(Integer.class, "worldedit.max_containers"),
+    WORLDEDIT_MAX_SCHEM_SAVE_KB(Integer.class, "worldedit.max_schem_save_kb"),
     //
     NUKE_MONITOR_ENABLED(Boolean.class, "nukemonitor.enabled"),
     NUKE_MONITOR_COUNT_BREAK(Integer.class, "nukemonitor.count_break"),
@@ -144,6 +149,13 @@ public enum ConfigEntry
     CRASH_ITEMS_BASE_COMMANDS(List.class, "crash_items.base_commands"),
     CRASH_ITEMS_HIDE_CONSOLE_SPAM(Boolean.class, "crash_items.hide_console_spam"),
     CRASH_ITEMS_MAX_POTION_EFFECTS(Integer.class, "crash_items.max_potion_effects"),
+    //
+    CRASH_CONTAINERS_SCAN_CHUNK_LOAD(Boolean.class, "crash_containers.scan_chunk_load"),
+    CRASH_CONTAINERS_SWEEP_MODE(String.class, "crash_containers.sweep_mode"),
+    CRASH_CONTAINERS_SWEEP_TICKS(Integer.class, "crash_containers.sweep_ticks"),
+    CRASH_CONTAINERS_SWEEP_RADIUS(Integer.class, "crash_containers.sweep_radius"),
+    CRASH_CONTAINERS_PACKET_GUARD(Boolean.class, "crash_containers.packet_guard"),
+    CRASH_CONTAINERS_CHUNK_GUARD(Boolean.class, "crash_containers.chunk_guard"),
     //
     CRASH_SPAWNERS_PREVENT(Boolean.class, "crash_spawners.prevent"),
     CRASH_SPAWNERS_PACKET_GUARD(Boolean.class, "crash_spawners.packet_guard"),
@@ -349,6 +361,12 @@ public enum ConfigEntry
     private MainConfig getConfig()
     {
         return TotalFreedomMod.plugin().config;
+    }
+
+    /** Effective max component-graph nodes for cursed-text scanning (default 1024). */
+    public static int maxComponentNodes()
+    {
+        return CRASH_ENTITIES_MAX_COMPONENT_NODES.getInteger(1024);
     }
 
     public static ConfigEntry findConfigEntry(String name)

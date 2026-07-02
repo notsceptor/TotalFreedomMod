@@ -145,7 +145,7 @@ public class Command_myadmin extends FreedomCommand
                 target.setLoginMessage(msg);
                 msg((init == null ? "Your" : targetPlayer.getName() + "'s") + " login message is now: ");
                 msg(Component.text("> ").append(Component.text(targetPlayer.getName() + " is ", NamedTextColor.AQUA))
-                        .append(me.totalfreedom.totalfreedommod.util.AdventureUtil.legacyToComponent(target.getLoginMessage())));
+                        .append(FUtil.colorizeWithLinks(target.getLoginMessage())));
                 plugin.al.save();
                 plugin.al.updateTables();
                 return true;

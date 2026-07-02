@@ -40,6 +40,10 @@ dependencies:
       required: false
       join-classpath: true
     CoreProtect:
-      load: BEFORE
+      load: AFTER
       required: false
       join-classpath: true
+    WorldGuard:
+      load: AFTER
+      required: false
+      join-classpath: false

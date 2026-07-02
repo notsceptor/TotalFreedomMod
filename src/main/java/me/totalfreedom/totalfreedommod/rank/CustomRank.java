@@ -284,15 +284,7 @@ public class CustomRank implements Displayable, Comparable<CustomRank>
     {
         if (cachedColoredName == null)
         {
-            // Support & color codes in the name
-            if (name.contains("&") || name.contains("§"))
-            {
-                cachedColoredName = AdventureUtil.legacyToComponent(name);
-            }
-            else
-            {
-                cachedColoredName = Component.text(name).color(color);
-            }
+            cachedColoredName = AdventureUtil.format(name).colorIfAbsent(color);
         }
         return cachedColoredName;
     }
@@ -304,7 +296,7 @@ public class CustomRank implements Displayable, Comparable<CustomRank>
         {
             if (prefix != null && !prefix.isEmpty())
             {
-                cachedColoredTag = AdventureUtil.legacyToComponent(prefix.trim());
+                cachedColoredTag = AdventureUtil.format(prefix.trim());
             }
             else if (abbreviation == null || abbreviation.isEmpty())
             {
@@ -312,16 +304,7 @@ public class CustomRank implements Displayable, Comparable<CustomRank>
             }
             else
             {
-                // Support & color codes in the abbreviation
-                Component abbrevComponent;
-                if (abbreviation.contains("&") || abbreviation.contains("§"))
-                {
-                    abbrevComponent = AdventureUtil.legacyToComponent(abbreviation);
-                }
-                else
-                {
-                    abbrevComponent = Component.text(abbreviation).color(color);
-                }
+                Component abbrevComponent = AdventureUtil.format(abbreviation).colorIfAbsent(color);
 
                 cachedColoredTag = Component.text("[")
                         .color(NamedTextColor.DARK_GRAY)
@@ -337,16 +320,9 @@ public class CustomRank implements Displayable, Comparable<CustomRank>
     {
         if (cachedColoredLoginMessage == null)
         {
-            Component nameComponent;
-            // Support & color codes in the name
-            if (name.contains("&") || name.contains("§"))
-            {
-                nameComponent = AdventureUtil.legacyToComponent(name).decorate(TextDecoration.ITALIC);
-            }
-            else
-            {
-                nameComponent = Component.text(name).color(color).decorate(TextDecoration.ITALIC);
-            }
+            Component nameComponent = AdventureUtil.format(name)
+                    .colorIfAbsent(color)
+                    .decorate(TextDecoration.ITALIC);
             cachedColoredLoginMessage = Component.text(determiner + " ").append(nameComponent);
         }
         return cachedColoredLoginMessage;

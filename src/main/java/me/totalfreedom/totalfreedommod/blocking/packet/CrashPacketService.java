@@ -1,9 +1,10 @@
-package me.totalfreedom.totalfreedommod.blocking.item;
+package me.totalfreedom.totalfreedommod.blocking.packet;
 
 import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.event.PacketListenerCommon;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.totalfreedommod.blocking.entity.EntityMetaPacketGuard;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import org.bukkit.event.EventHandler;
@@ -12,11 +13,7 @@ import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.plugin.Plugin;
 
-/**
- * Interaction between ItemPacketListener and packetevents.  This is done for some benefits in interacting
- * with player equipment/inventory packets before they reach the client (to protect against crash items).
- */
-public class EquipmentPacketGuard extends FreedomService
+public class CrashPacketService extends FreedomService
 {
 
     private static final long RETRY_INTERVAL_TICKS = 40L;
@@ -27,7 +24,7 @@ public class EquipmentPacketGuard extends FreedomService
     private MovementGuard movementGuard;
     private volatile boolean stopped;
 
-    public EquipmentPacketGuard(TotalFreedomMod plugin)
+    public CrashPacketService(TotalFreedomMod plugin)
     {
         super(plugin);
     }
@@ -67,7 +64,7 @@ public class EquipmentPacketGuard extends FreedomService
             }
             catch (Throwable t)
             {
-                FLog.severe("[EquipmentPacketGuard] Failed to register PacketEvents listener: " + t.getMessage());
+                FLog.severe("[CrashPacketService] Failed to register PacketEvents listener: " + t.getMessage());
                 FLog.severe(t);
                 registeredListener = null;
                 spamLimiter = null;
@@ -77,8 +74,8 @@ public class EquipmentPacketGuard extends FreedomService
 
         if (attempt >= MAX_ATTEMPTS)
         {
-            FLog.warning("[EquipmentPacketGuard] PacketEvents not present after waiting; outbound "
-                    + "cursed-item filtering and inbound packet rate limiting are disabled.");
+            FLog.warning("[CrashPacketService] PacketEvents not present after waiting; crash packet "
+                    + "guards and inbound rate limiting are disabled.");
             return;
         }
 
@@ -98,12 +95,15 @@ public class EquipmentPacketGuard extends FreedomService
         }
 
         registeredListener = PacketEvents.getAPI().getEventManager()
-                .registerListener(new ItemPacketListener(plugin, snapshot.itemGuard, spamLimiter, movementGuard,
+                .registerListener(new CrashPacketListener(plugin, snapshot.itemGuard, snapshot.entityMetadataGuard,
+                        snapshot.entityLimits, spamLimiter, movementGuard,
                         snapshot.signGuard, snapshot.signChunkGuard, snapshot.blockAllSignPackets,
-                        snapshot.spawnerGuard, snapshot.spawnerChunkGuard, snapshot.gameRuleGuard));
+                        snapshot.spawnerGuard, snapshot.spawnerChunkGuard,
+                        snapshot.containerGuard, snapshot.containerChunkGuard, snapshot.gameRuleGuard));
 
-        FLog.info("[EquipmentPacketGuard] PacketEvents hooks active"
+        FLog.info("[CrashPacketService] PacketEvents hooks active"
                 + (snapshot.itemGuard ? " [itemGuard]" : "")
+                + (snapshot.entityMetadataGuard ? " [entityMetadataGuard]" : "")
                 + (snapshot.rateLimit ? " [rateLimit]" : "")
                 + (snapshot.movementGuardEnabled ? " [movementGuard]" : "")
                 + (snapshot.signGuard ? " [signGuard]" : "")
@@ -111,12 +111,16 @@ public class EquipmentPacketGuard extends FreedomService
                 + (snapshot.blockAllSignPackets ? " [blockAllSignPackets]" : "")
                 + (snapshot.spawnerGuard ? " [spawnerGuard]" : "")
                 + (snapshot.spawnerChunkGuard ? " [spawnerChunkGuard]" : "")
+                + (snapshot.containerGuard ? " [containerGuard]" : "")
+                + (snapshot.containerChunkGuard ? " [containerChunkGuard]" : "")
                 + (snapshot.gameRuleGuard ? " [gameRuleGuard]" : "")
                 + ".");
     }
 
     private record Snapshot(
             boolean itemGuard,
+            boolean entityMetadataGuard,
+            EntityMetaPacketGuard.Limits entityLimits,
             boolean rateLimit,
             boolean movementGuardEnabled,
             boolean signGuard,
@@ -124,6 +128,8 @@ public class EquipmentPacketGuard extends FreedomService
             boolean blockAllSignPackets,
             boolean spawnerGuard,
             boolean spawnerChunkGuard,
+            boolean containerGuard,
+            boolean containerChunkGuard,
             boolean gameRuleGuard,
             int maxInteractions,
             int maxCommands,
@@ -133,8 +139,11 @@ public class EquipmentPacketGuard extends FreedomService
     {
         private static Snapshot read()
         {
+            boolean entityMetadataGuard = Boolean.TRUE.equals(ConfigEntry.CRASH_ENTITIES_PREVENT.getBoolean());
             return new Snapshot(
                     Boolean.TRUE.equals(ConfigEntry.CRASH_ITEMS_PACKET_GUARD.getBoolean()),
+                    entityMetadataGuard,
+                    entityMetadataGuard ? readEntityLimits() : null,
                     Boolean.TRUE.equals(ConfigEntry.CRASH_ITEMS_PACKET_RATE_LIMIT.getBoolean()),
                     Boolean.TRUE.equals(ConfigEntry.MOVE_GUARD_ENABLED.getBoolean()),
                     Boolean.TRUE.equals(ConfigEntry.CRASH_SIGNS_PACKET_GUARD.getBoolean()),
@@ -142,6 +151,8 @@ public class EquipmentPacketGuard extends FreedomService
                     Boolean.FALSE.equals(ConfigEntry.ALLOW_SIGN_PLACE.getBoolean()),
                     Boolean.TRUE.equals(ConfigEntry.CRASH_SPAWNERS_PACKET_GUARD.getBoolean()),
                     Boolean.TRUE.equals(ConfigEntry.CRASH_SPAWNERS_CHUNK_GUARD.getBoolean()),
+                    Boolean.TRUE.equals(ConfigEntry.CRASH_CONTAINERS_PACKET_GUARD.getBoolean()),
+                    Boolean.TRUE.equals(ConfigEntry.CRASH_CONTAINERS_CHUNK_GUARD.getBoolean()),
                     Boolean.TRUE.equals(ConfigEntry.CRASH_GAMERULES_PACKET_GUARD.getBoolean()),
                     ConfigEntry.CRASH_ITEMS_MAX_INTERACTIONS_PER_SECOND.getInteger(),
                     ConfigEntry.CRASH_ITEMS_MAX_COMMANDS_PER_SECOND.getInteger(),
@@ -155,10 +166,19 @@ public class EquipmentPacketGuard extends FreedomService
             return value == null ? fallback : value;
         }
 
+        private static EntityMetaPacketGuard.Limits readEntityLimits()
+        {
+            int maxNameLength = intOr(ConfigEntry.CRASH_ENTITIES_MAX_NAME_LENGTH.getInteger(), 64);
+            int maxNodes = ConfigEntry.maxComponentNodes();
+            Double maxScale = ConfigEntry.CRASH_ENTITIES_MAX_SCALE.getDouble();
+            return new EntityMetaPacketGuard.Limits(maxNameLength, maxNodes, maxScale == null ? 4.0 : maxScale);
+        }
+
         private boolean anyHookEnabled()
         {
-            return itemGuard || rateLimit || movementGuardEnabled || signGuard || signChunkGuard
-                    || blockAllSignPackets || spawnerGuard || spawnerChunkGuard || gameRuleGuard;
+            return itemGuard || entityMetadataGuard || rateLimit || movementGuardEnabled || signGuard || signChunkGuard
+                    || blockAllSignPackets || spawnerGuard || spawnerChunkGuard || containerGuard || containerChunkGuard
+                    || gameRuleGuard;
         }
     }
 
@@ -221,7 +241,7 @@ public class EquipmentPacketGuard extends FreedomService
         }
         catch (Throwable t)
         {
-            FLog.warning("[EquipmentPacketGuard] Failed to unregister PacketEvents listener: " + t.getMessage());
+            FLog.warning("[CrashPacketService] Failed to unregister PacketEvents listener: " + t.getMessage());
         }
         finally
         {

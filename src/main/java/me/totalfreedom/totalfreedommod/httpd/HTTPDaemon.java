@@ -10,10 +10,8 @@ import java.util.regex.Pattern;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
-import me.totalfreedom.totalfreedommod.httpd.NanoHTTPD.HTTPSession;
 import me.totalfreedom.totalfreedommod.httpd.NanoHTTPD.Response;
 import me.totalfreedom.totalfreedommod.httpd.module.HTTPDModule;
-import me.totalfreedom.totalfreedommod.httpd.module.Module_dump;
 import me.totalfreedom.totalfreedommod.httpd.module.Module_file;
 import me.totalfreedom.totalfreedommod.httpd.module.Module_help;
 import me.totalfreedom.totalfreedommod.httpd.module.Module_list;
@@ -53,7 +51,6 @@ public class HTTPDaemon extends FreedomService
 
         // Modules
         modules.clear();
-        module("dump", Module_dump.class, true);
         module("file", Module_file.class, true);
         module("help", Module_help.class, false);
         module("list", Module_list.class, false);

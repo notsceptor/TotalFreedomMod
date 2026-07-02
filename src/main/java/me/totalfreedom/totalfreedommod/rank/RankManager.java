@@ -905,7 +905,7 @@ public class RankManager extends FreedomService
         {
             builder.append(Component.text("  • ").color(NamedTextColor.GRAY));
             builder.append(rank.getColoredTag());
-            builder.append(Component.text(" " + rank.getName()).color(rank.getColor()));
+            builder.append(Component.text(" ").append(rank.getColoredName()));
             builder.append(Component.text(" (Level " + rank.getLevel() + ")").color(NamedTextColor.DARK_GRAY));
             builder.append(Component.text(" "));
 
@@ -961,7 +961,7 @@ public class RankManager extends FreedomService
         builder.append(Component.text("\n"));
         builder.append(Component.text("  Editing: ").color(NamedTextColor.WHITE));
         builder.append(rank.getColoredTag());
-        builder.append(Component.text(" " + rank.getName()).color(rank.getColor()));
+        builder.append(Component.text(" ").append(rank.getColoredName()));
         builder.append(Component.text("\n"));
         builder.append(Component.text("═══════════════════════════════════════").color(NamedTextColor.AQUA));
         builder.append(Component.text("\n\n"));
@@ -1030,7 +1030,7 @@ public class RankManager extends FreedomService
     private Component buildEditableProperty(String label, String value, String command)
     {
         return Component.text("  " + label + ": ").color(NamedTextColor.GRAY)
-                .append(Component.text(value).color(NamedTextColor.WHITE))
+                .append(FUtil.colorizeWithLinks(value, NamedTextColor.WHITE))
                 .append(Component.text(" "))
                 .append(Component.text("[Edit]")
                         .color(NamedTextColor.AQUA)
@@ -1360,9 +1360,7 @@ public class RankManager extends FreedomService
                 Admin admin = plugin.al.getAdmin(player);
                 if (admin.hasLoginMessage())
                 {
-                    // Colorize legacy color codes
-                    String legacyMsg = admin.getLoginMessage().replace('&', '§');
-                    loginMsg = AdventureUtil.legacyToComponent(legacyMsg);
+                    loginMsg = FUtil.colorizeWithLinks(admin.getLoginMessage());
                 }
             }
 

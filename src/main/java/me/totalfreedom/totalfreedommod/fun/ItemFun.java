@@ -11,7 +11,9 @@ import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Registry;
 import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
 import org.bukkit.block.Block;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -103,8 +105,9 @@ public class ItemFun extends FreedomService
                     {
                         if (targetPosVec.distanceSquared(playerLocVec) < (RADIUS_HIT * RADIUS_HIT))
                         {
-                            FUtil.setFlying(player, false);
+                            FUtil.setFlying(target, false);
                             target.setVelocity(targetPosVec.subtract(playerLocVec).normalize().multiply(STRENGTH));
+                            playClownfishSounds(target, targetPos);
                             didHit = true;
                         }
                     }
@@ -115,14 +118,7 @@ public class ItemFun extends FreedomService
 
                 if (didHit)
                 {
-                    final Sound[] sounds = Sound.values();
-                    for (Sound sound : sounds)
-                    {
-                        if (sound.toString().contains("HIT"))
-                        {
-                            playerLoc.getWorld().playSound(randomOffset(playerLoc, 5.0), sound, 100.0f, randomDoubleRange(0.5, 2.0).floatValue());
-                        }
-                    }
+                    playClownfishSounds(player, playerLoc);
                 }
                 break;
             }
@@ -264,6 +260,17 @@ public class ItemFun extends FreedomService
         }
     }
 
+    private void playClownfishSounds(Player listener, Location location)
+    {
+        for (Sound sound : Registry.SOUND_EVENT)
+        {
+            if (sound.getKey().getKey().contains("hit"))
+            {
+                listener.playSound(randomOffset(location, 2.0), sound, SoundCategory.MASTER, 1.0F, randomDoubleRange(0.5, 2.0).floatValue());
+            }
+        }
+    }
+
     private Location randomOffset(Location a, double magnitude)
     {
         return a.clone().add(randomDoubleRange(-1.0, 1.0) * magnitude, randomDoubleRange(-1.0, 1.0) * magnitude, randomDoubleRange(-1.0, 1.0) * magnitude);
@@ -271,7 +278,7 @@ public class ItemFun extends FreedomService
 
     private Double randomDoubleRange(double min, double max)
     {
-        return min + (random.nextDouble() * ((max - min) + 1.0));
+        return min + (random.nextDouble() * (max - min));
     }
 
 }

@@ -16,12 +16,13 @@ import me.totalfreedom.totalfreedommod.blocking.InteractBlocker;
 import me.totalfreedom.totalfreedommod.blocking.MobBlocker;
 import me.totalfreedom.totalfreedommod.blocking.PotionBlocker;
 import me.totalfreedom.totalfreedommod.blocking.command.CommandBlocker;
+import me.totalfreedom.totalfreedommod.blocking.sweep.SweepScheduler;
 import me.totalfreedom.totalfreedommod.blocking.entity.EntityNameValidator;
 import me.totalfreedom.totalfreedommod.blocking.entity.EntitySizeGuard;
 import me.totalfreedom.totalfreedommod.blocking.entity.TextDisplayGuard;
-import me.totalfreedom.totalfreedommod.blocking.entity.HurtProjectileGuard;
+import me.totalfreedom.totalfreedommod.blocking.entity.ProjectileGuard;
 import me.totalfreedom.totalfreedommod.blocking.item.ConsoleSpamFilter;
-import me.totalfreedom.totalfreedommod.blocking.item.EquipmentPacketGuard;
+import me.totalfreedom.totalfreedommod.blocking.packet.CrashPacketService;
 import me.totalfreedom.totalfreedommod.blocking.item.ItemValidator;
 import me.totalfreedom.totalfreedommod.blocking.sign.SignValidator;
 import me.totalfreedom.totalfreedommod.blocking.spawner.SpawnerValidator;
@@ -80,9 +81,10 @@ public class TotalFreedomMod extends JavaPlugin
     public ConsoleSenderRegistry csr; // ConsoleSenderRegistry - Maps console senders to appropriate rank
     public CommandLoader cl; // CommandLoader - Loads and registers commands
     public CommandBlocker cb; // CommandBlocker - Blocks specific commands
+    public SweepScheduler sweepScheduler; // SweepScheduler - Shared budgeted world/chunk sweep walker
     public ItemValidator iv; // ItemValidator - Blocks unwanted NBT items
     public SignValidator sv; // SignValidator - Sanitizes the components of signs
-    public EquipmentPacketGuard epg; // EquipmentPacketGuard - Strips unwanted items from packets
+    public CrashPacketService cps; // CrashPacketService - PacketEvents crash-protection hooks
     public EventBlocker eb; // EventBlocker - Blocks various game events
     public BlockBlocker bb; // BlockBlocker - Blocks block placement/breaking
     public MobBlocker mb; // MobBlocker - Blocks mob spawning
@@ -199,17 +201,19 @@ public class TotalFreedomMod extends JavaPlugin
         csr.load();
         cl = services.registerService(CommandLoader.class);
         cb = services.registerService(CommandBlocker.class);
+        // SweepScheduler must start before any guard that registers a visitor.
+        sweepScheduler = services.registerService(SweepScheduler.class);
         iv = services.registerService(ItemValidator.class);
         services.registerService(ConsoleSpamFilter.class);
         sv = services.registerService(SignValidator.class);
-        epg = services.registerService(EquipmentPacketGuard.class);
+        cps = services.registerService(CrashPacketService.class);
         eb = services.registerService(EventBlocker.class);
         bb = services.registerService(BlockBlocker.class);
         mb = services.registerService(MobBlocker.class);
         env = services.registerService(EntityNameValidator.class);
         services.registerService(EntitySizeGuard.class);
         services.registerService(SpawnerValidator.class);
-        services.registerService(HurtProjectileGuard.class);
+        services.registerService(ProjectileGuard.class);
         services.registerService(TextDisplayGuard.class);
         ib = services.registerService(InteractBlocker.class);
         pb = services.registerService(PotionBlocker.class);

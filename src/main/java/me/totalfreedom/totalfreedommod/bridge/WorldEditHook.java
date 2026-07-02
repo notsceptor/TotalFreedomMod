@@ -2,6 +2,7 @@ package me.totalfreedom.totalfreedommod.bridge;
 
 import com.google.common.eventbus.Subscribe;
 import com.sk89q.worldedit.EditSession;
+import com.sk89q.worldedit.EmptyClipboardException;
 import com.sk89q.worldedit.IncompleteRegionException;
 import com.sk89q.worldedit.LocalSession;
 import com.sk89q.worldedit.MaxChangedBlocksException;
@@ -11,10 +12,17 @@ import com.sk89q.worldedit.bukkit.WorldEditPlugin;
 import com.sk89q.worldedit.event.extent.EditSessionEvent;
 import com.sk89q.worldedit.extent.AbstractDelegateExtent;
 import com.sk89q.worldedit.extent.Extent;
+import com.sk89q.worldedit.extent.clipboard.Clipboard;
+import com.sk89q.worldedit.extent.clipboard.io.BuiltInClipboardFormat;
+import com.sk89q.worldedit.extent.clipboard.io.ClipboardWriter;
 import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldedit.regions.Region;
 import com.sk89q.worldedit.session.SessionManager;
 import com.sk89q.worldedit.world.block.BlockStateHolder;
+import com.sk89q.worldedit.world.block.BlockType;
+import com.sk89q.worldedit.world.registry.BlockMaterial;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -93,6 +101,10 @@ public final class WorldEditHook implements Listener
         "worldedit.limit.unrestricted"
     };
 
+    private static final Set<String> SCHEMATIC_COMMAND_LABELS = Set.of(
+        "schem", "schematic", "schematics"
+    );
+
     private static final Set<String> SIZE_SENSITIVE_LABELS = Set.of(
         "copy", "cut", "paste", "stack", "set", "replace", "regen",
         "sphere", "cyl", "pyramid", "smooth", "hsphere", "hcyl", "hpyramid",
@@ -152,6 +164,11 @@ public final class WorldEditHook implements Listener
                 if (bukkitPlayer != null && !plugin.al.isAdmin(bukkitPlayer))
                 {
                     wrapped = new LimitExtent(wrapped, wePlayer.getUniqueId(), getLimitFor(wePlayer.getUniqueId()));
+                    final int containerCap = getMaxContainers();
+                    if (containerCap >= 0)
+                    {
+                        wrapped = new ContainerLimitExtent(wrapped, wePlayer.getUniqueId(), containerCap);
+                    }
                 }
 
                 event.setExtent(wrapped);
@@ -736,6 +753,26 @@ public final class WorldEditHook implements Listener
         return raw.longValue();
     }
 
+    private static int getMaxContainers()
+    {
+        final Integer raw = ConfigEntry.WORLDEDIT_MAX_CONTAINERS.getInteger();
+        if (raw == null || raw < 0)
+        {
+            return -1;
+        }
+        return raw;
+    }
+
+    private static long getMaxSchematicSaveBytes()
+    {
+        final Integer raw = ConfigEntry.WORLDEDIT_MAX_SCHEM_SAVE_KB.getInteger();
+        if (raw == null || raw <= 0)
+        {
+            return -1L;
+        }
+        return raw.longValue() * 1024L;
+    }
+
     /**
      * Calculates the theoretical amount of modified blocks within a cuboid bound.
      * Prevents the exploitation of maths along extreme coordinates (e.g. "Infinity").
@@ -853,6 +890,95 @@ public final class WorldEditHook implements Listener
         }
         catch (Throwable t)
         {
+        }
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onSchematicSaveCommand(PlayerCommandPreprocessEvent event)
+    {
+        final long capBytes = getMaxSchematicSaveBytes();
+        if (capBytes <= 0)
+        {
+            return;
+        }
+
+        final String msg = event.getMessage();
+        if (msg == null || msg.length() < 2 || msg.charAt(0) != '/')
+        {
+            return;
+        }
+        String body = msg.substring(1);
+        if (!body.isEmpty() && body.charAt(0) == '/')
+        {
+            body = body.substring(1);
+        }
+        final String[] tokens = body.trim().split("\\s+");
+        if (tokens.length < 2)
+        {
+            return;
+        }
+        if (!SCHEMATIC_COMMAND_LABELS.contains(normalizeCommandLabel(tokens[0])))
+        {
+            return;
+        }
+        if (!"save".equalsIgnoreCase(tokens[1]))
+        {
+            return;
+        }
+
+        final Player player = event.getPlayer();
+        if (plugin.al.isAdmin(player))
+        {
+            return;
+        }
+        if (worldEditPlugin == null)
+        {
+            return;
+        }
+
+        try
+        {
+            final com.sk89q.worldedit.entity.Player wePlayer = worldEditPlugin.wrapPlayer(player);
+            final LocalSession session = WorldEdit.getInstance().getSessionManager().get(wePlayer);
+            final Clipboard clipboard;
+            try
+            {
+                clipboard = session.getClipboard().getClipboard();
+            }
+            catch (EmptyClipboardException ex)
+            {
+                return;
+            }
+
+            final CountingLimitStream out = new CountingLimitStream(capBytes);
+            boolean exceeded = false;
+            try (ClipboardWriter writer = BuiltInClipboardFormat.SPONGE_V3_SCHEMATIC.getWriter(out))
+            {
+                writer.write(clipboard);
+            }
+            catch (CountingLimitStream.LimitExceeded ex)
+            {
+                exceeded = true;
+            }
+
+            if (!exceeded)
+            {
+                return;
+            }
+
+            event.setCancelled(true);
+            session.setClipboard(null);
+            final long capKb = capBytes / 1024L;
+            player.sendMessage(Component.text(
+                "Your schematic contains too much data in order to be saved.",
+                NamedTextColor.RED));
+            FLog.warning("Blocked oversized schematic save from " + player.getName()
+                + " (cap=" + capKb + " KB): " + msg);
+        }
+        catch (Throwable t)
+        {
+            FLog.warning("Failed to check schematic save size for " + event.getPlayer().getName()
+                + ": " + t.getMessage());
         }
     }
 
@@ -1109,6 +1235,91 @@ public final class WorldEditHook implements Listener
                 throw new MaxChangedBlocksException(limit);
             }
             return super.setBlock(pos, block);
+        }
+    }
+
+    private final class ContainerLimitExtent extends AbstractDelegateExtent
+    {
+
+        private final UUID uuid;
+        private final int cap;
+        private final AtomicInteger count = new AtomicInteger();
+        private final AtomicBoolean warned = new AtomicBoolean();
+
+        ContainerLimitExtent(Extent parent, UUID uuid, int cap)
+        {
+            super(parent);
+            this.uuid = uuid;
+            this.cap = cap;
+        }
+
+        @Override
+        public <T extends BlockStateHolder<T>> boolean setBlock(BlockVector3 pos, T block)
+            throws WorldEditException
+        {
+            final BlockType type = block.getBlockType();
+            if (type != null)
+            {
+                final BlockMaterial mat = type.getMaterial();
+                if (mat != null && mat.hasContainer() && count.incrementAndGet() > cap)
+                {
+                    if (warned.compareAndSet(false, true))
+                    {
+                        Bukkit.getScheduler().runTask(plugin, () ->
+                        {
+                            final Player p = Bukkit.getPlayer(uuid);
+                            if (p != null)
+                            {
+                                p.sendMessage(Component.text(
+                                    "WorldEdit container limit reached (" + cap + "). Operation halted.",
+                                    NamedTextColor.RED));
+                            }
+                        });
+                    }
+                    throw new MaxChangedBlocksException(cap);
+                }
+            }
+            return super.setBlock(pos, block);
+        }
+    }
+
+    private static final class CountingLimitStream extends OutputStream
+    {
+
+        static final class LimitExceeded extends IOException
+        {
+        }
+
+        private final long limit;
+        private long count;
+
+        CountingLimitStream(long limit)
+        {
+            this.limit = limit;
+        }
+
+        @Override
+        public void write(int b) throws IOException
+        {
+            count++;
+            if (count > limit)
+            {
+                throw new LimitExceeded();
+            }
+        }
+
+        @Override
+        public void write(byte[] b, int off, int len) throws IOException
+        {
+            if (len <= 0)
+            {
+                return;
+            }
+            if (count + len > limit)
+            {
+                throw new LimitExceeded();
+            }
+            count += len;
         }
     }
 

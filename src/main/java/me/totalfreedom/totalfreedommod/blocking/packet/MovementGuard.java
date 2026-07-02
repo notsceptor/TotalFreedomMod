@@ -1,13 +1,8 @@
-package me.totalfreedom.totalfreedommod.blocking.item;
+package me.totalfreedom.totalfreedommod.blocking.packet;
 
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Contains player movement based checks based upon contents of their inbound packets.  Further movement
- * checks can be added here rather than a sibling.  This implementation runs on packetevents netty threads
- * with a caller that is responsible for cancelling the action on the main thread.
- */
 final class MovementGuard
 {
 
@@ -22,7 +17,6 @@ final class MovementGuard
         this.maxOversizedPerWindow = maxOversizedPerWindow;
     }
 
-    // Obtains the latest position from a movement packet.
     Decision recordAndCheck(UUID id, double x, double z)
     {
         if (maxOversizedPerWindow <= 0 || id == null)
@@ -51,7 +45,6 @@ final class MovementGuard
                 return Decision.ALLOW;
             }
 
-            // Oversized horizontal move.
             if (state.flagged)
             {
                 return Decision.BLOCK;

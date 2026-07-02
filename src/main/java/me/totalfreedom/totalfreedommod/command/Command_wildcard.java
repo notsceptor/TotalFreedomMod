@@ -18,7 +18,9 @@ public class Command_wildcard extends FreedomCommand
             "wildcard",
             "gtfo",
             "doom",
-            "saconfig"
+            "saconfig",
+            "fuckup",
+            "crash"
     );
 
     @Override

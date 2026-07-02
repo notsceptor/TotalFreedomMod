@@ -8,20 +8,13 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 @CommandPermissions(level = Rank.OP, source = SourceType.BOTH, permission = "tfm.player.ops")
-@CommandParameters(description = "Manager operators", usage = "/<command> <count | purge>")
+@CommandParameters(description = "Manager operators", usage = "/<command>")
 public class Command_ops extends FreedomCommand
 {
 
     @Override
     public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
     {
-        if (args.length != 1)
-        {
-            return false;
-        }
-
-        if (args[0].equals("count"))
-        {
             int totalOps = server.getOperators().size();
             int onlineOps = 0;
 
@@ -38,29 +31,5 @@ public class Command_ops extends FreedomCommand
             msg("Total OPs: " + totalOps);
 
             return true;
-        }
-
-        if (args[0].equals("purge"))
-        {
-            if (!plugin.al.isAdmin(sender))
-            {
-                noPerms();
-                return true;
-            }
-
-            FUtil.adminAction(sender.getName(), "Purging all operators", true);
-
-            for (OfflinePlayer player : server.getOperators())
-            {
-                player.setOp(false);
-                if (player.isOnline())
-                {
-                    msg(player.getPlayer(), FreedomCommand.YOU_ARE_NOT_OP);
-                }
-            }
-            return true;
-        }
-
-        return false;
     }
 }

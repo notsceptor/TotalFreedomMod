@@ -17,6 +17,9 @@ server:
   # Every word in the MOTD will be a different color unless prefixed by a color code
   colorful_motd: true
 
+  # URL players should visit the main website at
+  web_url: https://tfreedom.org/
+
   # URL players should appeal for bans at
   ban_url: https://tfreedom.org/appeal/
 
@@ -68,6 +71,8 @@ allow:
   falling_signs: false
   falling_blocks: false
   redstone: true
+  auto_clear: false
+  auto_tp: false
 
 # Blocked commands:
 #
@@ -289,6 +294,36 @@ crash_items:
   # Max number of custom potion effects an item may carry before it is treated as
   # a crash item. 0 disables.
   max_potion_effects: 24
+
+# ContainerPacketGuard
+# Removes unwanted items from item-bearing title entities that can be delivered
+# to clients in order to crash them.  Regular chest/shulkers are already handled
+# by the item packet guard.
+crash_containers:
+  # Whether to scan outbound packets. Requires packetevents.
+  packet_guard: true
+  # The same for tile entities embedded in outbound chunk packets. Also requires
+  # packetevents. Disable this if you see too much compute usage on player join.
+  chunk_guard: true
+  # Strip cursed items from container block entities when a chunk loads and during
+  # startup for already loaded chunks.
+  scan_chunk_load: true
+  # Controls how strict the policy is for sweeping containers that are detected.
+  # This primarily targets items that contain data which can lag the server.
+  #
+  # 1. filter (removes only the offending slots), 2. clear (empties the whole
+  # container), or 3. destroy (removes the container block entirely).
+  #
+  # Filtering slots is expensive and discouraged. It is recommended to destroy
+  # containers when they are being intentionally used to strain the server.
+  sweep_mode: clear
+  # Proactive sweep (in ticks, 20 = 1s) of chunks around every player to check
+  # for offending container block entities. 0 disables.
+  sweep_ticks: 40
+  # Chunk radius around each player to include in the proactive sweep. 4 covers
+  # roughly the player's immediate view; raise for a larger blast radius at some
+  # CPU cost. Chunks are de-duplicated across players each pass.
+  sweep_radius: 4
 
 # SpawnerValidator
 # For detecting spawners that are used to crash or otherwise lock up the client.
@@ -521,6 +556,20 @@ worldedit:
   - 'nether_portal'
   - 'end_portal'
   - 'end_gateway'
+  - beacon
+  - observer
+  - dispenser
+  - bell
+  - note_block
+  - '#clipboard'
+
+  # Maximum number of container blocks (e.g. chests, shulkers, hoppers...) that an
+  # operator may place in a single WorldEdit operation. Set to -1 for no limit.
+  max_containers: 500
+
+  # Maximum size of a schematic file in kilobytes that an operator may save.
+  # Set to -1 for no limit.
+  max_schem_save_kb: 2048
 
 # Host senders — binds automated services or host-based consoles to an admin rank.
 #
@@ -559,13 +608,15 @@ discord:
   console_channel_id: ''
 
   # Format applied to Discord messages broadcast into in-game chat.
-  chat_format: '&9[Discord] &r{user}&7: &f{message}'
+  # Available placeholders: {user}, {role}, {rolecolor}, {reply}, and {message}.
+  chat_format: '&9[Discord] &r[{rolecolor}{role}&r] {user}{reply}&7: &f{message}'
 
   # Format applied to in-game chat posted into the Discord public channel.
   channel_format: '{message}'
 
   # Format applied to Discord messages broadcast into admin chat.
-  adminchat_format: '&8[&9Discord&8] &f[&bADMIN&f] &4{user}: &6{message}'
+  # Available placeholders: {user}, {role}, {rolecolor}, {reply}, and {message}.
+  adminchat_format: '&8[&9Discord&8] &f[&bADMIN&f] [{rolecolor}{role}&f] &4{user}{reply}: &6{message}'
 
   # Format applied to in-game chat posted in the Discord admin chat channel.
   adminchat_channel_format: '{message}'

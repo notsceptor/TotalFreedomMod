@@ -208,13 +208,13 @@ public class DiscordBridge extends FreedomService
         chatRelay.sendMessageToDiscord(rendered);
     }
 
-    public void relayAdminchatMessage(CommandSender sender, Component tag, String message)
+    public void relayAdminchatMessage(CommandSender sender, Component tag, Component message)
     {
         if (adminchatRelay == null || adminchatChannel == null)
         {
             return;
         }
-        Component rendered = tag.append(Component.text(" " + sender.getName() + ": " + message));
+        Component rendered = tag.append(Component.text(" " + sender.getName() + ": ")).append(message);
         adminchatRelay.sendMessageToDiscord(rendered);
     }
 

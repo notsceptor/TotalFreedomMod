@@ -7,7 +7,6 @@ import me.totalfreedom.totalfreedommod.banning.Ban;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import net.kyori.adventure.text.Component;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Location;
 import org.bukkit.command.Command;
@@ -36,17 +35,21 @@ public class Command_tempban extends FreedomCommand
         }
         String name = BanCommandUtil.getCanonicalName(args[0], player, data);
         Date expires = FUtil.parseDateOffset("30m");
+        int reasonStart = 1;
         if (args.length >= 2)
         {
             Date parsed = FUtil.parseDateOffset(args[1]);
             if (parsed != null)
             {
                 expires = parsed;
+                reasonStart = 2;
             }
         }
         boolean rollback = args.length > 1 && args[args.length - 1].equalsIgnoreCase("-rb");
         int reasonEnd = rollback ? args.length - 1 : args.length;
-        String reason = reasonEnd >= 3 ? StringUtils.join(args, " ", 2, reasonEnd) : "Banned by " + sender.getName();
+        String reason = reasonEnd > reasonStart
+                ? StringUtils.join(args, " ", reasonStart, reasonEnd)
+                : "Banned by " + sender.getName();
         List<String> ips = BanCommandUtil.getIps(player, data);
         Ban ban = BanCommandUtil.createFullBan(name, ips, sender, expires, reason);
         plugin.bm.addBan(ban);
@@ -65,7 +68,7 @@ public class Command_tempban extends FreedomCommand
                     target.getWorld().strikeLightning(new Location(target.getWorld(), target.getBlockX() + x, target.getBlockY(), target.getBlockZ() + z));
                 }
             }
-            player.kick(Component.text("You have been temporarily banned until " + DATE_FORMAT.format(expires) + "."));
+            player.kick(ban.bakeKickMessage());
         }
         return true;
     }

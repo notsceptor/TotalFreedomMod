@@ -81,7 +81,7 @@ public class FPlayer
     @Setter
     private boolean superadminIdVerified = false;
     private String lastCommand = "";
-    private boolean cmdspyEnabled = false;
+    private CommandSpyMode commandSpyMode = CommandSpyMode.OFF;
     private String tag = null;
     private int warningCount = 0;
 
@@ -440,12 +440,22 @@ public class FPlayer
 
     public void setCommandSpy(boolean enabled)
     {
-        this.cmdspyEnabled = enabled;
+        this.commandSpyMode = enabled ? CommandSpyMode.ALL : CommandSpyMode.OFF;
     }
 
     public boolean cmdspyEnabled()
     {
-        return cmdspyEnabled;
+        return commandSpyMode != CommandSpyMode.OFF;
+    }
+
+    public CommandSpyMode getCommandSpyMode()
+    {
+        return commandSpyMode;
+    }
+
+    public void setCommandSpyMode(CommandSpyMode commandSpyMode)
+    {
+        this.commandSpyMode = commandSpyMode == null ? CommandSpyMode.OFF : commandSpyMode;
     }
 
     public void setTag(String tag)

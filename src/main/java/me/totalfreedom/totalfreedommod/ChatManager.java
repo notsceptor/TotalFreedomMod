@@ -6,6 +6,8 @@ import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FSync;
+import me.totalfreedom.totalfreedommod.util.ChatMentionUtil;
+import me.totalfreedom.totalfreedommod.util.FUtil;
 import me.totalfreedom.totalfreedommod.vault.VaultProviderRegistry;
 import static me.totalfreedom.totalfreedommod.util.FUtil.playerMsg;
 import net.kyori.adventure.text.Component;
@@ -105,6 +107,12 @@ public class ChatManager extends FreedomService
 		}
 	}
 
+	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+	public void onPlayerChatMentionPing(AsyncChatEvent event)
+	{
+		ChatMentionUtil.pingMentions(plugin, event.message(), plugin.al.isAdminSync(event.getPlayer()));
+	}
+
 	private void handleChatEvent(AsyncChatEvent event) {
 		final Player player = event.getPlayer();
 		String message = PlainTextComponentSerializer.plainText().serialize(event.message()).trim();
@@ -155,7 +163,8 @@ public class ChatManager extends FreedomService
 			return;
 		}
 		// Finally, set message
-		final Component messageComponent = AdventureUtil.formatChat(message, allowColors, allowSpecial);
+		Component messageComponent = AdventureUtil.formatChat(message, allowColors, allowSpecial);
+		messageComponent = ChatMentionUtil.highlight(messageComponent, plugin.al.isAdmin(player));
 		event.message(messageComponent);
 
 		// Prefix and suffix come from the shared builder so chat, the tab list, and
@@ -254,6 +263,7 @@ public class ChatManager extends FreedomService
 
 	public void adminChat(CommandSender sender, String message) {
 		Component tag = plugin.rm.getDisplay(sender).getColoredTag();
+		Component formattedMessage = FUtil.colorizeWithLinks(message, NamedTextColor.GOLD);
 
 		Component nameComponent = Component.text(sender.getName() + " ")
 				.append(tag)
@@ -265,14 +275,14 @@ public class ChatManager extends FreedomService
 				.append(Component.text("] ").color(NamedTextColor.WHITE))
 				.append(nameComponent.color(NamedTextColor.DARK_RED))
 				.append(Component.text(": ").color(NamedTextColor.DARK_RED))
-				.append(AdventureUtil.addLinks(Component.text(message).color(NamedTextColor.GOLD)));
+				.append(formattedMessage);
 
 		// Serialize console message to ANSI for terminal colors
 		Component consoleMsg = Component.text("[ADMIN] ")
 				.color(NamedTextColor.AQUA)
 				.append(nameComponent)
 				.append(Component.text(": ").color(NamedTextColor.WHITE))
-				.append(Component.text(message).color(NamedTextColor.GOLD));
+				.append(formattedMessage);
 		String ansiMessage = ANSIComponentSerializer.ansi().serialize(consoleMsg);
 		Bukkit.getConsoleSender().sendMessage(ansiMessage);
 
@@ -280,20 +290,20 @@ public class ChatManager extends FreedomService
 			player.sendMessage(adminMsg);
 		}
 
-		plugin.db.relayAdminchatMessage(sender, tag, message);
+		plugin.db.relayAdminchatMessage(sender, tag, formattedMessage);
 	}
 
 	public void reportAction(Player reporter, OfflinePlayer reported, String report) {
 		Component reportMsg = Component.text("[REPORTS] ")
 				.color(NamedTextColor.RED)
-				.append(Component.text(reporter.getName() + " has reported " + reported.getName() + " for " + report)
-				.append(Component.text(" ("))
-                .append(Component.text("click to teleport")
+				.append(Component.text(reporter.getName() + " has reported " + reported.getName() + " for ", NamedTextColor.GOLD))
+				.append(FUtil.colorizeWithLinks(report, NamedTextColor.GOLD))
+				.append(Component.text(" (", NamedTextColor.GOLD))
+                .append(Component.text("click to teleport", NamedTextColor.GOLD)
 					.clickEvent(ClickEvent.runCommand(String.format("%s %s",
 						plugin.esb.isEssentialsEnabled() ? "tpo" : "tp",
 						reported.getName()))))
-				.append(Component.text(")"))
-				.color(NamedTextColor.GOLD));
+				.append(Component.text(")", NamedTextColor.GOLD));
 
 		for (Player player : plugin.al.getOnlineAdmins()) {
 			playerMsg(player, reportMsg);
@@ -375,7 +385,7 @@ public class ChatManager extends FreedomService
 			String configPrefix = getConfigPrefix(display);
 			if (configPrefix != null && !configPrefix.isEmpty())
 			{
-				rankPrefix = AdventureUtil.translateAlternateColorCodes(configPrefix);
+				rankPrefix = AdventureUtil.componentToLegacySection(FUtil.colorize(configPrefix));
 			}
 			else
 			{

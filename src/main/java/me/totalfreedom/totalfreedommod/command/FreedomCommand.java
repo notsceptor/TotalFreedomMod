@@ -8,6 +8,7 @@ import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FLog;
+import me.totalfreedom.totalfreedommod.util.FUtil;
 import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchContext;
 import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchSession;
 import me.totalfreedom.totalfreedommod.ssh.AttributedConsoleSender;
@@ -40,7 +41,7 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
     public static final String NOT_FROM_CONSOLE = "This command may not be used from the console.";
     public static final String PLAYER_NOT_FOUND = "\u00A77Player not found!";
     //
-    private static final String SIMPLE_ARGUMENT_PATTERN = "\\w+";
+    private static final String SIMPLE_ARGUMENT_PATTERN = "\\S+";
     private static final String VARIABLE_LENGTH_ARGUMENT_PATTERN = ".+";
     private static final String VARIABLE_LENGTH_ARGUMENT_ENDING = "..>";
     //
@@ -413,37 +414,7 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
      */
     private Component buildComponent(String message, NamedTextColor color)
     {
-        // Process message: prepend color parameter if message has embedded colors
-        String processedMessage = message;
-        if (message.contains("§") || message.contains("&"))
-        {
-            if (color != null)
-            {
-                // Prepend the color parameter code to the message so it applies to the beginning
-                ChatColor chatColor = AdventureUtil.namedTextColorToChatColor(color);
-                if (chatColor != null)
-                {
-                    processedMessage = chatColor + message;
-                }
-            }
-        }
-        
-        // Build Component from processed message
-        if (processedMessage.contains("§") || processedMessage.contains("&"))
-        {
-            // Message has embedded color codes, convert them to Component
-            return AdventureUtil.legacyToComponent(processedMessage);
-        }
-        else if (color != null)
-        {
-            // No embedded colors, apply the color parameter
-            return Component.text(message).color(color);
-        }
-        else
-        {
-            // No colors at all
-            return Component.text(message);
-        }
+        return FUtil.colorizeWithLinks(message, color);
     }
 
     protected void msg(final CommandSender sender, final String message, final NamedTextColor color)
@@ -502,7 +473,7 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
     {
         if (target != null && message != null)
         {
-            target.sendMessage(me.totalfreedom.totalfreedommod.util.AdventureUtil.legacyToComponent(message));
+            target.sendMessage(FUtil.colorizeWithLinks(message));
         }
     }
     
@@ -510,12 +481,7 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
     {
         if (target != null && message != null)
         {
-            Component component = Component.text(message);
-            if (color != null)
-            {
-                component = component.color(color);
-            }
-            target.sendMessage(component);
+            target.sendMessage(FUtil.colorizeWithLinks(message, color));
         }
     }
 
