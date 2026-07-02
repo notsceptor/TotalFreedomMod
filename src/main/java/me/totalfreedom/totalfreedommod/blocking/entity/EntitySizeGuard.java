@@ -4,7 +4,10 @@ import com.destroystokyo.paper.event.entity.EntityAddToWorldEvent;
 import java.util.List;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.totalfreedommod.blocking.sweep.EntityVisitor;
+import me.totalfreedom.totalfreedommod.blocking.sweep.SweepContext;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
+import me.totalfreedom.totalfreedommod.util.DetectionReporter;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -34,23 +37,48 @@ public class EntitySizeGuard extends FreedomService
 
     private static final long LOG_INTERVAL_TICKS = 100L;
 
-    private int sweepTaskId = -1;
-
-    private long lastSummaryTick = 0L;
-    private long numDetectionSinceLast = 0L;
-    private long maxObservedSize = 0L;
-    private String dominantReason = null;
-    private String sampleContext = null;
+    private final EntityVisitor sizeVisitor;
+    private final DetectionReporter reporter;
 
     public EntitySizeGuard(TotalFreedomMod plugin)
     {
         super(plugin);
+        reporter = new DetectionReporter(LOG_INTERVAL_TICKS, server::getCurrentTick,
+                (count, reason, max, sample) -> "[EntitySizeGuard] Detected " + count
+                        + " oversized entity/entities. Reason: " + reason
+                        + " | max observed: " + max
+                        + " | sample: " + sample,
+                DetectionReporter.warnAndBroadcastAdmins(plugin));
+        sizeVisitor = new EntityVisitor()
+        {
+            @Override
+            public boolean enabled()
+            {
+                return true;
+            }
+
+            @Override
+            public long sweepIntervalTicks()
+            {
+                Integer ticks = ConfigEntry.CRASH_ENTITIES_SCALE_SWEEP_TICKS.getInteger();
+                return ticks == null ? 0L : ticks;
+            }
+
+            @Override
+            public void visit(Entity entity, SweepContext context)
+            {
+                clampEntity(entity, context.label());
+            }
+        };
+        if (plugin.sweepScheduler != null)
+        {
+            plugin.sweepScheduler.register(sizeVisitor);
+        }
     }
 
     @Override
     protected void onStart()
     {
-        schedulePeriodicSweep();
         FLog.info("[EntitySizeGuard] active"
                 + " [max scale=" + describeCap(ConfigEntry.CRASH_ENTITIES_MAX_SCALE.getDouble()) + "]"
                 + " [max slime size=" + describeCap(ConfigEntry.CRASH_ENTITIES_MAX_SLIME_SIZE.getInteger()) + "]"
@@ -61,11 +89,6 @@ public class EntitySizeGuard extends FreedomService
     @Override
     protected void onStop()
     {
-        if (sweepTaskId != -1)
-        {
-            server.getScheduler().cancelTask(sweepTaskId);
-            sweepTaskId = -1;
-        }
     }
 
     private static String describeCap(double value)
@@ -203,25 +226,6 @@ public class EntitySizeGuard extends FreedomService
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
-    public void onChunkLoad(ChunkLoadEvent event)
-    {
-        Chunk chunk = event.getChunk();
-        Entity[] entities;
-        try
-        {
-            entities = chunk.getEntities();
-        }
-        catch (Throwable t)
-        {
-            return;
-        }
-        for (Entity entity : entities)
-        {
-            clampEntity(entity, "chunkload");
-        }
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR)
     public void onEntityTransform(EntityTransformEvent event)
     {
         for (Entity transformed : event.getTransformedEntities())
@@ -236,78 +240,9 @@ public class EntitySizeGuard extends FreedomService
         clampEntity(event.getEntity(), "spawn");
     }
 
-    private void schedulePeriodicSweep()
-    {
-        long interval = ConfigEntry.CRASH_ENTITIES_SCALE_SWEEP_TICKS.getInteger();
-        if (interval <= 0)
-        {
-            return;
-        }
-        sweepTaskId = server.getScheduler()
-                .runTaskTimer(plugin, this::sweepAllWorlds, interval, interval)
-                .getTaskId();
-    }
-
-    private void sweepAllWorlds()
-    {
-        for (World world : Bukkit.getWorlds())
-        {
-            List<Entity> entities;
-            try
-            {
-                entities = world.getEntities();
-            }
-            catch (Throwable t)
-            {
-                continue;
-            }
-            for (Entity entity : entities)
-            {
-                clampEntity(entity, "periodic-sweep");
-            }
-        }
-    }
-
     private void recordDetection(long observed, String reason, String context)
     {
-        numDetectionSinceLast++;
-        if (observed > maxObservedSize)
-        {
-            maxObservedSize = observed;
-        }
-        if (dominantReason == null)
-        {
-            dominantReason = reason;
-            sampleContext = context;
-        }
-
-        long nowTick = server.getCurrentTick();
-        if (lastSummaryTick == 0L || nowTick - lastSummaryTick >= LOG_INTERVAL_TICKS)
-        {
-            String summary = "[EntitySizeGuard] Detected " + numDetectionSinceLast
-                    + " oversized entity/entities. Reason: " + dominantReason
-                    + " | max observed: " + maxObservedSize
-                    + " | sample: " + sampleContext;
-            FLog.warning(summary);
-            broadcastToAdmins(summary);
-
-            lastSummaryTick = nowTick;
-            numDetectionSinceLast = 0L;
-            dominantReason = null;
-            maxObservedSize = 0L;
-            sampleContext = null;
-        }
+        reporter.record(reason, observed, context);
     }
 
-    private void broadcastToAdmins(String message)
-    {
-        Component component = Component.text(message, NamedTextColor.RED);
-        for (Player p : Bukkit.getOnlinePlayers())
-        {
-            if (plugin.al.isAdmin(p))
-            {
-                p.sendMessage(component);
-            }
-        }
-    }
 }

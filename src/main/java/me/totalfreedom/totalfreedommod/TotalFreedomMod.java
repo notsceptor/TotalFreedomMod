@@ -21,7 +21,8 @@ import me.totalfreedom.totalfreedommod.blocking.entity.EntitySizeGuard;
 import me.totalfreedom.totalfreedommod.blocking.entity.TextDisplayGuard;
 import me.totalfreedom.totalfreedommod.blocking.entity.HurtProjectileGuard;
 import me.totalfreedom.totalfreedommod.blocking.item.ConsoleSpamFilter;
-import me.totalfreedom.totalfreedommod.blocking.item.EquipmentPacketGuard;
+import me.totalfreedom.totalfreedommod.blocking.packet.CrashPacketService;
+import me.totalfreedom.totalfreedommod.blocking.sweep.SweepScheduler;
 import me.totalfreedom.totalfreedommod.blocking.item.ItemValidator;
 import me.totalfreedom.totalfreedommod.blocking.sign.SignValidator;
 import me.totalfreedom.totalfreedommod.blocking.spawner.SpawnerValidator;
@@ -85,7 +86,8 @@ public class TotalFreedomMod extends JavaPlugin
     public CommandBlocker cb; // CommandBlocker - Blocks specific commands
     public ItemValidator iv; // ItemValidator - Blocks unwanted NBT items
     public SignValidator sv; // SignValidator - Sanitizes the components of signs
-    public EquipmentPacketGuard epg; // EquipmentPacketGuard - Strips unwanted items from packets
+    public SweepScheduler sweepScheduler; // SweepScheduler - Time-budgeted crash-protection sweeps
+    public CrashPacketService cps; // CrashPacketService - Packet-level crash protection
     public EventBlocker eb; // EventBlocker - Blocks various game events
     public BlockBlocker bb; // BlockBlocker - Blocks block placement/breaking
     public MobBlocker mb; // MobBlocker - Blocks mob spawning
@@ -208,10 +210,11 @@ public class TotalFreedomMod extends JavaPlugin
         csr.load();
         cl = services.registerService(CommandLoader.class);
         cb = services.registerService(CommandBlocker.class);
+        sweepScheduler = services.registerService(SweepScheduler.class);
         iv = services.registerService(ItemValidator.class);
         services.registerService(ConsoleSpamFilter.class);
         sv = services.registerService(SignValidator.class);
-        epg = services.registerService(EquipmentPacketGuard.class);
+        cps = services.registerService(CrashPacketService.class);
         eb = services.registerService(EventBlocker.class);
         bb = services.registerService(BlockBlocker.class);
         mb = services.registerService(MobBlocker.class);

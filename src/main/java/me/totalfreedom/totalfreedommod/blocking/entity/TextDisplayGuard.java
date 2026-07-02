@@ -4,8 +4,11 @@ import com.destroystokyo.paper.event.entity.EntityAddToWorldEvent;
 import java.util.List;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.totalfreedommod.blocking.sweep.EntityVisitor;
+import me.totalfreedom.totalfreedommod.blocking.sweep.SweepContext;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.ComponentScanner;
+import me.totalfreedom.totalfreedommod.util.DetectionReporter;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
@@ -33,22 +36,46 @@ public class TextDisplayGuard extends FreedomService
     private static final float MAX_SHADOW_RADIUS = 8.0f;
     private static final float MAX_SHADOW_STRENGTH = 16.0f;
 
-    private int sweepTaskId = -1;
-
-    private long lastSummaryTick = 0L;
-    private long detectionsSinceLastSummary = 0L;
-    private String sampleContext = null;
+    private final EntityVisitor displayVisitor;
+    private final DetectionReporter reporter;
 
     public TextDisplayGuard(TotalFreedomMod plugin)
     {
         super(plugin);
+        reporter = new DetectionReporter(LOG_INTERVAL_TICKS, server::getCurrentTick,
+                (count, reason, max, sample) -> "[EntityValidator] Removed " + count
+                        + " bad display entity/entities. Sample: " + sample,
+                DetectionReporter.warnOnly());
+        displayVisitor = new EntityVisitor()
+        {
+            @Override
+            public boolean enabled()
+            {
+                return TextDisplayGuard.this.enabled();
+            }
+
+            @Override
+            public long sweepIntervalTicks()
+            {
+                Integer ticks = ConfigEntry.CRASH_ENTITIES_SWEEP_TICKS.getInteger();
+                return ticks == null ? 0L : ticks;
+            }
+
+            @Override
+            public void visit(Entity entity, SweepContext context)
+            {
+                removeEntity(entity, context.label());
+            }
+        };
+        if (plugin.sweepScheduler != null)
+        {
+            plugin.sweepScheduler.register(displayVisitor);
+        }
     }
 
     @Override
     protected void onStart()
     {
-        schedulePeriodicSweep();
-        server.getScheduler().runTaskLater(plugin, this::sweepAllWorlds, 1L);
         long ticks = ConfigEntry.CRASH_ENTITIES_SWEEP_TICKS.getInteger();
         FLog.info("[TextDisplayGuard] active"
                 + " [max_text_length=" + MAX_TEXT_LENGTH + "]"
@@ -62,11 +89,6 @@ public class TextDisplayGuard extends FreedomService
     @Override
     protected void onStop()
     {
-        if (sweepTaskId != -1)
-        {
-            server.getScheduler().cancelTask(sweepTaskId);
-            sweepTaskId = -1;
-        }
     }
 
     private boolean enabled()
@@ -104,65 +126,6 @@ public class TextDisplayGuard extends FreedomService
             return;
         }
         removeEntity(event.getEntity(), "addtoworld");
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR)
-    public void onChunkLoad(ChunkLoadEvent event)
-    {
-        if (!enabled())
-        {
-            return;
-        }
-        Chunk chunk = event.getChunk();
-        Entity[] entities;
-        try
-        {
-            entities = chunk.getEntities();
-        }
-        catch (Throwable t)
-        {
-            return;
-        }
-        for (Entity entity : entities)
-        {
-            removeEntity(entity, "chunkload");
-        }
-    }
-
-    private void schedulePeriodicSweep()
-    {
-        long interval = ConfigEntry.CRASH_ENTITIES_SWEEP_TICKS.getInteger();
-        if (interval <= 0)
-        {
-            return;
-        }
-        sweepTaskId = server.getScheduler()
-                .runTaskTimer(plugin, this::sweepAllWorlds, interval, interval)
-                .getTaskId();
-    }
-
-    private void sweepAllWorlds()
-    {
-        if (!enabled())
-        {
-            return;
-        }
-        for (World world : Bukkit.getWorlds())
-        {
-            List<Entity> entities;
-            try
-            {
-                entities = world.getEntities();
-            }
-            catch (Throwable t)
-            {
-                continue;
-            }
-            for (Entity entity : entities)
-            {
-                removeEntity(entity, "periodic-sweep");
-            }
-        }
     }
 
     private boolean isCursed(Entity entity)
@@ -277,21 +240,7 @@ public class TextDisplayGuard extends FreedomService
 
     private void recordDetection(String context)
     {
-        detectionsSinceLastSummary++;
-        if (sampleContext == null)
-        {
-            sampleContext = context;
-        }
-
-        long nowTick = server.getCurrentTick();
-        if (lastSummaryTick == 0L || nowTick - lastSummaryTick >= LOG_INTERVAL_TICKS)
-        {
-            FLog.warning("[EntityValidator] Removed " + detectionsSinceLastSummary
-                    + " bad text display(s). Sample: " + sampleContext);
-
-            lastSummaryTick = nowTick;
-            detectionsSinceLastSummary = 0L;
-            sampleContext = null;
-        }
+        reporter.record("display", context);
     }
+
 }

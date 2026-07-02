@@ -1,15 +1,28 @@
 package me.totalfreedom.totalfreedommod.blocking.item;
 
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.totalfreedommod.blocking.sweep.EntityVisitor;
+import me.totalfreedom.totalfreedommod.blocking.sweep.SweepContext;
+import me.totalfreedom.totalfreedommod.blocking.sweep.TileEntityVisitor;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
+import me.totalfreedom.totalfreedommod.util.DetectionReporter;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
+import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -29,9 +42,11 @@ import org.bukkit.event.inventory.PrepareItemCraftEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.server.ServerCommandEvent;
 import org.bukkit.event.world.LootGenerateEvent;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 
 public class ItemValidator extends FreedomService
@@ -45,17 +60,85 @@ public class ItemValidator extends FreedomService
     private volatile boolean panicMode;
     private volatile int maxPotionEffects = DEFAULT_MAX_POTION_EFFECTS;
 
-    private int sweepTaskId = -1;
+    private volatile ContainerSweepPolicy containerSweepPolicy = ContainerSweepPolicy.fromConfig("clear");
 
-    private long lastSummaryTick = 0L;
-    private long detectionsSinceLastSummary = 0L;
-    private ItemScanner.Reason dominantReason = ItemScanner.Reason.CLEAN;
-    private long maxObservedSize = 0L;
-    private String sampleContext = null;
+    private int sweepTaskId = -1;
+    private int containerRadiusSweepTaskId = -1;
+
+    private final TileEntityVisitor containerVisitor;
+    private final EntityVisitor containerEntityVisitor;
+    private final DetectionReporter reporter;
 
     public ItemValidator(TotalFreedomMod plugin)
     {
         super(plugin);
+
+        reporter = new DetectionReporter(LOG_INTERVAL_TICKS, server::getCurrentTick,
+                (count, reason, max, sample) -> "[ItemValidator] Blocked " + count
+                        + " cursed item(s). Reason: " + reason
+                        + " | max observed size: " + max
+                        + " | sample: " + sample,
+                DetectionReporter.warnAndBroadcastAdmins(plugin));
+
+        containerVisitor = new TileEntityVisitor()
+        {
+            @Override
+            public boolean enabled()
+            {
+                return ItemValidator.this.enabled() && chunkLoadScanEnabled();
+            }
+
+            @Override
+            public long sweepIntervalTicks()
+            {
+                return 0L;
+            }
+
+            @Override
+            public java.util.function.Predicate<Block> blockFilter()
+            {
+                return block -> block.getState() instanceof InventoryHolder;
+            }
+
+            @Override
+            public void visit(BlockState state, SweepContext context)
+            {
+                if (state instanceof InventoryHolder holder)
+                {
+                    sanitizeInventoryHolder(holder, context.label());
+                }
+            }
+        };
+
+        containerEntityVisitor = new EntityVisitor()
+        {
+            @Override
+            public boolean enabled()
+            {
+                return ItemValidator.this.enabled() && chunkLoadScanEnabled();
+            }
+
+            @Override
+            public long sweepIntervalTicks()
+            {
+                return 0L;
+            }
+
+            @Override
+            public void visit(Entity entity, SweepContext context)
+            {
+                if (entity instanceof InventoryHolder holder)
+                {
+                    sanitizeInventoryHolder(holder, context.label());
+                }
+            }
+        };
+
+        if (plugin.sweepScheduler != null)
+        {
+            plugin.sweepScheduler.register(containerVisitor);
+            plugin.sweepScheduler.register(containerEntityVisitor);
+        }
     }
 
     @Override
@@ -68,7 +151,10 @@ public class ItemValidator extends FreedomService
         {
             FLog.warning("[ItemValidator] Raw NBT inspection is unavailable on this server runtime.");
         }
+        containerSweepPolicy = ContainerSweepPolicy.fromConfig(ConfigEntry.CRASH_ITEMS_CONTAINER_SWEEP.getString());
         scheduleEquipmentSweep();
+        scheduleContainerRadiusSweep();
+        FLog.info("[ItemValidator] container sweep policy: " + containerSweepPolicy);
     }
 
     @Override
@@ -78,6 +164,11 @@ public class ItemValidator extends FreedomService
         {
             server.getScheduler().cancelTask(sweepTaskId);
             sweepTaskId = -1;
+        }
+        if (containerRadiusSweepTaskId != -1)
+        {
+            server.getScheduler().cancelTask(containerRadiusSweepTaskId);
+            containerRadiusSweepTaskId = -1;
         }
     }
 
@@ -93,6 +184,82 @@ public class ItemValidator extends FreedomService
             return;
         }
         sweepTaskId = server.getScheduler().runTaskTimer(plugin, this::sweepOnlinePlayers, interval, interval).getTaskId();
+    }
+
+    private void scheduleContainerRadiusSweep()
+    {
+        Integer configured = ConfigEntry.CRASH_ITEMS_CONTAINER_SWEEP_TICKS.getInteger();
+        long interval = configured == null ? 40L : configured;
+        if (interval <= 0L)
+        {
+            return;
+        }
+        containerRadiusSweepTaskId = server.getScheduler()
+                .runTaskTimer(plugin, this::sweepContainersAroundPlayers, interval, interval)
+                .getTaskId();
+    }
+
+    private void sweepContainersAroundPlayers()
+    {
+        if (!enabled())
+        {
+            return;
+        }
+        Integer configured = ConfigEntry.CRASH_ITEMS_CONTAINER_SWEEP_RADIUS.getInteger();
+        int radius = Math.max(0, configured == null ? 4 : configured);
+        Set<String> visited = new HashSet<>();
+        for (Player player : server.getOnlinePlayers())
+        {
+            Chunk center = player.getLocation().getChunk();
+            for (int x = center.getX() - radius; x <= center.getX() + radius; x++)
+            {
+                for (int z = center.getZ() - radius; z <= center.getZ() + radius; z++)
+                {
+                    if (!center.getWorld().isChunkLoaded(x, z))
+                    {
+                        continue;
+                    }
+                    String key = center.getWorld().getUID() + ":" + x + ":" + z;
+                    if (visited.add(key))
+                    {
+                        sweepContainerChunk(center.getWorld().getChunkAt(x, z), "container-radius-sweep");
+                    }
+                }
+            }
+        }
+    }
+
+    private int sweepContainerChunk(Chunk chunk, String context)
+    {
+        if (chunk == null || !chunk.isLoaded())
+        {
+            return 0;
+        }
+        int changed = 0;
+        Collection<BlockState> states;
+        try
+        {
+            states = chunk.getTileEntities(block -> block.getState() instanceof InventoryHolder, false);
+        }
+        catch (Throwable ignored)
+        {
+            states = Arrays.asList(chunk.getTileEntities(false));
+        }
+        for (BlockState state : states)
+        {
+            if (state instanceof InventoryHolder holder && sanitizeInventoryHolder(holder, context))
+            {
+                changed++;
+            }
+        }
+        for (Entity entity : chunk.getEntities())
+        {
+            if (entity instanceof InventoryHolder holder && sanitizeInventoryHolder(holder, context))
+            {
+                changed++;
+            }
+        }
+        return changed;
     }
 
     private void sweepOnlinePlayers()
@@ -204,46 +371,102 @@ public class ItemValidator extends FreedomService
         return ItemScanner.Verdict.CLEAN;
     }
 
-    private void recordDetection(ItemScanner.Verdict v, String context)
+    private void recordDetection(ItemScanner.Verdict verdict, String context)
     {
-        detectionsSinceLastSummary++;
-        if (v.observedSize() > maxObservedSize)
-        {
-            maxObservedSize = v.observedSize();
-        }
-        if (dominantReason == ItemScanner.Reason.CLEAN)
-        {
-            dominantReason = v.reason();
-            sampleContext = context;
-        }
-
-        long nowTick = server.getCurrentTick();
-        if (lastSummaryTick == 0L || nowTick - lastSummaryTick >= LOG_INTERVAL_TICKS)
-        {
-            String summary = "[ItemValidator] Blocked " + detectionsSinceLastSummary
-                    + " cursed item(s). Reason: " + dominantReason
-                    + " | max observed size: " + maxObservedSize
-                    + " | sample: " + sampleContext;
-            FLog.warning(summary);
-            broadcastToAdmins(summary);
-
-            lastSummaryTick = nowTick;
-            detectionsSinceLastSummary = 0L;
-            dominantReason = ItemScanner.Reason.CLEAN;
-            maxObservedSize = 0L;
-            sampleContext = null;
-        }
+        reporter.record(verdict.reason().name(), verdict.observedSize(), context);
     }
 
-    private void broadcastToAdmins(String message)
+    private boolean chunkLoadScanEnabled()
     {
-        Component component = Component.text(message, NamedTextColor.RED);
-        for (Player p : Bukkit.getOnlinePlayers())
+        return Boolean.TRUE.equals(ConfigEntry.CRASH_ITEMS_SCAN_CHUNK_LOAD.getBoolean());
+    }
+
+    private boolean sanitizeInventoryHolder(InventoryHolder holder, String context)
+    {
+        if (holder == null)
         {
-            if (plugin.al.isAdmin(p))
+            return false;
+        }
+        Inventory inventory;
+        try
+        {
+            inventory = holder.getInventory();
+        }
+        catch (Throwable ignored)
+        {
+            return false;
+        }
+        if (inventory == null)
+        {
+            return false;
+        }
+
+        ItemStack[] contents = inventory.getContents();
+        ItemScanner.Verdict strongest = ItemScanner.Verdict.CLEAN;
+        boolean dirty = false;
+        for (int i = 0; i < contents.length; i++)
+        {
+            ItemScanner.Verdict verdict = scan(contents[i]);
+            if (!verdict.isCursed())
             {
-                p.sendMessage(component);
+                continue;
             }
+            if (!strongest.isCursed() || (verdict.reason().isHangClass() && !strongest.reason().isHangClass()))
+            {
+                strongest = verdict;
+            }
+            contents[i] = null;
+            dirty = true;
+        }
+        if (!dirty)
+        {
+            return false;
+        }
+
+        ContainerSweepPolicy.Action action = containerSweepPolicy.actionFor(strongest.reason());
+        switch (action)
+        {
+            case FILTER_SLOT -> inventory.setContents(contents);
+            case CLEAR_CONTAINER -> inventory.clear();
+            case DESTROY_BLOCK ->
+            {
+                if (holder instanceof BlockState state)
+                {
+                    state.getBlock().setType(Material.AIR, false);
+                }
+                else if (holder instanceof Entity entity)
+                {
+                    entity.remove();
+                }
+                else
+                {
+                    inventory.clear();
+                }
+            }
+        }
+        recordDetection(strongest, context + " @ " + describeHolder(holder) + " [" + action + "]");
+        return true;
+    }
+
+    private static String describeHolder(InventoryHolder holder)
+    {
+        if (holder instanceof BlockState state)
+        {
+            return FUtil.formatLocation(state.getLocation());
+        }
+        if (holder instanceof Entity entity)
+        {
+            return entity.getType() + "@" + FUtil.formatLocation(entity.getLocation());
+        }
+        return holder.getClass().getSimpleName();
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPlayerJoin(PlayerJoinEvent event)
+    {
+        if (enabled())
+        {
+            server.getScheduler().runTask(plugin, () -> sweepPlayer(event.getPlayer()));
         }
     }
 
@@ -376,21 +599,28 @@ public class ItemValidator extends FreedomService
                     NamedTextColor.RED);
         }
 
-        Bukkit.getScheduler().runTask(plugin, () -> cleanInventory(top));
+        InventoryHolder holder = top.getHolder();
+        Bukkit.getScheduler().runTask(plugin, () ->
+        {
+            if (holder != null)
+            {
+                sanitizeInventoryHolder(holder, "inventory-open");
+            }
+            else
+            {
+                cleanInventory(top);
+            }
+        });
     }
 
-    private void cleanInventory(Inventory inv)
+    private boolean cleanInventory(Inventory inv)
     {
         ItemStack[] contents = inv.getContents();
         boolean dirty = false;
         for (int i = 0; i < contents.length; i++)
         {
             ItemStack item = contents[i];
-            if (item == null)
-            {
-                continue;
-            }
-            if (scan(item).isCursed())
+            if (item != null && scan(item).isCursed())
             {
                 contents[i] = null;
                 dirty = true;
@@ -400,6 +630,7 @@ public class ItemValidator extends FreedomService
         {
             inv.setContents(contents);
         }
+        return dirty;
     }
 
     @EventHandler(priority = EventPriority.LOWEST)

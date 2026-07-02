@@ -294,6 +294,18 @@ crash_items:
   # Max number of custom potion effects an item may carry before it is treated as
   # a crash item. 0 disables.
   max_potion_effects: 24
+  # Strip cursed items from container block entities when a chunk loads (deferred
+  # one tick) and during startup for already-loaded chunks.
+  scan_chunk_load: true
+  # Proactive sweep (in ticks, 20 = 1s) of chunks around every online player,
+  # sanitizing container block entities before anyone can click them open.
+  # 0 disables the sweep. 40 ticks (2s) is a good balance.
+  container_sweep_ticks: 40
+  # Chunk radius around each player to include in the proactive sweep.
+  container_sweep_radius: 4
+  # filter removes only offending slots, clear empties hang-class containers,
+  # and destroy removes the affected container block.
+  container_sweep: clear
 
 # SpawnerValidator
 # For detecting spawners that are used to crash or otherwise lock up the client.
@@ -306,6 +318,14 @@ crash_spawners:
   packet_guard: true
   # The same thing but for spawners embedded in outbound chunk packets. Also requires
   # packetevents. Disable this if you see too much compute usage on player join.
+  chunk_guard: true
+
+# ContainerPacketGuard
+# Scrubs unsafe item-bearing block entities before their NBT reaches clients.
+crash_containers:
+  # Guard outbound BLOCK_ENTITY_DATA packets. Requires PacketEvents.
+  packet_guard: true
+  # Guard item-bearing tile entities embedded in outbound chunk packets.
   chunk_guard: true
 
 # SignValidator
@@ -526,6 +546,14 @@ worldedit:
   - 'nether_portal'
   - 'end_portal'
   - 'end_gateway'
+
+  # Maximum container blocks a non-admin may place in one WorldEdit operation.
+  # Set to -1 to disable.
+  max_containers: 500
+
+  # Maximum schematic size in kilobytes a non-admin may save.
+  # Exceeding this cancels the save and clears the clipboard. Set to -1 to disable.
+  max_schematic_save_kb: 2048
 
 # Host senders — binds automated services or host-based consoles to an admin rank.
 #

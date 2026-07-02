@@ -43,7 +43,16 @@ final class ItemScanner
         UNINSPECTABLE_NBT,
         MALFORMED_ENTITY_DATA,
         CURSED_COMPONENT,
-        PANIC_BLANKET_REJECT
+        PANIC_BLANKET_REJECT;
+
+        boolean isHangClass()
+        {
+            return switch (this)
+            {
+                case CLEAN, OVERSIZED_NAME, OVERSIZED_LORE -> false;
+                default -> true;
+            };
+        }
     }
 
     record Verdict(Reason reason, long observedSize, int depth)

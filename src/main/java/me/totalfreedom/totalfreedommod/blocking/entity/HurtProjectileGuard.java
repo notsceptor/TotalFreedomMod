@@ -6,7 +6,11 @@ import java.util.List;
 import java.util.Set;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.totalfreedommod.blocking.sweep.EntityVisitor;
+import me.totalfreedom.totalfreedommod.blocking.sweep.SweepContext;
+import me.totalfreedom.totalfreedommod.blocking.sweep.TileEntityVisitor;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
+import me.totalfreedom.totalfreedommod.util.DetectionReporter;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -50,22 +54,75 @@ public class HurtProjectileGuard extends FreedomService
             EntityType.WITHER_SKULL
     );
 
-    private int sweepTaskId = -1;
-
-    private long lastSummaryTick = 0L;
-    private long detectionsSinceLastSummary = 0L;
-    private String sampleContext = null;
+    private final EntityVisitor projectileVisitor;
+    private final TileEntityVisitor spawnerVisitor;
+    private final DetectionReporter reporter;
 
     public HurtProjectileGuard(TotalFreedomMod plugin)
     {
         super(plugin);
+        reporter = new DetectionReporter(LOG_INTERVAL_TICKS, server::getCurrentTick,
+                (count, reason, max, sample) -> "[EntityValidator] Removed " + count
+                        + " bad projectile(s). Sample: " + sample, DetectionReporter.warnOnly());
+        projectileVisitor = new EntityVisitor()
+        {
+            @Override
+            public boolean enabled()
+            {
+                return HurtProjectileGuard.this.enabled();
+            }
+
+            @Override
+            public long sweepIntervalTicks()
+            {
+                return SWEEP_INTERVAL_TICKS;
+            }
+
+            @Override
+            public void visit(Entity entity, SweepContext context)
+            {
+                removeEntity(entity, context.label());
+            }
+        };
+        spawnerVisitor = new TileEntityVisitor()
+        {
+            @Override
+            public boolean enabled()
+            {
+                return HurtProjectileGuard.this.enabled();
+            }
+
+            @Override
+            public long sweepIntervalTicks()
+            {
+                return SWEEP_INTERVAL_TICKS;
+            }
+
+            @Override
+            public java.util.function.Predicate<Block> blockFilter()
+            {
+                return block -> block.getType() == Material.SPAWNER;
+            }
+
+            @Override
+            public void visit(BlockState state, SweepContext context)
+            {
+                if (state instanceof CreatureSpawner spawner)
+                {
+                    destroyWindChargeSpawner(spawner, context.label());
+                }
+            }
+        };
+        if (plugin.sweepScheduler != null)
+        {
+            plugin.sweepScheduler.register(projectileVisitor);
+            plugin.sweepScheduler.register(spawnerVisitor);
+        }
     }
 
     @Override
     protected void onStart()
     {
-        schedulePeriodicSweep();
-        server.getScheduler().runTaskLater(plugin, this::sweepAllWorlds, 1L);
         FLog.info("[WindChargeGuard] active"
                 + " [periodic sweep every " + SWEEP_INTERVAL_TICKS + "t]");
     }
@@ -73,11 +130,6 @@ public class HurtProjectileGuard extends FreedomService
     @Override
     protected void onStop()
     {
-        if (sweepTaskId != -1)
-        {
-            server.getScheduler().cancelTask(sweepTaskId);
-            sweepTaskId = -1;
-        }
     }
 
     private boolean enabled()
@@ -190,85 +242,6 @@ public class HurtProjectileGuard extends FreedomService
         server.getScheduler().runTask(plugin, () -> removeEntity(entity, "addtoworld"));
     }
 
-    @EventHandler(priority = EventPriority.MONITOR)
-    public void onChunkLoad(ChunkLoadEvent event)
-    {
-        if (!enabled())
-        {
-            return;
-        }
-        Chunk chunk = event.getChunk();
-        Entity[] entities;
-        try
-        {
-            entities = chunk.getEntities();
-        }
-        catch (Throwable t)
-        {
-            return;
-        }
-        for (Entity entity : entities)
-        {
-            removeEntity(entity, "chunkload");
-        }
-        sweepSpawnersInChunk(chunk);
-    }
-
-    private void schedulePeriodicSweep()
-    {
-        sweepTaskId = server.getScheduler()
-                .runTaskTimer(plugin, this::sweepAllWorlds, SWEEP_INTERVAL_TICKS, SWEEP_INTERVAL_TICKS)
-                .getTaskId();
-    }
-
-    private void sweepAllWorlds()
-    {
-        if (!enabled())
-        {
-            return;
-        }
-        for (World world : Bukkit.getWorlds())
-        {
-            List<Entity> entities;
-            try
-            {
-                entities = world.getEntities();
-            }
-            catch (Throwable t)
-            {
-                continue;
-            }
-            for (Entity entity : entities)
-            {
-                removeEntity(entity, "periodic-sweep");
-            }
-            for (Chunk chunk : world.getLoadedChunks())
-            {
-                sweepSpawnersInChunk(chunk);
-            }
-        }
-    }
-
-    private void sweepSpawnersInChunk(Chunk chunk)
-    {
-        Collection<BlockState> tileEntities;
-        try
-        {
-            tileEntities = chunk.getTileEntities(block -> block.getType() == Material.SPAWNER, false);
-        }
-        catch (Throwable t)
-        {
-            return;
-        }
-        for (BlockState state : tileEntities)
-        {
-            if (state instanceof CreatureSpawner spawner)
-            {
-                destroyWindChargeSpawner(spawner, "chunk-sweep");
-            }
-        }
-    }
-
     private boolean isWindChargeSpawner(CreatureSpawner spawner)
     {
         EntityType type = spawner.getSpawnedType();
@@ -367,21 +340,7 @@ public class HurtProjectileGuard extends FreedomService
 
     private void recordDetection(String context)
     {
-        detectionsSinceLastSummary++;
-        if (sampleContext == null)
-        {
-            sampleContext = context;
-        }
-
-        long nowTick = server.getCurrentTick();
-        if (lastSummaryTick == 0L || nowTick - lastSummaryTick >= LOG_INTERVAL_TICKS)
-        {
-            FLog.warning("[EntityValidator] Removed " + detectionsSinceLastSummary
-                    + " bad projectile(s). Sample: " + sampleContext);
-
-            lastSummaryTick = nowTick;
-            detectionsSinceLastSummary = 0L;
-            sampleContext = null;
-        }
+        reporter.record("projectile", context);
     }
+
 }

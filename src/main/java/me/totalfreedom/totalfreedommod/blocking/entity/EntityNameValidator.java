@@ -5,8 +5,11 @@ import java.util.List;
 import java.util.regex.Pattern;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.totalfreedommod.blocking.sweep.EntityVisitor;
+import me.totalfreedom.totalfreedommod.blocking.sweep.SweepContext;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.ComponentScanner;
+import me.totalfreedom.totalfreedommod.util.DetectionReporter;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
@@ -41,23 +44,48 @@ public class EntityNameValidator extends FreedomService
             "summon", "data", "execute", "entitydata", "nick", "rename"
     };
 
-    private int sweepTaskId = -1;
-
-    private long lastSummaryTick = 0L;
-    private long detectionsSinceLastSummary = 0L;
-    private Reason dominantReason = Reason.CLEAN;
-    private long maxObservedSize = 0L;
-    private String sampleContext = null;
+    private final EntityVisitor nameVisitor;
+    private final DetectionReporter reporter;
 
     public EntityNameValidator(TotalFreedomMod plugin)
     {
         super(plugin);
+        reporter = new DetectionReporter(LOG_INTERVAL_TICKS, server::getCurrentTick,
+                (count, reason, max, sample) -> "[EntityNameValidator] Blocked " + count
+                        + " cursed entity name(s). Reason: " + reason
+                        + " | max observed size: " + max
+                        + " | sample: " + sample,
+                DetectionReporter.warnAndBroadcastAdmins(plugin));
+        nameVisitor = new EntityVisitor()
+        {
+            @Override
+            public boolean enabled()
+            {
+                return EntityNameValidator.this.enabled();
+            }
+
+            @Override
+            public long sweepIntervalTicks()
+            {
+                Integer ticks = ConfigEntry.CRASH_ENTITIES_SWEEP_TICKS.getInteger();
+                return ticks == null ? 0L : ticks;
+            }
+
+            @Override
+            public void visit(Entity entity, SweepContext context)
+            {
+                inspectAndClean(entity, context.label());
+            }
+        };
+        if (plugin.sweepScheduler != null)
+        {
+            plugin.sweepScheduler.register(nameVisitor);
+        }
     }
 
     @Override
     protected void onStart()
     {
-        schedulePeriodicSweep();
         long ticks = ConfigEntry.CRASH_ENTITIES_SWEEP_TICKS.getInteger();
         FLog.info("[EntityNameValidator] active"
                 + " [entity name filter]"
@@ -68,11 +96,6 @@ public class EntityNameValidator extends FreedomService
     @Override
     protected void onStop()
     {
-        if (sweepTaskId != -1)
-        {
-            server.getScheduler().cancelTask(sweepTaskId);
-            sweepTaskId = -1;
-        }
     }
 
     private boolean enabled()
@@ -187,29 +210,6 @@ public class EntityNameValidator extends FreedomService
         inspectAndClean(event.getEntity(), "addtoworld");
     }
 
-    @EventHandler(priority = EventPriority.MONITOR)
-    public void onChunkLoad(ChunkLoadEvent event)
-    {
-        if (!enabled())
-        {
-            return;
-        }
-        Chunk chunk = event.getChunk();
-        Entity[] entities;
-        try
-        {
-            entities = chunk.getEntities();
-        }
-        catch (Throwable t)
-        {
-            return;
-        }
-        for (Entity entity : entities)
-        {
-            inspectAndClean(entity, "chunkload");
-        }
-    }
-
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onPlayerCommandPreprocess(PlayerCommandPreprocessEvent event)
     {
@@ -314,82 +314,9 @@ public class EntityNameValidator extends FreedomService
         return false;
     }
 
-    private void schedulePeriodicSweep()
+    private void recordDetection(Verdict verdict, String context)
     {
-        long interval = ConfigEntry.CRASH_ENTITIES_SWEEP_TICKS.getInteger();
-        if (interval <= 0)
-        {
-            return;
-        }
-        sweepTaskId = server.getScheduler()
-                .runTaskTimer(plugin, this::sweepAllWorlds, interval, interval)
-                .getTaskId();
+        reporter.record(verdict.reason().name(), verdict.observedSize(), context);
     }
 
-    private void sweepAllWorlds()
-    {
-        if (!enabled())
-        {
-            return;
-        }
-        for (World world : Bukkit.getWorlds())
-        {
-            List<Entity> entities;
-            try
-            {
-                entities = world.getEntities();
-            }
-            catch (Throwable t)
-            {
-                continue;
-            }
-            for (Entity entity : entities)
-            {
-                inspectAndClean(entity, "periodic-sweep");
-            }
-        }
-    }
-
-    private void recordDetection(Verdict v, String context)
-    {
-        detectionsSinceLastSummary++;
-        if (v.observedSize() > maxObservedSize)
-        {
-            maxObservedSize = v.observedSize();
-        }
-        if (dominantReason == Reason.CLEAN)
-        {
-            dominantReason = v.reason();
-            sampleContext = context;
-        }
-
-        long nowTick = server.getCurrentTick();
-        if (lastSummaryTick == 0L || nowTick - lastSummaryTick >= LOG_INTERVAL_TICKS)
-        {
-            String summary = "[EntityNameValidator] Blocked " + detectionsSinceLastSummary
-                    + " cursed entity name(s). Reason: " + dominantReason
-                    + " | max observed size: " + maxObservedSize
-                    + " | sample: " + sampleContext;
-            FLog.warning(summary);
-            broadcastToAdmins(summary);
-
-            lastSummaryTick = nowTick;
-            detectionsSinceLastSummary = 0L;
-            dominantReason = Reason.CLEAN;
-            maxObservedSize = 0L;
-            sampleContext = null;
-        }
-    }
-
-    private void broadcastToAdmins(String message)
-    {
-        Component component = Component.text(message, NamedTextColor.RED);
-        for (Player p : Bukkit.getOnlinePlayers())
-        {
-            if (plugin.al.isAdmin(p))
-            {
-                p.sendMessage(component);
-            }
-        }
-    }
 }
