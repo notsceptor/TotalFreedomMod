@@ -209,9 +209,6 @@ public enum ConfigEntry
     SPAWN_SEND_ON_JOIN(String.class, "spawn.send_player.on_join"),
     SPAWN_SEND_ON_RESPAWN(Boolean.class, "spawn.send_player.on_respawn"),
     //
-    LOGS_SECRET(String.class, "logs.secret"),
-    LOGS_URL(String.class, "logs.url"),
-    //
     FLATLANDS_GENERATE(Boolean.class, "flatlands.generate"),
     FLATLANDS_GENERATE_PARAMS(String.class, "flatlands.generate_params"),
     //
@@ -222,7 +219,6 @@ public enum ConfigEntry
     //
     EXPLOSIVE_RADIUS(Double.class, "explosive_radius"),
     FREECAM_TRIGGER_COUNT(Integer.class, "freecam_trigger_count"),
-    SERVICE_CHECKER_URL(String.class, "service_checker_url"),
     BLOCKED_COMMANDS(List.class, "blocked_commands"),
     BLOCK_SERVER_COMMANDS_ENABLED(Boolean.class, "server_command_blocker.enabled"),
     BLOCK_SERVER_COMMANDS_BLOCK_AT_NAMED_SENDERS(Boolean.class, "server_command_blocker.block_at_named_senders"),

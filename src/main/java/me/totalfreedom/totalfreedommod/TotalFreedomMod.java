@@ -26,7 +26,6 @@ import me.totalfreedom.totalfreedommod.blocking.packet.CrashPacketService;
 import me.totalfreedom.totalfreedommod.blocking.item.ItemValidator;
 import me.totalfreedom.totalfreedommod.blocking.sign.SignValidator;
 import me.totalfreedom.totalfreedommod.blocking.spawner.SpawnerValidator;
-import me.totalfreedom.totalfreedommod.bridge.BukkitTelnetBridge;
 import me.totalfreedom.totalfreedommod.bridge.CoreProtectBridge;
 import me.totalfreedom.totalfreedommod.bridge.EssentialsBridge;
 import me.totalfreedom.totalfreedommod.bridge.LibsDisguisesBridge;
@@ -75,10 +74,8 @@ public class TotalFreedomMod extends JavaPlugin
     // Services
     public ServiceManager<TotalFreedomMod> services;
     public FreedomDatabase dm; // FreedomDatabase - Manages SQL database connections
-    public ServerInterface si; // ServerInterface - Core server interface and version checking
     public SavedFlags sf; // SavedFlags - Stores saved flag states
     public WorldManager wm; // WorldManager - Manages world operations
-    public LogViewer lv; // LogViewer - HTTP-based log viewing interface
     public AdminList al; // AdminList - Manages admin list and permissions
     public RankManager rm; // RankManager - Handles player ranks and display
     public ConsoleSenderRegistry csr; // ConsoleSenderRegistry - Maps console senders to appropriate rank
@@ -134,7 +131,6 @@ public class TotalFreedomMod extends JavaPlugin
     // Bridges
     public ServiceManager<TotalFreedomMod> bridges;
     public CoreProtectBridge cpb;
-    public BukkitTelnetBridge btb; // BukkitTelnetBridge - Bridge to BukkitTelnet plugin
     public EssentialsBridge esb; // EssentialsBridge - Bridge to Essentials plugin
     public LibsDisguisesBridge ldb; // LibsDisguisesBridge - Bridge to LibsDisguises plugin
     public WorldEditBridge web; // WorldEditBridge - Bridge to WorldEdit plugin
@@ -162,9 +158,6 @@ public class TotalFreedomMod extends JavaPlugin
         final MethodTimer timer = new MethodTimer();
         timer.start();
 
-        // Warn if we're running on a wrong version
-        ServerInterface.warnVersion();
-
         // Delete unused files
         FUtil.deleteCoreDumps();
         FUtil.deleteFolder(new File("./_deleteme"));
@@ -188,14 +181,12 @@ public class TotalFreedomMod extends JavaPlugin
 
         // Start services
         services = new ServiceManager<>(this);
-        si = services.registerService(ServerInterface.class);
         sf = services.registerService(SavedFlags.class);
         
         // Initialize database manager first (before services that depend on it)
         dm = services.registerService(FreedomDatabase.class);
         
         wm = services.registerService(WorldManager.class);
-        lv = services.registerService(LogViewer.class);
         al = services.registerService(AdminList.class);
 
         configConverter.convertAdminConsoleRanks();
@@ -281,14 +272,13 @@ public class TotalFreedomMod extends JavaPlugin
         // Start bridges
         bridges = new ServiceManager<>(this);
         cpb = bridges.registerService(CoreProtectBridge.class);
-        btb = bridges.registerService(BukkitTelnetBridge.class);
         esb = bridges.registerService(EssentialsBridge.class);
         ldb = bridges.registerService(LibsDisguisesBridge.class);
         web = bridges.registerService(WorldEditBridge.class);
         bridges.start();
 
         timer.update();
-        FLog.info("Version " + pluginVersion + " for " + ServerInterface.COMPILE_NMS_VERSION + " enabled in " + timer.getTotal() + "ms");
+        FLog.info("Version " + pluginVersion + " enabled in " + timer.getTotal() + "ms");
 
         // Add spawnpoints later - https://github.com/TotalFreedom/TotalFreedomMod/issues/438
         getServer().getScheduler().runTaskLater(this, () -> pa.autoAddSpawnpoints(), 60L);

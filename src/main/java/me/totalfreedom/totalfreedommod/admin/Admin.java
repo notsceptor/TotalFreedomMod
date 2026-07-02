@@ -4,7 +4,6 @@ import com.google.common.collect.Lists;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
-import me.totalfreedom.totalfreedommod.LogViewer.LogsRegistrationMode;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.ConfigInterfaces.ConfigLoadable;
@@ -212,21 +211,6 @@ public class Admin implements ConfigLoadable, ConfigSavable, Validatable
     public void setActive(boolean active)
     {
         this.active = active;
-
-        final TotalFreedomMod plugin = TotalFreedomMod.plugin();
-
-        if (!active)
-        {
-            if (getRank().isAtLeast(Rank.SENIOR_ADMIN))
-            {
-                if (plugin.btb != null)
-                {
-                    plugin.btb.killTelnetSessions(getName());
-                }
-            }
-
-            plugin.lv.updateLogsRegistration(null, getName(), LogsRegistrationMode.DELETE);
-        }
     }
 
     @Override
