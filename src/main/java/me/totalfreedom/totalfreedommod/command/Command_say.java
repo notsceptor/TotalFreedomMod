@@ -24,26 +24,7 @@ public class Command_say extends FreedomCommand
             return false;
         }
 
-        String message = StringUtils.join(args, " ");
-
-        if (senderIsConsole && !RemoteDispatchContext.isActive())
-        {
-            if (message.equalsIgnoreCase("WARNING: Server is restarting, you will be kicked"))
-            {
-                FUtil.bcastMsg("Server is going offline.", NamedTextColor.GRAY);
-
-                for (Player player : server.getOnlinePlayers())
-                {
-                    player.kick(Component.text("Server is going offline, come back in about 20 seconds."));
-                }
-
-                server.shutdown();
-
-                return true;
-            }
-        }
-
-        Component formattedMessage = FUtil.colorizeWithLinks(message, NamedTextColor.LIGHT_PURPLE);
+        Component formattedMessage = FUtil.colorizeWithLinks(StringUtils.join(args, " "), NamedTextColor.LIGHT_PURPLE);
         formattedMessage = ChatMentionUtil.highlightAndPing(plugin, formattedMessage, true);
         Component broadcast = Component.text("[Server:" + sender.getName() + "] ", NamedTextColor.LIGHT_PURPLE)
                 .append(formattedMessage);

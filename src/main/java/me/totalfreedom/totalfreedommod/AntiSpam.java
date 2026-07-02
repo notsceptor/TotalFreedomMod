@@ -80,10 +80,8 @@ public class AntiSpam extends FreedomService
         {
             return;
         }
-        final String command = event.getMessage();
         final Player player = event.getPlayer();
         final FPlayer fPlayer = plugin.pl.getPlayer(player);
-        fPlayer.setLastCommand(command);
 
         if (fPlayer.allCommandsBlocked())
         {
