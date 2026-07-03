@@ -207,6 +207,7 @@ public class RankManager extends FreedomService
                     custom.addPermission("tfm.admin.cage");
                     custom.addPermission("tfm.fun.smite");
                     custom.addPermission("tfm.fun.doom");
+                    custom.addPermission("tfm.world.gamerule");
                     break;
                 case OP:
                     custom.addPermission("tfm.player.op");

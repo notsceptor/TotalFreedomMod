@@ -312,7 +312,7 @@ public class EventBlocker extends FreedomService
     }
 
     @EventHandler(priority = EventPriority.HIGH)
-     public void onBlockRedstone(BlockRedstoneEvent event)
+    public void onBlockRedstone(BlockRedstoneEvent event)
     {
         if (!ConfigEntry.ALLOW_REDSTONE.getBoolean())
         {

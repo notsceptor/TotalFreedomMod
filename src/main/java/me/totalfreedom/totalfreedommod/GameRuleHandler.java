@@ -1,224 +1,238 @@
 package me.totalfreedom.totalfreedommod;
 
-import java.util.EnumMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
+import io.papermc.paper.event.world.WorldGameRuleChangeEvent;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
+import net.kyori.adventure.key.Key;
 import org.bukkit.Bukkit;
+import org.bukkit.GameRule;
+import org.bukkit.Registry;
 import org.bukkit.World;
+import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.scheduler.BukkitTask;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class GameRuleHandler extends FreedomService
 {
-
-    private static final int DEFAULT_RANDOM_TICK_SPEED = 3;
-    private static final int DEFAULT_MAX_NUMERIC_VALUE = 1024;
-
-    private static final Set<String> INT_RULES = Set.of(
-            "maxentitycramming",
-            "spawnchunkradius",
-            "snowaccumulationheight",
-            "playerssleepingpercentage",
-            "minecartmaxspeed",
-            "spawnradius");
-
-    private final Map<GameRule, Boolean> rules = new EnumMap<>(GameRule.class);
-
-    private int sweepTaskId = -1;
+    private final Map<GameRule<?>, Object> defaultGameRuleValues = new HashMap<>();
+    private final List<Key> maliciousGameRules = new ArrayList<>();
+    private final Map<GameRule<?>, List<Integer>> gameRuleCaps = new HashMap<>();
+    //
+    private BukkitTask commitTask = null;
 
     public GameRuleHandler(TotalFreedomMod plugin)
     {
         super(plugin);
-
-        for (GameRule gameRule : GameRule.values())
-        {
-            rules.put(gameRule, gameRule.getDefaultValue());
-        }
     }
 
     @Override
     protected void onStart()
     {
-        setGameRule(GameRule.DO_DAYLIGHT_CYCLE, !ConfigEntry.DISABLE_NIGHT.getBoolean(), false);
-        setGameRule(GameRule.DO_FIRE_TICK, ConfigEntry.ALLOW_FIRE_SPREAD.getBoolean(), false);
-        setGameRule(GameRule.DO_MOB_LOOT, false, false);
-        setGameRule(GameRule.DO_MOB_SPAWNING, !ConfigEntry.MOB_LIMITER_ENABLED.getBoolean(), false);
-        setGameRule(GameRule.DO_TILE_DROPS, false, false);
-        setGameRule(GameRule.MOB_GRIEFING, false, false);
-        setGameRule(GameRule.COMMAND_BLOCK_OUTPUT, false);
-        setGameRule(GameRule.NATURAL_REGENERATION, true, false);
-        Bukkit.getScheduler().runTask(plugin, () ->
+        // Clear the gamerule defaults and known malicious entries from memory
+        defaultGameRuleValues.clear();
+        maliciousGameRules.clear();
+        gameRuleCaps.clear();
+
+        // Don't do anything if we're no longer planning on managing gamerules
+        if (!ConfigEntry.GAMERULES_ENABLED.getBoolean())
         {
-            commitGameRules();
-            enforceNumericLimits();
-        });
-        schedulePeriodicEnforcement();
+            return;
+        }
+
+        // Load defaults from configuration
+        final ConfigurationSection defaults = ConfigEntry.GAMERULES_DEFAULTS.getSection();
+        for (final String key : defaults.getKeys(false))
+        {
+            // Ignore invalid namespaces
+            if (!Key.parseable(key))
+            {
+                continue;
+            }
+
+            // IntelliJ, who cares if the string is unsubstituted, who asked for your opinion?
+            final GameRule<?> rule = Registry.GAME_RULE.get(Key.key(key));
+
+            // Ignore gamerules that don't exist
+            if (rule == null)
+            {
+                FLog.warning("Ignoring default gamerule " + key + " as it doesn't exist");
+                continue;
+            }
+
+            final Object value = defaults.get(key);
+
+            // IntelliJ complained about nullability even though that makes no sense given how this code is done
+            if (value == null)
+            {
+                FLog.warning("Ignoring default gamerule " + key + " as the value is somehow null");
+                continue;
+            }
+
+            // Ignore gamerules with invalid values
+            if (!rule.getType().isInstance(value))
+            {
+                FLog.warning("Ignoring default gamerule " + key + " as it uses an invalid type - Expected " + rule.getType() + ", got " + value.getClass().getName());
+                continue;
+            }
+
+            defaultGameRuleValues.put(rule, value);
+        }
+
+        // Load known malicious entries from memory
+        maliciousGameRules.addAll(ConfigEntry.GAMERULES_MALICIOUS.getStringList().stream().filter(Key::parseable)
+                .map(Key::key).toList());
+
+        // Load ranges from memory
+        final ConfigurationSection caps = ConfigEntry.GAMERULES_CAPS.getSection();
+        for (final String key : caps.getKeys(false))
+        {
+            // Ignore invalid namespaces
+            if (!Key.parseable(key))
+            {
+                continue;
+            }
+
+            // IntelliJ, who cares if the string is unsubstituted, who asked for your opinion?
+            final GameRule<?> rule = Registry.GAME_RULE.get(Key.key(key));
+
+            // Ignore gamerules that don't exist
+            if (rule == null)
+            {
+                FLog.warning("Ignoring cap for gamerule " + key + " as it doesn't exist");
+                continue;
+            }
+
+            // Ignore gamerules that aren't numbers
+            if (!Integer.class.isAssignableFrom(rule.getType()) )
+            {
+                FLog.warning("Ignoring cap for gamerule " + key + " as said gamerule isn't a number");
+                continue;
+            }
+
+            // Determine the range
+            final List<Integer> range = caps.getIntegerList(key);
+            if (range.size() != 2 || range.getFirst() > range.getLast())
+            {
+                FLog.warning("Ignoring cap for gamerule " + key + " as the range given isn't valid (must be specified like [min, max] in the configuration)");
+                continue;
+            }
+
+            gameRuleCaps.put(rule, range);
+        }
+
+        // Set up periodic enforcement
+        if (ConfigEntry.GAMERULES_ENFORCEMENT_DELAY.getInteger() > 0)
+        {
+            // Just in case...
+            if (commitTask != null && !commitTask.isCancelled())
+            {
+                commitTask.cancel();
+            }
+
+            commitTask = server.getScheduler().runTaskTimer(plugin,
+                    this::enforceGameRuleDefaults,
+                    0L,
+                    ConfigEntry.GAMERULES_ENFORCEMENT_DELAY.getInteger());
+        }
     }
 
     @Override
     protected void onStop()
     {
-        if (sweepTaskId != -1)
-        {
-            server.getScheduler().cancelTask(sweepTaskId);
-            sweepTaskId = -1;
-        }
+        commitTask.cancel();
+        commitTask = null;
     }
 
-    private void schedulePeriodicEnforcement()
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onGameRuleChange(WorldGameRuleChangeEvent event)
     {
-        long interval = ConfigEntry.CRASH_GAMERULES_SWEEP_TICKS.getInteger();
-        if (interval <= 0)
+        // Ignore if we're not bothering with game rule management
+        if (!ConfigEntry.GAMERULES_ENABLED.getBoolean())
         {
             return;
         }
-        sweepTaskId = server.getScheduler()
-                .runTaskTimer(plugin, this::enforceNumericLimits, interval, interval)
-                .getTaskId();
+
+        final CommandSender source = event.getCommandSender();
+        final GameRule<?> gameRule = event.getGameRule();
+
+        // Prevent players we don't want from screwing with our game rules
+        if (source != null && !plugin.rm.hasPermission(source, "tfm.world.gamerule"))
+        {
+            // Cancel the event, we don't want players without this permission to be able to mess with this
+            event.setCancelled(true);
+
+            // Let's also log it, just in case
+            FLog.warning(source.getName()
+                    + " just tried to change "
+                    + (maliciousGameRules.contains(gameRule.getKey().key()) ? "malicious" : "")
+                    + "gamerule "
+                    + gameRule.getKey().asString()
+                    + " to value "
+                    + event.getValue());
+
+            // No need to bother proceeding if it was already a dealbreaker to begin with
+            return;
+        }
+
+        // Cap the value if we need to
+        if (Integer.class.isAssignableFrom(gameRule.getType()) && gameRuleCaps.containsKey(gameRule))
+        {
+            final List<Integer> limits = gameRuleCaps.get(gameRule);
+            final int requested = Integer.parseInt(event.getValue());
+            final int clamped = Math.clamp(requested, limits.getFirst(), limits.getLast());
+
+            // Uh oh, we've been clamped!
+            if (requested != clamped)
+            {
+                FLog.warning("Clamped requested gamerule value "
+                        + gameRule.getKey()
+                        + " from "
+                        + requested
+                        + " to "
+                        + clamped);
+
+                event.setValue(Integer.toString(clamped));
+            }
+        }
     }
 
-    private int randomTickSpeedCap()
+    private void enforceGameRuleDefaults()
     {
-        int v = ConfigEntry.CRASH_GAMERULES_RANDOM_TICK_SPEED.getInteger();
-        return v > 0 ? v : DEFAULT_RANDOM_TICK_SPEED;
-    }
-
-    private int maxNumericValue()
-    {
-        int v = ConfigEntry.CRASH_GAMERULES_MAX_NUMERIC_VALUE.getInteger();
-        return v > 0 ? v : DEFAULT_MAX_NUMERIC_VALUE;
-    }
-    private void enforceNumericLimits()
-    {
-        final int rtsCap = randomTickSpeedCap();
-        final int maxNumeric = maxNumericValue();
+        // For each world...
         for (World world : Bukkit.getWorlds())
         {
-            for (org.bukkit.GameRule<?> rule : org.bukkit.GameRule.values())
-            {
-                if (rule.getType() != Integer.class)
-                {
-                    continue;
-                }
-                final String name = rule.getName().toLowerCase(Locale.ROOT);
-                final boolean randomTick = "randomtickspeed".equals(name);
-                if (!randomTick && !INT_RULES.contains(name))
-                {
-                    continue;
-                }
-                @SuppressWarnings("unchecked")
-                final org.bukkit.GameRule<Integer> intRule = (org.bukkit.GameRule<Integer>) rule;
-                final Integer current;
-                try
-                {
-                    current = world.getGameRuleValue(intRule);
-                }
-                catch (Throwable t)
-                {
-                    continue;
-                }
-                if (current == null)
-                {
-                    continue;
-                }
-                final int cap = randomTick ? rtsCap : maxNumeric;
-                if (current <= cap && current >= 0)
-                {
-                    continue;
-                }
-                final int clamped = current < 0 ? 0 : cap;
-                try
-                {
-                    world.setGameRule(intRule, clamped);
-                    FLog.warning("[GameRuleHandler] Clamped " + rule.getName() + " from " + current
-                            + " to " + clamped + " in world '" + world.getName() + "'.");
-                }
-                catch (Throwable ignored)
-                {
-                }
-            }
+            enforceGameRuleDefaultsForWorld(world);
         }
     }
 
-    public void setGameRule(GameRule gameRule, boolean value)
+    public void enforceGameRuleDefaultsForWorld(World world)
     {
-        setGameRule(gameRule, value, true);
+        // For each game rule...
+        for (GameRule<?> key : defaultGameRuleValues.keySet())
+        {
+            // Enforce the default
+            // This is stupid, but fuck it. I don't care
+            enforceGameRuleDefault(world, key);
+        }
     }
 
-    public void setGameRule(GameRule gameRule, boolean value, boolean doCommit)
+    private <T> void enforceGameRuleDefault(World world, GameRule<T> rule)
     {
-        rules.put(gameRule, value);
-        if (doCommit)
-        {
-            commitGameRules();
-        }
+        world.setGameRule(rule, rule.getType().cast(defaultGameRuleValues.get(rule)));
     }
 
-    public void commitGameRules()
+    public <T> void setGameRule(GameRule<T> rule, T newValue)
     {
-        List<World> worlds = Bukkit.getWorlds();
-        Iterator<Map.Entry<GameRule, Boolean>> it = rules.entrySet().iterator();
-        while (it.hasNext())
-        {
+        defaultGameRuleValues.put(rule, newValue);
 
-            Map.Entry<GameRule, Boolean> gameRuleEntry = it.next();
-            String gameRuleName = gameRuleEntry.getKey().getGameRuleName();
-            String gameRuleValue = gameRuleEntry.getValue().toString();
-
-            for (World world : worlds)
-            {
-                world.setGameRuleValue(gameRuleName, gameRuleValue);
-                if (gameRuleEntry.getKey() == GameRule.DO_DAYLIGHT_CYCLE && !gameRuleEntry.getValue())
-                {
-                    try
-                    {
-                        long time = world.getTime();
-                        time -= time % 24000;
-                        world.setTime(time + 24000 + 6000);
-                    }
-                    catch (IllegalArgumentException ignored)
-                    {
-                    }
-                }
-            }
-
-        }
+        // Commit our changes across all worlds
+        enforceGameRuleDefaults();
     }
-
-    public static enum GameRule
-    {
-
-        DO_FIRE_TICK("do_fire_tick", true),
-        MOB_GRIEFING("mob_griefing", true),
-        KEEP_INVENTORY("keep_inventory", false),
-        DO_MOB_SPAWNING("do_mob_spawning", true),
-        DO_MOB_LOOT("do_mob_loot", true),
-        DO_TILE_DROPS("do_tile_drops", true),
-        COMMAND_BLOCK_OUTPUT("command_block_output", true),
-        NATURAL_REGENERATION("natural_regeneration", true),
-        DO_DAYLIGHT_CYCLE("do_daylight_cycle", true);
-        //
-        private final String gameRuleName;
-        private final boolean defaultValue;
-
-        private GameRule(String gameRuleName, boolean defaultValue)
-        {
-            this.gameRuleName = gameRuleName;
-            this.defaultValue = defaultValue;
-        }
-
-        public String getGameRuleName()
-        {
-            return gameRuleName;
-        }
-
-        public boolean getDefaultValue()
-        {
-            return defaultValue;
-        }
-    }
-
 }
