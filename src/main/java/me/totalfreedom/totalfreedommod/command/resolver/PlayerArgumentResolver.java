@@ -7,13 +7,29 @@ import org.bukkit.entity.Player;
 
 import me.totalfreedom.totalfreedommod.command.FreedomCommand;
 
+import java.util.UUID;
+
 public class PlayerArgumentResolver implements AbstractArgumentResolver<Player>
 {
     private Player resolveDefault(String arg)
     {
-        Player player = Bukkit.getPlayer(arg);
+        Player player;
+
+        // UUID
+        try
+        {
+            final UUID uuid = UUID.fromString(arg);
+            player = Bukkit.getPlayer(uuid);
+        }
+        // Username
+        catch (IllegalArgumentException ex)
+        {
+            player = Bukkit.getPlayer(arg);
+        }
+
         if (player == null)
             throw new ArgumentResolutionException(AdventureUtil.componentToPlainText(FreedomCommand.PLAYER_NOT_FOUND));
+
         return player;
     }
 
