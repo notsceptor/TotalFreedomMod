@@ -9,7 +9,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
 @CommandPermissions(level = Rank.SUPER_ADMIN, source = SourceType.BOTH, permission = "tfm.admin.blockredstone")
-@CommandParameters(description = "Blocks redstone on the server.", usage = "/<command> <value>", aliases = "bre")
+@CommandParameters(description = "Blocks redstone on the server.", usage = "/<command> [value]", aliases = "bre")
 public class Command_blockredstone extends FreedomCommand
 {
     private BukkitTask autoUnblock = null;
