@@ -5,7 +5,8 @@ public enum SweepContext
 {
     INITIAL("initial"),
     PERIODIC("periodic-sweep"),
-    CHUNK_LOAD("chunk-load");
+    CHUNK_LOAD("chunk-load"),
+    EDIT("worldedit");
 
     private final String label;
 

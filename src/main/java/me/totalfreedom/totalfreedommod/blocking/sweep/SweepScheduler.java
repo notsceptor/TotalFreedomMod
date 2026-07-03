@@ -170,6 +170,21 @@ public class SweepScheduler extends FreedomService
         }
     }
 
+    public void enqueueChunk(Chunk chunk, SweepContext ctx)
+    {
+        if (!started || chunk == null)
+        {
+            return;
+        }
+        for (Registered r : registry.values())
+        {
+            if (r.enabled.getAsBoolean())
+            {
+                enqueue(r, chunk, ctx);
+            }
+        }
+    }
+
     private void enqueue(Registered r, Chunk chunk, SweepContext ctx)
     {
         if (chunk == null)
