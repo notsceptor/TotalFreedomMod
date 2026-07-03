@@ -235,7 +235,7 @@ public class LoginProcess extends FreedomService {
 
             if (ConfigEntry.ADMIN_ONLY_MODE.getBoolean()) {
                 player.sendMessage(Component.text(
-                        "Server is currently closed to non-superadmins.",
+                        "Server is currently closed to non-admins.",
                         NamedTextColor.RED));
             }
 
