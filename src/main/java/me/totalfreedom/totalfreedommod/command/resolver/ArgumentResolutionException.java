@@ -6,4 +6,9 @@ public class ArgumentResolutionException extends RuntimeException
     {
         super(message);
     }
+
+    public ArgumentResolutionException(Exception ex)
+    {
+        super(ex);
+    }
 }
