@@ -32,7 +32,6 @@ import net.kyori.adventure.text.serializer.ansi.ANSIComponentSerializer;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
@@ -61,36 +60,6 @@ public class FUtil
             NamedTextColor.RED,
             NamedTextColor.LIGHT_PURPLE,
             NamedTextColor.YELLOW);
-    
-    // Backward compatibility - deprecated
-    @Deprecated
-    public static final Map<String, ChatColor> CHAT_COLOR_NAMES_LEGACY = new HashMap<>();
-    @Deprecated
-    public static final List<ChatColor> CHAT_COLOR_POOL_LEGACY = Arrays.asList(
-            ChatColor.DARK_BLUE,
-            ChatColor.DARK_GREEN,
-            ChatColor.DARK_AQUA,
-            ChatColor.DARK_RED,
-            ChatColor.DARK_PURPLE,
-            ChatColor.GOLD,
-            ChatColor.BLUE,
-            ChatColor.GREEN,
-            ChatColor.AQUA,
-            ChatColor.RED,
-            ChatColor.LIGHT_PURPLE,
-            ChatColor.YELLOW);
-
-    static
-    {
-        for (NamedTextColor color : CHAT_COLOR_POOL)
-        {
-            CHAT_COLOR_NAMES.put(color.toString().toLowerCase().replace("_", ""), color);
-        }
-        for (ChatColor chatColor : CHAT_COLOR_POOL_LEGACY)
-        {
-            CHAT_COLOR_NAMES_LEGACY.put(chatColor.name().toLowerCase().replace("_", ""), chatColor);
-        }
-    }
 
     private FUtil()
     {
@@ -129,13 +98,6 @@ public class FUtil
         bcastMsg(colorizeWithLinks(message, color));
     }
 
-    @Deprecated
-    public static void bcastMsg(String message, ChatColor color)
-    {
-        NamedTextColor namedColor = color != null ? AdventureUtil.chatColorToNamedTextColor(color) : null;
-        bcastMsg(message, namedColor);
-    }
-
     public static void bcastMsg(String message)
     {
         bcastMsg(colorizeWithLinks(message));
@@ -153,13 +115,6 @@ public class FUtil
     public static void playerMsg(CommandSender sender, String message, NamedTextColor color)
     {
         playerMsg(sender, colorizeWithLinks(message, color));
-    }
-
-    @Deprecated
-    public static void playerMsg(CommandSender sender, String message, ChatColor color)
-    {
-        NamedTextColor namedColor = color != null ? AdventureUtil.chatColorToNamedTextColor(color) : null;
-        playerMsg(sender, message, namedColor);
     }
 
     public static void playerMsg(CommandSender sender, String message)
@@ -428,12 +383,6 @@ public class FUtil
         return CHAT_COLOR_POOL.get(RANDOM.nextInt(CHAT_COLOR_POOL.size()));
     }
 
-    @Deprecated
-    public static ChatColor randomChatColorLegacy()
-    {
-        return CHAT_COLOR_POOL_LEGACY.get(RANDOM.nextInt(CHAT_COLOR_POOL_LEGACY.size()));
-    }
-
     public static Component colorize(String string)
     {
         return AdventureUtil.format(string);
@@ -453,12 +402,6 @@ public class FUtil
     public static Component colorizeWithLinks(String string, NamedTextColor defaultColor)
     {
         return AdventureUtil.addLinks(colorize(string, defaultColor));
-    }
-
-    @Deprecated
-    public static String colorizeLegacy(String string)
-    {
-        return ChatColor.translateAlternateColorCodes('&', string);
     }
 
     public static Date getUnixDate(long unix)

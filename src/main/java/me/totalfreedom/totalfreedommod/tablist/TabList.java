@@ -8,8 +8,7 @@ import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.TextComponent;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -189,14 +188,14 @@ public class TabList extends FreedomService
             return Component.empty();
         }
 
-        final StringBuilder sb = new StringBuilder();
+        final TextComponent.Builder builder = Component.text();
         final String[] lines = input.split("\n", -1);
 
         for (int i = 0; i < lines.length; i++)
         {
             if (i > 0)
             {
-                sb.append('\n');
+                builder.appendNewline();
             }
 
             final String[] words = lines[i].split(" ", -1);
@@ -205,23 +204,23 @@ public class TabList extends FreedomService
             {
                 if (j > 0)
                 {
-                    sb.append(' ');
+                    builder.append(Component.space());
                 }
 
                 final String word = words[j];
 
-                if (word.isEmpty() || startsWithColor(word))
+                if (startsWithColor(word))
                 {
-                    sb.append(word);
+                    builder.append(AdventureUtil.legacyToComponent(word));
                 }
                 else
                 {
-                    sb.append('&').append(randomColorChar()).append(word);
+                    builder.append(Component.text(word, FUtil.randomChatColor()));
                 }
             }
         }
 
-        return AdventureUtil.legacyToComponent(sb.toString());
+        return builder.build();
     }
 
     private boolean startsWithColor(String word)
@@ -232,13 +231,6 @@ public class TabList extends FreedomService
         }
         final char code = Character.toLowerCase(word.charAt(1));
         return (code >= '0' && code <= '9') || (code >= 'a' && code <= 'f') || code == 'r';
-    }
-
-    private char randomColorChar()
-    {
-        final NamedTextColor color = FUtil.randomChatColor();
-        final ChatColor legacy = AdventureUtil.namedTextColorToChatColor(color);
-        return (legacy != null ? legacy : ChatColor.WHITE).getChar();
     }
 
     private static final class CycleContext

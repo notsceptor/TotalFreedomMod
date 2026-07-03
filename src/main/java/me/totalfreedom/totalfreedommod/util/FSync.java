@@ -3,7 +3,6 @@ package me.totalfreedom.totalfreedommod.util;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -43,11 +42,5 @@ public class FSync
     {
         final TotalFreedomMod plugin = TotalFreedomMod.plugin();
         plugin.getServer().getScheduler().runTask(plugin, () -> FUtil.bcastMsg(message, color));
-    }
-
-    @Deprecated
-    public static void bcastMsg(final String message, final ChatColor color)
-    {
-        bcastMsg(message, color != null ? AdventureUtil.chatColorToNamedTextColor(color) : null);
     }
 }

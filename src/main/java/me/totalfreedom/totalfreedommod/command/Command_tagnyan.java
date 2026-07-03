@@ -4,6 +4,9 @@ import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FUtil;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -37,17 +40,19 @@ public class Command_tagnyan extends FreedomCommand
             return true;
         }
 
-        final StringBuilder tag = new StringBuilder();
+        final TextComponent.Builder builder = Component.text();
 
         for (char c : plainText.toCharArray())
         {
-            tag.append(AdventureUtil.namedTextColorToChatColor(FUtil.randomChatColor())).append(c);
+            builder.append(Component.text(c, FUtil.randomChatColor()));
         }
 
-        final FPlayer data = plugin.pl.getPlayer(playerSender);
-        data.setTag(tag.toString());
+        final Component result = builder.build();
 
-        msg("Set tag to " + tag);
+        final FPlayer data = plugin.pl.getPlayer(playerSender);
+        data.setTag(AdventureUtil.componentToLegacy(result));
+
+        msg(Component.text("Set tag to ").append(result));
 
         return true;
     }

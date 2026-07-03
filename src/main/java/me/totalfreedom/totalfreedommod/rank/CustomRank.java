@@ -8,7 +8,6 @@ import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
-import org.bukkit.ChatColor;
 import org.bukkit.configuration.ConfigurationSection;
 
 /**
@@ -21,7 +20,6 @@ import org.bukkit.configuration.ConfigurationSection;
  */
 @Getter
 @Setter
-@SuppressWarnings("deprecation")
 public class CustomRank implements Displayable, Comparable<CustomRank>
 {
     /**
@@ -270,13 +268,6 @@ public class CustomRank implements Displayable, Comparable<CustomRank>
     public NamedTextColor getColor()
     {
         return color;
-    }
-    
-    @Override
-    @Deprecated
-    public ChatColor getColorLegacy()
-    {
-        return AdventureUtil.namedTextColorToChatColor(color);
     }
     
     @Override

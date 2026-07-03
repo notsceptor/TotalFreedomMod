@@ -4,7 +4,6 @@ import lombok.Getter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
-import org.bukkit.ChatColor;
 
 @Getter
 @SuppressWarnings("deprecation")
@@ -27,7 +26,6 @@ public enum Rank implements Displayable
     private final String tag;
     private final Component coloredTag;
     private final NamedTextColor color;
-    private final ChatColor colorLegacy; // For backward compatibility
 
     private Rank(String determiner, String name, Type type, String abbr, NamedTextColor color)
     {
@@ -36,8 +34,7 @@ public enum Rank implements Displayable
         this.determiner = determiner;
         this.tag = abbr.isEmpty() ? "" : "[" + abbr + "]";
         this.color = color;
-        this.colorLegacy = me.totalfreedom.totalfreedommod.util.AdventureUtil.namedTextColorToChatColor(color);
-        
+
         // Build colored tag as Component
         if (abbr.isEmpty())
         {
@@ -117,13 +114,6 @@ public enum Rank implements Displayable
     public NamedTextColor getColor()
     {
         return color;
-    }
-    
-    @Override
-    @Deprecated
-    public ChatColor getColorLegacy()
-    {
-        return colorLegacy;
     }
 
     @Deprecated

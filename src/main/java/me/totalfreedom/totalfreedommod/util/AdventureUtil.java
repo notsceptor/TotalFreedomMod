@@ -1,8 +1,5 @@
 package me.totalfreedom.totalfreedommod.util;
 
-import java.util.EnumMap;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.regex.Pattern;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
@@ -14,7 +11,6 @@ import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import net.kyori.adventure.text.minimessage.tag.standard.StandardTags;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
-import org.bukkit.ChatColor;
 
 public class AdventureUtil
 {
@@ -49,46 +45,6 @@ public class AdventureUtil
             .tags(TagResolver.resolver(COLOR_TAGS, StandardTags.reset())).build();
     private static final MiniMessage MM_DECORATIONS = MiniMessage.builder()
             .tags(TagResolver.resolver(DECORATION_TAGS, StandardTags.reset())).build();
-
-    private static final Map<ChatColor, NamedTextColor> CHAT_COLOR_TO_NAMED_TEXT_COLOR = new EnumMap<ChatColor, NamedTextColor>(ChatColor.class);
-    private static final Map<NamedTextColor, ChatColor> NAMED_TEXT_COLOR_TO_CHAT_COLOR = new HashMap<NamedTextColor, ChatColor>();
-
-    static
-    {
-        CHAT_COLOR_TO_NAMED_TEXT_COLOR.put(ChatColor.BLACK, NamedTextColor.BLACK);
-        CHAT_COLOR_TO_NAMED_TEXT_COLOR.put(ChatColor.DARK_BLUE, NamedTextColor.DARK_BLUE);
-        CHAT_COLOR_TO_NAMED_TEXT_COLOR.put(ChatColor.DARK_GREEN, NamedTextColor.DARK_GREEN);
-        CHAT_COLOR_TO_NAMED_TEXT_COLOR.put(ChatColor.DARK_AQUA, NamedTextColor.DARK_AQUA);
-        CHAT_COLOR_TO_NAMED_TEXT_COLOR.put(ChatColor.DARK_RED, NamedTextColor.DARK_RED);
-        CHAT_COLOR_TO_NAMED_TEXT_COLOR.put(ChatColor.DARK_PURPLE, NamedTextColor.DARK_PURPLE);
-        CHAT_COLOR_TO_NAMED_TEXT_COLOR.put(ChatColor.GOLD, NamedTextColor.GOLD);
-        CHAT_COLOR_TO_NAMED_TEXT_COLOR.put(ChatColor.GRAY, NamedTextColor.GRAY);
-        CHAT_COLOR_TO_NAMED_TEXT_COLOR.put(ChatColor.DARK_GRAY, NamedTextColor.DARK_GRAY);
-        CHAT_COLOR_TO_NAMED_TEXT_COLOR.put(ChatColor.BLUE, NamedTextColor.BLUE);
-        CHAT_COLOR_TO_NAMED_TEXT_COLOR.put(ChatColor.GREEN, NamedTextColor.GREEN);
-        CHAT_COLOR_TO_NAMED_TEXT_COLOR.put(ChatColor.AQUA, NamedTextColor.AQUA);
-        CHAT_COLOR_TO_NAMED_TEXT_COLOR.put(ChatColor.RED, NamedTextColor.RED);
-        CHAT_COLOR_TO_NAMED_TEXT_COLOR.put(ChatColor.LIGHT_PURPLE, NamedTextColor.LIGHT_PURPLE);
-        CHAT_COLOR_TO_NAMED_TEXT_COLOR.put(ChatColor.YELLOW, NamedTextColor.YELLOW);
-        CHAT_COLOR_TO_NAMED_TEXT_COLOR.put(ChatColor.WHITE, NamedTextColor.WHITE);
-
-        NAMED_TEXT_COLOR_TO_CHAT_COLOR.put(NamedTextColor.BLACK, ChatColor.BLACK);
-        NAMED_TEXT_COLOR_TO_CHAT_COLOR.put(NamedTextColor.DARK_BLUE, ChatColor.DARK_BLUE);
-        NAMED_TEXT_COLOR_TO_CHAT_COLOR.put(NamedTextColor.DARK_GREEN, ChatColor.DARK_GREEN);
-        NAMED_TEXT_COLOR_TO_CHAT_COLOR.put(NamedTextColor.DARK_AQUA, ChatColor.DARK_AQUA);
-        NAMED_TEXT_COLOR_TO_CHAT_COLOR.put(NamedTextColor.DARK_RED, ChatColor.DARK_RED);
-        NAMED_TEXT_COLOR_TO_CHAT_COLOR.put(NamedTextColor.DARK_PURPLE, ChatColor.DARK_PURPLE);
-        NAMED_TEXT_COLOR_TO_CHAT_COLOR.put(NamedTextColor.GOLD, ChatColor.GOLD);
-        NAMED_TEXT_COLOR_TO_CHAT_COLOR.put(NamedTextColor.GRAY, ChatColor.GRAY);
-        NAMED_TEXT_COLOR_TO_CHAT_COLOR.put(NamedTextColor.DARK_GRAY, ChatColor.DARK_GRAY);
-        NAMED_TEXT_COLOR_TO_CHAT_COLOR.put(NamedTextColor.BLUE, ChatColor.BLUE);
-        NAMED_TEXT_COLOR_TO_CHAT_COLOR.put(NamedTextColor.GREEN, ChatColor.GREEN);
-        NAMED_TEXT_COLOR_TO_CHAT_COLOR.put(NamedTextColor.AQUA, ChatColor.AQUA);
-        NAMED_TEXT_COLOR_TO_CHAT_COLOR.put(NamedTextColor.RED, ChatColor.RED);
-        NAMED_TEXT_COLOR_TO_CHAT_COLOR.put(NamedTextColor.LIGHT_PURPLE, ChatColor.LIGHT_PURPLE);
-        NAMED_TEXT_COLOR_TO_CHAT_COLOR.put(NamedTextColor.YELLOW, ChatColor.YELLOW);
-        NAMED_TEXT_COLOR_TO_CHAT_COLOR.put(NamedTextColor.WHITE, ChatColor.WHITE);
-    }
 
     private AdventureUtil()
     {
@@ -539,36 +495,6 @@ public class AdventureUtil
     }
 
     /**
-     * Converts ChatColor to NamedTextColor.
-     *
-     * @param chatColor The ChatColor to convert
-     * @return Equivalent NamedTextColor, or null if no match
-     */
-    public static NamedTextColor chatColorToNamedTextColor(ChatColor chatColor)
-    {
-        if (chatColor == null)
-        {
-            return null;
-        }
-        return CHAT_COLOR_TO_NAMED_TEXT_COLOR.get(chatColor);
-    }
-
-    /**
-     * Converts NamedTextColor to legacy ChatColor for backward compatibility.
-     *
-     * @param namedTextColor The NamedTextColor to convert
-     * @return Equivalent ChatColor, or null if no match
-     */
-    public static ChatColor namedTextColorToChatColor(NamedTextColor namedTextColor)
-    {
-        if (namedTextColor == null)
-        {
-            return null;
-        }
-        return NAMED_TEXT_COLOR_TO_CHAT_COLOR.get(namedTextColor);
-    }
-
-    /**
      * Applies text decoration to a Component.
      *
      * @param component The Component to decorate
@@ -582,56 +508,6 @@ public class AdventureUtil
             return Component.empty();
         }
         return component.decorate(decoration);
-    }
-
-    /**
-     * Checks if a ChatColor represents a formatting code (bold, italic, etc.).
-     *
-     * @param chatColor The ChatColor to check
-     * @return True if it's a formatting code
-     */
-    public static boolean isFormat(ChatColor chatColor)
-    {
-        if (chatColor == null)
-        {
-            return false;
-        }
-        return chatColor == ChatColor.BOLD
-                || chatColor == ChatColor.ITALIC
-                || chatColor == ChatColor.UNDERLINE
-                || chatColor == ChatColor.STRIKETHROUGH
-                || chatColor == ChatColor.MAGIC
-                || chatColor == ChatColor.RESET;
-    }
-
-    /**
-     * Converts ChatColor formatting codes to TextDecoration.
-     *
-     * @param chatColor The ChatColor formatting code
-     * @return Equivalent TextDecoration, or null if not a format code
-     */
-    public static TextDecoration chatColorToTextDecoration(ChatColor chatColor)
-    {
-        if (chatColor == null)
-        {
-            return null;
-        }
-
-        switch (chatColor)
-        {
-            case BOLD:
-                return TextDecoration.BOLD;
-            case ITALIC:
-                return TextDecoration.ITALIC;
-            case UNDERLINE:
-                return TextDecoration.UNDERLINED;
-            case STRIKETHROUGH:
-                return TextDecoration.STRIKETHROUGH;
-            case MAGIC:
-                return TextDecoration.OBFUSCATED;
-            default:
-                return null;
-        }
     }
 }
 

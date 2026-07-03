@@ -28,7 +28,6 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.serializer.ansi.ANSIComponentSerializer;
 
 import org.apache.commons.lang3.StringUtils;
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -442,23 +441,6 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
         msg(sender, message, color);
     }
 
-    @Deprecated
-    protected void msg(final CommandSender sender, final String message, final ChatColor color)
-    {
-        if (sender == null || message == null)
-        {
-            return;
-        }
-        NamedTextColor namedColor = color != null ? AdventureUtil.chatColorToNamedTextColor(color) : null;
-        msg(sender, message, namedColor);
-    }
-
-    @Deprecated
-    protected void msg(final String message, final ChatColor color)
-    {
-        msg(sender, message, color);
-    }
-
     protected void msg(final CommandSender sender, final String message)
     {
         msg(sender, message, NamedTextColor.GRAY);
@@ -482,16 +464,6 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
         if (target != null && message != null)
         {
             target.sendMessage(FUtil.colorizeWithLinks(message, color));
-        }
-    }
-
-    @Deprecated
-    protected void msg(final Player target, final String message, final ChatColor color)
-    {
-        if (target != null && message != null)
-        {
-            NamedTextColor namedColor = color != null ? me.totalfreedom.totalfreedommod.util.AdventureUtil.chatColorToNamedTextColor(color) : null;
-            msg(target, message, namedColor);
         }
     }
     

@@ -4,8 +4,8 @@ import java.util.List;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.commons.lang3.StringUtils;
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -22,7 +22,7 @@ public class Command_admininfo extends FreedomCommand
 
         if (adminInfo.isEmpty())
         {
-            msg("The admin information section of the config.yml file has not been configured.", ChatColor.RED);
+            msg("The admin information section of the config.yml file has not been configured.", NamedTextColor.RED);
         }
         else
         {
