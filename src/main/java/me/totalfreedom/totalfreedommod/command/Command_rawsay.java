@@ -2,7 +2,6 @@ package me.totalfreedom.totalfreedommod.command;
 
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import org.apache.commons.lang3.StringUtils;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -11,15 +10,16 @@ import org.bukkit.entity.Player;
 @CommandParameters(description = "Broadcasts the given message. Supports colors.", usage = "/<command> <message>")
 public class Command_rawsay extends FreedomCommand
 {
+    @CommandDispatchTarget(pattern = "<message..>")
+    public boolean removeEnchantment(CommandContext ctx, String message)
+    {
+        FUtil.bcastMsg(FUtil.colorize(message));
+        return true;
+    }
 
     @Override
     public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
     {
-        if (args.length > 0)
-        {
-            FUtil.bcastMsg(FUtil.colorize(StringUtils.join(args, " ")));
-        }
-
-        return true;
+        return false;
     }
 }

@@ -4,9 +4,7 @@ import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import lombok.Getter;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
-import me.totalfreedom.totalfreedommod.command.resolver.EnchantmentArgumentResolver;
-import me.totalfreedom.totalfreedommod.command.resolver.KeyArgumentResolver;
-import me.totalfreedom.totalfreedommod.command.resolver.PlayerArgumentResolver;
+import me.totalfreedom.totalfreedommod.command.resolver.*;
 import me.totalfreedom.totalfreedommod.util.FLog;
 
 @SuppressWarnings("UnstableApiUsage")
@@ -42,6 +40,8 @@ public class CommandLoader extends FreedomService
         handler.registerArgumentResolver(PlayerArgumentResolver.class);
         handler.registerArgumentResolver(KeyArgumentResolver.class);
         handler.registerArgumentResolver(EnchantmentArgumentResolver.class);
+        handler.registerArgumentResolver(BooleanArgumentResolver.class);
+        handler.registerArgumentResolver(IntegerArgumentResolver.class);
 
         int loaded = handler.loadFrom(FreedomCommand.class.getPackage());
         FLog.info("Loaded " + loaded + " commands.");

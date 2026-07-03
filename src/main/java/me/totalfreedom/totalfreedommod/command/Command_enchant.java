@@ -87,8 +87,8 @@ public class Command_enchant extends FreedomCommand
         return addEnchantment(ctx, enchantment, enchantment.getMaxLevel());
     }
 
-    @CommandDispatchTarget(pattern = "add <enchantment:Enchantment> <level>")
-    public boolean addEnchantment(CommandContext ctx, Enchantment enchantment, int level)
+    @CommandDispatchTarget(pattern = "add <enchantment:Enchantment> <level:Integer>")
+    public boolean addEnchantment(CommandContext ctx, Enchantment enchantment, Integer level)
     {
         final ItemStack item = ctx.getPlayerSender().getEquipment().getItemInMainHand();
 
@@ -100,7 +100,7 @@ public class Command_enchant extends FreedomCommand
 
         if (enchantment.canEnchantItem(item))
         {
-            item.addEnchantment(enchantment, level);
+            item.addEnchantment(enchantment, Math.clamp(level, 1, enchantment.getMaxLevel()));
             msg(ctx.getSender(), Component.text("Added enchantment ")
                     .append(enchantment.description())
                     .append(Component.text(" to this item.")).color(NamedTextColor.GRAY));
