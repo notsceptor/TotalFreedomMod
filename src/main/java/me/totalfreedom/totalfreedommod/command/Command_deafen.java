@@ -1,8 +1,10 @@
 package me.totalfreedom.totalfreedommod.command;
 
+import java.util.List;
 import java.util.Random;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import org.bukkit.Location;
+import org.bukkit.Registry;
 import org.bukkit.Sound;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -15,6 +17,7 @@ public class Command_deafen extends FreedomCommand
 
     private static final Random random = new Random();
     public static final double STEPS = 10.0;
+    private static final List<Sound> SOUNDS = Registry.SOUNDS.stream().toList();
 
     @Override
     public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
@@ -26,7 +29,7 @@ public class Command_deafen extends FreedomCommand
                 final float pitch = (float) (percent * 2.0);
 
                 plugin.getServer().getScheduler().runTaskLater(plugin,
-                    () -> player.playSound(randomOffset(player.getLocation(), 5.0), Sound.values()[random.nextInt(Sound.values().length)], 100.0f, pitch),
+                    () -> player.playSound(randomOffset(player.getLocation(), 5.0), getRandomSound(), 100.0f, pitch),
                     Math.round(20.0 * percent * 2.0));
             }
         }
@@ -42,5 +45,10 @@ public class Command_deafen extends FreedomCommand
     private static Double randomDoubleRange(double min, double max)
     {
         return min + (random.nextDouble() * ((max - min) + 1.0));
+    }
+
+    private static Sound getRandomSound()
+    {
+        return SOUNDS.get(random.nextInt(SOUNDS.size()));
     }
 }

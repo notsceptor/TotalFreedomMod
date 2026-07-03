@@ -3,11 +3,15 @@ package me.totalfreedom.totalfreedommod.fun;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+
+import io.papermc.paper.registry.RegistryAccess;
+import io.papermc.paper.registry.RegistryKey;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.util.FUtil;
+import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -264,7 +268,8 @@ public class ItemFun extends FreedomService
     {
         for (Sound sound : Registry.SOUND_EVENT)
         {
-            if (sound.getKey().getKey().contains("hit"))
+            final Key key = Registry.SOUND_EVENT.getKey(sound);
+            if (key != null && key.asString().contains("hit"))
             {
                 listener.playSound(randomOffset(location, 2.0), sound, SoundCategory.MASTER, 1.0F, randomDoubleRange(0.5, 2.0).floatValue());
             }
