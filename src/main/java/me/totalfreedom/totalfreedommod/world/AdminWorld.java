@@ -9,6 +9,8 @@ import java.util.Map.Entry;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -21,7 +23,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerMoveEvent;
 
-@SuppressWarnings("deprecation")
 public final class AdminWorld extends CustomWorld
 {
 
@@ -77,19 +78,20 @@ public final class AdminWorld extends CustomWorld
         
         org.bukkit.block.Sign welcomeSign = (org.bukkit.block.Sign) welcomeSignBlock.getState();
 
-        String[] lines = {
-            "\u00A7aAdminWorld",
-            "\u00A78---",
-            "\u00A7eSpawn Point",
-            "\u00A78---"
+        Component[] lines = {
+                Component.text("Flatlands", NamedTextColor.GREEN),
+                Component.text("---", NamedTextColor.DARK_GRAY),
+                Component.text("Spawn Point", NamedTextColor.YELLOW),
+                Component.text("---", NamedTextColor.DARK_GRAY)
         };
 
         org.bukkit.block.sign.SignSide front = welcomeSign.getSide(org.bukkit.block.sign.Side.FRONT);
         org.bukkit.block.sign.SignSide back = welcomeSign.getSide(org.bukkit.block.sign.Side.BACK);
 
-        for (int i = 0; i < lines.length; i++) {
-            front.setLine(i, lines[i]);
-            back.setLine(i, lines[i]);
+        for (int i = 0; i < lines.length; i++)
+        {
+            front.line(i, lines[i]);
+            back.line(i, lines[i]);
         }
 
         welcomeSign.update();

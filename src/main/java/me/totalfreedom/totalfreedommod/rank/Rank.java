@@ -6,7 +6,6 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 
 @Getter
-@SuppressWarnings("deprecation")
 public enum Rank implements Displayable
 {
 

@@ -28,7 +28,7 @@ public class Command_orbit extends FreedomCommand
 
         if (player == null)
         {
-            msg(FreedomCommand.PLAYER_NOT_FOUND, NamedTextColor.RED);
+            msg(FreedomCommand.PLAYER_NOT_FOUND);
             return true;
         }
 

@@ -63,7 +63,7 @@ public class Command_potion extends FreedomCommand
 
                     if (target == null)
                     {
-                        msg(FreedomCommand.PLAYER_NOT_FOUND, NamedTextColor.RED);
+                        msg(FreedomCommand.PLAYER_NOT_FOUND);
                         return true;
                     }
                 }
@@ -107,7 +107,7 @@ public class Command_potion extends FreedomCommand
 
                     if (target == null)
                     {
-                        msg(FreedomCommand.PLAYER_NOT_FOUND, NamedTextColor.RED);
+                        msg(FreedomCommand.PLAYER_NOT_FOUND);
                         return true;
                     }
                 }

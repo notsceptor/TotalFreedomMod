@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -38,7 +39,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
-@SuppressWarnings("deprecation")
 public class FUtil
 {
 
@@ -473,7 +473,7 @@ public class FUtil
 
         try
         {
-            URL url = new URL(MOJANG_API_URL + username);
+            URL url = new URI(MOJANG_API_URL + username).toURL();
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("GET");
             connection.setConnectTimeout(5000);
