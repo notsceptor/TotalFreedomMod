@@ -12,7 +12,7 @@ import org.bukkit.entity.Player;
 public class Command_deop extends FreedomCommand
 {
     @CommandDispatchTarget(pattern = "<player:OfflinePlayer>")
-    private boolean deopPlayer(CommandContext ctx, OfflinePlayer player)
+    public boolean deopPlayer(CommandContext ctx, OfflinePlayer player)
     {
         FUtil.adminAction(sender.getName(), "De-opping " + player.getName(), false);
         player.setOp(false);
