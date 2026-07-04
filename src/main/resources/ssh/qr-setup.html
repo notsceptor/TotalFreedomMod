@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>TFM SSH TOTP Setup</title>
+    <style>
+        body{font-family:sans-serif;max-width:480px;margin:48px auto;text-align:center;padding:0 16px}
+        h2{margin-bottom:8px}
+        p{color:#555}
+        #qr{display:inline-block;margin:16px 0}
+        code{background:#f4f4f4;padding:6px 10px;border-radius:6px;word-break:break-all;display:block;margin:12px 0;font-size:14px}
+        a{color:#1a73e8}
+    </style>
+</head>
+<body>
+    <h2>TFM SSH &mdash; TOTP Setup</h2>
+    <p>Scan the QR code with your authenticator app (<strong>${LABEL}</strong>).</p>
+    <div id="qr"></div>
+    <p>Or <a href="${OTP_URI}">tap here</a> to add directly on mobile.</p>
+    <p>Manual entry secret:</p>
+    <code id="sec"></code>
+    <p><small>This page closes after 5 minutes.</small></p>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script>
+        var u = "${OTP_URI_JS}";
+        new QRCode(document.getElementById("qr"), {text: u, width: 256, height: 256, correctLevel: QRCode.CorrectLevel.L});
+        var m = u.match(/secret=([^&]+)/);
+        if (m) document.getElementById("sec").textContent = m[1];
+    </script>
+</body>
+</html>

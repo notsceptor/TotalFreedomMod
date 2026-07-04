@@ -1,18 +1,21 @@
 package me.totalfreedom.totalfreedommod.ssh;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.totalfreedommod.command.FreedomCommandExecutor;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchContext;
 import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchSession;
+import org.bukkit.command.CommandExecutor;
 import me.totalfreedom.totalfreedommod.util.CallbackLogAppender;
 import me.totalfreedom.totalfreedommod.util.FLog;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.Logger;
 import org.apache.sshd.server.Environment;
 import org.apache.sshd.server.ExitCallback;
+import org.apache.sshd.server.session.ServerSession;
 import org.apache.sshd.server.channel.ChannelSession;
 import org.apache.sshd.server.command.Command;
 import org.apache.sshd.server.shell.ShellFactory;
@@ -22,7 +25,12 @@ import org.jline.reader.LineReaderBuilder;
 import org.jline.reader.UserInterruptException;
 import org.jline.reader.EndOfFileException;
 import org.jline.terminal.Terminal;
-import org.jline.terminal.TerminalBuilder;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 
 /**
  * Creates interactive console shell sessions for SSH clients.
@@ -54,7 +62,6 @@ public class SshConsoleShellFactory implements ShellFactory
 
         private InputStream in;
         private OutputStream out;
-        private OutputStream err;
         private ExitCallback callback;
         private Environment environment;
         private Thread thread;
@@ -62,8 +69,8 @@ public class SshConsoleShellFactory implements ShellFactory
         private Terminal terminal;
         private LineReader lineReader;
         private CallbackLogAppender logAppender;
-        // Captured at start() so dispatch in run() doesn't need ChannelSession.
         private RemoteDispatchSession sshSession;
+        private Executor mainExecutor;
 
         public SshConsoleShell(TotalFreedomMod plugin)
         {
@@ -85,7 +92,7 @@ public class SshConsoleShellFactory implements ShellFactory
         @Override
         public void setErrorStream(OutputStream err)
         {
-            this.err = err;
+            // ignored, errors will be bounded to the output stream from console.
         }
 
         @Override
@@ -101,7 +108,6 @@ public class SshConsoleShellFactory implements ShellFactory
 
             try
             {
-                // Bypass JLine 3's TerminalBuilder and SPI provider resolution entirely.
                 String termType = env.getEnv().getOrDefault(Environment.ENV_TERM, "xterm-256color");
                 terminal = new org.jline.terminal.impl.ExternalTerminal(
                         "TFM-SSH",
@@ -111,13 +117,11 @@ public class SshConsoleShellFactory implements ShellFactory
                         java.nio.charset.StandardCharsets.UTF_8
                 );
 
-                // Build a LineReader with tab completion
                 lineReader = LineReaderBuilder.builder()
                         .terminal(terminal)
                         .completer(new SshCommandCompleter(plugin))
                         .build();
 
-                // Attach a log appender so server logs stream to this session
                 final Terminal sessionTerminal = terminal;
                 logAppender = new CallbackLogAppender(
                         "SshLogAppender-" + env.getEnv().get(Environment.ENV_USER),
@@ -129,25 +133,27 @@ public class SshConsoleShellFactory implements ShellFactory
                 logAppender.start();
                 ((Logger) LogManager.getRootLogger()).addAppender(logAppender);
 
-                String username = env.getEnv().get(Environment.ENV_USER);
+                String sshUsername = env.getEnv().get(Environment.ENV_USER);
                 SshAuthMethod method = channel.getSession().getAttribute(SshDaemon.AUTH_METHOD_KEY);
                 if (ConfigEntry.SSH_SHOW_USER.getBoolean())
                 {
                     String prefix = ConfigEntry.SSH_USER_PREFIX.getString();
-                    String displayName = (prefix == null ? "" : prefix) + username;
+                    String resolvedName = resolveDisplayName(channel.getSession(), sshUsername);
+                    String displayName = (prefix == null ? "" : prefix) + resolvedName;
                     sshSession = new RemoteDispatchSession(
                             RemoteDispatchSession.Channel.SSH,
-                            username,
+                            resolvedName,
                             displayName,
-                            method == SshAuthMethod.PUBLIC_KEY);
+                            method == SshAuthMethod.PUBLIC_KEY || method == SshAuthMethod.KEY_TOKEN);
                 }
                 else
                 {
                     sshSession = null;
                 }
 
-                // Start the reader thread
-                thread = new Thread(this, "SSHD ConsoleShell " + username);
+                mainExecutor = Bukkit.getScheduler().getMainThreadExecutor(plugin);
+
+                thread = new Thread(this, "SSHD ConsoleShell " + sshUsername);
                 thread.setDaemon(true);
                 thread.start();
             }
@@ -157,17 +163,31 @@ public class SshConsoleShellFactory implements ShellFactory
             }
         }
 
+        private String resolveDisplayName(ServerSession session, String fallback)
+        {
+            String identityId = session.getAttribute(SshDaemon.IDENTITY_KEY);
+            if (identityId == null || plugin.sd == null)
+            {
+                return fallback;
+            }
+            SshIdentityStore store = plugin.sd.getIdentityStore();
+            if (store == null)
+            {
+                return fallback;
+            }
+            SshIdentity identity = store.get(identityId);
+            return identity != null ? identity.identifier() : fallback;
+        }
+
         @Override
         public void destroy(ChannelSession channel)
         {
-            // Remove log appender
             if (logAppender != null)
             {
                 ((Logger) LogManager.getRootLogger()).removeAppender(logAppender);
                 logAppender.stop();
             }
 
-            // Close terminal
             if (terminal != null)
             {
                 try
@@ -176,7 +196,8 @@ public class SshConsoleShellFactory implements ShellFactory
                 }
                 catch (IOException e)
                 {
-                    // Ignore
+                    // We should actually probably parse this.
+                    FLog.severe(ExceptionUtils.getRootCauseMessage(e));
                 }
             }
 
@@ -228,12 +249,27 @@ public class SshConsoleShellFactory implements ShellFactory
                         break;
                     }
 
-                    // Dispatch command on the main server thread
                     final String cmd = command;
-                    Bukkit.getScheduler().runTask(plugin, () ->
+                    final String displayName = sshSession != null ? sshSession.getUsername() : username;
+                    CompletableFuture.runAsync(() ->
                     {
-                        FLog.info("[SSH: " + username + "] " + cmd);
-                        RemoteDispatchContext.dispatch(sshSession, cmd);
+                        FLog.info("[SSH: " + displayName + "] " + cmd);
+                        RemoteDispatchContext.runWithSession(sshSession, () ->
+                        {
+                            String stripped = cmd.startsWith("/") ? cmd.substring(1) : cmd;
+                            int sp = stripped.indexOf(' ');
+                            String name = (sp < 0 ? stripped : stripped.substring(0, sp)).toLowerCase();
+                            String[] args = sp < 0 ? new String[0] : stripped.substring(sp + 1).split("\\s+");
+                            CommandExecutor executor = plugin.cl.getHandler().getExecutors().get(name);
+                            if (executor instanceof FreedomCommandExecutor fce)
+                                fce.executePaper(Bukkit.getConsoleSender(), name, args);
+                            else
+                                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), stripped);
+                        });
+                    }, mainExecutor).exceptionally(ex ->
+                    {
+                        FLog.warning("[SSH] Command dispatch failed for " + displayName + ": " + ex.getMessage());
+                        return null;
                     });
                 }
             }
@@ -250,9 +286,9 @@ public class SshConsoleShellFactory implements ShellFactory
 
         private void printPreamble() throws IOException
         {
-            terminal.writer().println("TotalFreedomMod version " + plugin.getDescription().getVersion());
+            terminal.writer().println("TotalFreedomMod version " + plugin.getPluginMeta().getVersion());
             terminal.writer().println("Connected to: " + Bukkit.getServer().getName());
-            terminal.writer().println("- " + Bukkit.getServer().getMotd());
+            terminal.writer().println("- " + PlainTextComponentSerializer.plainText().serialize(Bukkit.getServer().motd()));
             terminal.writer().println();
             terminal.writer().println("Type 'exit' to disconnect.");
             terminal.writer().println("===============================================");
