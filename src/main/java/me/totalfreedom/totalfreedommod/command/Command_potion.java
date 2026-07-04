@@ -28,10 +28,13 @@ public class Command_potion extends FreedomCommand
     {
         final List<TextComponent> effects = Registry.POTION_EFFECT_TYPE.stream()
                 .map(type -> Component.text().append(ctx.isSenderConsole() ?
-                                Component.text(type.key().asString(), NamedTextColor.WHITE) :
-                                Component.translatable(type.translationKey(), NamedTextColor.WHITE)
-                                        .clickEvent(ClickEvent.clickEvent(ClickEvent.Action.SUGGEST_COMMAND, ClickEvent.Payload.string("/" + ctx.getCommandLabel() + " add " + type.getKey())))
-                        .hoverEvent(HoverEvent.showText(Component.translatable(type.translationKey()).appendNewline().append(Component.text(type.key().asString(), NamedTextColor.DARK_GRAY))))).build())
+                        Component.text(type.key().asString(), NamedTextColor.WHITE) :
+                        Component.translatable(type.translationKey(), NamedTextColor.WHITE)
+                                .clickEvent(ClickEvent.clickEvent(ClickEvent.Action.SUGGEST_COMMAND,
+                                        ClickEvent.Payload.string("/" + ctx.getCommandLabel() + " add " + type.getKey())))
+                        .hoverEvent(HoverEvent.showText(Component.translatable(type.translationKey())
+                                .appendNewline()
+                                .append(Component.text(type.key().asString(), NamedTextColor.DARK_GRAY))))).build())
                 .toList();
 
         msg(ctx.getSender(), "Potion effect types:");
