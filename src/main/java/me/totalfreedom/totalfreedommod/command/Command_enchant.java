@@ -1,131 +1,141 @@
 package me.totalfreedom.totalfreedommod.command;
 
+import io.papermc.paper.registry.RegistryAccess;
+import io.papermc.paper.registry.RegistryKey;
 import me.totalfreedom.totalfreedommod.rank.Rank;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.JoinConfiguration;
+import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
-import org.bukkit.Registry;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.List;
+
 @CommandPermissions(level = Rank.OP, source = SourceType.ONLY_IN_GAME, permission = "tfm.player.enchant")
-@CommandParameters(description = "Enchant items.", usage = "/<command> <list | addall | reset | add <name> | remove <name>>")
+@CommandParameters(description = "Enchant items.", usage = "/<command> <list | addall | reset | add <enchantment> [level] | remove <enchantment>>")
 public class Command_enchant extends FreedomCommand
 {
+    @CommandDispatchTarget(pattern = "list")
+    public boolean listPossibleEnchantments(CommandContext ctx)
+    {
+        final ItemStack item = ctx.getPlayerSender().getEquipment().getItemInMainHand();
+
+        if (item.getType() == Material.AIR)
+        {
+            msg("You have to hold an item to enchant it.");
+            return true;
+        }
+
+        final List<TextComponent> keys = RegistryAccess.registryAccess().getRegistry(RegistryKey.ENCHANTMENT).stream()
+                .filter(enchantment -> enchantment.canEnchantItem(item))
+                .map(enchantment -> Component.text().append(enchantment.description())
+                        .color(NamedTextColor.WHITE)
+                        .clickEvent(ClickEvent.clickEvent(ClickEvent.Action.SUGGEST_COMMAND, ClickEvent.Payload.string("/" + ctx.getCommandLabel() + " add " + enchantment.key().asString() + " ")))
+                        .hoverEvent(HoverEvent.showText(Component.text().append(enchantment.description())
+                                .appendNewline()
+                                .append(Component.text(enchantment.key().asString()).color(NamedTextColor.DARK_GRAY))))
+                        .build())
+                .toList();
+
+        if (!keys.isEmpty())
+        {
+            msg("Possible enchantments for held item:");
+            msg(Component.join(JoinConfiguration.commas(true), keys).color(NamedTextColor.GRAY));
+        }
+        else
+        {
+            msg("This item can't be enchanted.");
+        }
+
+        return true;
+    }
+
+    @CommandDispatchTarget(pattern = "addall")
+    public boolean addAllPossibleEnchantments(CommandContext ctx)
+    {
+        final ItemStack item = ctx.getPlayerSender().getEquipment().getItemInMainHand();
+
+        RegistryAccess.registryAccess().getRegistry(RegistryKey.ENCHANTMENT).stream()
+                .filter(enchantment -> enchantment.canEnchantItem(item))
+                .forEach(enchantment -> item.addEnchantment(enchantment, enchantment.getMaxLevel()));
+
+        msg(ctx.getSender(), "Added all possible enchantments for this item.");
+        return true;
+    }
+
+    @CommandDispatchTarget(pattern = "reset")
+    public boolean removeAllEnchantments(CommandContext ctx)
+    {
+        final ItemStack item = ctx.getPlayerSender().getEquipment().getItemInMainHand();
+
+        item.removeEnchantments();
+
+        msg(ctx.getSender(), "Removed all enchantments from this item.");
+        return true;
+    }
+
+    @CommandDispatchTarget(pattern = "add <enchantment:Enchantment>")
+    public boolean addEnchantment(CommandContext ctx, Enchantment enchantment)
+    {
+        return addEnchantment(ctx, enchantment, enchantment.getMaxLevel());
+    }
+
+    @CommandDispatchTarget(pattern = "add <enchantment:Enchantment> <level:Integer>")
+    public boolean addEnchantment(CommandContext ctx, Enchantment enchantment, Integer level)
+    {
+        final ItemStack item = ctx.getPlayerSender().getEquipment().getItemInMainHand();
+
+        if (item.getType() == Material.AIR)
+        {
+            msg(ctx.getSender(), "You have to hold an item to enchant it.");
+            return true;
+        }
+
+        if (!enchantment.canEnchantItem(item))
+        {
+            msg(ctx.getSender(), "This enchantment can't be applied to the item you're holding.");
+            return true;
+        }
+
+        item.addEnchantment(enchantment, Math.clamp(level, 1, enchantment.getMaxLevel()));
+        msg(ctx.getSender(), Component.text("Added enchantment ")
+                .append(enchantment.description())
+                .append(Component.text(" to this item.")).color(NamedTextColor.GRAY));
+
+        return true;
+    }
+
+    @CommandDispatchTarget(pattern = "remove <enchantment:Enchantment>")
+    public boolean removeEnchantment(CommandContext ctx, Enchantment enchantment)
+    {
+        final ItemStack item = ctx.getPlayerSender().getEquipment().getItemInMainHand();
+
+        if (item.removeEnchantment(enchantment) != 0)
+        {
+            msg(ctx.getSender(), Component.text("Removed enchantment ")
+                    .append(enchantment.description())
+                    .append(Component.text(" from this item.")).color(NamedTextColor.GRAY));
+        }
+        else
+        {
+            msg(ctx.getSender(), Component.text("That item didn't have ", NamedTextColor.GRAY)
+                    .append(enchantment.description())
+                    .append(Component.text(" to begin with.")));
+        }
+
+        return true;
+    }
 
     @Override
     public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
     {
-        if (args.length < 1)
-        {
-            return false;
-        }
-
-        ItemStack item = playerSender.getEquipment().getItemInMainHand();
-
-        if (item == null || item.getType() == Material.AIR)
-        {
-            msg("You have to hold an item to enchant it");
-            return true;
-        }
-
-        if (args[0].equalsIgnoreCase("list"))
-        {
-            boolean has_enchantments = false;
-
-            StringBuilder possible_ench = new StringBuilder("Possible enchantments for held item: ");
-            for (Enchantment ench : Enchantment.values())
-            {
-                if (ench.canEnchantItem(item))
-                {
-                    has_enchantments = true;
-                    possible_ench.append(ench.getKey().getKey()).append(", ");
-                }
-            }
-
-            if (has_enchantments)
-            {
-                msg(possible_ench.toString());
-            }
-            else
-            {
-                msg("The held item has no enchantments.");
-            }
-        }
-        else if (args[0].equalsIgnoreCase("addall"))
-        {
-            for (Enchantment ench : Enchantment.values())
-            {
-                try
-                {
-                    if (ench.canEnchantItem(item))
-                    {
-                        item.addEnchantment(ench, ench.getMaxLevel());
-                    }
-                }
-                catch (Exception ex)
-                {
-                    msg("Could not add enchantment: " + ench.getKey().getKey());
-                }
-            }
-
-            msg("Added all possible enchantments for this item.");
-        }
-        else if (args[0].equalsIgnoreCase("reset"))
-        {
-            for (Enchantment ench : item.getEnchantments().keySet())
-            {
-                item.removeEnchantment(ench);
-            }
-
-            msg("Removed all enchantments.");
-        }
-        else
-        {
-            if (args.length < 2)
-            {
-                return false;
-            }
-
-            Enchantment ench = null;
-
-            try
-            {
-                ench = Registry.ENCHANTMENT.get(NamespacedKey.minecraft(args[1].toLowerCase()));
-            }
-            catch (Exception ex)
-            {
-            }
-
-            if (ench == null)
-            {
-                msg(args[1] + " is an invalid enchantment for the held item. Type \"/enchant list\" for valid enchantments for this item.");
-                return true;
-            }
-
-            if (args[0].equalsIgnoreCase("add"))
-            {
-                if (ench.canEnchantItem(item))
-                {
-                    item.addEnchantment(ench, ench.getMaxLevel());
-
-                    msg("Added enchantment: " + ench.getKey().getKey());
-                }
-                else
-                {
-                    msg("Can't use this enchantment on held item.");
-                }
-            }
-            else if (args[0].equals("remove"))
-            {
-                item.removeEnchantment(ench);
-
-                msg("Removed enchantment: " + ench.getKey().getKey());
-            }
-        }
-
-        return true;
+        return false;
     }
 }

@@ -7,18 +7,23 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 @CommandPermissions(level = Rank.SUPER_ADMIN, source = SourceType.BOTH, permission = "tfm.admin.denick")
-@CommandParameters(description = "Essentials Interface Command - Remove the nickname of all players on the server.", usage = "/<command>")
+@CommandParameters(description = "Remove the nickname of all players on the server.", usage = "/<command>")
 public class Command_denick extends FreedomCommand
 {
-
-    @Override
-    public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
+    @CommandDispatchTarget
+    public boolean removeNicknames(CommandContext ctx)
     {
-        FUtil.adminAction(sender.getName(), "Removing all nicknames", false);
+        FUtil.adminAction(ctx.getSender().getName(), "Removing all nicknames", false);
 
         for (Player player : server.getOnlinePlayers())
             plugin.pl.getData(player).setNickname(null);
 
         return true;
+    }
+
+    @Override
+    public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
+    {
+        return false;
     }
 }

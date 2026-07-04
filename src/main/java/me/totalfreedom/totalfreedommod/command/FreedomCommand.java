@@ -6,7 +6,6 @@ import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.command.resolver.ArgumentResolutionException;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.rank.Rank;
-import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchContext;
@@ -28,18 +27,16 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.serializer.ansi.ANSIComponentSerializer;
 
 import org.apache.commons.lang3.StringUtils;
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-@SuppressWarnings("deprecation")
 public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod>
 {
-    public static final String YOU_ARE_OP = "\u00A7eYou are now op!";
-    public static final String YOU_ARE_NOT_OP = "\u00A7eYou are no longer op!";
-    public static final String NOT_FROM_CONSOLE = "This command may not be used from the console.";
-    public static final String PLAYER_NOT_FOUND = "\u00A77Player not found!";
+    public static final Component YOU_ARE_OP = Component.text("You are now op!", NamedTextColor.YELLOW);
+    public static final Component YOU_ARE_NOT_OP = Component.text("You are no longer op!", NamedTextColor.YELLOW);
+    public static final Component NOT_FROM_CONSOLE = Component.text("This command may not be used from the console.", NamedTextColor.GRAY);
+    public static final Component PLAYER_NOT_FOUND = Component.text("Player not found!", NamedTextColor.GRAY);
     //
     private static final String SIMPLE_ARGUMENT_PATTERN = "\\S+";
     private static final String VARIABLE_LENGTH_ARGUMENT_PATTERN = ".+";
@@ -303,7 +300,12 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
         {
             return dispatchCommand(ctx, args);
         }
-        catch (CommandFailException | ArgumentResolutionException ex)
+        catch (ArgumentResolutionException ex)
+        {
+            msg(ex.getFormattedMessage());
+            return true;
+        }
+        catch (CommandFailException ex)
         {
             msg(ex.getMessage());
             return true;
@@ -442,23 +444,6 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
         msg(sender, message, color);
     }
 
-    @Deprecated
-    protected void msg(final CommandSender sender, final String message, final ChatColor color)
-    {
-        if (sender == null || message == null)
-        {
-            return;
-        }
-        NamedTextColor namedColor = color != null ? AdventureUtil.chatColorToNamedTextColor(color) : null;
-        msg(sender, message, namedColor);
-    }
-
-    @Deprecated
-    protected void msg(final String message, final ChatColor color)
-    {
-        msg(sender, message, color);
-    }
-
     protected void msg(final CommandSender sender, final String message)
     {
         msg(sender, message, NamedTextColor.GRAY);
@@ -482,16 +467,6 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
         if (target != null && message != null)
         {
             target.sendMessage(FUtil.colorizeWithLinks(message, color));
-        }
-    }
-
-    @Deprecated
-    protected void msg(final Player target, final String message, final ChatColor color)
-    {
-        if (target != null && message != null)
-        {
-            NamedTextColor namedColor = color != null ? me.totalfreedom.totalfreedommod.util.AdventureUtil.chatColorToNamedTextColor(color) : null;
-            msg(target, message, namedColor);
         }
     }
     

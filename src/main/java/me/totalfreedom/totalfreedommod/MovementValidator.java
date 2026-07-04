@@ -1,7 +1,11 @@
 package me.totalfreedom.totalfreedommod;
 
+import com.destroystokyo.paper.profile.PlayerProfile;
+import io.papermc.paper.event.player.AsyncPlayerSpawnLocationEvent;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
+import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FLog;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.WorldBorder;
@@ -65,17 +69,19 @@ public class MovementValidator extends FreedomService
     }
 
     @EventHandler(priority = EventPriority.HIGH)
-    public void onPlayerSpawnLocation(PlayerSpawnLocationEvent event)
+    public void onPlayerSpawnLocation(AsyncPlayerSpawnLocationEvent event)
     {
         final Location loc = event.getSpawnLocation();
+        final PlayerProfile profile = event.getConnection().getProfile();
+
         if (!outOfBounds(loc))
         {
             return;
         }
-        final World world = loc != null ? loc.getWorld() : event.getPlayer().getWorld();
-        event.setSpawnLocation(world.getSpawnLocation());
-        FLog.warning("[MovementValidator] " + event.getPlayer().getName()
-                + " joined out of bounds; relocated to " + world.getName() + " spawn.");
+
+        event.setSpawnLocation(loc.getWorld().getSpawnLocation());
+        FLog.warning("[MovementValidator] " + profile.getName()
+                + " joined out of bounds; relocated to spawn.");
     }
 
     @EventHandler(priority = EventPriority.MONITOR)

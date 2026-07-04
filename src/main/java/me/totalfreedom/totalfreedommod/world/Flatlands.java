@@ -4,6 +4,8 @@ import java.io.File;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.commons.io.FileUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -13,7 +15,6 @@ import org.bukkit.WorldType;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
-@SuppressWarnings("deprecation")
 public class Flatlands extends CustomWorld
 {
 
@@ -45,33 +46,6 @@ public class Flatlands extends CustomWorld
         world.setSpawnFlags(false, false);
         world.setSpawnLocation(0, 50, 0);
 
-        final Block welcomeSignBlock = world.getBlockAt(0, 50, 0);
-        welcomeSignBlock.setType(Material.OAK_SIGN);
-        // Use BlockData API instead of deprecated MaterialData
-        org.bukkit.block.data.type.Sign signData = (org.bukkit.block.data.type.Sign) Material.OAK_SIGN.createBlockData();
-        signData.setRotation(BlockFace.NORTH);
-        welcomeSignBlock.setBlockData(signData);
-        
-        org.bukkit.block.Sign welcomeSign = (org.bukkit.block.Sign) welcomeSignBlock.getState();
-
-        String[] lines = {
-            "\u00A7aFlatlands",
-            "\u00A78---",
-            "\u00A7eSpawn Point",
-            "\u00A78---"
-        };
-
-        org.bukkit.block.sign.SignSide front = welcomeSign.getSide(org.bukkit.block.sign.Side.FRONT);
-        org.bukkit.block.sign.SignSide back = welcomeSign.getSide(org.bukkit.block.sign.Side.BACK);
-
-        for (int i = 0; i < lines.length; i++) {
-            front.setLine(i, lines[i]);
-            back.setLine(i, lines[i]);
-        }
-
-        welcomeSign.update();
-
-        plugin.gr.enforceGameRuleDefaultsForWorld(world);
         return world;
     }
 
