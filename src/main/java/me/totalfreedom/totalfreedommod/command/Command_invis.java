@@ -39,7 +39,7 @@ public class Command_invis extends FreedomCommand
                 .map(player -> ctx.isSenderConsole() ? Component.text(player.getName(), NamedTextColor.WHITE) : player.displayName()
                         .colorIfAbsent(NamedTextColor.WHITE)
                         .hoverEvent(HoverEvent.showText(Component.text(player.getName())))
-                        .clickEvent(ClickEvent.clickEvent(ClickEvent.Action.RUN_COMMAND, ClickEvent.Payload.string("/tp " + player.getName()))))
+                        .clickEvent(ClickEvent.clickEvent(ClickEvent.Action.RUN_COMMAND, ClickEvent.Payload.string("/tp" + (plugin.esb.isEssentialsEnabled() ? "o " : " ") + player.getName()))))
                 .toList();
 
         if (players.isEmpty())
