@@ -13,8 +13,8 @@ import org.bukkit.entity.Player;
 public class Command_stop extends FreedomCommand
 {
 
-    @Override
-    public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
+    @CommandDispatchTarget
+    public boolean stopServer(CommandContext ctx)
     {
         FUtil.bcastMsg("Server is going offline!", NamedTextColor.LIGHT_PURPLE);
 
@@ -26,5 +26,11 @@ public class Command_stop extends FreedomCommand
         server.shutdown();
 
         return true;
+    }
+
+    @Override
+    public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
+    {
+        return false;
     }
 }

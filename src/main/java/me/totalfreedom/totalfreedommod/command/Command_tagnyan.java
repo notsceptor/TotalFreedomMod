@@ -6,7 +6,6 @@ import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
-import org.apache.commons.lang3.StringUtils;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -16,15 +15,13 @@ import org.bukkit.entity.Player;
 public class Command_tagnyan extends FreedomCommand
 {
 
-    @Override
-    public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
+    @CommandDispatchTarget(pattern = "<tag..>")
+    public boolean setSelfTag(CommandContext ctx, String tag)
     {
-        if (args.length < 1)
-        {
-            return false;
-        }
+        Player playerSender = ctx.getPlayerSender();
+        CommandSender sender = ctx.getSender();
 
-        final String plainText = AdventureUtil.stripColor(StringUtils.join(args, " "));
+        final String plainText = AdventureUtil.stripColor(tag);
 
         if (plainText.length() > Command_tag.MAX_TAG_LENGTH)
         {
@@ -53,5 +50,11 @@ public class Command_tagnyan extends FreedomCommand
         msg(Component.text("Set tag to ").append(result));
 
         return true;
+    }
+
+    @Override
+    public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
+    {
+        return false;
     }
 }
