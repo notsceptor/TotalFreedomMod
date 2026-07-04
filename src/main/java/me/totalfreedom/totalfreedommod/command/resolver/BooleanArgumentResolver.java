@@ -17,7 +17,7 @@ public class BooleanArgumentResolver implements AbstractArgumentResolver<Boolean
         {
             case "t", "true", "on", "yes", "1" -> true;
             case "f", "false", "off", "no", "0" -> false;
-            default -> throw new ArgumentResolutionException("Invalid response: " + arg);
+            default -> throw new ArgumentResolutionException("Expected a true/false value or something similar, got " + arg);
         };
     }
 }
