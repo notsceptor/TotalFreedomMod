@@ -300,7 +300,12 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
         {
             return dispatchCommand(ctx, args);
         }
-        catch (CommandFailException | ArgumentResolutionException ex)
+        catch (ArgumentResolutionException ex)
+        {
+            msg(ex.getFormattedMessage());
+            return true;
+        }
+        catch (CommandFailException ex)
         {
             msg(ex.getMessage());
             return true;

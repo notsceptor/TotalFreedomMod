@@ -1,7 +1,5 @@
 package me.totalfreedom.totalfreedommod.command.resolver;
 
-import me.totalfreedom.totalfreedommod.util.AdventureUtil;
-import me.totalfreedom.totalfreedommod.util.FUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
@@ -28,7 +26,7 @@ public class PlayerArgumentResolver implements AbstractArgumentResolver<Player>
         }
 
         if (player == null)
-            throw new ArgumentResolutionException(AdventureUtil.componentToPlainText(FreedomCommand.PLAYER_NOT_FOUND));
+            throw new ArgumentResolutionException(FreedomCommand.PLAYER_NOT_FOUND);
 
         return player;
     }

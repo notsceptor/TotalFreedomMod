@@ -1,7 +1,6 @@
 package me.totalfreedom.totalfreedommod.command.resolver;
 
 import me.totalfreedom.totalfreedommod.command.FreedomCommand;
-import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 
@@ -33,7 +32,7 @@ public class OfflinePlayerArgumentResolver implements AbstractArgumentResolver<O
 
         if (!offlinePlayer.isOnline() && !offlinePlayer.hasPlayedBefore() && strategy.equalsIgnoreCase("hideUnknownPlayers"))
         {
-            throw new ArgumentResolutionException(AdventureUtil.componentToPlainText(FreedomCommand.PLAYER_NOT_FOUND));
+            throw new ArgumentResolutionException(FreedomCommand.PLAYER_NOT_FOUND);
         }
 
         return offlinePlayer;
