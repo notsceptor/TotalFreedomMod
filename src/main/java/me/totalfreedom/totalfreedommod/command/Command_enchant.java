@@ -118,10 +118,18 @@ public class Command_enchant extends FreedomCommand
     {
         final ItemStack item = ctx.getPlayerSender().getEquipment().getItemInMainHand();
 
-        item.removeEnchantment(enchantment);
-        msg(Component.text("Removed enchantment ")
-                .append(enchantment.description())
-                .append(Component.text(" from this item.")).color(NamedTextColor.GRAY));
+        if (item.removeEnchantment(enchantment) != 0)
+        {
+            msg(ctx.getSender(), Component.text("Removed enchantment ")
+                    .append(enchantment.description())
+                    .append(Component.text(" from this item.")).color(NamedTextColor.GRAY));
+        }
+        else
+        {
+            msg(ctx.getSender(), Component.text("That item didn't have ", NamedTextColor.GRAY)
+                    .append(enchantment.description())
+                    .append(Component.text(" to begin with.")));
+        }
 
         return true;
     }
