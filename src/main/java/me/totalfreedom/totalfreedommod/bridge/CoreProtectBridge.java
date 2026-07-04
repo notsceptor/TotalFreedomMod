@@ -60,14 +60,7 @@ public class CoreProtectBridge extends FreedomService
             return;
         }
 
-        CoreProtectAPI api = getCoreProtectAPI();
-
-        if (api == null)
-        {
-            return;
-        }
-
-
+        final CoreProtectAPI api = getCoreProtectAPI();
         final Block block = player.getTargetBlock(null, 5);
 
         // Cancel the event
@@ -89,7 +82,7 @@ public class CoreProtectBridge extends FreedomService
                     .append(Component.text("x" + location.getBlockX() + ", y" + location.getBlockY() + ", z" + location.getBlockZ(), NamedTextColor.WHITE))
                     .append(Component.text("):", NamedTextColor.BLUE)));
 
-            results.stream().map(api::parseResult).filter(lol -> lol.getActionId() < 2).forEach(result ->
+            results.stream().map(api::parseResult).filter(parsed -> parsed.getActionId() < 2).forEach(result ->
                     FUtil.playerMsg(player, String.format(" - %s %s %s",
                             result.getPlayer(),
                             result.getActionId() == 0 ? "broke" : "placed",
