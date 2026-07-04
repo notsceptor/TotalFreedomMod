@@ -46,7 +46,6 @@ import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.player.PlayerList;
 import me.totalfreedom.totalfreedommod.rank.ConsoleSenderRegistry;
 import me.totalfreedom.totalfreedommod.rank.RankManager;
-import me.totalfreedom.totalfreedommod.rollback.RollbackManager;
 import me.totalfreedom.totalfreedommod.sql.FreedomDatabase;
 import me.totalfreedom.totalfreedommod.sql.YamlMigrationService;
 import me.totalfreedom.totalfreedommod.util.FLog;
@@ -104,7 +103,6 @@ public class TotalFreedomMod extends JavaPlugin
     public ProtectArea pa; // ProtectArea - Manages protected areas and spawnpoints
     public SpawnManager sm; // SpawnManager - Handles configured spawn behavior
     public GameRuleHandler gr; // GameRuleHandler - Manages game rules
-    public RollbackManager rb; // RollbackManager - Handles rollback operations
     public CommandSpy cs; // CommandSpy - Logs and monitors command usage
     public PotionSpy ps; // PotionSpy - Logs and monitors potion usage
     public Cager ca; // Cager - Creates cages around players
@@ -234,7 +232,6 @@ public class TotalFreedomMod extends JavaPlugin
         services.registerService(me.totalfreedom.totalfreedommod.disguise.DisallowedDisguises.class);
 
         // Single admin utils
-        rb = services.registerService(RollbackManager.class);
         cs = services.registerService(CommandSpy.class);
         ps = services.registerService(PotionSpy.class);
         ca = services.registerService(Cager.class);

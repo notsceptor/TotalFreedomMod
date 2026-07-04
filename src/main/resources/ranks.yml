@@ -128,7 +128,6 @@ super_admin:
     - tfm.admin.premium
     - tfm.admin.purgeall
     - tfm.admin.ro
-    - tfm.admin.rollback
     - tfm.admin.say
     - tfm.admin.strike
     - tfm.admin.undisguiseall
