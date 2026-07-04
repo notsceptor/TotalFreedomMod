@@ -6,13 +6,11 @@ import me.totalfreedom.totalfreedommod.util.FUtil;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitTask;
 
 @CommandPermissions(level = Rank.SUPER_ADMIN, source = SourceType.BOTH, permission = "tfm.admin.blockredstone")
 @CommandParameters(description = "Blocks redstone on the server.", usage = "/<command> [value]", aliases = "bre")
 public class Command_blockredstone extends FreedomCommand
 {
-    private BukkitTask autoUnblock = null;
 
     @CommandDispatchTarget
     public boolean toggle(CommandContext ctx)
@@ -25,24 +23,6 @@ public class Command_blockredstone extends FreedomCommand
     {
         FUtil.adminAction(ctx.getSender().getName(), (newValue ? "B" : "Unb") + "locking all redstone", true);
         ConfigEntry.ALLOW_REDSTONE.setBoolean(!newValue);
-
-        if (autoUnblock != null)
-        {
-            autoUnblock.cancel();
-        }
-
-        if (newValue)
-        {
-            autoUnblock = server.getScheduler().runTaskLater(plugin, () ->
-            {
-                if (!ConfigEntry.ALLOW_REDSTONE.getBoolean())
-                {
-                    FUtil.adminAction("TotalFreedom", "Unblocking all redstone", false);
-                    ConfigEntry.ALLOW_REDSTONE.setBoolean(true);
-                }
-            }, 6000L);
-        }
-
         return true;
     }
 

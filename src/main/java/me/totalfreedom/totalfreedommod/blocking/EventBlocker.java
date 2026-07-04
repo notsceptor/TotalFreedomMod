@@ -1,5 +1,6 @@
 package me.totalfreedom.totalfreedommod.blocking;
 
+import io.papermc.paper.event.block.BlockPreDispenseEvent;
 import me.totalfreedom.totalfreedommod.EntityWiper;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
@@ -20,6 +21,7 @@ import org.bukkit.entity.Tameable;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.block.BlockBurnEvent;
+import org.bukkit.event.block.BlockDispenseEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.BlockIgniteEvent;
@@ -38,6 +40,8 @@ import org.bukkit.event.entity.ExplosionPrimeEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.entity.SpawnerSpawnEvent;
 import org.bukkit.event.entity.TrialSpawnerSpawnEvent;
+import org.bukkit.event.inventory.InventoryMoveItemEvent;
+import org.bukkit.event.inventory.InventoryPickupItemEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.world.PortalCreateEvent;
 
@@ -269,7 +273,7 @@ public class EventBlocker extends FreedomService
     @EventHandler(priority = EventPriority.HIGH)
     public void onPistonExtend(BlockPistonExtendEvent event)
     {
-        if (ConfigEntry.DISABLE_PISTONS.getBoolean())
+        if (ConfigEntry.DISABLE_PISTONS.getBoolean() || redstoneBlocked())
         {
             event.setCancelled(true);
         }
@@ -278,7 +282,7 @@ public class EventBlocker extends FreedomService
     @EventHandler(priority = EventPriority.HIGH)
     public void onPistonRetract(BlockPistonRetractEvent event)
     {
-        if (ConfigEntry.DISABLE_PISTONS.getBoolean())
+        if (ConfigEntry.DISABLE_PISTONS.getBoolean() || redstoneBlocked())
         {
             event.setCancelled(true);
         }
@@ -311,12 +315,53 @@ public class EventBlocker extends FreedomService
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGH)
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onBlockRedstone(BlockRedstoneEvent event)
     {
         if (!ConfigEntry.ALLOW_REDSTONE.getBoolean())
         {
             event.setNewCurrent(0);
         }
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onBlockPreDispense(BlockPreDispenseEvent event)
+    {
+        if (redstoneBlocked())
+        {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onBlockDispense(BlockDispenseEvent event)
+    {
+        if (redstoneBlocked())
+        {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onInventoryMoveItem(InventoryMoveItemEvent event)
+    {
+        if (redstoneBlocked())
+        {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onInventoryPickupItem(InventoryPickupItemEvent event)
+    {
+        if (redstoneBlocked())
+        {
+            event.setCancelled(true);
+        }
+    }
+
+    private static boolean redstoneBlocked()
+    {
+        return !ConfigEntry.ALLOW_REDSTONE.getBoolean();
     }
 }
