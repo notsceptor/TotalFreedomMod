@@ -32,7 +32,8 @@ public class Command_expel extends FreedomCommand
         final Vector senderPos = playerSender.getLocation().toVector();
         final double finalStrength = strength;
 
-        final List<Component> sent = ctx.getPlayerSender().getWorld().getNearbyPlayers(ctx.getPlayerSender().getLocation(), radius).stream().filter(player -> !player.equals(ctx.getPlayerSender())).peek(player ->
+        final List<Component> sent = ctx.getPlayerSender().getWorld().getNearbyPlayers(ctx.getPlayerSender().getLocation(), radius)
+                .stream().filter(player -> !player.equals(ctx.getPlayerSender())).map(player ->
         {
             final Location targetPos = player.getLocation();
             final Vector targetPosVec = targetPos.toVector();
@@ -40,7 +41,11 @@ public class Command_expel extends FreedomCommand
             player.getWorld().createExplosion(targetPos, 0.0f, false);
             FUtil.setFlying(player, false);
             player.setVelocity(targetPosVec.subtract(senderPos).normalize().multiply(finalStrength));
-        }).map(player -> player.displayName().colorIfAbsent(NamedTextColor.WHITE).hoverEvent(HoverEvent.showText(Component.text(player.getName())))).toList();
+
+            return player.displayName()
+                    .colorIfAbsent(NamedTextColor.WHITE)
+                    .hoverEvent(HoverEvent.showText(Component.text(player.getName())));
+        }).toList();
 
         if (sent.isEmpty())
         {
