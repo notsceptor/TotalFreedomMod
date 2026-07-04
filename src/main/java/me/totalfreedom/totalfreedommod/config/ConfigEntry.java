@@ -48,6 +48,7 @@ public enum ConfigEntry
     SSH_SHOW_USER(Boolean.class, "ssh.show_user"),
     SSH_USER_PREFIX(String.class, "ssh.user_prefix"),
     SSH_INHERIT_RANK(Boolean.class, "ssh.inherit_rank"),
+    SSH_QR_PORT(Integer.class, "ssh.qr_port"),
     //
     DISCORD_ENABLED(Boolean.class, "discord.enabled"),
     DISCORD_TOKEN(String.class, "discord.token"),

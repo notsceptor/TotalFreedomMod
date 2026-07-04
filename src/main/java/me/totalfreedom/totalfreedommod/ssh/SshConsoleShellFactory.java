@@ -9,6 +9,8 @@ import org.bukkit.command.CommandExecutor;
 import me.totalfreedom.totalfreedommod.util.CallbackLogAppender;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.Logger;
 import org.apache.sshd.server.Environment;
@@ -173,7 +175,7 @@ public class SshConsoleShellFactory implements ShellFactory
                 return fallback;
             }
             SshIdentity identity = store.get(identityId);
-            return identity != null && identity.username() != null ? identity.username() : fallback;
+            return identity != null ? identity.identifier() : fallback;
         }
 
         @Override
@@ -193,7 +195,8 @@ public class SshConsoleShellFactory implements ShellFactory
                 }
                 catch (IOException e)
                 {
-                    // ignored like my wife
+                    // We should actually probably parse this.
+                    FLog.severe(ExceptionUtils.getRootCauseMessage(e));
                 }
             }
 

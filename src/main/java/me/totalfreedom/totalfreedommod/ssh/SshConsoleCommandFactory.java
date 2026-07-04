@@ -146,7 +146,7 @@ public class SshConsoleCommandFactory implements CommandFactory
                 return fallback;
             }
             SshIdentity identity = store.get(identityId);
-            return identity != null && identity.username() != null ? identity.username() : fallback;
+            return identity != null ? identity.identifier() : fallback;
         }
 
         @Override

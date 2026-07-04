@@ -45,7 +45,7 @@ public class SshPublicKeyAuthenticator implements PublickeyAuthenticator
                         session.setAttribute(SshDaemon.FINGERPRINT_KEY, fingerprint);
                         session.setAttribute(SshDaemon.IDENTITY_KEY, identity.identifier());
                         FLog.info("[SSH] Key matched identity '" + identity.identifier()
-                                + "' (MC: " + identity.username() + ") for SSH user: " + username);
+                                + "' for SSH user: " + username);
                         return true;
                     }
                 }

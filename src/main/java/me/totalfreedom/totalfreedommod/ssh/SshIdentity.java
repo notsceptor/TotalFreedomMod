@@ -4,7 +4,6 @@ import java.util.Map;
 
 public record SshIdentity(
         String identifier,
-        String username,
         String lastLogin,
         String rank,
         String totpSecret,

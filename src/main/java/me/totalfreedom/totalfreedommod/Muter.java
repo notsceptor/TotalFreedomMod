@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
+import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FSync;
 import net.kyori.adventure.text.Component;
@@ -117,7 +118,7 @@ public class Muter extends FreedomService
         // TODO: Should this go here?
         if (ConfigEntry.ENABLE_PREPROCESS_LOG.getBoolean())
         {
-            FLog.info(String.format("[PREPROCESS_COMMAND] %s(%s): %s", player.getName(), me.totalfreedom.totalfreedommod.util.AdventureUtil.stripColor(player.displayName().toString()), message), true);
+            FLog.info(String.format("[PREPROCESS_COMMAND] %s(%s): %s", player.getName(), AdventureUtil.stripColor(player.displayName().toString()), message), true);
         }
     }
 

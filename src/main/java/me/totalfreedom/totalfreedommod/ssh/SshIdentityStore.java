@@ -42,7 +42,7 @@ public class SshIdentityStore
         }
         for (File file : files)
         {
-            String identifier = file.getName().substring(0, file.getName().length() - 5);
+            String identifier = file.getName().substring(0, file.getName().length() - ".json".length());
             try (FileReader reader = new FileReader(file))
             {
                 JsonObject root = GSON.fromJson(reader, JsonObject.class);
@@ -73,7 +73,6 @@ public class SshIdentityStore
         {
             identities.put(identifier, new SshIdentity(
                     current.identifier(),
-                    current.username(),
                     current.lastLogin(),
                     current.rank(),
                     secret,
@@ -114,7 +113,6 @@ public class SshIdentityStore
         {
             identities.put(identifier, new SshIdentity(
                     current.identifier(),
-                    current.username(),
                     now,
                     current.rank(),
                     current.totpSecret(),
@@ -151,7 +149,6 @@ public class SshIdentityStore
     {
         return new SshIdentity(
                 identifier,
-                getString(root, "username"),
                 getString(root, "last-login"),
                 getString(root, "rank"),
                 getString(root, "totp-secret"),

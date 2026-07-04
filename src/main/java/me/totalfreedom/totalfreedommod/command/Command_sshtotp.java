@@ -1,5 +1,6 @@
 package me.totalfreedom.totalfreedommod.command;
 
+import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.ssh.SshIdentity;
 import me.totalfreedom.totalfreedommod.ssh.SshQrServer;
@@ -13,62 +14,46 @@ import java.util.UUID;
 @CommandPermissions(level = Rank.SENIOR_ADMIN, source = SourceType.ONLY_CONSOLE, permission = "tfm.ssh.totp")
 @CommandParameters(
         description = "Generate a TOTP secret for an SSH identity and serve a one-time QR setup page.",
-        usage = "/<command> <identity> [port]")
+        usage = "/<command> <identity>")
 public class Command_sshtotp extends FreedomCommand
 {
-    private static final int DEFAULT_PORT = 8765;
-
-    @Override
-    public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
+    /** 
+     * It's important to note that identity is the username identity of the player as their file name is set. 
+     */
+    @CommandDispatchTarget(pattern = "<identity>")
+    public boolean sshtotp(CommandContext ctx, String identity)
     {
-        if (args.length < 1)
-        {
-            return false;
-        }
-
-        String identifier = args[0];
-        int port = DEFAULT_PORT;
-
-        if (args.length >= 2)
-        {
-            try
-            {
-                port = Integer.parseInt(args[1]);
-            }
-            catch (NumberFormatException e)
-            {
-                msg("Invalid port: " + args[1]);
-                return true;
-            }
-        }
-
         if (plugin.sd == null || plugin.sd.getIdentityStore() == null)
         {
             msg("SSH daemon is not running.");
             return true;
         }
 
-        SshIdentity identity = plugin.sd.getIdentityStore().get(identifier);
-        if (identity == null)
+        SshIdentity sshIdentity = plugin.sd.getIdentityStore().get(identity);
+        if (sshIdentity == null)
         {
-            msg("No SSH identity found for: " + identifier);
+            msg("No SSH identity found for: " + identity);
             return true;
         }
 
         String secret = TotpUtil.generateSecret();
-        String label = identity.username() != null ? identity.username() : identifier;
-        String uri = TotpUtil.buildUri("TotalFreedomMod", label, secret);
+        String uri = TotpUtil.buildUri("TotalFreedomMod", identity, secret);
         String token = UUID.randomUUID().toString().replace("-", "");
 
-        plugin.sd.getIdentityStore().setTotpSecret(identifier, secret);
+        plugin.sd.getIdentityStore().setTotpSecret(identity, secret);
 
-        msg("TOTP secret generated for identity: " + identifier);
-        msg("User label: " + label);
+        msg("TOTP secret generated for identity: " + identity);
         msg("Secret (keep private): " + secret);
         msg("Setup URI: " + uri);
-        msg("QR page (5 min, one-time): http://<server-ip>:" + port + "/qr?t=" + token);
+        msg("QR page (5 min, one-time): http://" + ConfigEntry.SERVER_ADDRESS.getString() + ":" + ConfigEntry.SSH_QR_PORT.getInteger() + "/qr?t=" + token);
 
-        SshQrServer.serve(uri, label, port, token);
+        SshQrServer.enqueue(uri, identity, token);
         return true;
+    }
+
+    @Override
+    protected boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
+    {
+        return false;
     }
 }

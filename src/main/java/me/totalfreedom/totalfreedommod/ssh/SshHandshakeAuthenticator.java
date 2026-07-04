@@ -59,14 +59,14 @@ public class SshHandshakeAuthenticator implements KeyboardInteractiveAuthenticat
 
         if (!TotpUtil.verify(identity.totpSecret(), responses.get(0)))
         {
-            FLog.info("[SSH] TOTP verification failed for: " + identity.username());
+            FLog.info("[SSH] TOTP verification failed for: " + identity.identifier());
             return false;
         }
 
         session.setAttribute(SshDaemon.AUTH_METHOD_KEY, SshAuthMethod.KEY_TOKEN);
         identityStore.updateLastLogin(identityId);
 
-        FLog.info("[SSH] TOTP verified — session user: " + identity.username());
+        FLog.info("[SSH] TOTP verified — session user: " + identity.identifier());
         return true;
     }
 }

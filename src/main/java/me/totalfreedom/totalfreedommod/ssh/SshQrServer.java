@@ -1,107 +1,229 @@
 package me.totalfreedom.totalfreedommod.ssh;
 
+import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
+import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.CompletableFuture;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
+/**
+ * A single, shared HTTP daemon that serves one-time TOTP QR setup pages.
+ * Requests are held in a bounded FIFO queue keyed by token; a request is popped and
+ * discarded as soon as its page is retrieved. The daemon shuts itself down once the
+ * queue drains, or after 5 minutes pass without a new request being queued.
+ */
 public final class SshQrServer
 {
-    private SshQrServer() {}
+    private static final int MAX_PENDING = 20;
+    private static final Duration IDLE_TIMEOUT = Duration.ofMinutes(5);
+    private static final Object LOCK = new Object();
 
-    public static void serve(String otpUri, String label, int port, String token)
+    private static SshQrServer instance;
+
+    private final HttpServer server;
+    private final ScheduledExecutorService scheduler;
+    private final LinkedHashMap<String, PendingRequest> pending = new LinkedHashMap<>();
+    private ScheduledFuture<?> idleCheck;
+
+    private record PendingRequest(String otpUri, String label, Instant createdAt) {}
+
+    private SshQrServer(int port) throws IOException
     {
-        CompletableFuture.runAsync(() ->
+        server = HttpServer.create(new InetSocketAddress(port), 0);
+        scheduler = Executors.newSingleThreadScheduledExecutor();
+        server.createContext("/qr", this::handle);
+        server.start();
+        FLog.info("[SSH] QR setup server started on port " + port + ".");
+    }
+
+    public static void enqueue(String otpUri, String label, String token)
+    {
+        synchronized (LOCK)
         {
             try
             {
-                HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
-                ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-                AtomicBoolean consumed = new AtomicBoolean(false);
-
-                server.createContext("/qr", exchange ->
+                if (instance == null)
                 {
-                    String query = exchange.getRequestURI().getQuery();
-                    boolean validToken = query != null && query.contains("t=" + token);
-
-                    if (!validToken || !consumed.compareAndSet(false, true))
-                    {
-                        byte[] gone = "<html><body><h2>This link has already been used or is invalid.</h2></body></html>"
-                                .getBytes(StandardCharsets.UTF_8);
-                        exchange.getResponseHeaders().set("Content-Type", "text/html; charset=utf-8");
-                        exchange.sendResponseHeaders(410, gone.length);
-                        exchange.getResponseBody().write(gone);
-                        exchange.close();
-                        return;
-                    }
-
-                    byte[] body = buildHtml(otpUri, label).getBytes(StandardCharsets.UTF_8);
-                    exchange.getResponseHeaders().set("Content-Type", "text/html; charset=utf-8");
-                    exchange.sendResponseHeaders(200, body.length);
-                    exchange.getResponseBody().write(body);
-                    exchange.close();
-
-                    scheduler.schedule(() ->
-                    {
-                        server.stop(0);
-                        scheduler.shutdown();
-                        FLog.info("[SSH] QR setup server stopped after one-time use.");
-                    }, 2, TimeUnit.SECONDS);
-                });
-
-                server.start();
-                FLog.info("[SSH] QR setup page available on port " + port + " for 5 minutes.");
-
-                scheduler.schedule(() ->
-                {
-                    server.stop(0);
-                    if (!scheduler.isShutdown())
-                    {
-                        scheduler.shutdown();
-                        FLog.info("[SSH] QR setup server timed out.");
-                    }
-                }, 5, TimeUnit.MINUTES);
+                    instance = new SshQrServer(ConfigEntry.SSH_QR_PORT.getInteger());
+                }
+                instance.add(token, otpUri, label);
             }
             catch (IOException e)
             {
-                FLog.warning("[SSH] Failed to start QR server on port " + port + ": " + e.getMessage());
+                FLog.warning("[SSH] Failed to start QR server: " + e.getMessage());
             }
-        });
+        }
+    }
+
+    private void add(String token, String otpUri, String label)
+    {
+        synchronized (LOCK)
+        {
+            if (pending.size() >= MAX_PENDING)
+            {
+                Iterator<String> oldest = pending.keySet().iterator();
+                if (oldest.hasNext())
+                {
+                    oldest.next();
+                    oldest.remove();
+                }
+            }
+            pending.put(token, new PendingRequest(otpUri, label, Instant.now()));
+
+            if (idleCheck != null)
+            {
+                idleCheck.cancel(false);
+            }
+            idleCheck = scheduler.schedule(this::checkIdle, IDLE_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
+        }
+    }
+
+    private void checkIdle()
+    {
+        synchronized (LOCK)
+        {
+            if (instance != this)
+            {
+                return;
+            }
+
+            if (pending.isEmpty())
+            {
+                shutdown();
+                return;
+            }
+
+            Instant newest = Instant.EPOCH;
+            for (PendingRequest request : pending.values())
+            {
+                if (request.createdAt().isAfter(newest))
+                {
+                    newest = request.createdAt();
+                }
+            }
+            if (Duration.between(newest, Instant.now()).compareTo(IDLE_TIMEOUT) >= 0)
+            {
+                FLog.info("[SSH] QR setup server timed out after 5 minutes of inactivity.");
+                shutdown();
+            }
+        }
+    }
+
+    private void handle(HttpExchange exchange) throws IOException
+    {
+        String token = extractToken(exchange.getRequestURI().getQuery());
+        PendingRequest request;
+        boolean nowEmpty;
+
+        synchronized (LOCK)
+        {
+            request = token != null ? pending.remove(token) : null;
+            nowEmpty = pending.isEmpty();
+        }
+
+        if (request == null)
+        {
+            sendResponse(exchange, 410, loadTemplate("/ssh/qr-gone.html"));
+        }
+        else
+        {
+            sendResponse(exchange, 200, buildHtml(request.otpUri(), request.label()));
+        }
+
+        if (nowEmpty)
+        {
+            synchronized (LOCK)
+            {
+                if (instance == this && pending.isEmpty())
+                {
+                    shutdown();
+                }
+            }
+        }
+    }
+
+    // Must be called while holding LOCK.
+    private void shutdown()
+    {
+        if (instance != this)
+        {
+            return;
+        }
+        instance = null;
+        server.stop(0);
+        if (!scheduler.isShutdown())
+        {
+            scheduler.shutdown();
+        }
+        FLog.info("[SSH] QR setup server stopped.");
+    }
+
+    private static String extractToken(String query)
+    {
+        if (query == null)
+        {
+            return null;
+        }
+        for (String param : query.split("&"))
+        {
+            int eq = param.indexOf('=');
+            if (eq > 0 && "t".equals(param.substring(0, eq)))
+            {
+                return param.substring(eq + 1);
+            }
+        }
+        return null;
+    }
+
+    private static void sendResponse(HttpExchange exchange, int status, String html) throws IOException
+    {
+        byte[] body = html.getBytes(StandardCharsets.UTF_8);
+        exchange.getResponseHeaders().set("Content-Type", "text/html; charset=utf-8");
+        exchange.sendResponseHeaders(status, body.length);
+        exchange.getResponseBody().write(body);
+        exchange.close();
     }
 
     private static String buildHtml(String otpUri, String label)
     {
-        String escaped = otpUri.replace("\\", "\\\\").replace("\"", "\\\"");
-        return "<!DOCTYPE html><html><head><meta charset=\"utf-8\">"
-                + "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">"
-                + "<title>TFM SSH TOTP Setup</title>"
-                + "<style>"
-                + "body{font-family:sans-serif;max-width:480px;margin:48px auto;text-align:center;padding:0 16px}"
-                + "h2{margin-bottom:8px}p{color:#555}"
-                + "#qr{display:inline-block;margin:16px 0}"
-                + "code{background:#f4f4f4;padding:6px 10px;border-radius:6px;word-break:break-all;display:block;margin:12px 0;font-size:14px}"
-                + "a{color:#1a73e8}"
-                + "</style>"
-                + "</head><body>"
-                + "<h2>TFM SSH — TOTP Setup</h2>"
-                + "<p>Scan the QR code with your authenticator app (<strong>" + label + "</strong>).</p>"
-                + "<div id=\"qr\"></div>"
-                + "<p>Or <a href=\"" + otpUri + "\">tap here</a> to add directly on mobile.</p>"
-                + "<p>Manual entry secret:</p><code id=\"sec\"></code>"
-                + "<p><small>This page closes after 5 minutes.</small></p>"
-                + "<script src=\"https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js\"></script>"
-                + "<script>"
-                + "var u=\"" + escaped + "\";"
-                + "new QRCode(document.getElementById(\"qr\"),{text:u,width:256,height:256,correctLevel:QRCode.CorrectLevel.L});"
-                + "var m=u.match(/secret=([^&]+)/);if(m)document.getElementById(\"sec\").textContent=m[1];"
-                + "</script>"
-                + "</body></html>";
+        String escapedForJs = otpUri.replace("\\", "\\\\").replace("\"", "\\\"");
+        return loadTemplate("/ssh/qr-setup.html")
+                .replace("${LABEL}", escapeHtml(label))
+                .replace("${OTP_URI_JS}", escapedForJs)
+                .replace("${OTP_URI}", otpUri);
+    }
+
+    private static String escapeHtml(String s)
+    {
+        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
+    }
+
+    private static String loadTemplate(String resourcePath)
+    {
+        try (InputStream in = SshQrServer.class.getResourceAsStream(resourcePath))
+        {
+            if (in == null)
+            {
+                throw new IOException("Resource not found: " + resourcePath);
+            }
+            return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+        }
+        catch (IOException e)
+        {
+            FLog.severe("[SSH] Failed to load QR template '" + resourcePath + "': " + e.getMessage());
+            return "<html><body><p>Internal error.</p></body></html>";
+        }
     }
 }
