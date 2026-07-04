@@ -15,6 +15,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.Logger;
 import org.apache.sshd.server.Environment;
 import org.apache.sshd.server.ExitCallback;
+import org.apache.sshd.server.session.ServerSession;
 import org.apache.sshd.server.channel.ChannelSession;
 import org.apache.sshd.server.command.Command;
 import org.apache.sshd.server.shell.ShellFactory;
@@ -162,7 +163,7 @@ public class SshConsoleShellFactory implements ShellFactory
             }
         }
 
-        private String resolveDisplayName(org.apache.sshd.server.session.ServerSession session, String fallback)
+        private String resolveDisplayName(ServerSession session, String fallback)
         {
             String identityId = session.getAttribute(SshDaemon.IDENTITY_KEY);
             if (identityId == null || plugin.sd == null)
