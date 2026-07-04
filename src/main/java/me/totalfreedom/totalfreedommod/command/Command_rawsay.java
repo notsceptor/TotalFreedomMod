@@ -11,7 +11,7 @@ import org.bukkit.entity.Player;
 public class Command_rawsay extends FreedomCommand
 {
     @CommandDispatchTarget(pattern = "<message..>")
-    public boolean removeEnchantment(CommandContext ctx, String message)
+    public boolean rawsay(CommandContext ctx, String message)
     {
         FUtil.bcastMsg(FUtil.colorize(message));
         return true;
