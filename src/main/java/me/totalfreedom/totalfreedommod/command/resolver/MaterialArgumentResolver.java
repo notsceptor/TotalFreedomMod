@@ -26,7 +26,7 @@ public class MaterialArgumentResolver implements AbstractArgumentResolver<Materi
 
             if (material == null)
             {
-                throw new ArgumentResolutionException("Invalid material: " + arg);
+                throw new ArgumentResolutionException("Invalid item: " + arg);
             }
 
             switch (strategy)
@@ -35,14 +35,14 @@ public class MaterialArgumentResolver implements AbstractArgumentResolver<Materi
                 {
                     if (!material.isBlock())
                     {
-                        throw new ArgumentResolutionException(material.key().asString() + " is a valid material, however it is not a block");
+                        throw new ArgumentResolutionException(material.key().asString() + " is a valid item, however it is not a block");
                     }
                 }
                 case "items" ->
                 {
                     if (!material.isItem())
                     {
-                        throw new ArgumentResolutionException(material.key().asString() + " is a valid material, however it is not an item");
+                        throw new ArgumentResolutionException(material.key().asString() + " is a valid block, however it is not an item");
                     }
                 }
             }
@@ -51,7 +51,7 @@ public class MaterialArgumentResolver implements AbstractArgumentResolver<Materi
         }
         catch (InvalidKeyException | IllegalArgumentException ex)
         {
-            throw new ArgumentResolutionException("Invalid material key: " + arg);
+            throw new ArgumentResolutionException("Invalid key: " + arg);
         }
     }
 }
