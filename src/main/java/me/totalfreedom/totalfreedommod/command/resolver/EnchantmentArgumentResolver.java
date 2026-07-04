@@ -2,6 +2,7 @@ package me.totalfreedom.totalfreedommod.command.resolver;
 
 import io.papermc.paper.registry.RegistryAccess;
 import io.papermc.paper.registry.RegistryKey;
+import net.kyori.adventure.key.InvalidKeyException;
 import net.kyori.adventure.key.Key;
 import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
@@ -30,9 +31,9 @@ public class EnchantmentArgumentResolver implements AbstractArgumentResolver<Enc
 
             return enchantment;
         }
-        catch (IllegalArgumentException ex)
+        catch (InvalidKeyException | IllegalArgumentException ex)
         {
-            throw new ArgumentResolutionException(ex);
+            throw new ArgumentResolutionException("Invalid enchantment key: " + arg);
         }
     }
 }

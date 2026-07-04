@@ -1,5 +1,6 @@
 package me.totalfreedom.totalfreedommod.command.resolver;
 
+import net.kyori.adventure.key.InvalidKeyException;
 import net.kyori.adventure.key.Key;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
@@ -27,8 +28,15 @@ public class PotionEffectTypeArgumentResolver implements AbstractArgumentResolve
         }
         catch (NumberFormatException ignored)
         {
-            final Key key = arg.contains(":") ? Key.key(arg.toLowerCase()) : NamespacedKey.minecraft(arg.toLowerCase()).key();
-            type = Registry.POTION_EFFECT_TYPE.get(key);
+            try
+            {
+                final Key key = arg.contains(":") ? Key.key(arg.toLowerCase()) : NamespacedKey.minecraft(arg.toLowerCase()).key();
+                type = Registry.POTION_EFFECT_TYPE.get(key);
+            }
+            catch (InvalidKeyException | IllegalArgumentException ex)
+            {
+                throw new ArgumentResolutionException("Invalid potion effect key: " + ex);
+            }
         }
 
         if (type == null)

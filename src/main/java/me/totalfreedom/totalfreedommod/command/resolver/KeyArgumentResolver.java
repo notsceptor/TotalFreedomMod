@@ -1,5 +1,6 @@
 package me.totalfreedom.totalfreedommod.command.resolver;
 
+import net.kyori.adventure.key.InvalidKeyException;
 import net.kyori.adventure.key.Key;
 import org.bukkit.NamespacedKey;
 
@@ -18,9 +19,9 @@ public class KeyArgumentResolver implements AbstractArgumentResolver<Key>
         {
             return arg.contains(":") ? Key.key(arg.toLowerCase()) : NamespacedKey.minecraft(arg.toLowerCase()).key();
         }
-        catch (IllegalArgumentException ex)
+        catch (InvalidKeyException | IllegalArgumentException ex)
         {
-            throw new ArgumentResolutionException(ex);
+            throw new ArgumentResolutionException("Invalid key: " + arg);
         }
     }
 }

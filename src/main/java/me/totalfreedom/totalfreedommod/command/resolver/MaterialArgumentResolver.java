@@ -2,6 +2,7 @@ package me.totalfreedom.totalfreedommod.command.resolver;
 
 import io.papermc.paper.registry.RegistryAccess;
 import io.papermc.paper.registry.RegistryKey;
+import net.kyori.adventure.key.InvalidKeyException;
 import net.kyori.adventure.key.Key;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -18,32 +19,39 @@ public class MaterialArgumentResolver implements AbstractArgumentResolver<Materi
     @Override
     public Material resolve(String arg, String strategy)
     {
-        final Key key = arg.contains(":") ? Key.key(arg.toLowerCase()) : NamespacedKey.minecraft(arg.toLowerCase()).key();
-        final Material material = Registry.MATERIAL.get(key);
-
-        if (material == null)
+        try
         {
-            throw new ArgumentResolutionException("Invalid material: " + arg);
-        }
+            final Key key = arg.contains(":") ? Key.key(arg.toLowerCase()) : NamespacedKey.minecraft(arg.toLowerCase()).key();
+            final Material material = Registry.MATERIAL.get(key);
 
-        switch (strategy)
-        {
-            case "blocks" ->
+            if (material == null)
             {
-                if (!material.isBlock())
+                throw new ArgumentResolutionException("Invalid material: " + arg);
+            }
+
+            switch (strategy)
+            {
+                case "blocks" ->
                 {
-                    throw new ArgumentResolutionException(material.key().asString() + " is a valid material, however it is not a block");
+                    if (!material.isBlock())
+                    {
+                        throw new ArgumentResolutionException(material.key().asString() + " is a valid material, however it is not a block");
+                    }
+                }
+                case "items" ->
+                {
+                    if (!material.isItem())
+                    {
+                        throw new ArgumentResolutionException(material.key().asString() + " is a valid material, however it is not an item");
+                    }
                 }
             }
-            case "items" ->
-            {
-                if (!material.isItem())
-                {
-                    throw new ArgumentResolutionException(material.key().asString() + " is a valid material, however it is not an item");
-                }
-            }
-        }
 
-        return material;
+            return material;
+        }
+        catch (InvalidKeyException | IllegalArgumentException ex)
+        {
+            throw new ArgumentResolutionException("Invalid material key: " + arg);
+        }
     }
 }
