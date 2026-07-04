@@ -15,7 +15,7 @@ public class Command_opme extends FreedomCommand
     {
         FUtil.adminAction(ctx.getSender().getName(), "Opping " + ctx.getSender().getName(), false);
         sender.setOp(true);
-        msg(ctx.getSender(), FreedomCommand.YOU_ARE_OP);
+        msg(ctx.getSender(), YOU_ARE_OP);
         return true;
     }
 
