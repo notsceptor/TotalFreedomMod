@@ -98,17 +98,16 @@ public class Command_enchant extends FreedomCommand
             return true;
         }
 
-        if (enchantment.canEnchantItem(item))
-        {
-            item.addEnchantment(enchantment, Math.clamp(level, 1, enchantment.getMaxLevel()));
-            msg(ctx.getSender(), Component.text("Added enchantment ")
-                    .append(enchantment.description())
-                    .append(Component.text(" to this item.")).color(NamedTextColor.GRAY));
-        }
-        else
+        if (!enchantment.canEnchantItem(item))
         {
             msg(ctx.getSender(), "This enchantment can't be applied to the item you're holding.");
+            return true;
         }
+
+        item.addEnchantment(enchantment, Math.clamp(level, 1, enchantment.getMaxLevel()));
+        msg(ctx.getSender(), Component.text("Added enchantment ")
+                .append(enchantment.description())
+                .append(Component.text(" to this item.")).color(NamedTextColor.GRAY));
 
         return true;
     }
