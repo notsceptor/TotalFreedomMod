@@ -1,6 +1,8 @@
 package me.totalfreedom.totalfreedommod.command;
 
 import me.totalfreedom.totalfreedommod.rank.Rank;
+import me.totalfreedom.totalfreedommod.util.FLog;
+import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -8,71 +10,44 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
+import org.bukkit.event.entity.CreatureSpawnEvent;
 
 @CommandPermissions(level = Rank.OP, source = SourceType.ONLY_IN_GAME, permission = "tfm.fun.spawnmob")
 @CommandParameters(description = "Make an announcement", usage = "/<command> <mobtype> [amount]")
 public class Command_spawnmob extends FreedomCommand
 {
-
-    @Override
-    protected boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
+    @CommandDispatchTarget(pattern = "<type:EntityType:mobs>")
+    public boolean spawnSingle(CommandContext ctx, EntityType type)
     {
-        if (args.length < 1)
-        {
-            return false;
-        }
+        return spawnAmount(ctx, type, 1);
+    }
 
-        EntityType type = null;
-        for (EntityType loop : EntityType.values())
-        {
-            if (loop.name().equalsIgnoreCase(args[0]))
-            {
-                type = loop;
-                break;
-            }
-        }
+    @CommandDispatchTarget(pattern = "<type:EntityType:mobs> <amount:Integer>")
+    public boolean spawnAmount(CommandContext ctx, EntityType type, Integer amount)
+    {
+        amount = Math.clamp(amount, 1, 10);
 
-        if (type == null)
-        {
-            msg("Unknown entity type: " + args[0], NamedTextColor.RED);
-            return true;
-        }
+        msg(ctx.getPlayerSender(), Component.text("Spawning ", NamedTextColor.GRAY)
+                .append(Component.text(amount))
+                .append(Component.text(" of type ")
+                        .append(ctx.isSenderConsole() ?
+                                Component.text(type.name()) :
+                                Component.translatable(type.translationKey()))));
 
-        if (!type.isSpawnable() || !type.isAlive())
-        {
-            msg("Can not spawn entity type: " + type.name());
-            return true;
-        }
-
-        int amount = 1;
-        if (args.length > 1)
-        {
-            try
-            {
-                amount = Integer.parseInt(args[1]);
-            }
-            catch (NumberFormatException nfex)
-            {
-                msg("Invalid amount: " + args[1], NamedTextColor.RED);
-                return true;
-            }
-        }
-
-        if (amount > 10 || amount < 1)
-        {
-            msg("Invalid amount: " + args[1] + ". Must be 1-10.", NamedTextColor.RED);
-            return true;
-        }
-
-        Location l = playerSender.getLocation();
-        World w = playerSender.getWorld();
-        msg("Spawning " + amount + " of " + type.name());
+        final Location playerLoc = ctx.getPlayerSender().getLocation();
 
         for (int i = 0; i < amount; i++)
         {
-            w.spawnEntity(l, type);
+            playerLoc.getWorld().spawnEntity(playerLoc, type, CreatureSpawnEvent.SpawnReason.COMMAND);
         }
+
         return true;
+    }
+
+    @Override
+    public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
+    {
+        return false;
     }
 
 }

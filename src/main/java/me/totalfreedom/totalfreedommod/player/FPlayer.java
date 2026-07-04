@@ -10,6 +10,7 @@ import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.freeze.FreezeData;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FUtil;
+import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Arrow;
@@ -52,6 +53,10 @@ public class FPlayer
     private double fuckoffRadius = 0;
     private int messageCount = 0;
     private long messageCountWindowStart = 0L;
+    private int dropCount = 0;
+    private long dropCountWindowStart = 0L;
+    private int dropItemCount = 0;
+    private long dropItemCountWindowStart = 0L;
     private int totalBlockDestroy = 0;
     private long totalBlockDestroyWindowStart = 0L;
     private int totalBlockPlace = 0;
@@ -76,8 +81,7 @@ public class FPlayer
     @Getter
     @Setter
     private boolean superadminIdVerified = false;
-    private String lastCommand = "";
-    private boolean cmdspyEnabled = false;
+    private CommandSpyMode commandSpyMode = CommandSpyMode.OFF;
     private String tag = null;
     private int warningCount = 0;
 
@@ -159,6 +163,42 @@ public class FPlayer
             messageCountWindowStart = now;
         }
         return this.messageCount++;
+    }
+
+    public int incrementDropCount(long windowMs)
+    {
+        final long now = System.currentTimeMillis();
+        if (now - dropCountWindowStart > windowMs)
+        {
+            dropCount = 0;
+            dropCountWindowStart = now;
+        }
+        return this.dropCount++;
+    }
+
+    public void resetDropCount()
+    {
+        this.dropCount = 0;
+        this.dropCountWindowStart = System.currentTimeMillis();
+    }
+
+    public int incrementDropItemCount(int amount, long windowMs)
+    {
+        final long now = System.currentTimeMillis();
+        if (now - dropItemCountWindowStart > windowMs)
+        {
+            dropItemCount = 0;
+            dropItemCountWindowStart = now;
+        }
+        final int before = this.dropItemCount;
+        this.dropItemCount += Math.max(amount, 1);
+        return before;
+    }
+
+    public void resetDropItemCount()
+    {
+        this.dropItemCount = 0;
+        this.dropItemCountWindowStart = System.currentTimeMillis();
     }
 
     public int incrementAndGetBlockDestroyCount()
@@ -388,24 +428,24 @@ public class FPlayer
         }
     }
 
-    public String getLastCommand()
-    {
-        return lastCommand;
-    }
-
-    public void setLastCommand(String lastCommand)
-    {
-        this.lastCommand = lastCommand;
-    }
-
     public void setCommandSpy(boolean enabled)
     {
-        this.cmdspyEnabled = enabled;
+        this.commandSpyMode = enabled ? CommandSpyMode.ALL : CommandSpyMode.OFF;
     }
 
     public boolean cmdspyEnabled()
     {
-        return cmdspyEnabled;
+        return commandSpyMode != CommandSpyMode.OFF;
+    }
+
+    public CommandSpyMode getCommandSpyMode()
+    {
+        return commandSpyMode;
+    }
+
+    public void setCommandSpyMode(CommandSpyMode commandSpyMode)
+    {
+        this.commandSpyMode = commandSpyMode == null ? CommandSpyMode.OFF : commandSpyMode;
     }
 
     public void setTag(String tag)

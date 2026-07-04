@@ -62,7 +62,7 @@ public class Command_nicknyan extends FreedomCommand
         Component newNick = Component.empty();
         final char[] chars = nickPlain.toCharArray();
         for (char c : chars)
-            newNick = newNick.append(Component.text(String.valueOf(c)).color(FUtil.randomChatColor()));
+            newNick = newNick.append(Component.text(c, FUtil.randomChatColor()));
 
         data.setNickname(newNick);
 

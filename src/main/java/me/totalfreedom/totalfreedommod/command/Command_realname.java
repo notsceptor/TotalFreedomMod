@@ -18,6 +18,7 @@ public class Command_realname extends FreedomCommand
     @CommandDispatchTarget(pattern = "<nickname..>")
     public boolean realname(final CommandContext ctx, final String nickname)
     {
+        boolean foundOne = false;
         for (final Player player : Bukkit.getOnlinePlayers())
         {
             final PlayerData data = plugin.pl.getData(player);
@@ -32,11 +33,12 @@ public class Command_realname extends FreedomCommand
                         .append(Component.text(player.getName()))
                         .append(Component.text("."))
                         .color(NamedTextColor.GRAY)));
-                return true;
+                foundOne = true;
             }
         }
 
-        msg("Could not find a player with such a nickname.");
+        if (!foundOne)
+            msg("Could not find a player with such a nickname.");
         return true;
     }
 

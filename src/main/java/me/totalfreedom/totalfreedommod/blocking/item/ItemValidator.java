@@ -1,15 +1,27 @@
 package me.totalfreedom.totalfreedommod.blocking.item;
 
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.function.Predicate;
 import me.totalfreedom.totalfreedommod.FreedomService;
+import me.totalfreedom.totalfreedommod.blocking.sweep.EntityVisitor;
+import me.totalfreedom.totalfreedommod.blocking.sweep.SweepContext;
+import me.totalfreedom.totalfreedommod.blocking.sweep.TileEntityVisitor;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
+import me.totalfreedom.totalfreedommod.util.DetectionReporter;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
+import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -29,9 +41,11 @@ import org.bukkit.event.inventory.PrepareItemCraftEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.server.ServerCommandEvent;
 import org.bukkit.event.world.LootGenerateEvent;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 
 public class ItemValidator extends FreedomService
@@ -41,17 +55,79 @@ public class ItemValidator extends FreedomService
     private static final int MAX_COMMAND_LENGTH = 16384;
     private static final int MAX_COMMAND_BRACE_DEPTH = 8;
     private static final int DEFAULT_MAX_POTION_EFFECTS = 24;
+    private static final long CLICK_SCAN_BUDGET_NANOS = 3_000_000L;
+    private static final long CHUNK_ITEM_SCAN_BUDGET_NANOS = 2_000_000L;
+    private static final long SWEEP_ITEM_SCAN_BUDGET_NANOS = 2_000_000L;
+    private static final long CONTAINER_SCAN_BUDGET_NANOS = 10_000_000L;
 
     private volatile boolean panicMode;
     private volatile int maxPotionEffects = DEFAULT_MAX_POTION_EFFECTS;
+    private volatile ContainerSweepPolicy containerSweepPolicy = ContainerSweepPolicy.CLEAR;
 
     private int sweepTaskId = -1;
+    private int containerRadiusSweepTaskId = -1;
 
-    private long lastSummaryTick = 0L;
-    private long detectionsSinceLastSummary = 0L;
-    private ItemScanner.Reason dominantReason = ItemScanner.Reason.CLEAN;
-    private long maxObservedSize = 0L;
-    private String sampleContext = null;
+    private final TileEntityVisitor containerVisitor = new TileEntityVisitor()
+    {
+        @Override
+        public boolean enabled()
+        {
+            return ItemValidator.this.enabled() && chunkLoadScanEnabled();
+        }
+
+        @Override
+        public long sweepIntervalTicks()
+        {
+            return 0L;
+        }
+
+        @Override
+        public Predicate<Block> blockFilter()
+        {
+            return b -> true;
+        }
+
+        @Override
+        public void visit(BlockState state, SweepContext context)
+        {
+            if (state instanceof InventoryHolder holder)
+            {
+                sanitizeInventoryHolder(holder, context.label());
+            }
+        }
+    };
+
+    private final EntityVisitor containerEntityVisitor = new EntityVisitor()
+    {
+        @Override
+        public boolean enabled()
+        {
+            return ItemValidator.this.enabled() && chunkLoadScanEnabled();
+        }
+
+        @Override
+        public long sweepIntervalTicks()
+        {
+            return 0L;
+        }
+
+        @Override
+        public void visit(Entity entity, SweepContext context)
+        {
+            if (entity instanceof InventoryHolder holder)
+            {
+                sanitizeInventoryHolder(holder, context.label());
+            }
+        }
+    };
+
+    private final DetectionReporter reporter = new DetectionReporter(
+            LOG_INTERVAL_TICKS, server::getCurrentTick,
+            (count, reason, max, sample) -> "[ItemValidator] Blocked " + count
+                    + " cursed item(s). Reason: " + reason
+                    + " | max observed size: " + max
+                    + " | sample: " + sample,
+            DetectionReporter.warnAndBroadcastAdmins(plugin));
 
     public ItemValidator(TotalFreedomMod plugin)
     {
@@ -64,11 +140,16 @@ public class ItemValidator extends FreedomService
         panicMode = Boolean.TRUE.equals(ConfigEntry.CRASH_ITEMS_PANIC_MODE.getBoolean());
         Integer cap = ConfigEntry.CRASH_ITEMS_MAX_POTION_EFFECTS.getInteger();
         maxPotionEffects = cap != null ? cap : DEFAULT_MAX_POTION_EFFECTS;
+        containerSweepPolicy = ContainerSweepPolicy.fromConfig(
+                ConfigEntry.CRASH_CONTAINERS_SWEEP_MODE.getString());
         if (!RawNbtInspector.isAvailable())
         {
             FLog.warning("[ItemValidator] Raw NBT inspection is unavailable on this server runtime.");
         }
         scheduleEquipmentSweep();
+        scheduleContainerRadiusSweep();
+        plugin.sweepScheduler.register(containerVisitor);
+        plugin.sweepScheduler.register(containerEntityVisitor);
     }
 
     @Override
@@ -78,6 +159,11 @@ public class ItemValidator extends FreedomService
         {
             server.getScheduler().cancelTask(sweepTaskId);
             sweepTaskId = -1;
+        }
+        if (containerRadiusSweepTaskId != -1)
+        {
+            server.getScheduler().cancelTask(containerRadiusSweepTaskId);
+            containerRadiusSweepTaskId = -1;
         }
     }
 
@@ -93,6 +179,96 @@ public class ItemValidator extends FreedomService
             return;
         }
         sweepTaskId = server.getScheduler().runTaskTimer(plugin, this::sweepOnlinePlayers, interval, interval).getTaskId();
+    }
+
+    private void scheduleContainerRadiusSweep()
+    {
+        if (!enabled() || !chunkLoadScanEnabled())
+        {
+            return;
+        }
+        long ticks = ConfigEntry.CRASH_CONTAINERS_SWEEP_TICKS.getInteger();
+        if (ticks <= 0)
+        {
+            return;
+        }
+        containerRadiusSweepTaskId = server.getScheduler()
+                .runTaskTimer(plugin, this::sweepContainersAroundPlayers, ticks, ticks)
+                .getTaskId();
+    }
+
+    private void sweepContainersAroundPlayers()
+    {
+        if (!enabled() || !chunkLoadScanEnabled())
+        {
+            return;
+        }
+        int radius = Math.max(0, ConfigEntry.CRASH_CONTAINERS_SWEEP_RADIUS.getInteger());
+        Set<String> visited = new HashSet<>();
+        int acted = 0;
+        for (Player player : server.getOnlinePlayers())
+        {
+            World world = player.getWorld();
+            Chunk center = player.getLocation().getChunk();
+            int baseX = center.getX();
+            int baseZ = center.getZ();
+            for (int dx = -radius; dx <= radius; dx++)
+            {
+                for (int dz = -radius; dz <= radius; dz++)
+                {
+                    int cx = baseX + dx;
+                    int cz = baseZ + dz;
+                    if (!world.isChunkLoaded(cx, cz))
+                    {
+                        continue;
+                    }
+                    if (!visited.add(world.getUID() + ":" + cx + ":" + cz))
+                    {
+                        continue;
+                    }
+                    acted += sweepContainerChunk(world.getChunkAt(cx, cz), "radius sweep");
+                }
+            }
+        }
+        if (acted > 0)
+        {
+            FLog.warning("[ItemValidator] Radius sweep handled " + acted + " cursed container(s).", true);
+        }
+    }
+
+    private int sweepContainerChunk(Chunk chunk, String context)
+    {
+        Collection<BlockState> tiles;
+        try
+        {
+            tiles = chunk.getTileEntities(b -> true, false);
+        }
+        catch (Throwable ignored)
+        {
+            return 0;
+        }
+        int acted = 0;
+        for (BlockState state : tiles)
+        {
+            if (state instanceof InventoryHolder holder)
+            {
+                if (sanitizeInventoryHolder(holder, context))
+                {
+                    acted++;
+                }
+            }
+        }
+        for (Entity entity : chunk.getEntities())
+        {
+            if (entity instanceof InventoryHolder holder)
+            {
+                if (sanitizeInventoryHolder(holder, context))
+                {
+                    acted++;
+                }
+            }
+        }
+        return acted;
     }
 
     private void sweepOnlinePlayers()
@@ -114,7 +290,7 @@ public class ItemValidator extends FreedomService
         {
             for (Item item : world.getEntitiesByClass(Item.class))
             {
-                ItemScanner.Verdict v = scan(item.getItemStack());
+                ItemScanner.Verdict v = scanWithBudget(item.getItemStack(), SWEEP_ITEM_SCAN_BUDGET_NANOS);
                 if (v.isCursed())
                 {
                     item.remove();
@@ -136,7 +312,7 @@ public class ItemValidator extends FreedomService
             {
                 continue;
             }
-            ItemScanner.Verdict v = scan(item);
+            ItemScanner.Verdict v = scanWithBudget(item, SWEEP_ITEM_SCAN_BUDGET_NANOS);
             if (v.isCursed())
             {
                 contents[i] = null;
@@ -152,7 +328,7 @@ public class ItemValidator extends FreedomService
         ItemStack cursor = player.getItemOnCursor();
         if (cursor != null && !cursor.getType().isAir())
         {
-            ItemScanner.Verdict v = scan(cursor);
+            ItemScanner.Verdict v = scanWithBudget(cursor, SWEEP_ITEM_SCAN_BUDGET_NANOS);
             if (v.isCursed())
             {
                 player.setItemOnCursor(null);
@@ -182,12 +358,40 @@ public class ItemValidator extends FreedomService
         return Boolean.TRUE.equals(ConfigEntry.CRASH_ITEMS_PREVENT.getBoolean());
     }
 
+    private boolean chunkLoadScanEnabled()
+    {
+        return Boolean.TRUE.equals(ConfigEntry.CRASH_CONTAINERS_SCAN_CHUNK_LOAD.getBoolean());
+    }
+
     private ItemScanner.Verdict scan(ItemStack item)
     {
         return ItemScanner.scan(item, panicMode, maxPotionEffects);
     }
 
+    private ItemScanner.Verdict scanWithBudget(ItemStack item, long budgetNanos)
+    {
+        if (item == null || item.isEmpty() || budgetNanos <= 0L)
+        {
+            return scan(item);
+        }
+        return ItemScanner.scan(item, panicMode, maxPotionEffects, System.nanoTime() + budgetNanos);
+    }
+
+    private ItemScanner.Verdict scanUntil(ItemStack item, long deadlineNanos)
+    {
+        if (item == null || item.isEmpty())
+        {
+            return scan(item);
+        }
+        return ItemScanner.scan(item, panicMode, maxPotionEffects, deadlineNanos);
+    }
+
     private ItemScanner.Verdict scanInventory(Inventory inv)
+    {
+        return scanInventory(inv, CHUNK_ITEM_SCAN_BUDGET_NANOS);
+    }
+
+    private ItemScanner.Verdict scanInventory(Inventory inv, long perItemBudgetNanos)
     {
         if (inv == null)
         {
@@ -195,7 +399,7 @@ public class ItemValidator extends FreedomService
         }
         for (ItemStack item : inv.getContents())
         {
-            ItemScanner.Verdict v = scan(item);
+            ItemScanner.Verdict v = scanWithBudget(item, perItemBudgetNanos);
             if (v.isCursed())
             {
                 return v;
@@ -204,50 +408,315 @@ public class ItemValidator extends FreedomService
         return ItemScanner.Verdict.CLEAN;
     }
 
-    private void recordDetection(ItemScanner.Verdict v, String context)
+    /**
+     * Budgeted first-hit scan of an open world container during click/drag/open.
+     * Escalates hang-class hits (or unreadable inventories) per {@link ContainerSweepPolicy}.
+     * Escalation resolves the backing block or mobile entity via inventory location /
+     * {@link #resolveEntityHolder(Inventory)} instead of {@link Inventory#getHolder()},
+     * which re-deserializes block-entity NBT and can hang the server on exploit chests.
+     *
+     * @return {@code true} when the interaction should be cancelled (container handled)
+     */
+    private boolean probeOpenContainer(Inventory top, String context)
     {
-        detectionsSinceLastSummary++;
-        if (v.observedSize() > maxObservedSize)
+        ItemScanner.Verdict v = scanContainerFirstHit(top);
+        if (!v.isCursed())
         {
-            maxObservedSize = v.observedSize();
+            return false;
         }
-        if (dominantReason == ItemScanner.Reason.CLEAN)
+        ContainerSweepPolicy.Action action = containerSweepPolicy.actionFor(v.reason());
+        if (action == ContainerSweepPolicy.Action.FILTER_SLOT)
         {
-            dominantReason = v.reason();
-            sampleContext = context;
+            return false;
+        }
+        return escalateResolvedContainer(top, v, action, context);
+    }
+
+    private ItemScanner.Verdict scanContainerFirstHit(Inventory top)
+    {
+        if (top == null)
+        {
+            return ItemScanner.Verdict.CLEAN;
+        }
+        ItemStack[] contents;
+        try
+        {
+            contents = top.getContents();
+        }
+        catch (Throwable t)
+        {
+            return uninspectableVerdict();
+        }
+        long containerDeadline = System.nanoTime() + CONTAINER_SCAN_BUDGET_NANOS;
+        for (ItemStack item : contents)
+        {
+            if (item == null)
+            {
+                continue;
+            }
+            long itemDeadline = Math.min(System.nanoTime() + CHUNK_ITEM_SCAN_BUDGET_NANOS, containerDeadline);
+            ItemScanner.Verdict v = scanUntil(item, itemDeadline);
+            if (v.isCursed())
+            {
+                return v;
+            }
+        }
+        return ItemScanner.Verdict.CLEAN;
+    }
+
+    private boolean escalateResolvedContainer(Inventory top, ItemScanner.Verdict verdict,
+            ContainerSweepPolicy.Action action, String context)
+    {
+        InventoryHolder holder = resolveEntityHolder(top);
+        if (holder != null)
+        {
+            return escalateHolder(holder, top, action, verdict, context);
+        }
+        Block block = blockFromInventoryLocation(top);
+        if (block != null)
+        {
+            return escalateBlockContainer(block, top, action, verdict, context);
+        }
+        if (action == ContainerSweepPolicy.Action.CLEAR_CONTAINER)
+        {
+            top.clear();
+            recordDetection(verdict, context + " [container cleared]");
+            return true;
+        }
+        return false;
+    }
+
+    private boolean sanitizeInventoryHolder(InventoryHolder holder, String context)
+    {
+        if (!isWorldContainerHolder(holder))
+        {
+            return false;
+        }
+        Inventory inv;
+        try
+        {
+            inv = holder.getInventory();
+        }
+        catch (Throwable t)
+        {
+            ItemScanner.Verdict v = uninspectableVerdict();
+            return escalateHolder(holder, null, containerSweepPolicy.actionFor(v.reason()), v,
+                    context + " @ " + describeHolder(holder));
+        }
+        return sanitizeContainerInventory(inv, holder, context);
+    }
+
+    private boolean sanitizeContainerInventory(Inventory inv, InventoryHolder holder, String context)
+    {
+        if (!isWorldContainerHolder(holder) || inv == null)
+        {
+            return false;
+        }
+        String sample = context + " @ " + describeHolder(holder);
+
+        ItemStack[] contents;
+        try
+        {
+            contents = inv.getContents();
+        }
+        catch (Throwable t)
+        {
+            ItemScanner.Verdict v = uninspectableVerdict();
+            return escalateHolder(holder, null, containerSweepPolicy.actionFor(v.reason()), v, sample);
         }
 
-        long nowTick = server.getCurrentTick();
-        if (lastSummaryTick == 0L || nowTick - lastSummaryTick >= LOG_INTERVAL_TICKS)
+        long containerDeadline = System.nanoTime() + CONTAINER_SCAN_BUDGET_NANOS;
+        boolean purged = false;
+        for (int i = 0; i < contents.length; i++)
         {
-            String summary = "[ItemValidator] Blocked " + detectionsSinceLastSummary
-                    + " cursed item(s). Reason: " + dominantReason
-                    + " | max observed size: " + maxObservedSize
-                    + " | sample: " + sampleContext;
-            FLog.warning(summary);
-            broadcastToAdmins(summary);
+            ItemStack item = contents[i];
+            if (item == null)
+            {
+                continue;
+            }
+            long itemDeadline = Math.min(System.nanoTime() + CHUNK_ITEM_SCAN_BUDGET_NANOS, containerDeadline);
+            ItemScanner.Verdict v = scanUntil(item, itemDeadline);
+            if (!v.isCursed())
+            {
+                continue;
+            }
+            ContainerSweepPolicy.Action action = containerSweepPolicy.actionFor(v.reason());
+            if (action != ContainerSweepPolicy.Action.FILTER_SLOT)
+            {
+                return escalateHolder(holder, inv, action, v, sample);
+            }
+            contents[i] = null;
+            purged = true;
+            recordDetection(v, sample);
+        }
+        if (purged)
+        {
+            inv.setContents(contents);
+        }
+        return purged;
+    }
 
-            lastSummaryTick = nowTick;
-            detectionsSinceLastSummary = 0L;
-            dominantReason = ItemScanner.Reason.CLEAN;
-            maxObservedSize = 0L;
-            sampleContext = null;
+    /**
+     * Applies a container-wide sweep action for a hang-class verdict. Empties the
+     * container when asked to clear, removes the backing holder when asked to
+     * destroy, and falls back to removal when the inventory cannot be read.
+     */
+    private boolean escalateHolder(InventoryHolder holder, Inventory inv, ContainerSweepPolicy.Action action,
+            ItemScanner.Verdict verdict, String sample)
+    {
+        if (action == ContainerSweepPolicy.Action.FILTER_SLOT)
+        {
+            return false;
+        }
+        if (action == ContainerSweepPolicy.Action.CLEAR_CONTAINER && inv != null)
+        {
+            inv.clear();
+            recordDetection(verdict, sample + " [container cleared]");
+            return true;
+        }
+        destroyHolder(holder, sample, verdict);
+        return true;
+    }
+
+    /**
+     * Block-only escalation for click paths that avoid {@link Inventory#getHolder()}.
+     */
+    private boolean escalateBlockContainer(Block block, Inventory inv, ContainerSweepPolicy.Action action,
+            ItemScanner.Verdict verdict, String sample)
+    {
+        if (action == ContainerSweepPolicy.Action.FILTER_SLOT)
+        {
+            return false;
+        }
+        if (action == ContainerSweepPolicy.Action.CLEAR_CONTAINER && inv != null)
+        {
+            inv.clear();
+            recordDetection(verdict, sample + " [container cleared]");
+            return true;
+        }
+        destroyContainerBlock(block, sample, verdict);
+        return true;
+    }
+
+    private static ItemScanner.Verdict uninspectableVerdict()
+    {
+        return new ItemScanner.Verdict(ItemScanner.Reason.UNINSPECTABLE_NBT, -1L, 0);
+    }
+
+    private void destroyContainerBlock(Block block, String context, ItemScanner.Verdict verdict)
+    {
+        try
+        {
+            block.setType(Material.AIR, false);
+        }
+        catch (Throwable ignored)
+        {
+        }
+        recordDetection(verdict, context + " [block destroyed]");
+        FLog.warning("[ItemValidator] Destroyed container block at " + FUtil.formatLocation(block.getLocation())
+                + " (" + verdict.reason() + ").", true);
+    }
+
+    private void destroyHolder(InventoryHolder holder, String context, ItemScanner.Verdict verdict)
+    {
+        if (holder instanceof BlockState state)
+        {
+            destroyContainerBlock(state.getBlock(), context, verdict);
+            return;
+        }
+        if (holder instanceof Entity entity)
+        {
+            try
+            {
+                entity.remove();
+            }
+            catch (Throwable ignored)
+            {
+            }
+            recordDetection(verdict, context + " [entity removed]");
+            FLog.warning("[ItemValidator] Removed container entity at "
+                    + FUtil.formatLocation(entity.getLocation())
+                    + " (" + verdict.reason() + ").", true);
         }
     }
 
-    private void broadcastToAdmins(String message)
+    private static boolean isWorldContainerHolder(InventoryHolder holder)
     {
-        Component component = Component.text(message, NamedTextColor.RED);
-        for (Player p : Bukkit.getOnlinePlayers())
+        return holder != null && !(holder instanceof Player);
+    }
+
+    private static String describeHolder(InventoryHolder holder)
+    {
+        if (holder instanceof BlockState state)
         {
-            if (plugin.al.isAdmin(p))
+            return FUtil.formatLocation(state.getLocation());
+        }
+        if (holder instanceof Entity entity)
+        {
+            return FUtil.formatLocation(entity.getLocation());
+        }
+        Inventory inv = holder.getInventory();
+        if (inv != null && inv.getLocation() != null)
+        {
+            return FUtil.formatLocation(inv.getLocation());
+        }
+        return "unknown";
+    }
+
+    /**
+     * Locates a mobile {@link InventoryHolder} (minecart, chested horse, ...) for
+     * an open inventory without calling {@link Inventory#getHolder()}, which would
+     * re-load block-entity NBT for placed chests.
+     */
+    private static InventoryHolder resolveEntityHolder(Inventory inv)
+    {
+        if (inv == null)
+        {
+            return null;
+        }
+        org.bukkit.Location loc = inv.getLocation();
+        if (loc == null || loc.getWorld() == null)
+        {
+            return null;
+        }
+        try
+        {
+            for (Entity entity : loc.getWorld().getNearbyEntities(loc, 1.0, 1.0, 1.0))
             {
-                p.sendMessage(component);
+                if (!(entity instanceof InventoryHolder holder) || holder instanceof Player)
+                {
+                    continue;
+                }
+                if (holder.getInventory() == inv)
+                {
+                    return holder;
+                }
             }
         }
+        catch (Throwable ignored)
+        {
+        }
+        return null;
+    }
+
+    private void recordDetection(ItemScanner.Verdict v, String context)
+    {
+        reporter.record(v.reason().name(), v.observedSize(), context);
     }
 
     // ===== Command-side gates =====
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPlayerJoin(PlayerJoinEvent event)
+    {
+        // Swept at join (not login): the player's inventory is reliably loaded
+        // here, and setContents/updateInventory affect a fully-online player.
+        if (!enabled())
+        {
+            return;
+        }
+        sweepPlayer(event.getPlayer());
+    }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onPlayerCommandPreprocess(PlayerCommandPreprocessEvent event)
@@ -350,7 +819,7 @@ public class ItemValidator extends FreedomService
         return peak > MAX_COMMAND_BRACE_DEPTH;
     }
 
-    // ===== Container choke points (LOWEST: before CoreProtect's HIGHEST) =====
+    // ===== Container choke points (LOWEST: act before CoreProtect / WorldGuard, which load AFTER TFM) =====
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onInventoryOpen(InventoryOpenEvent event)
@@ -360,6 +829,34 @@ public class ItemValidator extends FreedomService
             return;
         }
         Inventory top = event.getInventory();
+        InventoryHolder holder = top.getHolder();
+        if (isWorldContainerHolder(holder))
+        {
+            String context = event.getPlayer().getName() + " opened " + describeLocation(top);
+            if (probeOpenContainer(top, context))
+            {
+                event.setCancelled(true);
+            }
+            else
+            {
+                ItemScanner.Verdict v = scanContainerFirstHit(top);
+                if (!v.isCursed())
+                {
+                    return;
+                }
+                event.setCancelled(true);
+                recordDetection(v, context);
+                sanitizeInventoryHolder(holder, context);
+            }
+            if (event.getPlayer() instanceof Player p)
+            {
+                FUtil.playerMsg(p,
+                        "That container holds a cursed item.",
+                        NamedTextColor.RED);
+            }
+            return;
+        }
+
         ItemScanner.Verdict v = scanInventory(top);
         if (!v.isCursed())
         {
@@ -375,11 +872,15 @@ public class ItemValidator extends FreedomService
                     "That container holds a cursed item.",
                     NamedTextColor.RED);
         }
-
-        Bukkit.getScheduler().runTask(plugin, () -> cleanInventory(top));
+        cleanInventory(top);
     }
 
-    private void cleanInventory(Inventory inv)
+    private boolean cleanInventory(Inventory inv)
+    {
+        return cleanInventory(inv, 0L, null);
+    }
+
+    private boolean cleanInventory(Inventory inv, long perItemBudgetNanos, String context)
     {
         ItemStack[] contents = inv.getContents();
         boolean dirty = false;
@@ -390,16 +891,22 @@ public class ItemValidator extends FreedomService
             {
                 continue;
             }
-            if (scan(item).isCursed())
+            ItemScanner.Verdict v = scanWithBudget(item, perItemBudgetNanos);
+            if (v.isCursed())
             {
                 contents[i] = null;
                 dirty = true;
+                if (context != null)
+                {
+                    recordDetection(v, context);
+                }
             }
         }
         if (dirty)
         {
             inv.setContents(contents);
         }
+        return dirty;
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
@@ -409,23 +916,45 @@ public class ItemValidator extends FreedomService
         {
             return;
         }
-        ItemScanner.Verdict cur = scan(event.getCurrentItem());
-        ItemScanner.Verdict csr = scan(event.getCursor());
+        String actor = event.getWhoClicked().getName();
+        Inventory top = event.getView().getTopInventory();
+        if (probeOpenContainer(top, "click by " + actor))
+        {
+            event.setCancelled(true);
+            closeContainerView(event.getWhoClicked());
+            return;
+        }
+
+        long deadline = System.nanoTime() + CLICK_SCAN_BUDGET_NANOS;
+        ItemScanner.Verdict cur = ItemScanner.scan(event.getCurrentItem(), panicMode, maxPotionEffects, deadline);
+        ItemScanner.Verdict csr = ItemScanner.scan(event.getCursor(), panicMode, maxPotionEffects, deadline);
         if (!cur.isCursed() && !csr.isCursed())
         {
             return;
         }
 
         event.setCancelled(true);
+        ItemScanner.Verdict hang = hangClassVerdict(cur, csr);
+        if (hang != null)
+        {
+            ContainerSweepPolicy.Action action = containerSweepPolicy.actionFor(hang.reason());
+            if (action != ContainerSweepPolicy.Action.FILTER_SLOT)
+            {
+                escalateResolvedContainer(top, hang, action, "click by " + actor);
+                closeContainerView(event.getWhoClicked());
+                return;
+            }
+        }
+
         if (cur.isCursed())
         {
             event.setCurrentItem(null);
-            recordDetection(cur, "click slot by " + event.getWhoClicked().getName());
+            recordDetection(cur, "click slot by " + actor);
         }
         if (csr.isCursed())
         {
             event.getView().setCursor(null);
-            recordDetection(csr, "click cursor by " + event.getWhoClicked().getName());
+            recordDetection(csr, "click cursor by " + actor);
         }
         if (event.getWhoClicked() instanceof Player p)
         {
@@ -463,6 +992,15 @@ public class ItemValidator extends FreedomService
         {
             return;
         }
+        String actor = event.getWhoClicked().getName();
+        Inventory top = event.getView().getTopInventory();
+        if (probeOpenContainer(top, "drag by " + actor))
+        {
+            event.setCancelled(true);
+            closeContainerView(event.getWhoClicked());
+            return;
+        }
+
         ItemScanner.Verdict v = scan(event.getOldCursor());
         if (!v.isCursed())
         {
@@ -481,7 +1019,17 @@ public class ItemValidator extends FreedomService
             return;
         }
         event.setCancelled(true);
-        recordDetection(v, "drag by " + event.getWhoClicked().getName());
+        if (v.reason().isHangClass())
+        {
+            ContainerSweepPolicy.Action action = containerSweepPolicy.actionFor(v.reason());
+            if (action != ContainerSweepPolicy.Action.FILTER_SLOT)
+            {
+                escalateResolvedContainer(top, v, action, "drag by " + actor);
+                closeContainerView(event.getWhoClicked());
+                return;
+            }
+        }
+        recordDetection(v, "drag by " + actor);
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
@@ -684,5 +1232,42 @@ public class ItemValidator extends FreedomService
             return "unknown";
         }
         return FUtil.formatLocation(inv.getLocation());
+    }
+
+    private static Block blockFromInventoryLocation(Inventory inv)
+    {
+        if (inv == null)
+        {
+            return null;
+        }
+        org.bukkit.Location loc = inv.getLocation();
+        if (loc == null || loc.getWorld() == null)
+        {
+            return null;
+        }
+        return loc.getBlock();
+    }
+
+    private static ItemScanner.Verdict hangClassVerdict(ItemScanner.Verdict a, ItemScanner.Verdict b)
+    {
+        if (a.isCursed() && a.reason().isHangClass())
+        {
+            return a;
+        }
+        if (b.isCursed() && b.reason().isHangClass())
+        {
+            return b;
+        }
+        return null;
+    }
+
+    private static void closeContainerView(org.bukkit.entity.HumanEntity viewer)
+    {
+        if (!(viewer instanceof Player p))
+        {
+            return;
+        }
+        p.closeInventory();
+        FUtil.playerMsg(p, "That container was removed because it contained invalid data.", NamedTextColor.GRAY);
     }
 }

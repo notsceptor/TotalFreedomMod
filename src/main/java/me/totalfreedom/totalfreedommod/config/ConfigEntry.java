@@ -3,6 +3,7 @@ package me.totalfreedom.totalfreedommod.config;
 import java.util.Collections;
 import java.util.List;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import org.bukkit.configuration.ConfigurationSection;
 
 public enum ConfigEntry
 {
@@ -23,6 +24,8 @@ public enum ConfigEntry
     ALLOW_SIGN_PLACE(Boolean.class, "allow.sign_place"),
     ALLOW_FALLING_SIGNS(Boolean.class, "allow.falling_signs"),
     ALLOW_FALLING_BLOCKS(Boolean.class, "allow.falling_blocks"),
+    AUTO_TP(Boolean.class, "allow.auto_tp"),
+    AUTO_CLEAR(Boolean.class, "allow.auto_clear"),
     //
     MOB_LIMITER_ENABLED(Boolean.class, "moblimiter.enabled"),
     MOB_LIMITER_MAX(Integer.class, "moblimiter.max"),
@@ -63,12 +66,20 @@ public enum ConfigEntry
     DISCORD_PLAYER_JOIN_MESSAGE(String.class, "discord.messages.player_join"),
     DISCORD_PLAYER_LEAVE_MESSAGE(String.class, "discord.messages.player_leave"),
     DISCORD_PLUGIN_RELOAD_MESSAGE(String.class, "discord.messages.reload"),
+    DISCORD_PLAYER_BAN_MESSAGE(String.class, "discord.messages.ban"),
+    DISCORD_PLAYER_KICK_MESSAGE(String.class, "discord.messages.kick"),
+    DISCORD_PLAYER_TBAN_MESSAGE(String.class, "discord.messages.tban"),
+    DISCORD_PLAYER_WARN_MESSAGE(String.class, "discord.messages.warn"),
+    DISCORD_PLAYER_SMITE_MESSAGE(String.class, "discord.messages.smite"),
+    DISCORD_SAY_MESSAGE(String.class, "discord.messages.say"),
+
     //
     SERVER_COLORFUL_MOTD(Boolean.class, "server.colorful_motd"),
     SERVER_NAME(String.class, "server.name"),
     SERVER_ADDRESS(String.class, "server.address"),
     SERVER_MOTD(String.class, "server.motd"),
     SERVER_OWNERS(List.class, "server.owners"),
+    SERVER_WEB_URL(String.class, "server.web_url"),
     SERVER_BAN_URL(String.class, "server.ban_url"),
     SERVER_PERMBAN_URL(String.class, "server.permban_url"),
     //
@@ -93,23 +104,40 @@ public enum ConfigEntry
     TOSSMOB_ENABLED(Boolean.class, "tossmob_enabled"),
     AUTOKICK_ENABLED(Boolean.class, "autokick.enabled"),
     MP44_ENABLED(Boolean.class, "mp44_enabled"),
+    JUMPPAD_MODE(String.class, "jumppad.mode"),
     //
     PROTECTAREA_ENABLED(Boolean.class, "protectarea.enabled"),
     PROTECTAREA_SPAWNPOINTS(Boolean.class, "protectarea.auto_protect_spawnpoints"),
     PROTECTAREA_RADIUS(Double.class, "protectarea.auto_protect_radius"),
     PROTECTAREA_PROTECT_PLAYERS(Boolean.class, "protectarea.protect_players"),
     PROTECTAREA_BLOCK_POTIONS(Boolean.class, "protectarea.block_potions"),
+    PROTECTAREA_BLOCK_ITEMS(Boolean.class, "protectarea.block_items"),
     //
     WORLDEDIT_ENABLED(Boolean.class, "worldedit.enabled"),
     WORLDEDIT_LIMIT_MAX(Integer.class, "worldedit.limit_max"),
     WORLDEDIT_DEOP_ON_LIMIT_ABUSE(Boolean.class, "worldedit.deop_on_limit_abuse"),
     WORLDEDIT_MAX_SELECTION_VOLUME(Integer.class, "worldedit.max_selection_volume"),
     WORLDEDIT_RADIUS_MAX(Integer.class, "worldedit.radius_max"),
+    WORLDEDIT_MAX_PATTERN_BLOCKS(Integer.class, "worldedit.max_pattern_blocks"),
+    WORLDEDIT_BLOCKED_BLOCK_TYPES(List.class, "worldedit.blocked_types"),
+    WORLDEDIT_THROTTLE_ENABLED(Boolean.class, "worldedit.throttle.enabled"),
+    WORLDEDIT_THROTTLE_MAX_OPS(Integer.class, "worldedit.throttle.max_operations"),
+    WORLDEDIT_THROTTLE_TIME_WINDOW(Integer.class, "worldedit.throttle.time_window"),
+    WORLDEDIT_THROTTLE_MAX_CANCELLED_OPS(Integer.class, "worldedit.throttle.max_cancelled_operations"),
+    WORLDEDIT_MAX_CONTAINERS(Integer.class, "worldedit.max_containers"),
+    WORLDEDIT_MAX_SCHEM_SAVE_KB(Integer.class, "worldedit.max_schem_save_kb"),
     //
     NUKE_MONITOR_ENABLED(Boolean.class, "nukemonitor.enabled"),
     NUKE_MONITOR_COUNT_BREAK(Integer.class, "nukemonitor.count_break"),
     NUKE_MONITOR_COUNT_PLACE(Integer.class, "nukemonitor.count_place"),
     NUKE_MONITOR_RANGE(Double.class, "nukemonitor.range"),
+    //
+    ANTIDROP_ENABLED(Boolean.class, "antidrop.enabled"),
+    ANTIDROP_TIME_WINDOW(Integer.class, "antidrop.time_window"),
+    ANTIDROP_DROP_LIMIT(Integer.class, "antidrop.drop_limit"),
+    ANTIDROP_DROP_EJECT_LIMIT(Integer.class, "antidrop.drop_eject_limit"),
+    ANTIDROP_DROP_ITEM_LIMIT(Integer.class, "antidrop.drop_item_limit"),
+    ANTIDROP_DROP_ITEM_EJECT_LIMIT(Integer.class, "antidrop.drop_item_eject_limit"),
     //
     ANTISPAM_ENABLED(Boolean.class, "antispam.enabled"),
     ANTISPAM_LIMIT(Integer.class, "antispam.limit"),
@@ -131,6 +159,17 @@ public enum ConfigEntry
     CRASH_ITEMS_HIDE_CONSOLE_SPAM(Boolean.class, "crash_items.hide_console_spam"),
     CRASH_ITEMS_MAX_POTION_EFFECTS(Integer.class, "crash_items.max_potion_effects"),
     //
+    CRASH_CONTAINERS_SCAN_CHUNK_LOAD(Boolean.class, "crash_containers.scan_chunk_load"),
+    CRASH_CONTAINERS_SWEEP_MODE(String.class, "crash_containers.sweep_mode"),
+    CRASH_CONTAINERS_SWEEP_TICKS(Integer.class, "crash_containers.sweep_ticks"),
+    CRASH_CONTAINERS_SWEEP_RADIUS(Integer.class, "crash_containers.sweep_radius"),
+    CRASH_CONTAINERS_PACKET_GUARD(Boolean.class, "crash_containers.packet_guard"),
+    CRASH_CONTAINERS_CHUNK_GUARD(Boolean.class, "crash_containers.chunk_guard"),
+    //
+    CRASH_SPAWNERS_PREVENT(Boolean.class, "crash_spawners.prevent"),
+    CRASH_SPAWNERS_PACKET_GUARD(Boolean.class, "crash_spawners.packet_guard"),
+    CRASH_SPAWNERS_CHUNK_GUARD(Boolean.class, "crash_spawners.chunk_guard"),
+    //
     CRASH_SIGNS_PREVENT(Boolean.class, "crash_signs.prevent"),
     CRASH_SIGNS_SCAN_CHUNK_LOAD(Boolean.class, "crash_signs.scan_chunk_load"),
     CRASH_SIGNS_PACKET_GUARD(Boolean.class, "crash_signs.packet_guard"),
@@ -146,12 +185,8 @@ public enum ConfigEntry
     CRASH_ENTITIES_STRIP_NAME_VISIBLE(Boolean.class, "crash_entities.strip_name_visible"),
     CRASH_ENTITIES_MAX_SCALE(Double.class, "crash_entities.max_scale"),
     CRASH_ENTITIES_MAX_SLIME_SIZE(Integer.class, "crash_entities.max_slime_size"),
+    CRASH_ENTITIES_MAX_PAINTING_BLOCKS(Integer.class, "crash_entities.max_painting_size"),
     CRASH_ENTITIES_SCALE_SWEEP_TICKS(Integer.class, "crash_entities.scale_sweep_ticks"),
-    //
-    CRASH_GAMERULES_PACKET_GUARD(Boolean.class, "crash_gamerules.packet_guard"),
-    CRASH_GAMERULES_RANDOM_TICK_SPEED(Integer.class, "crash_gamerules.random_tick_speed"),
-    CRASH_GAMERULES_MAX_NUMERIC_VALUE(Integer.class, "crash_gamerules.max_numeric_value"),
-    CRASH_GAMERULES_SWEEP_TICKS(Integer.class, "crash_gamerules.sweep_ticks"),
     //
     WORLD_BORDER(Integer.class, "world_border"),
     //
@@ -178,9 +213,6 @@ public enum ConfigEntry
     SPAWN_SEND_ON_JOIN(String.class, "spawn.send_player.on_join"),
     SPAWN_SEND_ON_RESPAWN(Boolean.class, "spawn.send_player.on_respawn"),
     //
-    LOGS_SECRET(String.class, "logs.secret"),
-    LOGS_URL(String.class, "logs.url"),
-    //
     FLATLANDS_GENERATE(Boolean.class, "flatlands.generate"),
     FLATLANDS_GENERATE_PARAMS(String.class, "flatlands.generate_params"),
     //
@@ -191,7 +223,6 @@ public enum ConfigEntry
     //
     EXPLOSIVE_RADIUS(Double.class, "explosive_radius"),
     FREECAM_TRIGGER_COUNT(Integer.class, "freecam_trigger_count"),
-    SERVICE_CHECKER_URL(String.class, "service_checker_url"),
     BLOCKED_COMMANDS(List.class, "blocked_commands"),
     BLOCK_SERVER_COMMANDS_ENABLED(Boolean.class, "server_command_blocker.enabled"),
     BLOCK_SERVER_COMMANDS_BLOCK_AT_NAMED_SENDERS(Boolean.class, "server_command_blocker.block_at_named_senders"),
@@ -201,13 +232,13 @@ public enum ConfigEntry
     BLOCK_SERVER_COMMANDS_LOG_INTERVAL_TICKS(Integer.class, "server_command_blocker.log_interval_ticks"),
     HOST_SENDERS(List.class, "host_senders"),
     FAMOUS_PLAYERS(List.class, "famous_players"),
-    OVERLORD_IPS(List.class, "overlord_ips"),
     NOADMIN_IPS(List.class, "noadmin_ips"),
     MASK_IPS(Boolean.class, "mask_ips"),
     RANGE_BAN_IPS(Boolean.class, "range_ban_ips"),
     ADMIN_ONLY_MODE(Boolean.class, "admin_only_mode"),
     ADMIN_INFO(List.class, "admininfo"),
     AUTO_ENTITY_WIPE(Boolean.class, "auto_wipe"),
+    AUTO_ENTITY_WIPE_INTERVAL(Integer.class, "auto_wipe_interval"),
     DISGUISES_FORBIDDEN_TYPES(List.class, "disguises.forbidden_types"),
     //
     VAULT_CHAT_PROVIDER_ENABLED(Boolean.class, "chat.provider.enabled"),
@@ -241,7 +272,13 @@ public enum ConfigEntry
     TABLIST_COLUMNS(Integer.class, "tablist.columns"),
     TABLIST_PLAYER_COMPONENT(String.class, "tablist.player_component"),
     TABLIST_AFK_TAG(String.class, "tablist.afk_tag"),
-    TABLIST_UPDATE_INTERVAL(Integer.class, "tablist.update_interval");
+    TABLIST_UPDATE_INTERVAL(Integer.class, "tablist.update_interval"),
+    //
+    GAMERULES_ENABLED(Boolean.class, "gamerules.enabled"),
+    GAMERULES_ENFORCEMENT_DELAY(Integer.class, "gamerules.enforcement_interval"),
+    GAMERULES_DEFAULTS(ConfigurationSection.class, "gamerules.defaults"),
+    GAMERULES_MALICIOUS(List.class, "gamerules.malicious"),
+    GAMERULES_CAPS(ConfigurationSection.class, "gamerules.caps");
 
     //
     private final Class<?> type;
@@ -290,6 +327,12 @@ public enum ConfigEntry
         return getConfig().getBoolean(this);
     }
 
+    public boolean getBoolean(boolean defaultValue)
+    {
+        final Boolean v = getBoolean();
+        return v == null ? defaultValue : v;
+    }
+
     public Boolean setBoolean(Boolean value)
     {
         getConfig().setBoolean(this, value);
@@ -299,6 +342,12 @@ public enum ConfigEntry
     public Integer getInteger()
     {
         return getConfig().getInteger(this);
+    }
+
+    public int getInteger(int defaultValue)
+    {
+        final Integer v = getInteger();
+        return v == null ? defaultValue : v;
     }
 
     public Integer setInteger(Integer value)
@@ -319,9 +368,20 @@ public enum ConfigEntry
         return (List<String>) getList();
     }
 
+    public ConfigurationSection getSection()
+    {
+        return getConfig().get(this, ConfigurationSection.class);
+    }
+
     private MainConfig getConfig()
     {
         return TotalFreedomMod.plugin().config;
+    }
+
+    /** Effective max component-graph nodes for cursed-text scanning (default 1024). */
+    public static int maxComponentNodes()
+    {
+        return CRASH_ENTITIES_MAX_COMPONENT_NODES.getInteger(1024);
     }
 
     public static ConfigEntry findConfigEntry(String name)

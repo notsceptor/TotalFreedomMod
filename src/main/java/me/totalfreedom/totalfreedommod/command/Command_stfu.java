@@ -3,7 +3,6 @@ package me.totalfreedom.totalfreedommod.command;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import org.apache.commons.lang3.ArrayUtils;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.commons.lang3.StringUtils;
@@ -12,7 +11,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 @CommandPermissions(level = Rank.SUPER_ADMIN, source = SourceType.BOTH, permission = "tfm.admin.mute")
-@CommandParameters(description = "Mutes a player with brute force.", usage = "/<command> [[-s] <player> [reason] | list | purge | all]", aliases = "mute")
+@CommandParameters(description = "Mutes a player with brute force.", usage = "/<command> [<player> [reason] | list | purge | all]", aliases = "mute")
 public class Command_stfu extends FreedomCommand
 {
 
@@ -84,18 +83,6 @@ public class Command_stfu extends FreedomCommand
             return true;
         }
 
-        // -s option (smite)
-        boolean smite = args[0].equals("-s");
-        if (smite)
-        {
-            args = ArrayUtils.subarray(args, 1, args.length);
-
-            if (args.length < 1)
-            {
-                return false;
-            }
-        }
-
         final Player player = getPlayer(args[0]);
         if (player == null)
         {
@@ -129,14 +116,11 @@ public class Command_stfu extends FreedomCommand
             FUtil.adminAction(sender.getName(), "Muting " + player.getName(), true);
             playerdata.setMuted(true);
 
-            if (smite)
-            {
-                Command_smite.smite(player);
-            }
-
             if (reason != null)
             {
-                msg(player, Component.text("You have been muted. Reason: " + reason, NamedTextColor.RED));
+                FUtil.bcastMsg("  Reason: " + reason, NamedTextColor.YELLOW);
+                msg(player, Component.text("You have been muted. Reason: ", NamedTextColor.RED)
+                        .append(FUtil.colorizeWithLinks(reason, NamedTextColor.RED)));
             }
             else
             {

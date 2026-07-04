@@ -1,7 +1,12 @@
 package me.totalfreedom.totalfreedommod;
 
-import me.totalfreedom.totalfreedommod.rank.Rank;
+import me.totalfreedom.totalfreedommod.player.CommandSpyMode;
+import me.totalfreedom.totalfreedommod.player.FPlayer;
+import me.totalfreedom.totalfreedommod.rank.Displayable;
+import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FUtil;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -33,12 +38,8 @@ public class CommandSpy extends FreedomService
 
         for (Player player : plugin.al.getOnlineAdmins())
         {
-            if (!plugin.pl.getPlayer(player).cmdspyEnabled())
-            {
-                continue;
-            }
-
-            if (senderIsAdmin && !plugin.rm.getRank(player).isAtLeast(Rank.SENIOR_ADMIN))
+            final FPlayer playerData = plugin.pl.getPlayer(player);
+            if (!playerData.cmdspyEnabled())
             {
                 continue;
             }
@@ -48,7 +49,38 @@ public class CommandSpy extends FreedomService
                 continue;
             }
 
-            FUtil.playerMsg(player, commandSender.getName() + ": " + event.getMessage());
+            final CommandSpyMode mode = playerData.getCommandSpyMode();
+            if (mode == CommandSpyMode.ADMINS && !senderIsAdmin)
+            {
+                continue;
+            }
+
+            if (mode == CommandSpyMode.OPS && senderIsAdmin)
+            {
+                continue;
+            }
+
+            if (!senderIsAdmin)
+            {
+                FUtil.playerMsg(player, Component.text(commandSender.getName() + ": " + event.getMessage(), NamedTextColor.GRAY));
+                continue;
+            }
+
+            final Displayable display = plugin.rm.getDisplay(commandSender);
+            String prefix = AdventureUtil.componentToPlainText(display.getColoredTag()).trim();
+            if (prefix.isEmpty())
+            {
+                prefix = display.getTag();
+            }
+
+            Component message = Component.empty();
+            if (!prefix.isEmpty())
+            {
+                message = Component.text(prefix + " ", display.getColor());
+            }
+
+            message = message.append(Component.text(commandSender.getName() + ": " + event.getMessage(), NamedTextColor.GRAY));
+            FUtil.playerMsg(player, message);
         }
     }
 }

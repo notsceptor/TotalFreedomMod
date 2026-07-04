@@ -16,15 +16,16 @@ import me.totalfreedom.totalfreedommod.blocking.InteractBlocker;
 import me.totalfreedom.totalfreedommod.blocking.MobBlocker;
 import me.totalfreedom.totalfreedommod.blocking.PotionBlocker;
 import me.totalfreedom.totalfreedommod.blocking.command.CommandBlocker;
+import me.totalfreedom.totalfreedommod.blocking.sweep.SweepScheduler;
 import me.totalfreedom.totalfreedommod.blocking.entity.EntityNameValidator;
 import me.totalfreedom.totalfreedommod.blocking.entity.EntitySizeGuard;
 import me.totalfreedom.totalfreedommod.blocking.entity.TextDisplayGuard;
-import me.totalfreedom.totalfreedommod.blocking.entity.HurtProjectileGuard;
+import me.totalfreedom.totalfreedommod.blocking.entity.ProjectileGuard;
 import me.totalfreedom.totalfreedommod.blocking.item.ConsoleSpamFilter;
-import me.totalfreedom.totalfreedommod.blocking.item.EquipmentPacketGuard;
+import me.totalfreedom.totalfreedommod.blocking.packet.CrashPacketService;
 import me.totalfreedom.totalfreedommod.blocking.item.ItemValidator;
 import me.totalfreedom.totalfreedommod.blocking.sign.SignValidator;
-import me.totalfreedom.totalfreedommod.bridge.BukkitTelnetBridge;
+import me.totalfreedom.totalfreedommod.blocking.spawner.SpawnerValidator;
 import me.totalfreedom.totalfreedommod.bridge.CoreProtectBridge;
 import me.totalfreedom.totalfreedommod.bridge.EssentialsBridge;
 import me.totalfreedom.totalfreedommod.bridge.LibsDisguisesBridge;
@@ -73,18 +74,17 @@ public class TotalFreedomMod extends JavaPlugin
     // Services
     public ServiceManager<TotalFreedomMod> services;
     public FreedomDatabase dm; // FreedomDatabase - Manages SQL database connections
-    public ServerInterface si; // ServerInterface - Core server interface and version checking
     public SavedFlags sf; // SavedFlags - Stores saved flag states
     public WorldManager wm; // WorldManager - Manages world operations
-    public LogViewer lv; // LogViewer - HTTP-based log viewing interface
     public AdminList al; // AdminList - Manages admin list and permissions
     public RankManager rm; // RankManager - Handles player ranks and display
     public ConsoleSenderRegistry csr; // ConsoleSenderRegistry - Maps console senders to appropriate rank
     public CommandLoader cl; // CommandLoader - Loads and registers commands
     public CommandBlocker cb; // CommandBlocker - Blocks specific commands
+    public SweepScheduler sweepScheduler; // SweepScheduler - Shared budgeted world/chunk sweep walker
     public ItemValidator iv; // ItemValidator - Blocks unwanted NBT items
     public SignValidator sv; // SignValidator - Sanitizes the components of signs
-    public EquipmentPacketGuard epg; // EquipmentPacketGuard - Strips unwanted items from packets
+    public CrashPacketService cps; // CrashPacketService - PacketEvents crash-protection hooks
     public EventBlocker eb; // EventBlocker - Blocks various game events
     public BlockBlocker bb; // BlockBlocker - Blocks block placement/breaking
     public MobBlocker mb; // MobBlocker - Blocks mob spawning
@@ -93,6 +93,7 @@ public class TotalFreedomMod extends JavaPlugin
     public PotionBlocker pb; // PotionBlocker - Blocks potion effects
     public LoginProcess lp; // LoginProcess - Handles player login processing
     public AntiNuke nu; // AntiNuke - Prevents rapid command execution (nuking)
+    public AntiDrop adr; // AntiDrop - Throttles item drop flooding
     public AntiSpam as; // AntiSpam - Prevents chat spam
     public PlayerList pl; // PlayerList - Manages player data and lists
     public Announcer an; // Announcer - Handles server announcements
@@ -125,13 +126,11 @@ public class TotalFreedomMod extends JavaPlugin
     public HTTPDaemon hd; // HTTPDaemon - HTTP server for web interface
     public SshDaemon sd; // SshDaemon - SSH server for remote console access
     public DiscordBridge db; // DiscordBridge - Built-in Discord chat/console relay
-    public ServiceChecker sc; // ServiceChecker - Checks Mojang service status
     public TabList tl; // TabList - Customizable tab list header, footer, and player names
     //
     // Bridges
     public ServiceManager<TotalFreedomMod> bridges;
     public CoreProtectBridge cpb;
-    public BukkitTelnetBridge btb; // BukkitTelnetBridge - Bridge to BukkitTelnet plugin
     public EssentialsBridge esb; // EssentialsBridge - Bridge to Essentials plugin
     public LibsDisguisesBridge ldb; // LibsDisguisesBridge - Bridge to LibsDisguises plugin
     public WorldEditBridge web; // WorldEditBridge - Bridge to WorldEdit plugin
@@ -159,9 +158,6 @@ public class TotalFreedomMod extends JavaPlugin
         final MethodTimer timer = new MethodTimer();
         timer.start();
 
-        // Warn if we're running on a wrong version
-        ServerInterface.warnVersion();
-
         // Delete unused files
         FUtil.deleteCoreDumps();
         FUtil.deleteFolder(new File("./_deleteme"));
@@ -185,14 +181,12 @@ public class TotalFreedomMod extends JavaPlugin
 
         // Start services
         services = new ServiceManager<>(this);
-        si = services.registerService(ServerInterface.class);
         sf = services.registerService(SavedFlags.class);
         
         // Initialize database manager first (before services that depend on it)
         dm = services.registerService(FreedomDatabase.class);
         
         wm = services.registerService(WorldManager.class);
-        lv = services.registerService(LogViewer.class);
         al = services.registerService(AdminList.class);
 
         configConverter.convertAdminConsoleRanks();
@@ -207,21 +201,25 @@ public class TotalFreedomMod extends JavaPlugin
         csr.load();
         cl = services.registerService(CommandLoader.class);
         cb = services.registerService(CommandBlocker.class);
+        // SweepScheduler must start before any guard that registers a visitor.
+        sweepScheduler = services.registerService(SweepScheduler.class);
         iv = services.registerService(ItemValidator.class);
         services.registerService(ConsoleSpamFilter.class);
         sv = services.registerService(SignValidator.class);
-        epg = services.registerService(EquipmentPacketGuard.class);
+        cps = services.registerService(CrashPacketService.class);
         eb = services.registerService(EventBlocker.class);
         bb = services.registerService(BlockBlocker.class);
         mb = services.registerService(MobBlocker.class);
         env = services.registerService(EntityNameValidator.class);
         services.registerService(EntitySizeGuard.class);
-        services.registerService(HurtProjectileGuard.class);
+        services.registerService(SpawnerValidator.class);
+        services.registerService(ProjectileGuard.class);
         services.registerService(TextDisplayGuard.class);
         ib = services.registerService(InteractBlocker.class);
         pb = services.registerService(PotionBlocker.class);
         lp = services.registerService(LoginProcess.class);
         nu = services.registerService(AntiNuke.class);
+        adr = services.registerService(AntiDrop.class);
         as = services.registerService(AntiSpam.class);
 
         pl = services.registerService(PlayerList.class);
@@ -268,21 +266,19 @@ public class TotalFreedomMod extends JavaPlugin
         // Discord
         db = services.registerService(DiscordBridge.class);
 
-        sc = services.registerService(ServiceChecker.class);
         tl = services.registerService(TabList.class);
         services.start();
 
         // Start bridges
         bridges = new ServiceManager<>(this);
         cpb = bridges.registerService(CoreProtectBridge.class);
-        btb = bridges.registerService(BukkitTelnetBridge.class);
         esb = bridges.registerService(EssentialsBridge.class);
         ldb = bridges.registerService(LibsDisguisesBridge.class);
         web = bridges.registerService(WorldEditBridge.class);
         bridges.start();
 
         timer.update();
-        FLog.info("Version " + pluginVersion + " for " + ServerInterface.COMPILE_NMS_VERSION + " enabled in " + timer.getTotal() + "ms");
+        FLog.info("Version " + pluginVersion + " enabled in " + timer.getTotal() + "ms");
 
         // Add spawnpoints later - https://github.com/TotalFreedom/TotalFreedomMod/issues/438
         getServer().getScheduler().runTaskLater(this, () -> pa.autoAddSpawnpoints(), 60L);

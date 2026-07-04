@@ -163,7 +163,7 @@ public class PlayerList extends FreedomService
 
         tPlayer = new FPlayer(plugin, player);
         final PlayerData data = getData(player);
-        tPlayer.setCommandSpy(data.isCommandSpy());
+        tPlayer.setCommandSpyMode(data.getCommandSpyMode());
         tPlayer.setCommandsBlocked(data.isCommandsBlocked());
         playerMap.put(player.getName().toLowerCase(), tPlayer);
 

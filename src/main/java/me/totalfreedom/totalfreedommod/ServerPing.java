@@ -10,7 +10,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.server.ServerListPingEvent;
 
-@SuppressWarnings("deprecation")
 public class ServerPing extends FreedomService
 {
 
@@ -36,25 +35,25 @@ public class ServerPing extends FreedomService
 
         if (plugin.bm.isIpBanned(ip))
         {
-            event.setMotd(AdventureUtil.componentToLegacySection(Component.text("You are banned.", NamedTextColor.RED)));
+            event.motd(Component.text("You are banned.", NamedTextColor.RED));
             return;
         }
 
         if (ConfigEntry.ADMIN_ONLY_MODE.getBoolean())
         {
-            event.setMotd(AdventureUtil.componentToLegacySection(Component.text("Server is closed.", NamedTextColor.RED)));
+            event.motd(Component.text("Server is closed.", NamedTextColor.RED));
             return;
         }
 
         if (Bukkit.hasWhitelist())
         {
-            event.setMotd(AdventureUtil.componentToLegacySection(Component.text("Whitelist enabled.", NamedTextColor.RED)));
+            event.motd(Component.text("Whitelist enabled.", NamedTextColor.RED));
             return;
         }
 
         if (Bukkit.getOnlinePlayers().size() >= Bukkit.getMaxPlayers())
         {
-            event.setMotd(AdventureUtil.componentToLegacySection(Component.text("Server is full.", NamedTextColor.RED)));
+            event.motd(Component.text("Server is full.", NamedTextColor.RED));
             return;
         }
 
@@ -65,7 +64,7 @@ public class ServerPing extends FreedomService
 
         if (!ConfigEntry.SERVER_COLORFUL_MOTD.getBoolean())
         {
-            event.setMotd(baseMotd);
+            event.motd(FUtil.colorize(baseMotd));
             return;
         }
 
@@ -77,7 +76,6 @@ public class ServerPing extends FreedomService
             motd = motd.append(Component.text(word + " ", color != null ? color : NamedTextColor.WHITE));
         }
 
-        event.setMotd(AdventureUtil.componentToLegacySection(motd).trim());
+        event.motd(motd);
     }
-
 }

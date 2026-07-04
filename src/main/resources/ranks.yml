@@ -57,20 +57,13 @@ non_op:
   admin: false
   console_only: false
   permissions:
-    - tfm.player.cartsit
-    - tfm.player.cbtool
-    - tfm.player.commandlist
     - tfm.player.localspawn
     - tfm.player.radar
     - tfm.player.rank
     - tfm.player.setlever
     - tfm.player.spawn
     - tfm.player.list
-    - tfm.world.ender
     - tfm.world.flatlands
-    - tfm.world.nether
-    - tfm.server.onlinemode
-    - tfm.server.status
     - tfm.server.info
 
 op:
@@ -124,19 +117,16 @@ super_admin:
     - tfm.admin.disguisetoggle
     - tfm.admin.findip
     - tfm.admin.freeze
-    - tfm.admin.gadmin
     - tfm.admin.gcmd
     - tfm.admin.glist
     - tfm.admin.invis
     - tfm.admin.kick
     - tfm.admin.lastcmd
-    - tfm.admin.logs
     - tfm.admin.mute
     - tfm.admin.myadmin
     - tfm.admin.nickclean
     - tfm.admin.opall
     - tfm.admin.opme
-    - tfm.admin.overlord
     - tfm.admin.potspy
     - tfm.admin.premium
     - tfm.admin.purgeall

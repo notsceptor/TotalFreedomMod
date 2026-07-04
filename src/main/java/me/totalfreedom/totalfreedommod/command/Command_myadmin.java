@@ -142,10 +142,26 @@ public class Command_myadmin extends FreedomCommand
 
                 String msg = StringUtils.join(args, " ", 1, args.length);
                 FUtil.adminAction(sender.getName(), "Setting personal login message" + (init == null ? "" : " for " + targetPlayer.getName()), false);
+
+                // Temporary legacy to MiniMessage placeholder conversion for login messages, remove if no longer needed
+                if (msg.contains("%name%") || msg.contains("%rank%") || msg.contains("%coloredrank%"))
+                {
+                    msg = msg.replace("%name%", "<name>")
+                            .replace("%rank%", "<rank>")
+                            .replace("%coloredrank%", "<colored_rank>");
+
+                    msg(Component.text("MiniMessage is now favored over legacy placeholder tags. Use ", NamedTextColor.GRAY)
+                            .append(Component.text("<name>", NamedTextColor.AQUA))
+                            .append(Component.text(", ", NamedTextColor.GRAY))
+                            .append(Component.text("<rank>", NamedTextColor.AQUA))
+                            .append(Component.text(" or ", NamedTextColor.GRAY))
+                            .append(Component.text("<colored_rank>", NamedTextColor.AQUA))
+                            .append(Component.text(" instead. We'll convert it for you, but this conversion may be removed in the future.", NamedTextColor.GRAY)));
+                }
+
                 target.setLoginMessage(msg);
                 msg((init == null ? "Your" : targetPlayer.getName() + "'s") + " login message is now: ");
-                msg(Component.text("> ").append(Component.text(targetPlayer.getName() + " is ", NamedTextColor.AQUA))
-                        .append(me.totalfreedom.totalfreedommod.util.AdventureUtil.legacyToComponent(target.getLoginMessage())));
+                msg(Component.text("> ").append(plugin.rm.formatLoginMessage(targetPlayer)));
                 plugin.al.save();
                 plugin.al.updateTables();
                 return true;

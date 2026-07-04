@@ -2,9 +2,7 @@ package me.totalfreedom.totalfreedommod.rank;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import org.bukkit.ChatColor;
 
-@SuppressWarnings("deprecation")
 public interface Displayable
 {
 
@@ -13,9 +11,6 @@ public interface Displayable
     public String getTag();
 
     public NamedTextColor getColor();
-
-    @Deprecated
-    public ChatColor getColorLegacy();
 
     public Component getColoredName();
 

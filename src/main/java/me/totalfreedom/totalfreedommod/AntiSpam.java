@@ -32,14 +32,12 @@ public class AntiSpam extends FreedomService
 
     private static boolean enabled()
     {
-        final Boolean v = ConfigEntry.ANTISPAM_ENABLED.getBoolean();
-        return v == null || v;
+        return ConfigEntry.ANTISPAM_ENABLED.getBoolean(true);
     }
 
     private static int limit()
     {
-        final Integer v = ConfigEntry.ANTISPAM_LIMIT.getInteger();
-        return v == null ? 8 : v;
+        return ConfigEntry.ANTISPAM_LIMIT.getInteger(8);
     }
 
     @EventHandler(priority = EventPriority.LOW)
@@ -82,10 +80,8 @@ public class AntiSpam extends FreedomService
         {
             return;
         }
-        final String command = event.getMessage();
         final Player player = event.getPlayer();
         final FPlayer fPlayer = plugin.pl.getPlayer(player);
-        fPlayer.setLastCommand(command);
 
         if (fPlayer.allCommandsBlocked())
         {

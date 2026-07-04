@@ -36,9 +36,7 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
     @Getter
     @Setter
     private boolean potionSpy;
-    @Getter
-    @Setter
-    private boolean commandSpy;
+    private CommandSpyMode commandSpyMode = CommandSpyMode.OFF;
     @Getter
     @Setter
     private boolean muted;
@@ -77,7 +75,8 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
         this.firstJoinUnix = cs.getLong("first_join", 0);
         this.lastJoinUnix = cs.getLong("last_join", 0);
         this.potionSpy = cs.getBoolean("potion_spy", false);
-        this.commandSpy = cs.getBoolean("command_spy", false);
+        final boolean legacyCommandSpy = cs.getBoolean("command_spy", false);
+        this.commandSpyMode = CommandSpyMode.fromString(cs.getString("command_spy_mode", legacyCommandSpy ? "all" : "off"));
         this.muted = cs.getBoolean("muted", false);
         this.frozen = cs.getBoolean("frozen", false);
         this.commandsBlocked = cs.getBoolean("commands_blocked", false);
@@ -104,13 +103,34 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
         cs.set("first_join", firstJoinUnix);
         cs.set("last_join", lastJoinUnix);
         cs.set("potion_spy", potionSpy);
-        cs.set("command_spy", commandSpy);
+        cs.set("command_spy", isCommandSpy());
+        cs.set("command_spy_mode", commandSpyMode.getName());
         cs.set("muted", muted);
         cs.set("frozen", frozen);
         cs.set("commands_blocked", commandsBlocked);
         cs.set("strikes", strikes);
         cs.set("saved_tag", savedTag);
         cs.set("nickname", nickname != null ? AdventureUtil.componentToLegacy(nickname) : null);
+    }
+
+    public boolean isCommandSpy()
+    {
+        return commandSpyMode != CommandSpyMode.OFF;
+    }
+
+    public void setCommandSpy(boolean commandSpy)
+    {
+        this.commandSpyMode = commandSpy ? CommandSpyMode.ALL : CommandSpyMode.OFF;
+    }
+
+    public CommandSpyMode getCommandSpyMode()
+    {
+        return commandSpyMode;
+    }
+
+    public void setCommandSpyMode(CommandSpyMode commandSpyMode)
+    {
+        this.commandSpyMode = commandSpyMode == null ? CommandSpyMode.OFF : commandSpyMode;
     }
 
     public List<String> getIps()

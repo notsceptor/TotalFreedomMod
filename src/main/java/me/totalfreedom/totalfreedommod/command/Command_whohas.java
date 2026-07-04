@@ -1,62 +1,69 @@
 package me.totalfreedom.totalfreedommod.command;
 
-import java.util.ArrayList;
 import java.util.List;
 import me.totalfreedom.totalfreedommod.rank.Rank;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.JoinConfiguration;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
-import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 @CommandPermissions(level = Rank.SUPER_ADMIN, source = SourceType.BOTH, permission = "tfm.admin.whohas")
-@CommandParameters(description = "See who has a block and optionally clears the item.", usage = "/<command> <item> clear", aliases = "wh")
+@CommandParameters(description = "See who has a block and optionally clears the item.", usage = "/<command> [-clear] <item>", aliases = "wh")
 public class Command_whohas extends FreedomCommand
 {
+    @CommandDispatchTarget(pattern = "<query:MaterialQuery>", switches = "clear")
+    public boolean query(CommandContext ctx, List<Material> materials, boolean clear)
+    {
+        long count = materials.stream().filter(material ->
+        {
+            final List<Player> players = server.getOnlinePlayers().stream().filter(player -> player.getInventory().contains(material))
+                    .map(player -> (Player) player)
+                    .peek(player ->
+                    {
+                        if (clear)
+                        {
+                            player.getInventory().remove(material);
+                        }
+                    })
+                    .toList();
+
+            if (!players.isEmpty())
+            {
+                msg(ctx.getSender(), Component.text("Players with item type ", NamedTextColor.GRAY)
+                        .append(Component.text(material.key().asString(), NamedTextColor.WHITE))
+                        .append(Component.text(": "))
+                        .append(Component.join(JoinConfiguration.commas(true), players.stream().map(player ->
+                                ctx.isSenderConsole() ? Component.text(player.getName(), NamedTextColor.WHITE) :
+                                        player.displayName()
+                                                .colorIfAbsent(NamedTextColor.WHITE)
+                                                .hoverEvent(HoverEvent.showText(Component.text(player.getName())))
+                                                .clickEvent(ClickEvent.clickEvent(ClickEvent.Action.SUGGEST_COMMAND,
+                                                        ClickEvent.Payload.string(plugin.esb.isEssentialsEnabled() ?
+                                                                  "/invsee " + player.getName() :
+                                                                  "/data get entity " + player.getUniqueId() + " Inventory")))).toList())));
+
+                return true;
+            }
+
+            return false;
+        }).count();
+
+        if (count == 0)
+        {
+            msg(ctx.getSender(), "No results were found for your query.");
+        }
+
+        return true;
+    }
 
     @Override
     public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
     {
-        if (args.length < 1)
-        {
-            return false;
-        }
-
-        final boolean doClear = args.length >= 2 && "clear".equalsIgnoreCase(args[1]);
-
-        final String materialName = args[0];
-        Material material = me.totalfreedom.totalfreedommod.util.MaterialHelper.getMaterial(materialName);
-
-        if (material == null)
-        {
-            msg("Invalid block: " + materialName, NamedTextColor.RED);
-            return true;
-        }
-
-        final List<String> players = new ArrayList<>();
-
-        for (final Player player : server.getOnlinePlayers())
-        {
-            if (player.getInventory().contains(material))
-            {
-                players.add(player.getName());
-                if (doClear && !plugin.al.isAdmin(player))
-                {
-                    player.getInventory().remove(material);
-                }
-            }
-        }
-
-        if (players.isEmpty())
-        {
-            msg("There are no players with that item");
-        }
-        else
-        {
-            msg("Players with item " + material.name() + ": " + StringUtils.join(players, ", "));
-        }
-
-        return true;
+        return false;
     }
 }

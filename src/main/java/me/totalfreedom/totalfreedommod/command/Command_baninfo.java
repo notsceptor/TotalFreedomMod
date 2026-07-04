@@ -13,7 +13,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 @CommandPermissions(level = Rank.SUPER_ADMIN, source = SourceType.BOTH, permission = "tfm.admin.baninfo")
-@CommandParameters(description = "Show info about a ban by username or the first match to a (partial) IP.", usage = "/<command> <name|ip>")
+@CommandParameters(description = "Show info about a ban by username or the first match to a (partial) IP.", usage = "/<command> <name|ip>", aliases = "checkban")
 public class Command_baninfo extends FreedomCommand
 {
 
@@ -27,21 +27,24 @@ public class Command_baninfo extends FreedomCommand
 
         final String query = args[0];
 
-        // lookup by username
+        // Lookup by username.
         Ban ban = plugin.bm.getByUsername(query);
-        // lookup by IP
+
+        // Lookup by IP.
         if (ban == null)
         {
             ban = plugin.bm.getByIp(query);
         }
+
         if (ban != null)
         {
             printBan(sender, ban);
             return true;
         }
 
-        // same thing for permbans
+        // Lookup permanent bans.
         PermBan permban = plugin.pm.getPermban(query);
+
         if (permban == null)
         {
             for (String name : plugin.pm.getPermbannedNames())
@@ -54,14 +57,14 @@ public class Command_baninfo extends FreedomCommand
                 }
             }
         }
+
         if (permban != null)
         {
             printPermban(sender, permban);
             return true;
         }
 
-        // fallback only triggers if the arg looks like a partial IP
-        // (contains a "." and either has a wildcard or fewer than 4 numeric octets)
+        // Fallback only triggers if the argument looks like a partial IP.
         if (isPartialIp(query))
         {
             String normalized = normalizePartialIp(query);
@@ -73,6 +76,7 @@ public class Command_baninfo extends FreedomCommand
                 {
                     continue;
                 }
+
                 for (String ip : candidate.getIps())
                 {
                     if (FUtil.fuzzyIpMatch(normalized, ip, leading))
@@ -90,6 +94,7 @@ public class Command_baninfo extends FreedomCommand
                 {
                     continue;
                 }
+
                 for (String ip : candidate.getIps())
                 {
                     if (FUtil.fuzzyIpMatch(normalized, ip, leading))
@@ -101,13 +106,15 @@ public class Command_baninfo extends FreedomCommand
             }
         }
 
-        msg("No ban or permban found for: " + query, NamedTextColor.GRAY);
+        msg(Component.text("No ban or permban found for: ").color(NamedTextColor.GRAY)
+                .append(Component.text(query).color(NamedTextColor.WHITE)));
+
         return true;
     }
 
     /**
-     * True if {@code s} looks like a partial IPv4 pattern (see above comment).
-     * A complete 4-octet IP with no wildcards is excluded (the exact path already covers that).
+     * True if {@code s} looks like a partial IPv4 pattern.
+     * A complete 4-octet IP with no wildcards is excluded.
      */
     private static boolean isPartialIp(String s)
     {
@@ -115,11 +122,13 @@ public class Command_baninfo extends FreedomCommand
         {
             return false;
         }
+
         String[] parts = s.split("\\.", -1);
         if (parts.length > 4)
         {
             return false;
         }
+
         boolean hasWildcard = false;
         for (String part : parts)
         {
@@ -127,11 +136,13 @@ public class Command_baninfo extends FreedomCommand
             {
                 return false;
             }
+
             if (part.equals("*"))
             {
                 hasWildcard = true;
                 continue;
             }
+
             for (int i = 0; i < part.length(); i++)
             {
                 if (!Character.isDigit(part.charAt(i)))
@@ -140,49 +151,61 @@ public class Command_baninfo extends FreedomCommand
                 }
             }
         }
+
         return hasWildcard || parts.length < 4;
     }
 
-    /** Pads the input to exactly 4 dot-separated segments with "*" placeholders. */
+    /**
+     * Pads the input to exactly 4 dot-separated segments with "*" placeholders.
+     */
     private static String normalizePartialIp(String s)
     {
         String[] parts = s.split("\\.", -1);
         StringBuilder out = new StringBuilder();
+
         for (int i = 0; i < 4; i++)
         {
             if (i > 0)
             {
                 out.append('.');
             }
+
             out.append(i < parts.length ? parts[i] : "*");
         }
+
         return out.toString();
     }
 
-    /** Number of leading non-wildcard octets in the partial pattern (<=4). */
+    /**
+     * Number of leading non-wildcard octets in the partial pattern.
+     */
     private static int countLeadingOctets(String s)
     {
         String[] parts = s.split("\\.", -1);
         int n = 0;
+
         for (String part : parts)
         {
             if (part.equals("*"))
             {
                 break;
             }
+
             n++;
         }
+
         return Math.min(n, 4);
     }
 
     private void printBan(CommandSender sender, Ban ban)
     {
         String header = ban.hasUsername() ? ban.getUsername() : "(IP-only)";
+
         msg(Component.text("Ban: ").color(NamedTextColor.RED)
                 .append(Component.text(header).color(NamedTextColor.WHITE)));
 
         msg(Component.text("  Reason: ").color(NamedTextColor.GRAY)
-                .append(Component.text(blankOr(ban.getReason(), "(none)")).color(NamedTextColor.WHITE)));
+                .append(FUtil.colorizeWithLinks(blankOr(ban.getReason(), "(none)"), NamedTextColor.WHITE)));
 
         msg(Component.text("  Banned by: ").color(NamedTextColor.GRAY)
                 .append(Component.text(blankOr(ban.getBy(), "(unknown)")).color(NamedTextColor.WHITE)));
@@ -197,7 +220,8 @@ public class Command_baninfo extends FreedomCommand
         }
         else
         {
-            msg(Component.text("  Permanent").color(NamedTextColor.RED));
+            msg(Component.text("  Expires: ").color(NamedTextColor.GRAY)
+                    .append(Component.text("Unknown (legacy ban)").color(NamedTextColor.YELLOW)));
         }
     }
 
@@ -206,14 +230,18 @@ public class Command_baninfo extends FreedomCommand
         String header = permban.getUsername() != null && !permban.getUsername().isEmpty()
                 ? permban.getUsername()
                 : "(IP-only)";
+
         msg(Component.text("Permban: ").color(NamedTextColor.DARK_RED)
                 .append(Component.text(header).color(NamedTextColor.WHITE)));
 
         msg(Component.text("  Reason: ").color(NamedTextColor.GRAY)
-                .append(Component.text(blankOr(permban.getReason(), "(none)")).color(NamedTextColor.WHITE)));
+                .append(FUtil.colorizeWithLinks(blankOr(permban.getReason(), "(none)"), NamedTextColor.WHITE)));
 
         msg(Component.text("  IPs: ").color(NamedTextColor.GRAY)
                 .append(Component.text(formatIps(sender, permban.getIps())).color(NamedTextColor.WHITE)));
+
+        msg(Component.text("  Expires: ").color(NamedTextColor.GRAY)
+                .append(Component.text("Permanent").color(NamedTextColor.RED)));
     }
 
     private String formatIps(CommandSender sender, List<String> ips)
@@ -222,11 +250,13 @@ public class Command_baninfo extends FreedomCommand
         {
             return "(none)";
         }
+
         List<String> masked = new ArrayList<>(ips.size());
         for (String ip : ips)
         {
             masked.add(FUtil.sanitizeIp(sender, ip));
         }
+
         return String.join(", ", masked);
     }
 

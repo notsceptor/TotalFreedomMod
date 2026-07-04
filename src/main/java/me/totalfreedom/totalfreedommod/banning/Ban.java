@@ -15,7 +15,6 @@ import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.ConfigInterfaces.ConfigLoadable;
 import me.totalfreedom.totalfreedommod.util.ConfigInterfaces.ConfigSavable;
 import me.totalfreedom.totalfreedommod.util.ConfigInterfaces.Validatable;
-import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -218,7 +217,7 @@ public class Ban implements ConfigLoadable, ConfigSavable, Validatable
         {
             message = message
                     .append(Component.text("\nReason: ", NamedTextColor.RED))
-                    .append(AdventureUtil.translateAlternateColorCodes('&', reason).colorIfAbsent(NamedTextColor.GOLD));
+                    .append(FUtil.colorizeWithLinks(reason, NamedTextColor.GOLD));
         }
 
         if (by != null)

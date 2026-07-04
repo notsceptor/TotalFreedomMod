@@ -5,7 +5,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -24,11 +23,11 @@ import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.ComponentBuilder;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import org.bukkit.GameMode;
@@ -208,6 +207,7 @@ public class RankManager extends FreedomService
                     custom.addPermission("tfm.admin.cage");
                     custom.addPermission("tfm.fun.smite");
                     custom.addPermission("tfm.fun.doom");
+                    custom.addPermission("tfm.world.gamerule");
                     break;
                 case OP:
                     custom.addPermission("tfm.player.op");
@@ -905,7 +905,7 @@ public class RankManager extends FreedomService
         {
             builder.append(Component.text("  • ").color(NamedTextColor.GRAY));
             builder.append(rank.getColoredTag());
-            builder.append(Component.text(" " + rank.getName()).color(rank.getColor()));
+            builder.append(Component.text(" ").append(rank.getColoredName()));
             builder.append(Component.text(" (Level " + rank.getLevel() + ")").color(NamedTextColor.DARK_GRAY));
             builder.append(Component.text(" "));
 
@@ -961,7 +961,7 @@ public class RankManager extends FreedomService
         builder.append(Component.text("\n"));
         builder.append(Component.text("  Editing: ").color(NamedTextColor.WHITE));
         builder.append(rank.getColoredTag());
-        builder.append(Component.text(" " + rank.getName()).color(rank.getColor()));
+        builder.append(Component.text(" ").append(rank.getColoredName()));
         builder.append(Component.text("\n"));
         builder.append(Component.text("═══════════════════════════════════════").color(NamedTextColor.AQUA));
         builder.append(Component.text("\n\n"));
@@ -1030,7 +1030,7 @@ public class RankManager extends FreedomService
     private Component buildEditableProperty(String label, String value, String command)
     {
         return Component.text("  " + label + ": ").color(NamedTextColor.GRAY)
-                .append(Component.text(value).color(NamedTextColor.WHITE))
+                .append(FUtil.colorizeWithLinks(value, NamedTextColor.WHITE))
                 .append(Component.text(" "))
                 .append(Component.text("[Edit]")
                         .color(NamedTextColor.AQUA)
@@ -1353,26 +1353,11 @@ public class RankManager extends FreedomService
         if (isAdmin || FUtil.DEVELOPERS.contains(player.getName()))
         {
             final Displayable display = getDisplay(player);
-            Component loginMsg = display.getColoredLoginMessage();
-
-            if (isAdmin)
-            {
-                Admin admin = plugin.al.getAdmin(player);
-                if (admin.hasLoginMessage())
-                {
-                    // Colorize legacy color codes
-                    String legacyMsg = admin.getLoginMessage().replace('&', '§');
-                    loginMsg = AdventureUtil.legacyToComponent(legacyMsg);
-                }
-            }
-
-            Component broadcastMsg = Component.text(player.getName() + " is ")
-                    .color(NamedTextColor.AQUA)
-                    .append(loginMsg);
-            FUtil.bcastMsg(broadcastMsg);
+            Component loginMsg = formatLoginMessage(player);
+            FUtil.bcastMsg(loginMsg);
             if (plugin.db != null)
             {
-                plugin.db.relayLoginMessage(broadcastMsg);
+                plugin.db.relayLoginMessage(loginMsg);
             }
 
             // Skip rank tag when the player has a saved custom tag.
@@ -1384,6 +1369,46 @@ public class RankManager extends FreedomService
             }
 
         }
+    }
+
+    public Component formatLoginMessage(Player player)
+    {
+        final Displayable display = getDisplay(player);
+        final boolean isAdmin = plugin.al.isAdmin(player);
+        Component loginMsg = Component.text(player.getName() + " is ")
+                .color(NamedTextColor.AQUA)
+                .append(display.getColoredLoginMessage());
+
+        if (isAdmin)
+        {
+            Admin admin = plugin.al.getAdmin(player);
+            if (admin.hasLoginMessage())
+            {
+                // Temporary measure to convert old tags to the preferred MiniMessage system and update database
+                String loginMessage = admin.getLoginMessage();
+                if (loginMessage.contains("%name%") || loginMessage.contains("%rank%") || loginMessage.contains("%coloredrank%"))
+                {
+                    loginMessage = loginMessage
+                            .replace("%name%", "<name>")
+                            .replace("%rank%", "<rank>")
+                            .replace("%coloredrank%", "<colored_rank>");
+
+                    admin.setLoginMessage(loginMessage);
+                    plugin.al.save();
+                    plugin.al.updateTables();
+                }
+
+                loginMsg = AdventureUtil.addLinks(
+                        AdventureUtil.formatWithPlaceholders(
+                                loginMessage,
+                                Placeholder.unparsed("name", player.getName()),
+                                Placeholder.unparsed("rank", admin.getRank().getName()),
+                                Placeholder.component("colored_rank", display.getColoredName())
+                        ));
+            }
+        }
+
+        return loginMsg;
     }
 
     @EventHandler(priority = EventPriority.MONITOR)

@@ -1,5 +1,6 @@
 package me.totalfreedom.totalfreedommod;
 
+
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import org.bukkit.Location;

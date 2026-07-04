@@ -2,6 +2,7 @@ package me.totalfreedom.totalfreedommod.command;
 
 import java.util.List;
 import me.totalfreedom.totalfreedommod.banning.Ban;
+import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
@@ -37,14 +38,25 @@ public class Command_ban extends FreedomCommand
         }
 
         List<String> ips = BanCommandUtil.getIps(player, data);
-        Ban ban = BanCommandUtil.createFullBan(name, ips, sender, null, reason);
+        Ban ban = BanCommandUtil.createFullBan(name, ips, sender, FUtil.parseDateOffset("24h"), reason);
 
         if (!silent && player != null)
+        {
             FUtil.bcastMsg(player.getName() + " has been a VERY naughty, naughty boy.", NamedTextColor.RED);
+        }
 
         plugin.bm.addBan(ban);
         if (!silent)
+        {
             FUtil.adminAction(sender.getName(), "Banning " + name, true);
+
+            if (reason != null)
+            {
+                FUtil.bcastMsg("  Reason: " + reason, NamedTextColor.YELLOW);
+            }
+
+            plugin.db.sendActionMessage(sender.getName(), name, reason, ConfigEntry.DISCORD_PLAYER_BAN_MESSAGE);
+        }
 
         if (!noRollback)
         {

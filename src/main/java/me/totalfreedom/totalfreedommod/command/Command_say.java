@@ -1,10 +1,12 @@
 package me.totalfreedom.totalfreedommod.command;
 
+import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.rank.Rank;
-import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchContext;
 import me.totalfreedom.totalfreedommod.util.FUtil;
+import me.totalfreedom.totalfreedommod.util.ChatMentionUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -23,26 +25,12 @@ public class Command_say extends FreedomCommand
             return false;
         }
 
-        String message = StringUtils.join(args, " ");
-
-        if (senderIsConsole && !RemoteDispatchContext.isActive())
-        {
-            if (message.equalsIgnoreCase("WARNING: Server is restarting, you will be kicked"))
-            {
-                FUtil.bcastMsg("Server is going offline.", NamedTextColor.GRAY);
-
-                for (Player player : server.getOnlinePlayers())
-                {
-                    player.kick(Component.text("Server is going offline, come back in about 20 seconds."));
-                }
-
-                server.shutdown();
-
-                return true;
-            }
-        }
-
-        FUtil.bcastMsg(String.format("[Server:%s] %s", sender.getName(), message), NamedTextColor.LIGHT_PURPLE);
+        Component formattedMessage = FUtil.colorizeWithLinks(StringUtils.join(args, " "), NamedTextColor.LIGHT_PURPLE);
+        formattedMessage = ChatMentionUtil.highlightAndPing(plugin, formattedMessage, true);
+        Component broadcast = Component.text("[Server:" + sender.getName() + "] ", NamedTextColor.LIGHT_PURPLE)
+                .append(formattedMessage);
+        FUtil.bcastMsg(broadcast);
+        plugin.db.sendBroadcastMessage(sender.getName(),  PlainTextComponentSerializer.plainText().serialize(broadcast), ConfigEntry.DISCORD_SAY_MESSAGE);
 
         return true;
     }

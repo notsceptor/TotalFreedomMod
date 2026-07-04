@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -32,14 +33,12 @@ import net.kyori.adventure.text.serializer.ansi.ANSIComponentSerializer;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
-@SuppressWarnings("deprecation")
 public class FUtil
 {
 
@@ -61,36 +60,6 @@ public class FUtil
             NamedTextColor.RED,
             NamedTextColor.LIGHT_PURPLE,
             NamedTextColor.YELLOW);
-    
-    // Backward compatibility - deprecated
-    @Deprecated
-    public static final Map<String, ChatColor> CHAT_COLOR_NAMES_LEGACY = new HashMap<>();
-    @Deprecated
-    public static final List<ChatColor> CHAT_COLOR_POOL_LEGACY = Arrays.asList(
-            ChatColor.DARK_BLUE,
-            ChatColor.DARK_GREEN,
-            ChatColor.DARK_AQUA,
-            ChatColor.DARK_RED,
-            ChatColor.DARK_PURPLE,
-            ChatColor.GOLD,
-            ChatColor.BLUE,
-            ChatColor.GREEN,
-            ChatColor.AQUA,
-            ChatColor.RED,
-            ChatColor.LIGHT_PURPLE,
-            ChatColor.YELLOW);
-
-    static
-    {
-        for (NamedTextColor color : CHAT_COLOR_POOL)
-        {
-            CHAT_COLOR_NAMES.put(color.toString().toLowerCase().replace("_", ""), color);
-        }
-        for (ChatColor chatColor : CHAT_COLOR_POOL_LEGACY)
-        {
-            CHAT_COLOR_NAMES_LEGACY.put(chatColor.name().toLowerCase().replace("_", ""), chatColor);
-        }
-    }
 
     private FUtil()
     {
@@ -126,24 +95,12 @@ public class FUtil
 
     public static void bcastMsg(String message, NamedTextColor color)
     {
-        Component component = Component.text(message);
-        if (color != null)
-        {
-            component = component.color(color);
-        }
-        bcastMsg(component);
-    }
-
-    @Deprecated
-    public static void bcastMsg(String message, ChatColor color)
-    {
-        NamedTextColor namedColor = color != null ? AdventureUtil.chatColorToNamedTextColor(color) : null;
-        bcastMsg(message, namedColor);
+        bcastMsg(colorizeWithLinks(message, color));
     }
 
     public static void bcastMsg(String message)
     {
-        bcastMsg(Component.text(message));
+        bcastMsg(colorizeWithLinks(message));
     }
 
     public static void playerMsg(CommandSender sender, Component component)
@@ -157,19 +114,7 @@ public class FUtil
 
     public static void playerMsg(CommandSender sender, String message, NamedTextColor color)
     {
-        Component component = Component.text(message);
-        if (color != null)
-        {
-            component = component.color(color);
-        }
-        playerMsg(sender, component);
-    }
-
-    @Deprecated
-    public static void playerMsg(CommandSender sender, String message, ChatColor color)
-    {
-        NamedTextColor namedColor = color != null ? AdventureUtil.chatColorToNamedTextColor(color) : null;
-        playerMsg(sender, message, namedColor);
+        playerMsg(sender, colorizeWithLinks(message, color));
     }
 
     public static void playerMsg(CommandSender sender, String message)
@@ -438,21 +383,25 @@ public class FUtil
         return CHAT_COLOR_POOL.get(RANDOM.nextInt(CHAT_COLOR_POOL.size()));
     }
 
-    @Deprecated
-    public static ChatColor randomChatColorLegacy()
-    {
-        return CHAT_COLOR_POOL_LEGACY.get(RANDOM.nextInt(CHAT_COLOR_POOL_LEGACY.size()));
-    }
-
     public static Component colorize(String string)
     {
         return AdventureUtil.format(string);
     }
 
-    @Deprecated
-    public static String colorizeLegacy(String string)
+    public static Component colorize(String string, NamedTextColor defaultColor)
     {
-        return ChatColor.translateAlternateColorCodes('&', string);
+        Component component = colorize(string);
+        return defaultColor == null ? component : component.colorIfAbsent(defaultColor);
+    }
+
+    public static Component colorizeWithLinks(String string)
+    {
+        return AdventureUtil.addLinks(colorize(string));
+    }
+
+    public static Component colorizeWithLinks(String string, NamedTextColor defaultColor)
+    {
+        return AdventureUtil.addLinks(colorize(string, defaultColor));
     }
 
     public static Date getUnixDate(long unix)
@@ -524,7 +473,7 @@ public class FUtil
 
         try
         {
-            URL url = new URL(MOJANG_API_URL + username);
+            URL url = new URI(MOJANG_API_URL + username).toURL();
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("GET");
             connection.setConnectTimeout(5000);

@@ -1,5 +1,6 @@
 package me.totalfreedom.totalfreedommod.blocking;
 
+import me.totalfreedom.totalfreedommod.EntityWiper;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
@@ -36,6 +37,7 @@ import org.bukkit.event.entity.EntitySpawnEvent;
 import org.bukkit.event.entity.ExplosionPrimeEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.entity.SpawnerSpawnEvent;
+import org.bukkit.event.entity.TrialSpawnerSpawnEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.world.PortalCreateEvent;
 
@@ -146,7 +148,7 @@ public class EventBlocker extends FreedomService
     @EventHandler(priority = EventPriority.HIGH)
     public void onEntityDeath(EntityDeathEvent event)
     {
-        if (ConfigEntry.AUTO_ENTITY_WIPE.getBoolean())
+        if (EntityWiper.isAutoWipeEnabled())
         {
             event.setDroppedExp(0);
         }
@@ -220,7 +222,7 @@ public class EventBlocker extends FreedomService
     @EventHandler(priority = EventPriority.NORMAL)
     public void onPlayerDropItem(PlayerDropItemEvent event)
     {
-        if (!ConfigEntry.AUTO_ENTITY_WIPE.getBoolean())
+        if (!EntityWiper.isAutoWipeEnabled())
         {
             return;
         }
@@ -239,6 +241,15 @@ public class EventBlocker extends FreedomService
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onSpawnerSpawn(SpawnerSpawnEvent event)
+    {
+        if (ConfigEntry.DISABLE_SPAWNERS.getBoolean())
+        {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onTrialSpawnerSpawn(TrialSpawnerSpawnEvent event)
     {
         if (ConfigEntry.DISABLE_SPAWNERS.getBoolean())
         {
@@ -301,7 +312,7 @@ public class EventBlocker extends FreedomService
     }
 
     @EventHandler(priority = EventPriority.HIGH)
-     public void onBlockRedstone(BlockRedstoneEvent event)
+    public void onBlockRedstone(BlockRedstoneEvent event)
     {
         if (!ConfigEntry.ALLOW_REDSTONE.getBoolean())
         {
