@@ -105,6 +105,7 @@ public final class SshQrServer
                 return;
             }
 
+            // I really REALLY wanted to use chained lambdas but I keep getting null checks from my IDE SO I GUESS THIS IS WHAT WE'RE DOING
             Instant newest = Instant.EPOCH;
             for (PendingRequest request : pending.values())
             {
