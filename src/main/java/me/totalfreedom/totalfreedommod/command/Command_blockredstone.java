@@ -33,7 +33,6 @@ public class Command_blockredstone extends FreedomCommand
 
         if (newValue)
         {
-            // This is stupid as hell
             autoUnblock = server.getScheduler().runTaskLater(plugin, () ->
             {
                 if (!ConfigEntry.ALLOW_REDSTONE.getBoolean())
