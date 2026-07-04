@@ -60,7 +60,6 @@ non_op:
     - tfm.player.localspawn
     - tfm.player.radar
     - tfm.player.rank
-    - tfm.player.setlever
     - tfm.player.spawn
     - tfm.player.list
     - tfm.world.flatlands
@@ -118,10 +117,8 @@ super_admin:
     - tfm.admin.findip
     - tfm.admin.freeze
     - tfm.admin.gcmd
-    - tfm.admin.glist
     - tfm.admin.invis
     - tfm.admin.kick
-    - tfm.admin.lastcmd
     - tfm.admin.mute
     - tfm.admin.myadmin
     - tfm.admin.nickclean
@@ -133,7 +130,6 @@ super_admin:
     - tfm.admin.ro
     - tfm.admin.rollback
     - tfm.admin.say
-    - tfm.admin.setlimit
     - tfm.admin.strike
     - tfm.admin.undisguiseall
     - tfm.admin.warn
