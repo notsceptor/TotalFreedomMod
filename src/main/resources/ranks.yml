@@ -132,7 +132,6 @@ super_admin:
     - tfm.admin.premium
     - tfm.admin.purgeall
     - tfm.admin.ro
-    - tfm.admin.rollback
     - tfm.admin.say
     - tfm.admin.setlimit
     - tfm.admin.strike

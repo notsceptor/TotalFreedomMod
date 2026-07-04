@@ -1,11 +1,23 @@
 package me.totalfreedom.totalfreedommod.bridge;
 
 import java.util.Collections;
+import java.util.List;
+
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.util.FLog;
+import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.coreprotect.CoreProtect;
 import net.coreprotect.CoreProtectAPI;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import org.apache.commons.lang3.StringUtils;
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.block.Block;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.plugin.Plugin;
 
 public class CoreProtectBridge extends FreedomService
@@ -33,6 +45,57 @@ public class CoreProtectBridge extends FreedomService
     protected void onStop()
     {
         coreProtectAPI = null;
+    }
+
+    @EventHandler
+    public void emulateLogStick(PlayerInteractEvent event)
+    {
+        final Player player = event.getPlayer();
+
+        if (!event.hasItem()
+                || !isEnabled()
+                || event.getItem().getType() != Material.STICK
+                || !plugin.al.isAdmin(player))
+        {
+            return;
+        }
+
+        CoreProtectAPI api = getCoreProtectAPI();
+
+        if (api == null)
+        {
+            return;
+        }
+
+
+        final Block block = player.getTargetBlock(null, 5);
+
+        // Cancel the event
+        event.setCancelled(true);
+
+        // Query the CoreProtect API asynchronously. Not sure how much of a big deal this is, but it couldn't hurt
+        server.getScheduler().runTaskAsynchronously(plugin, () ->
+        {
+            final Location location = block.getLocation();
+            final List<String[]> results = api.blockLookup(block, -1);
+
+            if (results.isEmpty())
+            {
+                FUtil.playerMsg(player, "No block edits at that location.");
+                return;
+            }
+
+            FUtil.playerMsg(player, Component.text("Block edits at (", NamedTextColor.BLUE)
+                    .append(Component.text("x" + location.getBlockX() + ", y" + location.getBlockY() + ", z" + location.getBlockZ(), NamedTextColor.WHITE))
+                    .append(Component.text("):", NamedTextColor.BLUE)));
+
+            results.stream().map(api::parseResult).filter(lol -> lol.getActionId() < 2).forEach(result ->
+                    FUtil.playerMsg(player, String.format(" - %s %s %s",
+                            result.getPlayer(),
+                            result.getActionId() == 0 ? "broke" : "placed",
+                            StringUtils.capitalize(result.getType().toString().toLowerCase())),
+                            NamedTextColor.BLUE));
+        });
     }
 
     public boolean isEnabled()
