@@ -27,9 +27,12 @@ public class Command_spawnmob extends FreedomCommand
     {
         amount = Math.clamp(amount, 1, 10);
 
-        msg(ctx.getPlayerSender(), Component.text("Spawning ", NamedTextColor.GRAY).append(Component.text(amount))
-                .append(Component.text(" of type ").append(ctx.isSenderConsole() ? Component.text(type.name()) :
-                        Component.translatable(type.translationKey()))));
+        msg(ctx.getPlayerSender(), Component.text("Spawning ", NamedTextColor.GRAY)
+                .append(Component.text(amount))
+                .append(Component.text(" of type ")
+                        .append(ctx.isSenderConsole() ?
+                                Component.text(type.name()) :
+                                Component.translatable(type.translationKey()))));
 
         final Location playerLoc = ctx.getPlayerSender().getLocation();
 
@@ -42,7 +45,7 @@ public class Command_spawnmob extends FreedomCommand
     }
 
     @Override
-    protected boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
+    public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
     {
         return false;
     }
