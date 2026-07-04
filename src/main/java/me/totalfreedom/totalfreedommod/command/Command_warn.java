@@ -1,5 +1,6 @@
 package me.totalfreedom.totalfreedommod.command;
 
+import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
@@ -50,7 +51,11 @@ public class Command_warn extends FreedomCommand
 
         FUtil.adminAction(sender.getName(), "Warned " + player.getName(), true);
         if (warnReason != null)
+        {
             FUtil.bcastMsg("  Reason: " + warnReason, NamedTextColor.YELLOW);
+        }
+
+        plugin.db.sendActionMessage(sender.getName(), player.getName(), warnReason, ConfigEntry.DISCORD_PLAYER_WARN_MESSAGE);
 
         msg(player, Component.text("[WARNING] You received a warning: ", NamedTextColor.RED)
                 .append(FUtil.colorizeWithLinks(warnReason, NamedTextColor.RED)));

@@ -66,6 +66,13 @@ public enum ConfigEntry
     DISCORD_PLAYER_JOIN_MESSAGE(String.class, "discord.messages.player_join"),
     DISCORD_PLAYER_LEAVE_MESSAGE(String.class, "discord.messages.player_leave"),
     DISCORD_PLUGIN_RELOAD_MESSAGE(String.class, "discord.messages.reload"),
+    DISCORD_PLAYER_BAN_MESSAGE(String.class, "discord.messages.ban"),
+    DISCORD_PLAYER_KICK_MESSAGE(String.class, "discord.messages.kick"),
+    DISCORD_PLAYER_TBAN_MESSAGE(String.class, "discord.messages.tban"),
+    DISCORD_PLAYER_WARN_MESSAGE(String.class, "discord.messages.warn"),
+    DISCORD_PLAYER_SMITE_MESSAGE(String.class, "discord.messages.smite"),
+    DISCORD_SAY_MESSAGE(String.class, "discord.messages.say"),
+
     //
     SERVER_COLORFUL_MOTD(Boolean.class, "server.colorful_motd"),
     SERVER_NAME(String.class, "server.name"),

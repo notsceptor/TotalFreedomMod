@@ -1,5 +1,6 @@
 package me.totalfreedom.totalfreedommod.command;
 
+import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
@@ -30,13 +31,12 @@ public class Command_kick extends FreedomCommand
             kickMessage = kickMessage
                     .append(Component.text("\nReason: ", NamedTextColor.RED))
                     .append(FUtil.colorizeWithLinks(reason, NamedTextColor.GOLD));
-            if (!silent)
-                FUtil.adminAction(sender.getName(), "Kicking " + player.getName() + " - Reason: " + reason, true);
         }
-        else
+
+        if (!silent)
         {
-            if (!silent)
-                FUtil.adminAction(sender.getName(), "Kicking " + player.getName(), true);
+            FUtil.adminAction(sender.getName(), reason == null ? "Kicking " + player.getName()  : "Kicking " + player.getName() + " - Reason: " + reason, true);
+            plugin.db.sendActionMessage(sender.getName(), player.getName(), reason, ConfigEntry.DISCORD_PLAYER_KICK_MESSAGE);
         }
 
         player.kick(kickMessage);

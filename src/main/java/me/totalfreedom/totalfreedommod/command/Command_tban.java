@@ -1,6 +1,7 @@
 package me.totalfreedom.totalfreedommod.command;
 
 import me.totalfreedom.totalfreedommod.banning.Ban;
+import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
@@ -35,9 +36,16 @@ public class Command_tban extends FreedomCommand
         }
 
         if (!silent)
-            FUtil.adminAction(sender.getName(), "Tempbanning: " + name + " for 5 minutes.", true);
-        if (reason != null)
-            FUtil.bcastMsg("  Reason: " + reason, NamedTextColor.YELLOW);
+        {
+            FUtil.adminAction(sender.getName(), "Tempbanning " + name + " for 5 minutes", true);
+
+            if (reason != null)
+            {
+                FUtil.bcastMsg("  Reason: " + reason, NamedTextColor.YELLOW);
+            }
+
+            plugin.db.sendActionMessage(sender.getName(), name, reason, ConfigEntry.DISCORD_PLAYER_TBAN_MESSAGE);
+        }
 
         final Ban ban = BanCommandUtil.createFullBan(name, BanCommandUtil.getIps(player, data), sender, FUtil.parseDateOffset("5m"), reason);
         plugin.bm.addBan(ban);

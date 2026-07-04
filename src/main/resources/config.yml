@@ -620,6 +620,22 @@ discord:
     player_join: '*{player} has joined the game.*'
     player_leave: '*{player} has left the game.*'
     reload: '***TotalFreedomMod has been reloaded.***'
+    say: '{message}'
+    ban: |-
+      ***{sender} - Banning {player}***
+      Reason: {reason}
+    kick: |-
+      ***{sender} - Kicking {player}***
+      Reason: {reason}
+    tban: |-
+      ***{sender} - Tempbanning {player} for 5 minutes***
+      Reason: {reason}
+    warn: |-
+      ***{sender} - Warning {player}***
+      Reason: {reason}
+    smite: |-
+      ***{sender} has been a naughty, naughty boy.***
+      Reason: {reason}
 
 # Announcer
 announcer:

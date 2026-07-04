@@ -1,11 +1,12 @@
 package me.totalfreedom.totalfreedommod.command;
 
+import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.rank.Rank;
-import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchContext;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import me.totalfreedom.totalfreedommod.util.ChatMentionUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -29,6 +30,7 @@ public class Command_say extends FreedomCommand
         Component broadcast = Component.text("[Server:" + sender.getName() + "] ", NamedTextColor.LIGHT_PURPLE)
                 .append(formattedMessage);
         FUtil.bcastMsg(broadcast);
+        plugin.db.sendBroadcastMessage(sender.getName(),  PlainTextComponentSerializer.plainText().serialize(broadcast), ConfigEntry.DISCORD_SAY_MESSAGE);
 
         return true;
     }

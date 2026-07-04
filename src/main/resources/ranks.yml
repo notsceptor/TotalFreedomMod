@@ -117,7 +117,6 @@ super_admin:
     - tfm.admin.disguisetoggle
     - tfm.admin.findip
     - tfm.admin.freeze
-    - tfm.admin.gadmin
     - tfm.admin.gcmd
     - tfm.admin.glist
     - tfm.admin.invis

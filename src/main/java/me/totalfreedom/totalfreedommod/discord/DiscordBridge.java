@@ -208,6 +208,45 @@ public class DiscordBridge extends FreedomService
         chatRelay.sendMessageToDiscord(rendered);
     }
 
+    public void sendBroadcastMessage(String senderName, String message, ConfigEntry configEntry)
+    {
+        if (chatRelay == null || publicChannel == null)
+        {
+            return;
+        }
+
+        String template = getConfiguredMessage(configEntry);
+        if (template == null)
+        {
+            return;
+        }
+
+        String msg = template.replace("{sender}", senderName)
+                .replace("{message}", message);
+
+        chatRelay.sendSystemMessageToDiscord(msg);
+    }
+
+    public void sendActionMessage(String senderName, String playerName, String reason, ConfigEntry configEntry)
+    {
+        if (chatRelay == null || publicChannel == null)
+        {
+            return;
+        }
+
+        String template = getConfiguredMessage(configEntry);
+        if (template == null)
+        {
+            return;
+        }
+
+        String message = template.replace("{sender}", senderName == null ? "CONSOLE" : senderName)
+                .replace("{player}", playerName == null ? "null" : playerName)
+                .replace("{reason}", reason == null || reason.isBlank() ? "No reason provided." : reason);
+
+        chatRelay.sendSystemMessageToDiscord(message);
+    }
+
     public void relayAdminchatMessage(CommandSender sender, Component tag, Component message)
     {
         if (adminchatRelay == null || adminchatChannel == null)

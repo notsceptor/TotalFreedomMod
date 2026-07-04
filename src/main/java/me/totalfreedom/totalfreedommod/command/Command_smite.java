@@ -1,10 +1,10 @@
 package me.totalfreedom.totalfreedommod.command;
 
+import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import org.apache.commons.lang3.StringUtils;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -17,38 +17,8 @@ import org.bukkit.entity.Player;
 public class Command_smite extends FreedomCommand
 {
 
-    @Override
-    public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
-    {
-        if (args.length < 1)
-        {
-            return false;
-        }
-
-        final Player player = getPlayer(args[0]);
-
-        String reason = null;
-        if (args.length > 1)
-        {
-            reason = StringUtils.join(args, " ", 1, args.length);
-        }
-
-        if (player == null)
-        {
-            msg(FreedomCommand.PLAYER_NOT_FOUND);
-            return true;
-        }
-
-        smite(player, reason);
-        return true;
-    }
-
-    public static void smite(Player player)
-    {
-        smite(player, null);
-    }
-
-    public static void smite(Player player, String reason)
+    @CommandDispatchTarget(pattern = "<player:Player> <reason..>")
+    public boolean smite(CommandContext ctx, Player player, String reason)
     {
         FUtil.bcastMsg(player.getName() + " has been a naughty, naughty boy.", NamedTextColor.RED);
 
@@ -56,6 +26,8 @@ public class Command_smite extends FreedomCommand
         {
             FUtil.bcastMsg("  Reason: " + reason, NamedTextColor.YELLOW);
         }
+
+        plugin.db.sendActionMessage(sender.getName(), player.getName(), reason, ConfigEntry.DISCORD_PLAYER_SMITE_MESSAGE);
 
         // Deop
         player.setOp(false);
@@ -86,5 +58,19 @@ public class Command_smite extends FreedomCommand
             player.sendMessage(Component.text("You've been smitten. Reason: ", NamedTextColor.RED)
                     .append(FUtil.colorizeWithLinks(reason, NamedTextColor.YELLOW)));
         }
+        return true;
+    }
+
+    @CommandDispatchTarget(pattern = "<player:Player>")
+    public boolean smiteNoReason(CommandContext ctx, Player player)
+    {
+        return smite(ctx, player, null);
+    }
+
+
+    @Override
+    protected boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
+    {
+        return false;
     }
 }
