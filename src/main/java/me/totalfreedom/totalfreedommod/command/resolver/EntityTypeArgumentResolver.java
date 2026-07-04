@@ -4,9 +4,7 @@ import io.papermc.paper.registry.RegistryAccess;
 import io.papermc.paper.registry.RegistryKey;
 import net.kyori.adventure.key.Key;
 import org.bukkit.NamespacedKey;
-import org.bukkit.Registry;
 import org.bukkit.entity.EntityType;
-import org.bukkit.entity.Mob;
 
 public class EntityTypeArgumentResolver implements AbstractArgumentResolver<EntityType>
 {
