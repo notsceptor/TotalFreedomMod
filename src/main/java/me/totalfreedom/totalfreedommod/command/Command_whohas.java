@@ -13,7 +13,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 @CommandPermissions(level = Rank.SUPER_ADMIN, source = SourceType.BOTH, permission = "tfm.admin.whohas")
-@CommandParameters(description = "See who has a block and optionally clears the item.", usage = "/<command> <item> [clear]", aliases = "wh")
+@CommandParameters(description = "See who has a block and optionally clears the item.", usage = "/<command> <item> [-clear]", aliases = "wh")
 public class Command_whohas extends FreedomCommand
 {
     @CommandDispatchTarget(pattern = "<material:Material:items>", switches = "clear")
