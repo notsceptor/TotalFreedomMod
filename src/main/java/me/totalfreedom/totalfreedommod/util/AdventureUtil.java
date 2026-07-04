@@ -2,11 +2,13 @@ package me.totalfreedom.totalfreedommod.util;
 
 import java.util.regex.Pattern;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.ComponentLike;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.minimessage.tag.Tag;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import net.kyori.adventure.text.minimessage.tag.standard.StandardTags;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -508,6 +510,24 @@ public class AdventureUtil
             return Component.empty();
         }
         return component.decorate(decoration);
+    }
+
+    /**
+     * Formats a string of text with legacy code conversion, MiniMessage tags, and placeholder
+     * substitution in one call, doing the same logic as format().
+     *
+     * @param text         The text string to format
+     * @param placeholders Placeholder tag resolvers, e.g. Placeholder.component("name", ...), Placeholder.unparsed("rank", ...)
+     * @return The formatted Component
+     */
+    public static Component formatWithPlaceholders(String text, TagResolver... placeholders)
+    {
+        if (text == null)
+        {
+            return Component.empty();
+        }
+        final String miniMessageContent = legacyToMiniMessage(text, true, true);
+        return MM_FULL.deserialize(miniMessageContent, TagResolver.resolver(placeholders));
     }
 }
 

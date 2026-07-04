@@ -3,6 +3,7 @@ package me.totalfreedom.totalfreedommod.config;
 import java.util.Collections;
 import java.util.List;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import org.bukkit.configuration.ConfigurationSection;
 
 public enum ConfigEntry
 {
@@ -96,6 +97,7 @@ public enum ConfigEntry
     TOSSMOB_ENABLED(Boolean.class, "tossmob_enabled"),
     AUTOKICK_ENABLED(Boolean.class, "autokick.enabled"),
     MP44_ENABLED(Boolean.class, "mp44_enabled"),
+    JUMPPAD_MODE(String.class, "jumppad.mode"),
     //
     PROTECTAREA_ENABLED(Boolean.class, "protectarea.enabled"),
     PROTECTAREA_SPAWNPOINTS(Boolean.class, "protectarea.auto_protect_spawnpoints"),
@@ -178,11 +180,6 @@ public enum ConfigEntry
     CRASH_ENTITIES_MAX_SLIME_SIZE(Integer.class, "crash_entities.max_slime_size"),
     CRASH_ENTITIES_MAX_PAINTING_BLOCKS(Integer.class, "crash_entities.max_painting_size"),
     CRASH_ENTITIES_SCALE_SWEEP_TICKS(Integer.class, "crash_entities.scale_sweep_ticks"),
-    //
-    CRASH_GAMERULES_PACKET_GUARD(Boolean.class, "crash_gamerules.packet_guard"),
-    CRASH_GAMERULES_RANDOM_TICK_SPEED(Integer.class, "crash_gamerules.random_tick_speed"),
-    CRASH_GAMERULES_MAX_NUMERIC_VALUE(Integer.class, "crash_gamerules.max_numeric_value"),
-    CRASH_GAMERULES_SWEEP_TICKS(Integer.class, "crash_gamerules.sweep_ticks"),
     //
     WORLD_BORDER(Integer.class, "world_border"),
     //
@@ -268,7 +265,13 @@ public enum ConfigEntry
     TABLIST_COLUMNS(Integer.class, "tablist.columns"),
     TABLIST_PLAYER_COMPONENT(String.class, "tablist.player_component"),
     TABLIST_AFK_TAG(String.class, "tablist.afk_tag"),
-    TABLIST_UPDATE_INTERVAL(Integer.class, "tablist.update_interval");
+    TABLIST_UPDATE_INTERVAL(Integer.class, "tablist.update_interval"),
+    //
+    GAMERULES_ENABLED(Boolean.class, "gamerules.enabled"),
+    GAMERULES_ENFORCEMENT_DELAY(Integer.class, "gamerules.enforcement_interval"),
+    GAMERULES_DEFAULTS(ConfigurationSection.class, "gamerules.defaults"),
+    GAMERULES_MALICIOUS(List.class, "gamerules.malicious"),
+    GAMERULES_CAPS(ConfigurationSection.class, "gamerules.caps");
 
     //
     private final Class<?> type;
@@ -356,6 +359,11 @@ public enum ConfigEntry
     public List<String> getStringList()
     {
         return (List<String>) getList();
+    }
+
+    public ConfigurationSection getSection()
+    {
+        return getConfig().get(this, ConfigurationSection.class);
     }
 
     private MainConfig getConfig()

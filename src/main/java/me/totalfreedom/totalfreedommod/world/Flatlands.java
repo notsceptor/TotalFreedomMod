@@ -73,8 +73,7 @@ public class Flatlands extends CustomWorld
 
         welcomeSign.update();
 
-        plugin.gr.commitGameRules();
-
+        plugin.gr.enforceGameRuleDefaultsForWorld(world);
         return world;
     }
 

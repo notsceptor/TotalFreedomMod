@@ -214,7 +214,12 @@ public class DiscordBridge extends FreedomService
         {
             return;
         }
-        Component rendered = tag.append(Component.text(" " + sender.getName() + ": ")).append(message);
+        Component rendered = sender instanceof Player
+                ? tag.append(Component.text(" " + sender.getName() + ": ")).append(message)
+                : Component.text(sender.getName() + " ")
+                .append(tag)
+                .append(Component.text(": "))
+                .append(message);
         adminchatRelay.sendMessageToDiscord(rendered);
     }
 

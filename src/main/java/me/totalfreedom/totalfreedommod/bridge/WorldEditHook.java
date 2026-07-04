@@ -35,6 +35,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.totalfreedommod.blocking.sweep.SweepContext;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
@@ -112,6 +113,9 @@ public final class WorldEditHook implements Listener
         "fixlighting", "fixlight", "removelighting", "removelight"
     );
 
+    private static final int MAX_SWEEP_TRACKED_CHUNKS = 8192;
+    private static final long SWEEP_FLUSH_DELAY_TICKS = 60L;
+
     private final TotalFreedomMod plugin;
     private final Map<UUID, RegionSnapshot> lastSelections = new HashMap<>();
     private final Map<UUID, Integer> playerLimits = new ConcurrentHashMap<>();
@@ -169,6 +173,11 @@ public final class WorldEditHook implements Listener
                     {
                         wrapped = new ContainerLimitExtent(wrapped, wePlayer.getUniqueId(), containerCap);
                     }
+                }
+
+                if (Boolean.TRUE.equals(ConfigEntry.CRASH_CONTAINERS_SCAN_CHUNK_LOAD.getBoolean()))
+                {
+                    wrapped = new SweepRegionExtent(wrapped, event.getWorld());
                 }
 
                 event.setExtent(wrapped);
@@ -1281,6 +1290,74 @@ public final class WorldEditHook implements Listener
             }
             return super.setBlock(pos, block);
         }
+    }
+
+    private final class SweepRegionExtent extends AbstractDelegateExtent
+    {
+
+        private final com.sk89q.worldedit.world.World weWorld;
+        private final Set<Long> chunks = ConcurrentHashMap.newKeySet();
+        private final AtomicBoolean flushScheduled = new AtomicBoolean();
+
+        SweepRegionExtent(Extent parent, com.sk89q.worldedit.world.World weWorld)
+        {
+            super(parent);
+            this.weWorld = weWorld;
+        }
+
+        @Override
+        public <T extends BlockStateHolder<T>> boolean setBlock(BlockVector3 pos, T block)
+            throws WorldEditException
+        {
+            final boolean placed = super.setBlock(pos, block);
+            if (placed && isContainerBlock(block) && chunks.size() < MAX_SWEEP_TRACKED_CHUNKS)
+            {
+                chunks.add(chunkKey(pos.x() >> 4, pos.z() >> 4));
+                if (flushScheduled.compareAndSet(false, true))
+                {
+                    Bukkit.getScheduler().runTaskLater(plugin, this::flush, SWEEP_FLUSH_DELAY_TICKS);
+                }
+            }
+            return placed;
+        }
+
+        private void flush()
+        {
+            flushScheduled.set(false);
+            final World world = Bukkit.getWorld(weWorld.getName());
+            final java.util.Iterator<Long> it = chunks.iterator();
+            while (it.hasNext())
+            {
+                final long key = it.next();
+                it.remove();
+                if (world == null)
+                {
+                    continue;
+                }
+                final int cx = (int) (key >> 32);
+                final int cz = (int) key;
+                if (world.isChunkLoaded(cx, cz))
+                {
+                    plugin.sweepScheduler.enqueueChunk(world.getChunkAt(cx, cz), SweepContext.EDIT);
+                }
+            }
+        }
+    }
+
+    private static boolean isContainerBlock(BlockStateHolder<?> block)
+    {
+        final BlockType type = block.getBlockType();
+        if (type == null)
+        {
+            return false;
+        }
+        final BlockMaterial mat = type.getMaterial();
+        return mat != null && mat.hasContainer();
+    }
+
+    private static long chunkKey(int cx, int cz)
+    {
+        return ((long) cx << 32) | (cz & 0xFFFFFFFFL);
     }
 
     private static final class CountingLimitStream extends OutputStream

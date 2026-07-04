@@ -96,7 +96,7 @@ public final class AdminWorld extends CustomWorld
 
         welcomeSign.update();
 
-        plugin.gr.commitGameRules();
+        plugin.gr.enforceGameRuleDefaultsForWorld(world);
         return world;
     }
 

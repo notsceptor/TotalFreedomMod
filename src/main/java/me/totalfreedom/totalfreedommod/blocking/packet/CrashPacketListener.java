@@ -26,7 +26,6 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerSp
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerUpdateAttributes;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerMerchantOffers;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerWindowItems;
-import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientSetGameRule;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,11 +33,9 @@ import java.util.Optional;
 import java.util.UUID;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.blocking.entity.EntityMetaPacketGuard;
-import me.totalfreedom.totalfreedommod.blocking.gamerule.GameRulePacketGuard;
 import me.totalfreedom.totalfreedommod.blocking.item.ContainerPacketGuard;
 import me.totalfreedom.totalfreedommod.blocking.sign.SignPacketGuard;
 import me.totalfreedom.totalfreedommod.blocking.spawner.SpawnerPacketGuard;
-import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FSync;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -66,14 +63,13 @@ final class CrashPacketListener extends PacketListenerAbstract
     private final boolean spawnerChunkGuard;
     private final boolean containerBlockEntityGuard;
     private final boolean containerChunkGuard;
-    private final boolean gameRuleGuard;
 
     CrashPacketListener(TotalFreedomMod plugin, boolean sanitizeOutbound, boolean entityMetadataGuard,
                              EntityMetaPacketGuard.Limits entityLimits, PacketSpamLimiter spamLimiter,
                              MovementGuard movementGuard, boolean signBlockEntityGuard,
                              boolean signChunkGuard, boolean blockAllSignPackets,
                              boolean spawnerBlockEntityGuard, boolean spawnerChunkGuard,
-                             boolean containerBlockEntityGuard, boolean containerChunkGuard, boolean gameRuleGuard)
+                             boolean containerBlockEntityGuard, boolean containerChunkGuard)
     {
         super(PacketListenerPriority.HIGH);
         this.plugin = plugin;
@@ -89,7 +85,6 @@ final class CrashPacketListener extends PacketListenerAbstract
         this.spawnerChunkGuard = spawnerChunkGuard;
         this.containerBlockEntityGuard = containerBlockEntityGuard;
         this.containerChunkGuard = containerChunkGuard;
-        this.gameRuleGuard = gameRuleGuard;
     }
 
     @Override
@@ -98,13 +93,6 @@ final class CrashPacketListener extends PacketListenerAbstract
         try
         {
             final PacketTypeCommon type = event.getPacketType();
-
-            if (gameRuleGuard && type == PacketType.Play.Client.SET_GAME_RULE)
-            {
-                event.setCancelled(true);
-                logBlockedGameRule(event);
-                return;
-            }
 
             if (spamLimiter == null && movementGuard == null)
             {
@@ -164,20 +152,6 @@ final class CrashPacketListener extends PacketListenerAbstract
         catch (Throwable ignored)
         {
         }
-    }
-
-    private void logBlockedGameRule(PacketReceiveEvent event)
-    {
-        String what;
-        try
-        {
-            what = GameRulePacketGuard.describe(new WrapperPlayClientSetGameRule(event));
-        }
-        catch (Throwable t)
-        {
-            what = "?";
-        }
-        FLog.warning("[GameRuleGuard] Blocked an attempt to edit a gamerule from " + describeUser(event) + ": " + what);
     }
 
     private static String describeUser(PacketReceiveEvent event)
