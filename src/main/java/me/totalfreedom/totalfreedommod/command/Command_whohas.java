@@ -59,41 +59,6 @@ public class Command_whohas extends FreedomCommand
         return true;
     }
 
-    /*@CommandDispatchTarget(pattern = "<material:Material:items>", switches = "clear")
-    public boolean query(CommandContext ctx, Material material, boolean clear)
-    {
-        final List<Player> players = server.getOnlinePlayers().stream().filter(player -> player.getInventory().contains(material))
-                .map(player -> (Player) player)
-                .peek(player ->
-                {
-                    if (clear)
-                    {
-                        player.getInventory().remove(material);
-                    }
-                })
-                .toList();
-
-        if (players.isEmpty())
-        {
-            msg(ctx.getSender(), "There are no players with that item type.");
-        }
-        else
-        {
-            msg(ctx.getSender(), Component.text("Players with item type ", NamedTextColor.GRAY)
-                    .append(Component.text(material.key().asString(), NamedTextColor.WHITE))
-                    .append(Component.text(": "))
-                    .append(Component.join(JoinConfiguration.commas(true), players.stream().map(player ->
-                            ctx.isSenderConsole() ? Component.text(player.getName(), NamedTextColor.WHITE) :
-                            player.displayName()
-                                    .colorIfAbsent(NamedTextColor.WHITE)
-                                    .hoverEvent(HoverEvent.showText(Component.text(player.getName())))
-                                    .clickEvent(ClickEvent.clickEvent(ClickEvent.Action.SUGGEST_COMMAND,
-                                            ClickEvent.Payload.string("/invsee " + player.getName())))).toList())));
-        }
-
-        return true;
-    }*/
-
     @Override
     public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
     {
