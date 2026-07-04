@@ -67,7 +67,7 @@ public class Command_potion extends FreedomCommand
     @CommandDispatchTarget(pattern = "clear <player:Player>")
     public boolean clearPlayer(CommandContext ctx, Player player)
     {
-        if (!plugin.al.isAdmin(playerSender) && (!ctx.isSenderConsole() && !playerSender.equals(player)))
+        if (!plugin.al.isAdmin(ctx.getPlayerSender()) && (!ctx.isSenderConsole() && !ctx.getPlayerSender().equals(player)))
         {
             msg(ctx.getSender(), Component.text("You don't have permission to clear effects from other players.", NamedTextColor.RED));
             return true;
