@@ -43,6 +43,7 @@ public class CommandLoader extends FreedomService
         handler.registerArgumentResolver(PotionEffectTypeArgumentResolver.class);
         handler.registerArgumentResolver(BooleanArgumentResolver.class);
         handler.registerArgumentResolver(IntegerArgumentResolver.class);
+        handler.registerArgumentResolver(DoubleArgumentResolver.class);
 
         int loaded = handler.loadFrom(FreedomCommand.class.getPackage());
         FLog.info("Loaded " + loaded + " commands.");
