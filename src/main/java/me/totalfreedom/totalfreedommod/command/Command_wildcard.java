@@ -1,7 +1,10 @@
 package me.totalfreedom.totalfreedommod.command;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
+
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.commons.lang3.StringUtils;
@@ -13,52 +16,53 @@ import org.bukkit.entity.Player;
 @CommandParameters(description = "Run any command on all users, username placeholder = ?.", usage = "/<command> [fluff] ? [fluff] ?")
 public class Command_wildcard extends FreedomCommand
 {
-
-    public static final List<String> BLOCKED_COMMANDS = Arrays.asList(
+    public static List<String> BLOCKED_COMMANDS = Arrays.asList(
             "wildcard",
             "gtfo",
             "doom",
             "saconfig",
-            "fuckup",
             "crash"
     );
 
-    @Override
-    public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
+    @CommandDispatchTarget(pattern = "<command..>")
+    public boolean wildcard(CommandContext ctx, String command)
     {
-        if (args.length == 0)
-        {
-            return false;
-        }
+        final String[] splitCommand = command.split(" ");
 
-        Command runCmd = server.getCommandMap().getCommand(args[0]);
-        if (runCmd == null)
-        {
-            msg("Unknown command: " + args[0], NamedTextColor.RED);
-            return true;
-        }
-
-        if (BLOCKED_COMMANDS.contains(runCmd.getName()))
+        if (Arrays.stream(splitCommand).anyMatch(this::isBlacklistedCommand)
+                || plugin.cb.isCommandBlocked(command, ctx.getSender()))
         {
             msg("Did you really think that was going to work?", NamedTextColor.RED);
             return true;
         }
 
-        String baseCommand = StringUtils.join(args, " ");
-
-        if (plugin.cb.isCommandBlocked(baseCommand, sender))
-        {
-            // CommandBlocker handles messages and broadcasts
-            return true;
-        }
-
         for (Player player : server.getOnlinePlayers())
         {
-            String runCommand = baseCommand.replaceAll("\\x3f", player.getName());
-            msg("Running Command: " + runCommand);
-            server.dispatchCommand(sender, runCommand);
+            String processedCommand = command.replaceAll("\\x3f", player.getName());
+            msg(ctx.getSender(), "Running command: " + processedCommand);
+
+            if (!server.dispatchCommand(ctx.getSender(), processedCommand))
+            {
+                msg(ctx.getSender(), "Failed to execute command. Are you sure you entered it correctly?",
+                        NamedTextColor.RED);
+            }
         }
 
         return true;
+    }
+
+    private boolean isBlacklistedCommand(String command)
+    {
+        return BLOCKED_COMMANDS.stream()
+                .map(blocked -> server.getCommandMap().getCommand(blocked))
+                .filter(Objects::nonNull)
+                .anyMatch(cmd ->
+                        cmd.getName().equalsIgnoreCase(command) || cmd.getAliases().contains(command));
+    }
+
+    @Override
+    public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
+    {
+        return false;
     }
 }
