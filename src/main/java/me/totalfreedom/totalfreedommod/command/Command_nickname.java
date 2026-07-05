@@ -9,7 +9,6 @@ import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import org.apache.commons.lang3.StringUtils;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -65,7 +64,7 @@ public class Command_nickname extends FreedomCommand
         if (player == null)
             player = ctx.getPlayerSender();
 
-        final String strippedInput = StringUtils.strip(nickname).replace('§', '&');
+        final String strippedInput = nickname.trim().replace('§', '&');
 
         if (!AdventureUtil.hasVisibleText(strippedInput))
             return true;
