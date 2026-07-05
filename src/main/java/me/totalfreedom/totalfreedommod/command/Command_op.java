@@ -12,6 +12,17 @@ import org.bukkit.entity.Player;
 @CommandParameters(description = "Makes a player operator", usage = "/<command> <player>")
 public class Command_op extends FreedomCommand
 {
+    @CommandDispatchTarget
+    public boolean opSelf(CommandContext ctx)
+    {
+        if (ctx.isSenderConsole() || !plugin.al.isAdmin(ctx.getPlayerSender()))
+        {
+            return false;
+        }
+
+        return opPlayer(ctx, ctx.getPlayerSender());
+    }
+
     @CommandDispatchTarget(pattern = "<player:Player>")
     public boolean opPlayer(CommandContext ctx, Player player)
     {
