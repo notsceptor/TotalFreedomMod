@@ -24,7 +24,7 @@ public class Command_say extends FreedomCommand
                 .append(ChatMentionUtil.highlightAndPing(plugin, FUtil.colorizeWithLinks(message, NamedTextColor.LIGHT_PURPLE), true));
 
         FUtil.bcastMsg(broadcast);
-        plugin.db.sendBroadcastMessage(sender.getName(), AdventureUtil.componentToPlainText(broadcast), ConfigEntry.DISCORD_SAY_MESSAGE);
+        plugin.db.sendBroadcastMessage(ctx.getSender().getName(), AdventureUtil.componentToPlainText(broadcast), ConfigEntry.DISCORD_SAY_MESSAGE);
         return true;
     }
 
