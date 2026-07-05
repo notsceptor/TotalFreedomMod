@@ -98,7 +98,7 @@ public class Command_plugincontrol extends FreedomCommand
         pluginManager.disablePlugin(otherPlugin);
         pluginManager.enablePlugin(otherPlugin);
 
-        msg(ctx.getSender(), otherPlugin.getName() + " has been reloaded..");
+        msg(ctx.getSender(), otherPlugin.getName() + " has been reloaded.");
         return true;
     }
 
