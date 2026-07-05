@@ -120,7 +120,7 @@ public class PlayerList extends FreedomService
 
     public boolean saveCurrentTag(Player player)
     {
-        final String tag = getPlayer(player).getTag();
+        final String tag = getPlayer(player).getInternalTag();
         if (tag == null || tag.isEmpty())
         {
             return false;
