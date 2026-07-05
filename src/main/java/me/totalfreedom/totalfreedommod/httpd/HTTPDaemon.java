@@ -20,7 +20,7 @@ import me.totalfreedom.totalfreedommod.httpd.module.Module_permbans;
 import me.totalfreedom.totalfreedommod.httpd.module.Module_players;
 import me.totalfreedom.totalfreedommod.httpd.module.Module_schematic;
 import me.totalfreedom.totalfreedommod.util.FLog;
-import org.apache.commons.lang3.exception.ExceptionUtils;
+import me.totalfreedom.totalfreedommod.util.FUtil;
 
 public class HTTPDaemon extends FreedomService
 {
@@ -131,7 +131,7 @@ public class HTTPDaemon extends FreedomService
             catch (Exception ex)
             {
                 FLog.severe(ex);
-                return new Response(Response.Status.INTERNAL_ERROR, MIME_PLAINTEXT, "Error 500: Internal Server Error\r\n" + ex.getMessage() + "\r\n" + ExceptionUtils.getStackTrace(ex));
+                return new Response(Response.Status.INTERNAL_ERROR, MIME_PLAINTEXT, "Error 500: Internal Server Error\r\n" + ex.getMessage());
             }
         }
     }
