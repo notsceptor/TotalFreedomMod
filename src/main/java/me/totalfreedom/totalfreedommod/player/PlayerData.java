@@ -183,7 +183,8 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
             this.nickname = null;
         final Player player = Bukkit.getPlayerExact(username);
         if (player != null)
-            player.displayName(hasCustomNickname() ? getDisplayedNickname() : null);
+            player.displayName(hasCustomNickname() ? getDisplayedNickname() :
+                    Component.text(player.getName(), player.isOp() ? NamedTextColor.RED : NamedTextColor.WHITE));
         final TotalFreedomMod plugin = TotalFreedomMod.plugin();
         if (plugin != null && plugin.pl != null)
             plugin.pl.saveData(this);
