@@ -15,6 +15,7 @@ import java.util.List;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.ComponentScanner;
 import net.kyori.adventure.text.Component;
+import org.bukkit.MusicInstrument;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.damage.DamageType;
@@ -29,6 +30,7 @@ final class ItemScanner
     private static final int MAX_LORE_LINE_LENGTH = 256;
     private static final int MAX_BOOK_PAGE_LENGTH = 1024;
     private static final int MAX_BOOK_PAGES = 100;
+    private static final int MAX_INSTRUMENT_DESC_LENGTH = 256;
     private static final double MAX_ITEM_SCALE = 4.0;
     private static final int MAX_NBT_NODES = 8192;
     private static final int MAX_NBT_DEPTH = 16;
@@ -162,6 +164,12 @@ final class ItemScanner
         if (attributeVerdict.isCursed())
         {
             return attributeVerdict;
+        }
+
+        Verdict instrumentVerdict = inspectInstrument(item, depth, deadlineNanos);
+        if (instrumentVerdict.isCursed())
+        {
+            return instrumentVerdict;
         }
 
         // CONTAINER recursion — primary vector for shulker-in-shulker hang
@@ -382,6 +390,43 @@ final class ItemScanner
         if (page.length() > MAX_BOOK_PAGE_LENGTH)
         {
             return new Verdict(Reason.OVERSIZED_BOOK, page.length(), depth);
+        }
+        return Verdict.CLEAN;
+    }
+
+    private static Verdict inspectInstrument(ItemStack item, int depth, long deadlineNanos)
+    {
+        if (!item.hasData(DataComponentTypes.INSTRUMENT))
+        {
+            return Verdict.CLEAN;
+        }
+        Component description;
+        try
+        {
+            MusicInstrument instrument = item.getData(DataComponentTypes.INSTRUMENT);
+            if (instrument == null)
+            {
+                return Verdict.CLEAN;
+            }
+            description = instrument.description();
+        }
+        catch (Throwable t)
+        {
+            return new Verdict(Reason.CURSED_COMPONENT, -1L, depth);
+        }
+        if (description == null)
+        {
+            return Verdict.CLEAN;
+        }
+        ComponentScanner.ComponentMetrics metrics = ComponentScanner.inspectComponent(
+                description, ConfigEntry.maxComponentNodes(), deadlineNanos);
+        if (metrics.unsafe())
+        {
+            return new Verdict(Reason.CURSED_COMPONENT, -1L, depth);
+        }
+        if (metrics.plainTextLength() > MAX_INSTRUMENT_DESC_LENGTH)
+        {
+            return new Verdict(Reason.OVERSIZED_LORE, metrics.plainTextLength(), depth);
         }
         return Verdict.CLEAN;
     }
