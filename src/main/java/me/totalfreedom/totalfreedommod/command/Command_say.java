@@ -19,7 +19,7 @@ public class Command_say extends FreedomCommand
     public boolean broadcastMessage(CommandContext ctx, String message)
     {
         final Component broadcast = Component.text("[Server:", NamedTextColor.LIGHT_PURPLE)
-                .append(Component.text(playerSender.getName()))
+                .append(Component.text(ctx.getSender().getName()))
                 .append(Component.text("] "))
                 .append(ChatMentionUtil.highlightAndPing(plugin, FUtil.colorizeWithLinks(message, NamedTextColor.LIGHT_PURPLE), true));
 
