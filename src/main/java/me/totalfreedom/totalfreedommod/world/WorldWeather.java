@@ -2,7 +2,6 @@ package me.totalfreedom.totalfreedommod.world;
 
 import java.util.Arrays;
 import java.util.List;
-import org.apache.commons.lang3.StringUtils;
 import org.bukkit.World;
 
 public enum WorldWeather
@@ -16,7 +15,7 @@ public enum WorldWeather
 
     private WorldWeather(String aliases)
     {
-        this.aliases = Arrays.asList(StringUtils.split(aliases, ","));
+        this.aliases = Arrays.asList(aliases.split(","));
     }
 
     public void setWorldToWeather(World world)

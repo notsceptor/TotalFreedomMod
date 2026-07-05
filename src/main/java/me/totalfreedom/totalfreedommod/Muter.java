@@ -1,6 +1,5 @@
 package me.totalfreedom.totalfreedommod;
 
-import java.util.Arrays;
 import java.util.List;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
@@ -9,7 +8,6 @@ import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FSync;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import org.apache.commons.lang3.StringUtils;
 import org.bukkit.command.Command;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -21,7 +19,7 @@ import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 public class Muter extends FreedomService
 {
 
-    public static final List<String> MUTE_COMMANDS = Arrays.asList(StringUtils.split("say,me,msg,tell,reply,mail", ","));
+    public static final List<String> MUTE_COMMANDS = List.of("say", "me", "msg", "tell", "reply", "mail", ",");
 
     public Muter(TotalFreedomMod plugin)
     {

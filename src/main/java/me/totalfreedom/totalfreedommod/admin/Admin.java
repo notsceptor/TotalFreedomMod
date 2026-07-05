@@ -1,17 +1,15 @@
 package me.totalfreedom.totalfreedommod.admin;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.ConfigInterfaces.ConfigLoadable;
 import me.totalfreedom.totalfreedommod.util.ConfigInterfaces.ConfigSavable;
 import me.totalfreedom.totalfreedommod.util.ConfigInterfaces.Validatable;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.Validate;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 
@@ -47,7 +45,7 @@ public class Admin implements ConfigLoadable, ConfigSavable, Validatable
         final StringBuilder output = new StringBuilder();
 
         output.append("Admin: ").append(name).append("\n")
-                .append("- IPs: ").append(StringUtils.join(ips, ", ")).append("\n")
+                .append("- IPs: ").append(String.join(", ", ips)).append("\n")
                 .append("- Last Login: ").append(FUtil.dateToString(lastLogin)).append("\n")
                 .append("- Custom Login Message: ").append(loginMessage).append("\n")
                 .append("- Rank: ").append(rank.getName()).append("\n")
@@ -82,7 +80,7 @@ public class Admin implements ConfigLoadable, ConfigSavable, Validatable
     @Override
     public void saveTo(ConfigurationSection cs)
     {
-        Validate.isTrue(isValid(), "Could not save admin entry: " + name + ". Entry not valid!");
+        Preconditions.checkArgument(isValid(), "Could not save admin entry: " + name + ". Entry not valid!");
         cs.set("username", name);
         cs.set("active", active);
         cs.set("rank", rank.toString());

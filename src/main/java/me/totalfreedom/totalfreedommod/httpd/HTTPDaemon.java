@@ -20,7 +20,6 @@ import me.totalfreedom.totalfreedommod.httpd.module.Module_permbans;
 import me.totalfreedom.totalfreedommod.httpd.module.Module_players;
 import me.totalfreedom.totalfreedommod.httpd.module.Module_schematic;
 import me.totalfreedom.totalfreedommod.util.FLog;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 public class HTTPDaemon extends FreedomService
@@ -112,7 +111,7 @@ public class HTTPDaemon extends FreedomService
         @Override
         public Response serve(HTTPSession session)
         {
-            final String[] args = StringUtils.split(session.getUri(), "/");
+            final String[] args = session.getUri().split("/");
 
             ModuleExecutable mex = modules.get("file");
             if (args.length >= 1)

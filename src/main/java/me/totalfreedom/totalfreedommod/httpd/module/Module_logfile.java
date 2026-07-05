@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.util.FLog;
@@ -15,8 +16,6 @@ import me.totalfreedom.totalfreedommod.httpd.HTTPDaemon;
 import me.totalfreedom.totalfreedommod.httpd.NanoHTTPD;
 import me.totalfreedom.totalfreedommod.httpd.NanoHTTPD.Response;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.StringEscapeUtils;
-import org.apache.commons.lang3.StringUtils;
 
 public class Module_logfile extends HTTPDModule
 {
@@ -61,7 +60,7 @@ public class Module_logfile extends HTTPDModule
 
         final StringBuilder out = new StringBuilder();
         final String remoteAddress = getClientAddress();
-        final String[] args = StringUtils.split(uri, "/");
+        final String[] args = uri.split("/");
         final ModuleMode mode = ModuleMode.getMode(getArg(args, 1));
 
         switch (mode)
@@ -80,7 +79,7 @@ public class Module_logfile extends HTTPDModule
                     final List<String> LogFilesFormatted = new ArrayList<>();
                     for (File logfile : LogFiles)
                     {
-                        String filename = StringEscapeUtils.escapeHtml4(logfile.getName());
+                        String filename = escapeHtml(logfile.getName());
 
                         LogFilesFormatted.add("<li><a href=\"/logfile/download?logFileName=" + filename + "\">" + filename + "</a></li>");
 
@@ -98,7 +97,7 @@ public class Module_logfile extends HTTPDModule
                     out
                             .append(HTMLGenerationTools.heading("Logfiles:", 1))
                             .append("<ul>")
-                            .append(StringUtils.join(LogFilesFormatted, "\r\n"))
+                            .append(String.join("\r\n", LogFilesFormatted))
                             .append("</ul>");
                 }
                 break;

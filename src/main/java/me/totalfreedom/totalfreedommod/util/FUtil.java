@@ -32,7 +32,6 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.serializer.ansi.ANSIComponentSerializer;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
@@ -272,7 +271,7 @@ public class FUtil
         {
             names.add(player.getName());
         }
-        return StringUtils.join(names, ", ");
+        return String.join(", ", names);
     }
 
     public static String dateToString(Date date)

@@ -9,16 +9,10 @@ import java.util.Map.Entry;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
-import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.WorldType;
-import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerMoveEvent;
@@ -133,7 +127,7 @@ public final class AdminWorld extends CustomWorld
             final Player supervisor = entry.getValue();
             output.add(player.getName() + " (Supervisor: " + supervisor.getName() + ")");
         }
-        return StringUtils.join(output, ", ");
+        return String.join(", ", output);
     }
 
     public void purgeGuestList()

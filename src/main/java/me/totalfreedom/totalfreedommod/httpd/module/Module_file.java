@@ -17,7 +17,6 @@ import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.httpd.HTTPDaemon;
 import me.totalfreedom.totalfreedommod.httpd.NanoHTTPD;
 import me.totalfreedom.totalfreedommod.httpd.NanoHTTPD.Response;
-import org.apache.commons.lang3.StringUtils;
 
 /*
  * This class was adapted from https://github.com/NanoHttpd/nanohttpd/blob/master/webserver/src/main/java/fi/iki/elonen/SimpleWebServer.java
@@ -191,7 +190,7 @@ public class Module_file extends HTTPDModule
                 final String range = params.get("range");
                 if (range != null)
                 {
-                    final String[] rangeParams = StringUtils.split(range, "=");
+                    final String[] rangeParams = range.split("=");
                     if (rangeParams.length >= 2)
                     {
                         if ("bytes".equalsIgnoreCase(rangeParams[0]))
