@@ -3,11 +3,12 @@ package me.totalfreedom.totalfreedommod.command;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
+
 import me.totalfreedom.totalfreedommod.banning.Ban;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -19,57 +20,72 @@ public class Command_tempban extends FreedomCommand
 {
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd 'at' HH:mm:ss z");
 
-    @Override
-    public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
+    @CommandDispatchTarget(pattern = "<player>", switches = "rb")
+    public boolean tempBanPlayer(CommandContext ctx, String player, boolean rollback)
     {
-        if (args.length < 1)
+        return tempBanPlayer(ctx, player, FUtil.parseDateOffset("30m"), null, rollback);
+    }
+
+    @CommandDispatchTarget(pattern = "<player> <duration:DateOffset>", switches = "rb")
+    public boolean tempBanPlayer(CommandContext ctx, String player, Date offset, boolean rollback)
+    {
+        return tempBanPlayer(ctx, player, offset, null, rollback);
+    }
+
+    @CommandDispatchTarget(pattern = "<player> <duration:DateOffset> <reason..>", switches = "rb")
+    public boolean tempBanPlayer(CommandContext ctx, String player, Date offset, String reason, boolean rollback)
+    {
+        final Player actualPlayer = (Player) plugin.cl.getHandler().resolveArgument("Player", player, null);
+        final PlayerData playerData = BanCommandUtil.getData(plugin, player, actualPlayer);
+        final Ban ban;
+        final String name;
+
+        // If we can't find a player here, we'll just fumble a solution with names.
+        if (actualPlayer == null && playerData == null)
         {
-            return false;
+            ban = Ban.forPlayerName(player, ctx.getSender(), offset, reason);
+            name = player;
         }
-        Player player = getPlayer(args[0]);
-        PlayerData data = BanCommandUtil.getData(plugin, args[0], player);
-        if (player == null && data == null)
+        else
         {
-            msg("Can't find that player. Use /banname for a name-only ban.");
-            return true;
+            name = BanCommandUtil.getCanonicalName(player, actualPlayer, playerData);
+            List<String> ips = BanCommandUtil.getIps(actualPlayer, playerData);
+            ban = BanCommandUtil.createFullBan(name, ips, ctx.getPlayerSender(), offset, reason);
         }
-        String name = BanCommandUtil.getCanonicalName(args[0], player, data);
-        Date expires = FUtil.parseDateOffset("30m");
-        int reasonStart = 1;
-        if (args.length >= 2)
-        {
-            Date parsed = FUtil.parseDateOffset(args[1]);
-            if (parsed != null)
-            {
-                expires = parsed;
-                reasonStart = 2;
-            }
-        }
-        boolean rollback = args.length > 1 && args[args.length - 1].equalsIgnoreCase("-rb");
-        int reasonEnd = rollback ? args.length - 1 : args.length;
-        String reason = reasonEnd > reasonStart
-                ? StringUtils.join(args, " ", reasonStart, reasonEnd)
-                : "Banned by " + sender.getName();
-        List<String> ips = BanCommandUtil.getIps(player, data);
-        Ban ban = BanCommandUtil.createFullBan(name, ips, sender, expires, reason);
+
+        FUtil.adminAction(ctx.getSender().getName(),
+                "Temporarily banning " + name + " until " + DATE_FORMAT.format(offset), true);
+
         plugin.bm.addBan(ban);
-        FUtil.adminAction(sender.getName(), "Temporarily banned " + name + " until " + DATE_FORMAT.format(expires), true);
+
+        server.getOnlinePlayers().stream()
+                .filter(suspect -> suspect.equals(actualPlayer) ||
+                        ban.getIps().contains(Objects.requireNonNull(suspect.getAddress()).getAddress().getHostAddress()))
+                .forEach(target ->
+                {
+                    Location loc = target.getLocation();
+                    for (int x = -1; x <= 1; x++)
+                    {
+                        for (int z = -1; z <= 1; z++)
+                        {
+                            loc.getWorld().strikeLightning(new Location(loc.getWorld(),
+                                    loc.getBlockX() + x, loc.getBlockY(), loc.getBlockZ() + z));
+                        }
+                    }
+                    target.kick(ban.bakeKickMessage());
+                });
+
         if (rollback)
         {
             plugin.cpb.rollback(name);
         }
-        if (player != null)
-        {
-            Location target = player.getLocation();
-            for (int x = -1; x <= 1; x++)
-            {
-                for (int z = -1; z <= 1; z++)
-                {
-                    target.getWorld().strikeLightning(new Location(target.getWorld(), target.getBlockX() + x, target.getBlockY(), target.getBlockZ() + z));
-                }
-            }
-            player.kick(ban.bakeKickMessage());
-        }
+
         return true;
+    }
+
+    @Override
+    public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
+    {
+        return false;
     }
 }
