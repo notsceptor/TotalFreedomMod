@@ -1,186 +1,102 @@
 package me.totalfreedom.totalfreedommod.command;
 
-import java.util.Arrays;
+import java.net.InetAddress;
+import java.util.List;
+import java.util.Objects;
+
 import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.rank.Rank;
-import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import org.apache.commons.lang3.StringUtils;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-@CommandPermissions(level = Rank.OP, source = SourceType.BOTH, permission = "tfm.admin.myadmin")
-@CommandParameters(description = "Manage my admin entry", usage = "/<command> [-o <admin>] <clearips | clearip <ip> | setlogin <message> | clearlogin>")
+@CommandPermissions(level = Rank.SUPER_ADMIN, source = SourceType.ONLY_IN_GAME, permission = "tfm.admin.myadmin")
+@CommandParameters(description = "Manage my admin entry", usage = "/<command> <clearips | clearip <ip> | setlogin <message> | clearlogin>")
 public class Command_myadmin extends FreedomCommand
 {
 
-    @Override
-    protected boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
+    @CommandDispatchTarget(pattern = "clearip <ip:IP>")
+    public boolean removeIp(CommandContext ctx, InetAddress address)
     {
-        checkPlayer();
-        checkRank(Rank.SUPER_ADMIN);
-
-        if (args.length < 1)
+        if (Objects.requireNonNull(playerSender.getAddress()).getAddress().equals(address))
         {
-            return false;
+            msg(ctx.getSender(), "You can't remove your current IP address.", NamedTextColor.RED);
+            return true;
         }
 
-        Player init = null;
-        Admin target = getAdmin(playerSender);
-        Player targetPlayer = playerSender;
-
-        // -o switch
-        if (args[0].equals("-o"))
+        final Admin entry = plugin.al.getAdmin(ctx.getPlayerSender());
+        if (!entry.getIps().contains(address.getHostAddress()))
         {
-            checkRank(Rank.SENIOR_ADMIN);
-            init = playerSender;
-            targetPlayer = getPlayer(args[1]);
-            if (targetPlayer == null)
-            {
-                msg(FreedomCommand.PLAYER_NOT_FOUND);
-                return true;
-            }
-
-            target = getAdmin(targetPlayer);
-            if (target == null)
-            {
-                msg("That player is not admin", NamedTextColor.RED);
-                return true;
-            }
-
-            // Shift 2
-            args = Arrays.copyOfRange(args, 2, args.length);
-            if (args.length < 1)
-            {
-                return false;
-            }
+            msg(ctx.getSender(), "That IP address isn't in your entry.");
+            return true;
         }
 
-        final String targetIp = targetPlayer.getAddress().getAddress().getHostAddress();
-
-        switch (args[0])
-        {
-            case "clearips":
-            {
-                if (args.length != 1)
-                {
-                    return false; // Double check: the player might mean "clearip"
-                }
-
-                if (init == null)
-                {
-                    FUtil.adminAction(sender.getName(), "Clearing my supered IPs", true);
-                }
-                else
-                {
-                    FUtil.adminAction(sender.getName(), "Clearing " + target.getName() + "' supered IPs", true);
-                }
-
-                int counter = target.getIps().size() - 1;
-                target.clearIPs();
-                target.addIp(targetIp);
-
-                plugin.al.save();
-
-                msg(counter + " IPs removed.");
-                msg(targetPlayer, target.getIps().get(0) + " is now your only IP address");
-                return true;
-            }
-
-            case "clearip":
-            {
-                if (args.length != 2)
-                {
-                    return false; // Double check: the player might mean "clearips"
-                }
-
-                if (!target.getIps().contains(args[1]))
-                {
-                    if (init == null)
-                    {
-                        msg("That IP is not registered to you.");
-                    }
-                    else
-                    {
-                        msg("That IP does not belong to that player.");
-                    }
-                    return true;
-                }
-
-                if (targetIp.equals(args[1]))
-                {
-                    if (init == null)
-                    {
-                        msg("You cannot remove your current IP.");
-                    }
-                    else
-                    {
-                        msg("You cannot remove that admin's current IP.");
-                    }
-                    return true;
-                }
-
-                FUtil.adminAction(sender.getName(), "Removing a supered IP" + (init == null ? "" : " from " + targetPlayer.getName() + "'s IPs"), true);
-
-                target.removeIp(args[1]);
-                plugin.al.save();
-                plugin.al.updateTables();
-
-                msg("Removed IP " + args[1]);
-                msg("Current IPs: " + StringUtils.join(target.getIps(), ", "));
-                return true;
-            }
-
-            case "setlogin":
-            {
-                if (args.length < 2)
-                {
-                    return false;
-                }
-
-                String msg = StringUtils.join(args, " ", 1, args.length);
-                FUtil.adminAction(sender.getName(), "Setting personal login message" + (init == null ? "" : " for " + targetPlayer.getName()), false);
-
-                // Temporary legacy to MiniMessage placeholder conversion for login messages, remove if no longer needed
-                if (msg.contains("%name%") || msg.contains("%rank%") || msg.contains("%coloredrank%"))
-                {
-                    msg = msg.replace("%name%", "<name>")
-                            .replace("%rank%", "<rank>")
-                            .replace("%coloredrank%", "<colored_rank>");
-
-                    msg(Component.text("MiniMessage is now favored over legacy placeholder tags. Use ", NamedTextColor.GRAY)
-                            .append(Component.text("<name>", NamedTextColor.AQUA))
-                            .append(Component.text(", ", NamedTextColor.GRAY))
-                            .append(Component.text("<rank>", NamedTextColor.AQUA))
-                            .append(Component.text(" or ", NamedTextColor.GRAY))
-                            .append(Component.text("<colored_rank>", NamedTextColor.AQUA))
-                            .append(Component.text(" instead. We'll convert it for you, but this conversion may be removed in the future.", NamedTextColor.GRAY)));
-                }
-
-                target.setLoginMessage(msg);
-                msg((init == null ? "Your" : targetPlayer.getName() + "'s") + " login message is now: ");
-                msg(Component.text("> ").append(plugin.rm.formatLoginMessage(targetPlayer)));
-                plugin.al.save();
-                plugin.al.updateTables();
-                return true;
-            }
-
-            case "clearlogin":
-            {
-                FUtil.adminAction(sender.getName(), "Clearing personal login message" + (init == null ? "" : " for " + targetPlayer.getName()), false);
-                target.setLoginMessage(null);
-                plugin.al.save();
-                plugin.al.updateTables();
-                return true;
-            }
-
-            default:
-            {
-                return false;
-            }
-        }
+        entry.removeIp(address.getHostAddress());
+        return true;
     }
 
+    @CommandDispatchTarget(pattern = "clearips")
+    public boolean clearIps(CommandContext ctx)
+    {
+        final Admin entry = plugin.al.getAdmin(ctx.getPlayerSender());
+        final List<String> ips = entry.getIps();
+        int count = ips.size();
+
+        ips.clear();
+        ips.add(Objects.requireNonNull(ctx.getPlayerSender().getAddress()).getAddress().getHostName());
+
+        msg(ctx.getSender(), count - 1 + " IP address(es) were removed.");
+        return true;
+    }
+
+    @CommandDispatchTarget(pattern = "setlogin <message..>")
+    public boolean setLoginMessage(CommandContext ctx, String message)
+    {
+        final Admin entry = plugin.al.getAdmin(ctx.getPlayerSender());
+
+        // Temporary legacy to MiniMessage placeholder conversion for login messages, remove if no longer needed
+        if (message.contains("%name%") || message.contains("%rank%") || message.contains("%coloredrank%"))
+        {
+            message = message.replace("%name%", "<name>")
+                    .replace("%rank%", "<rank>")
+                    .replace("%coloredrank%", "<colored_rank>");
+
+            msg(ctx.getSender(), Component.text("MiniMessage is now favored over legacy placeholder tags. Use ", NamedTextColor.GRAY)
+                    .append(Component.text("<name>", NamedTextColor.AQUA))
+                    .append(Component.text(", ", NamedTextColor.GRAY))
+                    .append(Component.text("<rank>", NamedTextColor.AQUA))
+                    .append(Component.text(" or ", NamedTextColor.GRAY))
+                    .append(Component.text("<colored_rank>", NamedTextColor.AQUA))
+                    .append(Component.text(" instead. We'll convert it for you, but this conversion may be removed in the future.", NamedTextColor.GRAY)));
+        }
+
+        entry.setLoginMessage(message);
+        msg(ctx.getSender(), "Your login message is now: ");
+        msg(ctx.getSender(), Component.text("> ").append(plugin.rm.formatLoginMessage(ctx.getPlayerSender())));
+        plugin.al.save();
+        plugin.al.updateTables();
+
+        return true;
+    }
+
+    @CommandDispatchTarget(pattern = "clearlogin")
+    public boolean clearLogin(CommandContext ctx)
+    {
+        final Admin entry = plugin.al.getAdmin(ctx.getPlayerSender());
+
+        entry.setLoginMessage(null);
+        msg(ctx.getSender(), "Your login message has been removed.");
+        plugin.al.save();
+        plugin.al.updateTables();
+
+        return true;
+    }
+
+    @Override
+    public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
+    {
+        return false;
+    }
 }
