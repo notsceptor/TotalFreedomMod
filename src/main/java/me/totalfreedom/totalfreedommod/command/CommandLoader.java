@@ -38,6 +38,7 @@ public class CommandLoader extends FreedomService
         
         // Argument resolver registration
         handler.registerArgumentResolver(PlayerArgumentResolver.class);
+        handler.registerArgumentResolver(PlayerListArgumentResolver.class);
         handler.registerArgumentResolver(KeyArgumentResolver.class);
         handler.registerArgumentResolver(EnchantmentArgumentResolver.class);
         handler.registerArgumentResolver(PotionEffectTypeArgumentResolver.class);

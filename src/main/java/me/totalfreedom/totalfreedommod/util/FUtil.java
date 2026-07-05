@@ -5,6 +5,7 @@ import com.google.gson.JsonParser;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
+import java.io.ObjectInput;
 import java.lang.reflect.Field;
 import java.net.HttpURLConnection;
 import java.net.URI;
@@ -131,6 +132,13 @@ public class FUtil
     public static void adminAction(String adminName, String action, boolean isRed)
     {
         FUtil.bcastMsg(adminName + " - " + action, (isRed ? NamedTextColor.RED : NamedTextColor.AQUA));
+    }
+
+    public static void adminAction(String adminName, Component action, NamedTextColor color)
+    {
+        FUtil.bcastMsg(Component.text(adminName, color)
+                .append(Component.text(" - "))
+                .append(action));
     }
 
     public static String formatLocation(Location location)
@@ -590,4 +598,39 @@ public class FUtil
         UUID_CACHE.clear();
     }
 
+    public static Object stringToObject(String input)
+    {
+        // Numbers
+        if (input.toLowerCase().matches("[0-9]+[ls]?"))
+        {
+            try
+            {
+                // Expect long
+                if (input.toLowerCase().endsWith("l"))
+                {
+                    return Long.parseLong(input.substring(0, input.length() - 1));
+                }
+                // Expect short
+                else if (input.toLowerCase().endsWith("s"))
+                {
+                    return Short.parseShort(input);
+                }
+
+                // Expect integer
+                return Integer.parseInt(input);
+            }
+            catch (NumberFormatException _)
+            {
+                // Fail quietly, we'll just make it a string instead
+            }
+        }
+
+        // Booleans
+        if (input.equalsIgnoreCase("true") || input.equalsIgnoreCase("false"))
+        {
+            return Boolean.parseBoolean(input);
+        }
+
+        return input;
+    }
 }
