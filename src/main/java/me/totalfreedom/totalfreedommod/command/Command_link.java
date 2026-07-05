@@ -12,30 +12,37 @@ import org.bukkit.entity.Player;
 public class Command_link extends FreedomCommand
 {
 
-    @Override
-    public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
+    @CommandDispatchTarget
+    public boolean createDiscordLink(CommandContext ctx)
     {
         if (plugin.db == null || !plugin.db.isReady())
         {
-            msg("Discord bridge is not enabled or not ready.", NamedTextColor.RED);
+            msg(ctx.getSender(), "Discord bridge is not enabled or not ready.", NamedTextColor.RED);
             return true;
         }
 
-        Admin admin = plugin.al.getAdmin(playerSender);
+        final Admin admin = plugin.al.getAdmin(ctx.getSender());
         if (admin == null)
         {
-            msg("You are not in the admin list.", NamedTextColor.RED);
+            msg(ctx.getSender(), "You're not in the admin list.", NamedTextColor.RED);
             return true;
         }
 
-        String code = plugin.db.createPendingLink(admin.getUuid());
-        int ttlSeconds = plugin.db.getLinkCodeTtlSeconds();
+        final String code = plugin.db.createPendingLink(admin.getUuid());
+        final int ttlSeconds = plugin.db.getLinkCodeTtlSeconds();
 
-        msg("Your Discord link code is:", NamedTextColor.GREEN);
-        msg(code, NamedTextColor.YELLOW);
-        msg("On the Discord server, you may run /link " + code + " to link your Discord account.",
+        msg(ctx.getSender(), "Your Discord link code is:", NamedTextColor.GREEN);
+        msg(ctx.getSender(), code, NamedTextColor.YELLOW);
+        msg(ctx.getSender(), "On the Discord server, you may run /link " + code + " to link your Discord account.",
                 NamedTextColor.GRAY);
-        msg("Code expires in " + ttlSeconds + " seconds.", NamedTextColor.GRAY);
+        msg(ctx.getSender(), "Code expires in " + ttlSeconds + " seconds.", NamedTextColor.GRAY);
+
         return true;
+    }
+
+    @Override
+    public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
+    {
+        return false;
     }
 }
