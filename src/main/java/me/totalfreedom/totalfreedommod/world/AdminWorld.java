@@ -89,11 +89,20 @@ public final class AdminWorld extends CustomWorld
         return false;
     }
 
-    public Player removeGuest(Player guest)
+    public boolean hasGuests()
     {
-        final Player player = guestList.remove(guest);
-        wipeAccessCache();
-        return player;
+        return !guestList.isEmpty();
+    }
+
+
+    public boolean removeGuest(Player guest)
+    {
+        final boolean success = guestList.remove(guest) != null;
+        if (success)
+        {
+            wipeAccessCache();
+        }
+        return success;
     }
 
     public Player removeGuest(String partialName)
@@ -117,10 +126,8 @@ public final class AdminWorld extends CustomWorld
     public String guestListToString()
     {
         final List<String> output = new ArrayList<>();
-        final Iterator<Map.Entry<Player, Player>> it = guestList.entrySet().iterator();
-        while (it.hasNext())
+        for (Entry<Player, Player> entry : guestList.entrySet())
         {
-            final Entry<Player, Player> entry = it.next();
             final Player player = entry.getKey();
             final Player supervisor = entry.getValue();
             output.add(player.getName() + " (Supervisor: " + supervisor.getName() + ")");

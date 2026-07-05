@@ -63,7 +63,7 @@ public class AntiSpam extends FreedomService
             return;
         }
 
-        if (ConfigEntry.VAULT_CHAT_PREVENT_SPAM.getBoolean() && playerdata.getLastMessage().equalsIgnoreCase(message))
+        if (ConfigEntry.VAULT_CHAT_PREVENT_SPAM.getBoolean() && playerdata.getLastMessage().equalsIgnoreCase(message) && !plugin.al.isAdmin(player))
         {
             FSync.playerMsg(player, "Please do not repeat messages.");
             event.setCancelled(true);

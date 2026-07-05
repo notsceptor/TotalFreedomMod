@@ -11,200 +11,64 @@ import org.bukkit.entity.Player;
 
 @CommandPermissions(level = Rank.OP, source = SourceType.BOTH, permission = "tfm.world.adminworld")
 @CommandParameters(description = "Go to the AdminWorld.",
-        usage = "/<command> [guest < list | purge | add <player> | remove <player> > | time <morning | noon | evening | night> | weather <off | on | storm>]")
+        usage = "/<command> [guest < list | purge | add <player> | remove <player> > | time <morning | noon | evening | night> | weather <off | rain | storm>]")
 public class Command_adminworld extends FreedomCommand
 {
 
-    private enum CommandMode
+    @CommandDispatchTarget
+    public boolean teleportAdminWorld(CommandContext ctx)
     {
+        Player playerSender = ctx.getPlayerSender();
 
-        TELEPORT, GUEST, TIME, WEATHER;
+        if (ctx.isSenderConsole())
+        {
+            return true;
+        }
+
+        World adminWorld = null;
+        try
+        {
+            adminWorld = plugin.wm.adminworld.getWorld();
+        }
+        catch (Exception _)
+        {
+        }
+
+        if (adminWorld == null || playerSender.getWorld().equals(adminWorld))
+        {
+            msg("Going to the main world.");
+            playerSender.teleport(server.getWorlds().get(0).getSpawnLocation());
+        }
+        else if (plugin.wm.adminworld.canAccessWorld(playerSender))
+        {
+            msg("Going to the AdminWorld.");
+            plugin.wm.adminworld.sendToWorld(playerSender);
+        }
+        else
+        {
+            msg("You don't have permission to access the AdminWorld.");
+        }
+
+        return true;
     }
 
-    @Override
-    public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
+    @CommandDispatchTarget(pattern = "guest add <player:Player>")
+    public boolean addGuest(CommandContext ctx, Player player)
     {
-        CommandMode commandMode = null;
-
-        if (args.length == 0)
-        {
-            commandMode = CommandMode.TELEPORT;
-        }
-        else if (args.length >= 2)
-        {
-            if ("guest".equalsIgnoreCase(args[0]))
-            {
-                commandMode = CommandMode.GUEST;
-            }
-            else if ("time".equalsIgnoreCase(args[0]))
-            {
-                commandMode = CommandMode.TIME;
-            }
-            else if ("weather".equalsIgnoreCase(args[0]))
-            {
-                commandMode = CommandMode.WEATHER;
-            }
-        }
-
-        if (commandMode == null)
-        {
-            return false;
-        }
+        CommandSender sender = ctx.getSender();
+        Player playerSender = ctx.getPlayerSender();
 
         try
         {
-            switch (commandMode)
+            assertCommandPerms(sender, playerSender);
+
+            if (plugin.wm.adminworld.addGuest(player, playerSender))
             {
-                case TELEPORT:
-                {
-                    if (!(sender instanceof Player) || playerSender == null)
-                    {
-                        return true;
-                    }
-
-                    World adminWorld = null;
-                    try
-                    {
-                        adminWorld = plugin.wm.adminworld.getWorld();
-                    }
-                    catch (Exception ex)
-                    {
-                    }
-
-                    if (adminWorld == null || playerSender.getWorld() == adminWorld)
-                    {
-                        msg("Going to the main world.");
-                        playerSender.teleport(server.getWorlds().get(0).getSpawnLocation());
-                    }
-                    else
-                    {
-                        if (plugin.wm.adminworld.canAccessWorld(playerSender))
-                        {
-                            msg("Going to the AdminWorld.");
-                            plugin.wm.adminworld.sendToWorld(playerSender);
-                        }
-                        else
-                        {
-                            msg("You don't have permission to access the AdminWorld.");
-                        }
-                    }
-
-                    break;
-                }
-                case GUEST:
-                {
-                    if (args.length == 2)
-                    {
-                        if ("list".equalsIgnoreCase(args[1]))
-                        {
-                            msg("AdminWorld guest list: " + plugin.wm.adminworld.guestListToString());
-                        }
-                        else if ("purge".equalsIgnoreCase(args[1]))
-                        {
-                            assertCommandPerms(sender, playerSender);
-                            plugin.wm.adminworld.purgeGuestList();
-                            FUtil.adminAction(sender.getName(), "AdminWorld guest list purged.", false);
-                        }
-                        else
-                        {
-                            return false;
-                        }
-                    }
-                    else if (args.length == 3)
-                    {
-                        assertCommandPerms(sender, playerSender);
-
-                        if ("add".equalsIgnoreCase(args[1]))
-                        {
-                            final Player player = getPlayer(args[2]);
-
-                            if (player == null)
-                            {
-                                msg(FreedomCommand.PLAYER_NOT_FOUND);
-                                return true;
-                            }
-
-                            if (plugin.wm.adminworld.addGuest(player, playerSender))
-                            {
-                                FUtil.adminAction(sender.getName(), "AdminWorld guest added: " + player.getName(), false);
-                            }
-                            else
-                            {
-                                msg("Could not add player to guest list.");
-                            }
-                        }
-                        else if ("remove".equals(args[1]))
-                        {
-                            final Player player = plugin.wm.adminworld.removeGuest(args[2]);
-                            if (player != null)
-                            {
-                                FUtil.adminAction(sender.getName(), "AdminWorld guest removed: " + player.getName(), false);
-                            }
-                            else
-                            {
-                                msg("Can't find guest entry for: " + args[2]);
-                            }
-                        }
-                        else
-                        {
-                            return false;
-                        }
-                    }
-
-                    break;
-                }
-                case TIME:
-                {
-                    assertCommandPerms(sender, playerSender);
-
-                    if (args.length == 2)
-                    {
-                        WorldTime timeOfDay = WorldTime.getByAlias(args[1]);
-                        if (timeOfDay != null)
-                        {
-                            plugin.wm.adminworld.setTimeOfDay(timeOfDay);
-                            msg("AdminWorld time set to: " + timeOfDay.name());
-                        }
-                        else
-                        {
-                            msg("Invalid time of day. Can be: sunrise, noon, sunset, midnight");
-                        }
-                    }
-                    else
-                    {
-                        return false;
-                    }
-
-                    break;
-                }
-                case WEATHER:
-                {
-                    assertCommandPerms(sender, playerSender);
-
-                    if (args.length == 2)
-                    {
-                        WorldWeather weatherMode = WorldWeather.getByAlias(args[1]);
-                        if (weatherMode != null)
-                        {
-                            plugin.wm.adminworld.setWeatherMode(weatherMode);
-                            msg("AdminWorld weather set to: " + weatherMode.name());
-                        }
-                        else
-                        {
-                            msg("Invalid weather mode. Can be: off, rain, storm");
-                        }
-                    }
-                    else
-                    {
-                        return false;
-                    }
-
-                    break;
-                }
-                default:
-                {
-                    return false;
-                }
+                FUtil.adminAction(sender.getName(), "AdminWorld guest added: " + player.getName(), false);
+            }
+            else
+            {
+                msg("Could not add player to guest list.");
             }
         }
         catch (PermissionDeniedException ex)
@@ -220,13 +84,148 @@ public class Command_adminworld extends FreedomCommand
         return true;
     }
 
-    // TODO: Redo this properly
+    @CommandDispatchTarget(pattern = "guest remove <player:Player>")
+    public boolean removeGuest(CommandContext ctx, Player player)
+    {
+        CommandSender sender = ctx.getSender();
+
+        if (plugin.wm.adminworld.removeGuest(player))
+        {
+            FUtil.adminAction(sender.getName(), "AdminWorld guest removed: " + player.getName(), false);
+        }
+        else
+        {
+            msg("Can't find guest entry for: " + player.getName());
+        }
+
+        return true;
+    }
+
+    @CommandDispatchTarget(pattern = "guest list")
+    public boolean listGuests(CommandContext ctx)
+    {
+        if (plugin.wm.adminworld.hasGuests())
+        {
+            msg("AdminWorld guest list: " + plugin.wm.adminworld.guestListToString());
+        }
+        else
+        {
+            msg("There are no AdminWorld guests.");
+        }
+        return true;
+    }
+
+    @CommandDispatchTarget(pattern = "guest purge")
+    public boolean purgeGuests(CommandContext ctx)
+    {
+        CommandSender sender = ctx.getSender();
+        Player playerSender = ctx.getPlayerSender();
+
+        try
+        {
+            assertCommandPerms(sender, playerSender);
+            plugin.wm.adminworld.purgeGuestList();
+            FUtil.adminAction(sender.getName(), "AdminWorld guest list purged.", false);
+        }
+        catch (PermissionDeniedException ex)
+        {
+            if (ex.getMessage().isEmpty())
+            {
+                return noPerms();
+            }
+            sender.sendMessage(ex.getMessage());
+            return true;
+        }
+
+        return true;
+    }
+
+    @CommandDispatchTarget(pattern = "time <time>")
+    public boolean setTime(CommandContext ctx, String timeString)
+    {
+        CommandSender sender = ctx.getSender();
+        Player playerSender = ctx.getPlayerSender();
+
+        try
+        {
+            assertCommandPerms(sender, playerSender);
+            WorldTime timeOfDay = WorldTime.getByAlias(timeString);
+            if (timeOfDay != null)
+            {
+                plugin.wm.adminworld.setTimeOfDay(timeOfDay);
+                msg("AdminWorld time set to: " + timeOfDay.name());
+            }
+            else
+            {
+                msg("Invalid time of day. Can be: sunrise, noon, sunset, midnight");
+            }
+        }
+        catch (PermissionDeniedException ex)
+        {
+            if (ex.getMessage().isEmpty())
+            {
+                return noPerms();
+            }
+            sender.sendMessage(ex.getMessage());
+            return true;
+        }
+
+        return true;
+    }
+
+    @CommandDispatchTarget(pattern = "weather <weather>")
+    public boolean setWeather(CommandContext ctx, String weatherValue)
+    {
+        CommandSender sender = ctx.getSender();
+        Player playerSender = ctx.getPlayerSender();
+
+        try
+        {
+            assertCommandPerms(sender, playerSender);
+            WorldWeather weatherMode = WorldWeather.getByAlias(weatherValue);
+            if (weatherMode != null)
+            {
+                plugin.wm.adminworld.setWeatherMode(weatherMode);
+                msg("AdminWorld weather set to: " + weatherMode.name());
+
+            }
+            else
+            {
+                msg("Invalid weather mode. Can be: off, rain, storm");
+            }
+        }
+        catch (PermissionDeniedException ex)
+        {
+            if (ex.getMessage().isEmpty())
+            {
+                return noPerms();
+            }
+            sender.sendMessage(ex.getMessage());
+            return true;
+        }
+
+        return true;
+    }
+
+    @Override
+    public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
+    {
+        return false;
+    }
+
+    // TODO: Redo this properly -- khyvie: maybe introduce a per-dispatch target permission node system
     private void assertCommandPerms(CommandSender sender, Player playerSender) throws PermissionDeniedException
     {
         if (!(sender instanceof Player) || playerSender == null || !isAdmin(sender))
         {
             throw new PermissionDeniedException();
         }
+    }
+
+    private enum CommandMode
+    {
+
+        TELEPORT, GUEST, TIME, WEATHER
     }
 
     private class PermissionDeniedException extends Exception

@@ -13,7 +13,7 @@ import org.bukkit.entity.Player;
         aliases = "o,ac")
 public class Command_adminchat extends FreedomCommand
 {
-    @CommandDispatchTarget(pattern = "")
+    @CommandDispatchTarget
     public boolean toggle(CommandContext ctx)
     {
         if (ctx.isSenderConsole())
