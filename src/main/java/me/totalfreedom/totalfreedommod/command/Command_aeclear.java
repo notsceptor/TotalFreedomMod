@@ -10,13 +10,14 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
 @CommandPermissions(level = Rank.SUPER_ADMIN, source = SourceType.BOTH, permission = "tfm.admin.aeclear")
-@CommandParameters(description = "Bans an online or previously known player and their known IP addresses.", usage = "/<command>", aliases = "aec")
+@CommandParameters(description = "Removes all area effect clouds on the server.", usage = "/<command>", aliases = "aec")
 public class Command_aeclear extends FreedomCommand
 {
-    @Override
-    public boolean run(CommandSender sender, Player playerSender, Command command, String commandLabel, String[] args, boolean senderIsConsole)
+
+    @CommandDispatchTarget
+    public boolean clearAffectClouds(CommandContext ctx)
     {
-        FUtil.adminAction(sender.getName(), "Removing all area effect clouds", true);
+        FUtil.adminAction(ctx.getSender().getName(), "Removing all area effect clouds", true);
         int removed = 0;
         for (World world : server.getWorlds())
         {
@@ -32,5 +33,11 @@ public class Command_aeclear extends FreedomCommand
 
         msg(removed + " area effect clouds removed.");
         return true;
+    }
+
+    @Override
+    public boolean run(CommandSender sender, Player playerSender, Command command, String commandLabel, String[] args, boolean senderIsConsole)
+    {
+        return false;
     }
 }

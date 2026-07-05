@@ -6,7 +6,6 @@ import java.util.concurrent.CompletableFuture;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import org.bukkit.Bukkit;
-import org.bukkit.command.CommandMap;
 import org.jline.reader.Candidate;
 import org.jline.reader.Completer;
 import org.jline.reader.LineReader;
@@ -29,7 +28,6 @@ public class SshCommandCompleter implements Completer {
 
         CompletableFuture<List<String>> future = new CompletableFuture<>();
 
-        // Tab completion must run on the main thread
         Bukkit.getScheduler().runTask(plugin, () -> {
             try {
                 List<String> completions = Bukkit.getCommandMap().tabComplete(Bukkit.getConsoleSender(), buffer);

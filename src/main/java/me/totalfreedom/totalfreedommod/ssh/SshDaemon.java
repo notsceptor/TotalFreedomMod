@@ -11,83 +11,108 @@ import org.apache.sshd.common.AttributeRepository;
 import org.apache.sshd.server.SshServer;
 import org.apache.sshd.server.keyprovider.SimpleGeneratorHostKeyProvider;
 
-/**
- * SSH daemon service for TotalFreedomMod.
- */
-public class SshDaemon extends FreedomService {
-
-    /**
-     * Session attribute key recording how a given SSH session authenticated.
-     */
+public class SshDaemon extends FreedomService
+{
     public static final AttributeRepository.AttributeKey<SshAuthMethod> AUTH_METHOD_KEY =
+            new AttributeRepository.AttributeKey<>();
+    public static final AttributeRepository.AttributeKey<String> FINGERPRINT_KEY =
+            new AttributeRepository.AttributeKey<>();
+    public static final AttributeRepository.AttributeKey<String> IDENTITY_KEY =
             new AttributeRepository.AttributeKey<>();
 
     private SshServer sshd;
-    private int port;
+    private SshIdentityStore identityStore;
 
-    public SshDaemon(TotalFreedomMod plugin) {
+    public SshDaemon(TotalFreedomMod plugin)
+    {
         super(plugin);
     }
 
     @Override
-    protected void onStart() {
-        if (!ConfigEntry.SSH_ENABLED.getBoolean()) {
+    protected void onStart()
+    {
+        if (!ConfigEntry.SSH_ENABLED.getBoolean())
+        {
             return;
         }
 
-        port = ConfigEntry.SSH_PORT.getInteger();
+        int port = ConfigEntry.SSH_PORT.getInteger();
         String authMode = ConfigEntry.SSH_AUTH_MODE.getString().toLowerCase();
 
-        File dataFolder = plugin.getDataFolder();
-        File authorizedKeysDir = new File(dataFolder, "ssh_auth_keys");
-        if (!authorizedKeysDir.exists()) {
-            authorizedKeysDir.mkdirs();
-        }
+        File identitiesDir = new File(plugin.getDataFolder(), "ssh_auth_keys");
+        identityStore = new SshIdentityStore(identitiesDir);
 
         sshd = SshServer.setUpDefaultServer();
         sshd.setPort(port);
 
-        // Host key provider — auto-generates on first run
-        Path hostKeyPath = new File(dataFolder, "ssh_host_key").toPath();
+        Path hostKeyPath = plugin.getDataFolder().toPath().resolve("ssh_host_key");
         sshd.setKeyPairProvider(new SimpleGeneratorHostKeyProvider(hostKeyPath));
 
-        // Authentication
         boolean usePassword = authMode.equals("password") || authMode.equals("both");
         boolean usePublicKey = authMode.equals("key") || authMode.equals("both");
 
-        if (usePassword) {
+        if (!usePassword && !usePublicKey)
+        {
+            FLog.warning("SSH auth_mode '" + authMode + "' is invalid. Defaulting to password.");
+            usePassword = true;
+        }
+
+        if (usePassword)
+        {
             sshd.setPasswordAuthenticator(new SshPasswordAuthenticator());
         }
 
-        if (usePublicKey) {
-            sshd.setPublickeyAuthenticator(new SshPublicKeyAuthenticator(authorizedKeysDir));
+        if (usePublicKey)
+        {
+            sshd.setPublickeyAuthenticator(new SshPublicKeyAuthenticator(identityStore));
+            sshd.setKeyboardInteractiveAuthenticator(new SshHandshakeAuthenticator(identityStore));
+
+            if (!usePassword)
+            {
+                sshd.getProperties().put("auth.methods", "publickey,keyboard-interactive");
+            }
         }
 
-        if (!usePassword && !usePublicKey) {
-            FLog.warning("SSH auth_mode is invalid ('" + authMode + "'). Defaulting to password.");
-            sshd.setPasswordAuthenticator(new SshPasswordAuthenticator());
-        }
-
-        // Shell and command factories
         sshd.setShellFactory(new SshConsoleShellFactory(plugin));
         sshd.setCommandFactory(new SshConsoleCommandFactory(plugin));
 
-        try {
+        try
+        {
             sshd.start();
-            FLog.info("SSH daemon started. Listening on port: " + port);
-        } catch (IOException e) {
+            FLog.info("SSH daemon started on port: " + port);
+        }
+        catch (IOException e)
+        {
             FLog.severe("Failed to start SSH daemon on port " + port + "!");
             FLog.severe(e);
         }
     }
 
+    public void reloadIdentities()
+    {
+        if (identityStore != null)
+        {
+            identityStore.reload();
+        }
+    }
+
+    public SshIdentityStore getIdentityStore()
+    {
+        return identityStore;
+    }
+
     @Override
-    protected void onStop() {
-        if (sshd != null) {
-            try {
+    protected void onStop()
+    {
+        if (sshd != null)
+        {
+            try
+            {
                 sshd.stop(true);
                 FLog.info("SSH daemon stopped.");
-            } catch (Exception e) {
+            }
+            catch (Exception e)
+            {
                 FLog.severe("Error stopping SSH daemon.");
                 FLog.severe(e);
             }

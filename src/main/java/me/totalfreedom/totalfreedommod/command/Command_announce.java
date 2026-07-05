@@ -11,16 +11,18 @@ import org.bukkit.entity.Player;
 public class Command_announce extends FreedomCommand
 {
 
+    @CommandDispatchTarget(pattern = "<message..>")
+    public boolean makeAnnouncement(CommandContext ctx, String greedyContent)
+    {
+        plugin.an.announce(greedyContent);
+        return true;
+    }
+
+
     @Override
     protected boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
     {
-        if (args.length < 1)
-        {
-            return false;
-        }
-
-        plugin.an.announce(StringUtils.join(args, " "));
-        return true;
+        return false;
     }
 
 }

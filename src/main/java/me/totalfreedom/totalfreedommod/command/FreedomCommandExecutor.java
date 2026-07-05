@@ -36,7 +36,7 @@ public class FreedomCommandExecutor implements CommandExecutor
         return commandBase instanceof FreedomCommand ? (FreedomCommand) commandBase : null;
     }
 
-    void executePaper(CommandSender sender, String label, String[] args)
+    public void executePaper(CommandSender sender, String label, String[] args)
     {
         if (!hasPermission(sender, true))
         {

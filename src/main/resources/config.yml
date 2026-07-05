@@ -795,6 +795,9 @@ ssh:
   # This is required because the password does not bind a username to an identity.
   inherit_rank: false
 
+  # Port used by the one-time QR code setup page served by /sshtotp.
+  qr_port: 8765
+
 # Inactivity Auto-Kick (Requires Essentials)
 autokick:
   enabled: true

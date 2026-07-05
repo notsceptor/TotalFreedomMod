@@ -12,46 +12,51 @@ import org.bukkit.entity.Player;
 public class Command_survival extends FreedomCommand
 {
 
-    @Override
-    public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
+    @CommandDispatchTarget(switches = "a")
+    public boolean setSelfGamemode(CommandContext ctx, boolean all)
     {
-        if (args.length == 0)
+        if (ctx.isSenderConsole())
         {
-            if (isConsole())
-            {
-                sender.sendMessage("When used from the console, you must define a target player.");
-                return true;
-            }
-
-            playerSender.setGameMode(GameMode.SURVIVAL);
-            msg("Gamemode set to survival.");
+            msg(ctx.getSender(), "When used from the console, you must define a target player.");
             return true;
         }
 
-        checkRank(Rank.SUPER_ADMIN);
-
-        if (args[0].equals("-a"))
+        if (all)
         {
+            checkRank(Rank.SUPER_ADMIN);
+
             for (Player targetPlayer : server.getOnlinePlayers())
             {
                 targetPlayer.setGameMode(GameMode.SURVIVAL);
             }
 
-            FUtil.adminAction(sender.getName(), "Changing everyone's gamemode to survival", false);
+            FUtil.adminAction(ctx.getSender().getName(), "Changing everyone's gamemode to survival", false);
             return true;
+
         }
-
-        Player player = getPlayer(args[0]);
-
-        if (player == null)
+        else
         {
-            msg(FreedomCommand.PLAYER_NOT_FOUND);
-            return true;
+            ctx.getPlayerSender().setGameMode(GameMode.SURVIVAL);
         }
-
-        msg("Setting " + player.getName() + " to game mode survival.");
-        msg(player, sender.getName() + " set your game mode to survival.");
-        player.setGameMode(GameMode.SURVIVAL);
+        msg("Gamemode set to survival.");
         return true;
+    }
+
+    @CommandDispatchTarget(pattern = "<player:Player>")
+    public boolean setOtherGamemode(CommandContext ctx, Player player)
+    {
+        checkRank(Rank.SUPER_ADMIN);
+
+        msg("Setting " + player.getName() + " to game mode survival");
+        msg(player, ctx.getSender().getName() + " set your game mode to survival");
+        player.setGameMode(GameMode.SURVIVAL);
+
+        return true;
+    }
+
+    @Override
+    public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
+    {
+        return false;
     }
 }
