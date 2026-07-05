@@ -49,6 +49,7 @@ public class CommandLoader extends FreedomService
         handler.registerArgumentResolver(DateOffsetArgumentResolver.class);
         handler.registerArgumentResolver(InetAddressResolver.class);
         handler.registerArgumentResolver(InetAddressListResolver.class);
+        handler.registerArgumentResolver(EnumArgumentResolver.class);
         handler.registerArgumentResolver(BooleanArgumentResolver.class);
         handler.registerArgumentResolver(IntegerArgumentResolver.class);
         handler.registerArgumentResolver(DoubleArgumentResolver.class);

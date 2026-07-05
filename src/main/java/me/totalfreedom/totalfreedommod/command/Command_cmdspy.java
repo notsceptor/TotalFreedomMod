@@ -14,11 +14,31 @@ import org.bukkit.entity.Player;
 @CommandParameters(description = "Spy on commands", usage = "/<command> [admins | ops | all]", aliases = "commandspy")
 public class Command_cmdspy extends FreedomCommand
 {
+    @CommandDispatchTarget
+    public boolean toggleCommandSpy(CommandContext ctx)
+    {
+        final FPlayer playerData = plugin.pl.getPlayer(ctx.getPlayerSender());
+        return setCommandSpyMode(ctx, playerData.cmdspyEnabled() ? CommandSpyMode.OFF : CommandSpyMode.ALL);
+    }
+
+    @CommandDispatchTarget(pattern = "<mode:Enum:class=me.totalfreedom.totalfreedommod.player.CommandSpyMode,mode=UPPERCASE>")
+    public boolean setCommandSpyMode(CommandContext ctx, CommandSpyMode mode)
+    {
+        final FPlayer playerData = plugin.pl.getPlayer(playerSender);
+        final PlayerData data = plugin.pl.getData(playerSender);
+
+        playerData.setCommandSpyMode(mode);
+        data.setCommandSpyMode(mode);
+        plugin.pl.saveAsync();
+
+        msg(ctx.getSender(), "CommandSpy enabled for " + mode.getName() + ".");
+        return true;
+    }
 
     @Override
     public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
     {
-        final FPlayer playerData = plugin.pl.getPlayer(playerSender);
+        /*final FPlayer playerData = plugin.pl.getPlayer(playerSender);
         final PlayerData data = plugin.pl.getData(playerSender);
 
         if (args.length == 0)
@@ -52,7 +72,7 @@ public class Command_cmdspy extends FreedomCommand
         playerData.setCommandSpyMode(mode);
         data.setCommandSpyMode(mode);
         plugin.pl.saveAsync();
-        msg("CommandSpy enabled for " + mode.getName() + ".");
+        msg("CommandSpy enabled for " + mode.getName() + ".");*/
         return true;
     }
 
