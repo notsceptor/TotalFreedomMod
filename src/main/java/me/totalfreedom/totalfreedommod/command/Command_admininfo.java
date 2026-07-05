@@ -3,8 +3,9 @@ package me.totalfreedom.totalfreedommod.command;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.JoinConfiguration;
 import net.kyori.adventure.text.format.NamedTextColor;
-import org.apache.commons.lang3.StringUtils;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -23,12 +24,13 @@ public class Command_admininfo extends FreedomCommand
 
         if (adminInfo.isEmpty())
         {
-            msg("The admin information section of the config.yml file has not been configured.", NamedTextColor.RED);
+            msg(ctx.getSender(), "The admin information section of the config.yml file has not been configured.", NamedTextColor.RED);
         }
         else
         {
-            msg(FUtil.colorize(StringUtils.join(adminInfo, "\n")));
+            msg(ctx.getSender(), Component.join(JoinConfiguration.newlines(), adminInfo.stream().map(FUtil::colorizeWithLinks).toList()));
         }
+
         return true;
     }
 
