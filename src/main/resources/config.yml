@@ -452,11 +452,12 @@ jumppad:
 moblimiter:
   enabled: true
   max: 50
-  disable:
-    dragon: true
-    ghast: true
-    slime: true
-    giant: true
+  disabled:
+    - "minecraft:ender_dragon"
+    - "minecraft:ghast"
+    - "minecraft:slime"
+    - "minecraft:giant"
+    - "minecraft:bat"
 
 # Flatlands
 flatlands:
