@@ -2,8 +2,8 @@ package me.totalfreedom.totalfreedommod.fun;
 
 import com.google.common.collect.Maps;
 
-import java.util.Arrays;
-import java.util.Map;
+import java.util.*;
+
 import lombok.Getter;
 import lombok.Setter;
 import me.totalfreedom.totalfreedommod.FreedomService;
@@ -88,7 +88,7 @@ public class Jumppads extends FreedomService
         final Block block = event.getTo().getBlock();
         final Vector velocity = player.getVelocity().clone();
 
-        if (mode == JumpPadMode.MADGEEK)
+        if (mode == JumpPadMode.NORMAL)
         {
             Boolean canPush = pushMap.get(player);
             if (canPush == null)
@@ -147,20 +147,42 @@ public class Jumppads extends FreedomService
         }
     }
 
-    public static enum JumpPadMode
+    public enum JumpPadMode
     {
+        OFF("Off", "off"),
+        NORMAL("Madgeek", "normal", "adhd", "coffee", "on"),
+        NORMAL_AND_SIDEWAYS("Normal and Sideways", "both");
 
-        OFF(false), NORMAL(true), NORMAL_AND_SIDEWAYS(true), MADGEEK(true);
-        private final boolean on;
+        @Getter
+        private final String label;
+        @Getter
+        private final List<String> alternateNames;
 
-        private JumpPadMode(boolean on)
+        JumpPadMode(String label)
         {
-            this.on = on;
+            this.label = label;
+            this.alternateNames = Collections.emptyList();
+        }
+
+        JumpPadMode(String label, String... alternativeNames)
+        {
+            this.label = label;
+            this.alternateNames = Arrays.stream(alternativeNames).toList();
         }
 
         public boolean isOn()
         {
-            return on;
+            return this != OFF;
+        }
+
+        public static JumpPadMode fromString(String input)
+        {
+            return Arrays.stream(values())
+                    .filter(value -> value.getLabel().equalsIgnoreCase(input)
+                            || value.getAlternateNames().stream().anyMatch(name -> name.equalsIgnoreCase(input))
+                            || value.name().equalsIgnoreCase(input))
+                    .findAny()
+                    .orElseThrow(() -> new IllegalArgumentException("Invalid mode: " + input));
         }
     }
 }

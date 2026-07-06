@@ -3,94 +3,78 @@ package me.totalfreedom.totalfreedommod.command;
 import me.totalfreedom.totalfreedommod.fun.Jumppads;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.JoinConfiguration;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import java.util.Arrays;
+
 @CommandPermissions(level = Rank.SUPER_ADMIN, source = SourceType.BOTH, permission = "tfm.fun.jumppads")
-@CommandParameters(description = "Manage jumppads", usage = "/<command> <on | off | info | sideways <on | off> | strength <strength (1-10)>>", aliases = "launchpads,jp")
+@CommandParameters(description = "Manage jumppads", usage = "/<command> <<on | off> | info | mode <mode> | strength <strength>>", aliases = "launchpads,jp")
 public class Command_jumppads extends FreedomCommand
 {
+    @CommandDispatchTarget(pattern = "<value:Boolean>")
+    public boolean setEnabled(CommandContext ctx, Boolean status)
+    {
+        FUtil.adminAction(ctx.getSender().getName(), (status ? "En" : "Dis") + "abling Jumppads", false);
+        plugin.jp.setMode(status ? Jumppads.JumpPadMode.NORMAL : Jumppads.JumpPadMode.OFF);
+        return true;
+    }
+
+    @CommandDispatchTarget(pattern = "strength <value:Float>")
+    public boolean setStrength(CommandContext ctx, Float value)
+    {
+        value = Math.clamp(value, 1F, 10F);
+
+        FUtil.adminAction(ctx.getSender().getName(), "Setting Jumppads strength to: " + value, false);
+        plugin.jp.setStrength((value / 10) + 0.1F);
+        return true;
+    }
+
+    @CommandDispatchTarget(pattern = "mode")
+    public boolean getModes(CommandContext ctx)
+    {
+        msg(ctx.getSender(), Component.text("The current Jumppads mode is ", NamedTextColor.GRAY)
+                .append(Component.text(plugin.jp.getMode().name(), NamedTextColor.WHITE))
+                .append(Component.text(".")));
+        msg(ctx.getSender(), Component.text("Possible modes: ", NamedTextColor.GRAY)
+                .append(Component.join(JoinConfiguration.commas(true),
+                        Arrays.stream(Jumppads.JumpPadMode.values())
+                                .map(mode -> Component.text(mode.name(), NamedTextColor.WHITE))
+                                .toList())));
+        return true;
+    }
+
+    @CommandDispatchTarget(pattern = "mode <status:Enum:class=me.totalfreedom.totalfreedommod.fun.Jumppads$JumpPadMode>")
+    public boolean setMode(CommandContext ctx, Jumppads.JumpPadMode mode)
+    {
+        if (mode == Jumppads.JumpPadMode.OFF)
+        {
+            return setEnabled(ctx, false);
+        }
+
+        FUtil.adminAction(ctx.getSender().getName(), (plugin.jp.getMode().isOn() ? "S" : "Enabling and ") + "etting Jumppads mode to " + mode.getLabel(), false);
+        plugin.jp.setMode(mode);
+        return true;
+    }
+
+    @CommandDispatchTarget(pattern = "info")
+    public boolean showInfo(CommandContext ctx)
+    {
+        final Jumppads.JumpPadMode mode = plugin.jp.getMode();
+
+        msg(ctx.getSender(), "Jumppads: " + (mode.isOn() ? "Enabled" : "Disabled"), NamedTextColor.BLUE);
+        msg(ctx.getSender(), "Sideways: " + (mode == Jumppads.JumpPadMode.NORMAL_AND_SIDEWAYS ? "Enabled" : "Disabled"), NamedTextColor.BLUE);
+        msg(ctx.getSender(), "Strength: " + (plugin.jp.getStrength() * 10 - 1), NamedTextColor.BLUE);
+        return true;
+    }
 
     @Override
     public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
     {
-        if (args.length == 0 || args.length > 2)
-        {
-            return false;
-        }
-
-        if (args.length == 1)
-        {
-            if (args[0].equalsIgnoreCase("info"))
-            {
-                msg("Jumppads: " + (plugin.jp.getMode().isOn() ? "Enabled" : "Disabled"), NamedTextColor.BLUE);
-                msg("Sideways: " + (plugin.jp.getMode() == Jumppads.JumpPadMode.NORMAL_AND_SIDEWAYS ? "Enabled" : "Disabled"), NamedTextColor.BLUE);
-                msg("Strength: " + (plugin.jp.getStrength() * 10 - 1), NamedTextColor.BLUE);
-                return true;
-            }
-
-            if ("off".equals(args[0]))
-            {
-                FUtil.adminAction(sender.getName(), "Disabling Jumppads", false);
-                plugin.jp.setMode(Jumppads.JumpPadMode.OFF);
-            }
-            else
-            {
-                FUtil.adminAction(sender.getName(), "Enabling Jumppads", false);
-                plugin.jp.setMode(Jumppads.JumpPadMode.MADGEEK);
-            }
-        }
-        else
-        {
-            if (plugin.jp.getMode() == Jumppads.JumpPadMode.OFF)
-            {
-                msg("Jumppads are currently disabled, please enable them before changing jumppads settings.");
-                return true;
-            }
-
-            if (args[0].equalsIgnoreCase("sideways"))
-            {
-                if ("off".equals(args[1]))
-                {
-                    FUtil.adminAction(sender.getName(), "Setting Jumppads mode to: Madgeek", false);
-                    plugin.jp.setMode(Jumppads.JumpPadMode.MADGEEK);
-                }
-                else
-                {
-                    FUtil.adminAction(sender.getName(), "Setting Jumppads mode to: Normal and Sideways", false);
-                    plugin.jp.setMode(Jumppads.JumpPadMode.NORMAL_AND_SIDEWAYS);
-                }
-            }
-            else if (args[0].equalsIgnoreCase("strength"))
-            {
-                final float strength;
-                try
-                {
-                    strength = Float.parseFloat(args[1]);
-                }
-                catch (NumberFormatException ex)
-                {
-                    msg("Invalid Strength");
-                    return true;
-                }
-
-                if (strength > 10 || strength < 1)
-                {
-                    msg("Invalid Strength: The strength may be 1 through 10.");
-                    return true;
-                }
-
-                FUtil.adminAction(sender.getName(), "Setting Jumppads strength to: " + String.valueOf(strength), false);
-                plugin.jp.setStrength((strength / 10) + 0.1F);
-            }
-            else
-            {
-                return false;
-            }
-        }
-
-        return true;
+        return false;
     }
 }
