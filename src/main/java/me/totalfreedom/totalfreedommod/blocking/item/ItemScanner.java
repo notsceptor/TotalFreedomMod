@@ -121,11 +121,20 @@ final class ItemScanner
             return effects;
         }
 
-        // CUSTOM_NAME — gate the serializer behind a safe-graph check
+        // CUSTOM_NAME / ITEM_NAME — gate the serializer behind a safe-graph check
         if (item.hasData(DataComponentTypes.CUSTOM_NAME))
         {
             Component name = item.getData(DataComponentTypes.CUSTOM_NAME);
-            Verdict nameVerdict = inspectNamedComponent(name, depth, deadlineNanos);
+            Verdict nameVerdict = inspectNamedComponent(name, depth, deadlineNanos, agg);
+            if (nameVerdict.isCursed())
+            {
+                return nameVerdict;
+            }
+        }
+        if (item.hasData(DataComponentTypes.ITEM_NAME))
+        {
+            Component name = item.getData(DataComponentTypes.ITEM_NAME);
+            Verdict nameVerdict = inspectNamedComponent(name, depth, deadlineNanos, agg);
             if (nameVerdict.isCursed())
             {
                 return nameVerdict;
