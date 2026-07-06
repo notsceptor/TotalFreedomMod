@@ -115,6 +115,8 @@ public final class WorldEditHook implements Listener
 
     private static final int MAX_SWEEP_TRACKED_CHUNKS = 8192;
     private static final long SWEEP_FLUSH_DELAY_TICKS = 60L;
+    private static final long MAX_CONTAINER_SCAN_VOLUME = 2_000_000L;
+    private static final Set<String> CLIPBOARD_CONTAINER_COMMANDS = Set.of("paste", "place");
 
     private final TotalFreedomMod plugin;
     private final Map<UUID, RegionSnapshot> lastSelections = new HashMap<>();
@@ -989,6 +991,97 @@ public final class WorldEditHook implements Listener
             FLog.warning("Failed to check schematic save size for " + event.getPlayer().getName()
                 + ": " + t.getMessage());
         }
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onContainerCommand(PlayerCommandPreprocessEvent event)
+    {
+        final int cap = getMaxContainers();
+        if (cap < 0)
+        {
+            return;
+        }
+
+        final String msg = event.getMessage();
+        if (msg == null || msg.length() < 2 || msg.charAt(0) != '/')
+        {
+            return;
+        }
+        String body = msg.substring(1);
+        if (!body.isEmpty() && body.charAt(0) == '/')
+        {
+            body = body.substring(1);
+        }
+        final String[] tokens = body.trim().split("\\s+");
+        if (tokens.length == 0)
+        {
+            return;
+        }
+
+        if (!CLIPBOARD_CONTAINER_COMMANDS.contains(normalizeCommandLabel(tokens[0])))
+        {
+            return;
+        }
+
+        final Player player = event.getPlayer();
+        if (plugin.al.isAdmin(player) || worldEditPlugin == null)
+        {
+            return;
+        }
+
+        try
+        {
+            final com.sk89q.worldedit.entity.Player wePlayer = worldEditPlugin.wrapPlayer(player);
+            final LocalSession session = WorldEdit.getInstance().getSessionManager().get(wePlayer);
+            enforceClipboardContainers(event, player, session, cap);
+        }
+        catch (EmptyClipboardException ex)
+        {
+        }
+        catch (Throwable t)
+        {
+            FLog.warning("Failed to check WorldEdit container command for " + event.getPlayer().getName()
+                + ": " + t.getMessage());
+        }
+    }
+
+    private void enforceClipboardContainers(PlayerCommandPreprocessEvent event, Player player, LocalSession session, int cap)
+        throws EmptyClipboardException
+    {
+        final Clipboard clipboard = session.getClipboard().getClipboard();
+        final Region region = clipboard.getRegion();
+        if (region.getVolume() > MAX_CONTAINER_SCAN_VOLUME)
+        {
+            event.setCancelled(true);
+            player.sendMessage(Component.text("Your clipboard contains too much data to paste.", NamedTextColor.RED));
+            FLog.warning("Blocked oversized volume clipboard paste from " + player.getName()
+                + " (" + region.getVolume() + ")");
+            return;
+        }
+
+        final int containers = countContainersInClipboard(clipboard, region);
+        if (containers > cap)
+        {
+            event.setCancelled(true);
+            player.sendMessage(Component.text(
+                "Your clipboard contains too much container data to paste.",
+                NamedTextColor.RED));
+            FLog.warning("Blocked oversized container clipboard paste from " + player.getName()
+                + " (" + containers + " containers)");
+        }
+    }
+
+    private static int countContainersInClipboard(Clipboard clipboard, Region region)
+    {
+        int count = 0;
+        for (BlockVector3 pos : region)
+        {
+            if (isContainerBlock(clipboard.getBlock(pos)))
+            {
+                count++;
+            }
+        }
+        return count;
     }
 
     /**
