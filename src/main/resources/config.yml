@@ -634,7 +634,7 @@ discord:
       ***{sender} - Warning {player}***
       Reason: {reason}
     smite: |-
-      ***{sender} has been a naughty, naughty boy.***
+      ***{sender} - Smiting {player}***
       Reason: {reason}
 
 # Announcer
