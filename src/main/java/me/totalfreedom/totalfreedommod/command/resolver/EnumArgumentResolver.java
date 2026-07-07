@@ -25,7 +25,7 @@ public class EnumArgumentResolver implements AbstractParameterizedArgumentResolv
 
         if (clazzString == null)
         {
-            throw new IllegalArgumentException("Missing required 'class' parameter");
+            throw new IllegalArgumentException("Missing required 'class' parameter. Please contact a developer about this immediately!");
         }
 
         try
