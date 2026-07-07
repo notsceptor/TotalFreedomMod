@@ -56,14 +56,14 @@ public class Command_banlist extends FreedomCommand
 
         if (!playerNames.isEmpty())
         {
-            msg(ctx.getSender(), Component.text("Player bans:", NamedTextColor.RED)
+            msg(ctx.getSender(), Component.text("Player bans: ", NamedTextColor.RED)
                     .append(Component.join(JoinConfiguration.commas(true),
                             playerNames.stream().map(Component::text).toList())
                             .color(NamedTextColor.WHITE)));
         }
         if (!ipOnly.isEmpty())
         {
-            msg(ctx.getSender(), Component.text("IP bans:", NamedTextColor.RED)
+            msg(ctx.getSender(), Component.text("IP bans: ", NamedTextColor.RED)
                     .append(Component.join(JoinConfiguration.commas(true),
                                     ipOnly.stream().map(Component::text).toList())
                             .color(NamedTextColor.WHITE)));
