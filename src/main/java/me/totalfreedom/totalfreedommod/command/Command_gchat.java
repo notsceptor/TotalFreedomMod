@@ -17,7 +17,14 @@ public class Command_gchat extends FreedomCommand
     {
         if (message.startsWith("/"))
         {
-            return ((Command_gcmd) CommandHandler.getByName("gcmd")).runAsOtherPlayer(ctx, player, message.substring(1));
+            final FreedomCommand gcmd = CommandHandler.getByName("gcmd");
+            if (gcmd == null)
+            {
+                msg(ctx.getSender(), "We were going to redirect you to use /gcmd instead, but apparently that isn't registered. Please contact a developer!");
+                return true;
+            }
+
+            return ((Command_gcmd) gcmd).runAsOtherPlayer(ctx, player, message.substring(1));
         }
 
         if (plugin.al.isAdmin(player))
