@@ -20,7 +20,13 @@ public interface AbstractParameterizedArgumentResolver<T> extends AbstractArgume
     {
         return Arrays.stream((strategy != null ? strategy : "").split(","))
                 .map(entry -> entry.split("="))
-                .filter(split -> split.length > 0 && split.length < 3)
+                .peek(split ->
+                {
+                    if (split.length == 0 || split.length > 2)
+                    {
+                        throw new IllegalArgumentException("Malformed parameter set: "  + Arrays.toString(split));
+                    }
+                })
                 .collect(ImmutableMap.toImmutableMap(split -> split[0],
                         split -> split.length == 1 ? true : FUtil.stringToObject(split[1])));
     }

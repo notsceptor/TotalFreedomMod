@@ -1,6 +1,5 @@
 package me.totalfreedom.totalfreedommod.command.resolver;
 
-import me.totalfreedom.totalfreedommod.command.FreedomCommand;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
@@ -17,6 +16,8 @@ public class PlayerListArgumentResolver implements AbstractArgumentResolver<List
 
         for (String candidate : candidates)
         {
+            candidate = candidate.trim();
+
             Player player;
 
             // UUID
@@ -32,7 +33,7 @@ public class PlayerListArgumentResolver implements AbstractArgumentResolver<List
             }
 
             if (player == null)
-                throw new ArgumentResolutionException(FreedomCommand.PLAYER_NOT_FOUND);
+                throw new ArgumentResolutionException("Player not found: " + candidate);
 
             results.add(player);
         }

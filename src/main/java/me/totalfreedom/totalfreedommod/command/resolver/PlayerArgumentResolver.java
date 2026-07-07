@@ -29,8 +29,8 @@ public class PlayerArgumentResolver implements AbstractArgumentResolver<Player>
         // Nickname
         if (player == null)
         {
-            player = Bukkit.getOnlinePlayers().stream().filter(p ->
-                    AdventureUtil.componentToPlainText(p.displayName()).toLowerCase().contains(arg.toLowerCase()))
+            player = Bukkit.getOnlinePlayers().stream()
+                    .filter(p -> AdventureUtil.componentToPlainText(p.displayName()).toLowerCase().contains(arg.toLowerCase()))
                     .findAny()
                     .orElse(null);
         }
