@@ -30,7 +30,9 @@ public class Command_findip extends FreedomCommand
         msg(ctx.getSender(), Component.text(player.getName(), NamedTextColor.GRAY)
                 .append(Component.text("'s IP(s): "))
                 .append(Component.join(JoinConfiguration.commas(true),
-                        plugin.pl.getData(player).getIps().stream().map(ip -> Component.text(ip, NamedTextColor.WHITE)).toList())));
+                        plugin.pl.getData(player).getIps().stream()
+                                .map(ip -> Component.text(ip, NamedTextColor.WHITE))
+                                .toList())));
         return true;
     }
 
