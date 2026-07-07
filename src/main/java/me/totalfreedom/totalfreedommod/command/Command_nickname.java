@@ -58,14 +58,7 @@ public class Command_nickname extends FreedomCommand
             style = style.color(null);
         }
 
-        final List<Component> cleanedChildren = new ArrayList<>();
-
-        for (Component child : component.children())
-        {
-            cleanedChildren.add(cleanComponent(child));
-        }
-
-        return component.style(style).children(cleanedChildren);
+        return component.style(style).children(component.children().stream().map(this::cleanComponent).toList());
     }
 
     @CommandDispatchTarget(pattern = "set <player:Player> <nickname..>")
