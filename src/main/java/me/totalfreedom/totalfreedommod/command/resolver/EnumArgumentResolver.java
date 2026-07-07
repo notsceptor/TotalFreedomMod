@@ -79,26 +79,26 @@ public class EnumArgumentResolver implements AbstractParameterizedArgumentResolv
         UPPERCASE(String::toUpperCase),
         NONE;
 
-        private final Function<String, String> capitalizer;
+        private final Function<String, String> transformer;
 
         EnumCapitalization()
         {
-            this.capitalizer = null;
+            this.transformer = null;
         }
 
         EnumCapitalization(Function<String, String> action)
         {
-            this.capitalizer = action;
+            this.transformer = action;
         }
 
         public String acceptInput(String input)
         {
-            if (capitalizer == null)
+            if (transformer == null)
             {
                 return input;
             }
 
-            return capitalizer.apply(input);
+            return transformer.apply(input);
         }
 
         public static EnumCapitalization fromString(String value)
