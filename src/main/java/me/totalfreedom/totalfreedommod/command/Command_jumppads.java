@@ -56,7 +56,7 @@ public class Command_jumppads extends FreedomCommand
             return setEnabled(ctx, false);
         }
 
-        FUtil.adminAction(ctx.getSender().getName(), (plugin.jp.getMode().isOn() ? "S" : "Enabling and ") + "etting Jumppads mode to " + mode.getLabel(), false);
+        FUtil.adminAction(ctx.getSender().getName(), (plugin.jp.getMode().isOn() ? "S" : "Enabling and s") + "etting Jumppads mode to " + mode.getLabel(), false);
         plugin.jp.setMode(mode);
         return true;
     }
