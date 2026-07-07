@@ -9,7 +9,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 @CommandPermissions(level = Rank.OP, source = SourceType.BOTH, permission = "tfm.player.op")
-@CommandParameters(description = "Makes a player operator", usage = "/<command> <player>")
+@CommandParameters(description = "Makes a player operator", usage = "/<command> [player]")
 public class Command_op extends FreedomCommand
 {
     @CommandDispatchTarget
