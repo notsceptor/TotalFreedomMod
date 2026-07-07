@@ -60,7 +60,7 @@ public class Command_plugincontrol extends FreedomCommand
         msg(ctx.getSender(), otherPlugin.isEnabled() ?
                 Component.text(otherPlugin.getName(), NamedTextColor.GREEN)
                         .append(Component.text(" has been successfully enabled.")) :
-                Component.text("A problem occurred whilst attempting to enable ",NamedTextColor.RED)
+                Component.text("A problem occurred whilst attempting to enable ", NamedTextColor.RED)
                         .append(Component.text(otherPlugin.getName())));
 
         return true;
@@ -92,7 +92,15 @@ public class Command_plugincontrol extends FreedomCommand
     {
         if (otherPlugin.getName().equalsIgnoreCase(plugin.getName()))
         {
-            return ((Command_totalfreedommod) CommandHandler.getByName("totalfreedommod")).reloadPlugin(ctx);
+            final FreedomCommand tfmCommand = CommandHandler.getByName("totalfreedommod");
+
+            if (tfmCommand == null)
+            {
+                msg(ctx.getSender(), "Sorry, we were unable to get the /totalfreedommod command to reload it. Please contact a developer for assistance.", NamedTextColor.RED);
+                return true;
+            }
+
+            return ((Command_totalfreedommod) tfmCommand).reloadPlugin(ctx);
         }
 
         pluginManager.disablePlugin(otherPlugin);
