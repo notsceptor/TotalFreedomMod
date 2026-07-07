@@ -16,7 +16,7 @@ public class Command_banname extends FreedomCommand
         return banNameWithReason(ctx, name, null);
     }
 
-    @CommandDispatchTarget(pattern = "<name> <reason>")
+    @CommandDispatchTarget(pattern = "<name> <reason..>")
     public boolean banNameWithReason(CommandContext ctx, String name, String reason)
     {
         if (plugin.bm.getByUsername(name) != null)
