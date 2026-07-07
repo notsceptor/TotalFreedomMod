@@ -14,12 +14,12 @@ public class HTMLGenerationTools
 
     public static String paragraph(String data)
     {
-        return "<p>" + HtmlEscapers.htmlEscaper().escape(data) + "</p>\r\n";
+        return "<p>" + escapeHtml(data) + "</p>\r\n";
     }
 
     public static String heading(String data, int level)
     {
-        return "<h" + level + ">" + HtmlEscapers.htmlEscaper().escape(data) + "</h" + level + ">\r\n";
+        return "<h" + level + ">" + escapeHtml(data) + "</h" + level + ">\r\n";
     }
 
     public static <K, V> String list(Map<K, V> map)
@@ -32,7 +32,7 @@ public class HTMLGenerationTools
         while (it.hasNext())
         {
             Map.Entry<K, V> entry = it.next();
-            output.append("<li>").append(HtmlEscapers.htmlEscaper().escape(entry.getKey().toString() + " = " + entry.getValue().toString())).append("</li>\r\n");
+            output.append("<li>").append(escapeHtml(entry.getKey().toString() + " = " + entry.getValue().toString())).append("</li>\r\n");
         }
 
         output.append("</ul>\r\n");
@@ -48,11 +48,16 @@ public class HTMLGenerationTools
 
         for (T entry : list)
         {
-            output.append("<li>").append(HtmlEscapers.htmlEscaper().escape(entry.toString())).append("</li>\r\n");
+            output.append("<li>").append(escapeHtml(entry.toString())).append("</li>\r\n");
         }
 
         output.append("</ul>\r\n");
 
         return output.toString();
+    }
+
+    private static String escapeHtml(String input)
+    {
+        return HtmlEscapers.htmlEscaper().escape(input);
     }
 }
