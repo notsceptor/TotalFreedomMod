@@ -53,7 +53,7 @@ public class Command_stfu extends FreedomCommand
                 .peek(player -> player.setMuted(false))
                 .toList();
 
-        msg(ctx.getSender(), "Umuted " + players.size() + " players.");
+        msg(ctx.getSender(), "Unmuted " + players.size() + " players.");
         return true;
     }
 
