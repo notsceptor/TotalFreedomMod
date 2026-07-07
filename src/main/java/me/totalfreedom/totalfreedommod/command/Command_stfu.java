@@ -63,7 +63,7 @@ public class Command_stfu extends FreedomCommand
         FUtil.adminAction(ctx.getSender().getName(), "Muting all non-admins", true);
         final List<FPlayer> players = server.getOnlinePlayers().stream()
                 .filter(player -> !plugin.al.isAdmin(player))
-                .map(player -> plugin.pl.getPlayer(player))
+                .map(plugin.pl::getPlayer)
                 .peek(player -> player.setMuted(true))
                 .toList();
 
