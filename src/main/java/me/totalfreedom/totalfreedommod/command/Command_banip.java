@@ -38,17 +38,15 @@ public class Command_banip extends FreedomCommand
                 .filter(ip -> !plugin.bm.isIpBanned(ip.getHostAddress()))
                 .forEach(ip ->
                 {
-                    final List<Player> affected = server.getOnlinePlayers().stream()
-                            .filter(player -> Objects.requireNonNull(player.getAddress()).getAddress().equals(ip))
-                            .map(player -> (Player) player)
-                            .toList();
-
                     final Ban ban = Ban.forPlayerIp(ip.getHostAddress(), sender, null, reason);
                     BanCommandUtil.addRangeIpIfEnabled(ban, ip.getHostAddress());
 
                     if (plugin.bm.addBan(ban))
                     {
-                        affected.forEach(player -> player.kick(ban.bakeKickMessage()));
+                        server.getOnlinePlayers().stream()
+                                .filter(player -> Objects.requireNonNull(player.getAddress()).getAddress().equals(ip))
+                                .map(player -> (Player) player)
+                                .forEach(player -> player.kick(ban.bakeKickMessage()));
                     }
                 });
 
