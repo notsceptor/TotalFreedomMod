@@ -20,19 +20,19 @@ public class Command_tempban extends FreedomCommand
 {
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd 'at' HH:mm:ss z");
 
-    @CommandDispatchTarget(pattern = "<player>", switches = "rb")
+    @CommandDispatchTarget(pattern = "<playerName>", switches = "rb")
     public boolean tempBanPlayer(CommandContext ctx, String player, boolean rollback)
     {
         return tempBanPlayer(ctx, player, FUtil.parseDateOffset("30m"), null, rollback);
     }
 
-    @CommandDispatchTarget(pattern = "<player> <duration:DateOffset>", switches = "rb")
+    @CommandDispatchTarget(pattern = "<playerName> <duration:DateOffset>", switches = "rb")
     public boolean tempBanPlayer(CommandContext ctx, String player, Date offset, boolean rollback)
     {
         return tempBanPlayer(ctx, player, offset, null, rollback);
     }
 
-    @CommandDispatchTarget(pattern = "<player> <duration:DateOffset> <reason..>", switches = "rb")
+    @CommandDispatchTarget(pattern = "<playerName> <duration:DateOffset> <reason..>", switches = "rb")
     public boolean tempBanPlayer(CommandContext ctx, String player, Date offset, String reason, boolean rollback)
     {
         final Player actualPlayer = (Player) plugin.cl.getHandler().resolveArgument("Player", player, null);
