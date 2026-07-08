@@ -8,7 +8,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-@CommandPermissions(level = Rank.SENIOR_ADMIN, source = SourceType.BOTH, permission = "tfm.admin.senior.fuckup")
+@CommandPermissions(level = Rank.SUPER_ADMIN, source = SourceType.BOTH, permission = "tfm.admin.fuckup")
 @CommandParameters(description = "Crashes the specified player", usage = "/<command> <player>", aliases = "fuckup")
 public class Command_crash extends FreedomCommand
 {

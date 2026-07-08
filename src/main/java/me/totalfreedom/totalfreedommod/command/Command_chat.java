@@ -5,7 +5,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-@CommandPermissions(level = Rank.NON_OP, source = SourceType.ONLY_IN_GAME)
+@CommandPermissions(level = Rank.NON_OP, source = SourceType.ONLY_IN_GAME, permission = "tfm.player.chat")
 @CommandParameters(description = "Send a chat message without needing to verify your ID with Microsoft.",
         usage = "/<command> <message>",
         aliases = "c,fuckofcom")
