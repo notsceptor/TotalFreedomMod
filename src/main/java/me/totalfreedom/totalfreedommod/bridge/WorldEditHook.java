@@ -23,6 +23,7 @@ import com.sk89q.worldedit.world.block.BlockType;
 import com.sk89q.worldedit.world.registry.BlockMaterial;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -67,6 +68,10 @@ public final class WorldEditHook implements Listener
         "^/(?:limit|/limit)\\s+(\\d+|-1)(?:\\s+(.+))?$", Pattern.CASE_INSENSITIVE);
 
     private static final Pattern BLOCK_TOKEN = Pattern.compile("[a-z0-9_]+(?::[a-z0-9_]+)?");
+
+    private static final Pattern HASH_TOKEN = Pattern.compile("#[a-z0-9_]+", Pattern.CASE_INSENSITIVE);
+
+    private static final String[] CLIPBOARD_PATTERNS = {"#clipboard", "#copy", "#fullcopy"};
 
     private static final Map<String, Integer> RADIUS_COMMANDS = new HashMap<>();
 
@@ -174,6 +179,11 @@ public final class WorldEditHook implements Listener
                     if (containerCap >= 0)
                     {
                         wrapped = new ContainerLimitExtent(wrapped, wePlayer.getUniqueId(), containerCap);
+                    }
+                    final List<String> blockedTypes = getBlockedTypesLower();
+                    if (!blockedTypes.isEmpty())
+                    {
+                        wrapped = new BlockedTypeExtent(wrapped, wePlayer.getUniqueId(), blockedTypes);
                     }
                 }
 
@@ -310,6 +320,11 @@ public final class WorldEditHook implements Listener
         }
 
         if (checkPatternTypes(event))
+        {
+            return;
+        }
+
+        if (checkClipboardPattern(event))
         {
             return;
         }
@@ -592,6 +607,88 @@ public final class WorldEditHook implements Listener
         return id.equals(entry);
     }
 
+    private boolean checkClipboardPattern(PlayerCommandPreprocessEvent event)
+    {
+        if (!ConfigEntry.WORLDEDIT_BLOCK_CLIPBOARD_PATTERN.getBoolean(true))
+        {
+            return false;
+        }
+
+        final Player player = event.getPlayer();
+        if (plugin.al.isAdmin(player))
+        {
+            return false;
+        }
+
+        final String message = event.getMessage();
+        if (!isClipboardCapableOp(message))
+        {
+            return false;
+        }
+
+        final int sp = message.indexOf(' ');
+        if (sp < 0)
+        {
+            return false;
+        }
+        if (!referencesClipboard(message.substring(sp + 1)))
+        {
+            return false;
+        }
+
+        event.setCancelled(true);
+        player.sendMessage(Component.text(
+            "The clipboard pattern may not be used in this context. Please use //paste to paste your clipboard.",
+            NamedTextColor.RED));
+        FLog.warning(player.getName() + " tried to use the clipboard pattern in an operation: " + message);
+        return true;
+    }
+
+    private static boolean isClipboardCapableOp(String message)
+    {
+        if (message == null || message.length() < 2 || message.charAt(0) != '/')
+        {
+            return false;
+        }
+        if (isWorldEditOp(message))
+        {
+            return true;
+        }
+        final int sp = message.indexOf(' ');
+        final String firstToken = (sp < 0) ? message : message.substring(0, sp);
+        final String label = normalizeCommandLabel(firstToken);
+        return label.equals("br") || label.equals("brush");
+    }
+
+    private static boolean referencesClipboard(String args)
+    {
+        if (args == null || args.isEmpty())
+        {
+            return false;
+        }
+        final Matcher m = HASH_TOKEN.matcher(args.toLowerCase(Locale.ROOT));
+        while (m.find())
+        {
+            if (isClipboardToken(m.group()))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isClipboardToken(String tokenLower)
+    {
+        for (String canonical : CLIPBOARD_PATTERNS)
+        {
+            if (canonical.startsWith(tokenLower) || tokenLower.startsWith(canonical))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private boolean checkPatternComplexity(PlayerCommandPreprocessEvent event)
     {
         final Integer maxObj = ConfigEntry.WORLDEDIT_MAX_PATTERN_BLOCKS.getInteger();
@@ -772,6 +869,24 @@ public final class WorldEditHook implements Listener
             return -1;
         }
         return raw;
+    }
+
+    private static List<String> getBlockedTypesLower()
+    {
+        final List<String> raw = ConfigEntry.WORLDEDIT_BLOCKED_BLOCK_TYPES.getStringList();
+        if (raw == null || raw.isEmpty())
+        {
+            return List.of();
+        }
+        final List<String> out = new ArrayList<>(raw.size());
+        for (String entry : raw)
+        {
+            if (entry != null && !entry.isEmpty())
+            {
+                out.add(entry.toLowerCase(Locale.ROOT));
+            }
+        }
+        return out;
     }
 
     private static long getMaxSchematicSaveBytes()
@@ -1385,6 +1500,45 @@ public final class WorldEditHook implements Listener
         }
     }
 
+    private final class BlockedTypeExtent extends AbstractDelegateExtent
+    {
+
+        private final UUID uuid;
+        private final List<String> blockedLower;
+        private final AtomicBoolean warned = new AtomicBoolean();
+
+        BlockedTypeExtent(Extent parent, UUID uuid, List<String> blockedLower)
+        {
+            super(parent);
+            this.uuid = uuid;
+            this.blockedLower = blockedLower;
+        }
+
+        @Override
+        public <T extends BlockStateHolder<T>> boolean setBlock(BlockVector3 pos, T block)
+            throws WorldEditException
+        {
+            if (isBlockedType(block, blockedLower))
+            {
+                if (warned.compareAndSet(false, true))
+                {
+                    Bukkit.getScheduler().runTask(plugin, () ->
+                    {
+                        final Player p = Bukkit.getPlayer(uuid);
+                        if (p != null)
+                        {
+                            p.sendMessage(Component.text(
+                                "One or more block types in your operation are not allowed and were skipped.",
+                                NamedTextColor.RED));
+                        }
+                    });
+                }
+                return false;
+            }
+            return super.setBlock(pos, block);
+        }
+    }
+
     private final class SweepRegionExtent extends AbstractDelegateExtent
     {
 
@@ -1446,6 +1600,29 @@ public final class WorldEditHook implements Listener
         }
         final BlockMaterial mat = type.getMaterial();
         return mat != null && mat.hasContainer();
+    }
+
+    private static boolean isBlockedType(BlockStateHolder<?> block, List<String> blockedLower)
+    {
+        final BlockType type = block.getBlockType();
+        if (type == null)
+        {
+            return false;
+        }
+        String id = type.id().toLowerCase(Locale.ROOT);
+        final int colon = id.indexOf(':');
+        if (colon >= 0)
+        {
+            id = id.substring(colon + 1);
+        }
+        for (String entry : blockedLower)
+        {
+            if (blockedIdMatches(id, entry))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static long chunkKey(int cx, int cz)

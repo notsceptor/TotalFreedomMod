@@ -86,7 +86,8 @@ public class CrashPacketService extends FreedomService
     {
         if (snapshot.rateLimit)
         {
-            spamLimiter = new PacketSpamLimiter(snapshot.maxInteractions, snapshot.maxCommands, snapshot.maxMovement);
+            spamLimiter = new PacketSpamLimiter(snapshot.maxInteractions, snapshot.maxCommands, snapshot.maxMovement,
+                    snapshot.maxHeldSwitches);
         }
 
         if (snapshot.movementGuardEnabled)
@@ -132,6 +133,7 @@ public class CrashPacketService extends FreedomService
             int maxInteractions,
             int maxCommands,
             int maxMovement,
+            int maxHeldSwitches,
             int maxHorizontalDelta,
             int maxOversizedMovesPerSecond)
     {
@@ -154,6 +156,7 @@ public class CrashPacketService extends FreedomService
                     ConfigEntry.CRASH_ITEMS_MAX_INTERACTIONS_PER_SECOND.getInteger(),
                     ConfigEntry.CRASH_ITEMS_MAX_COMMANDS_PER_SECOND.getInteger(),
                     ConfigEntry.CRASH_ITEMS_MAX_MOVEMENT_PER_SECOND.getInteger(),
+                    intOr(ConfigEntry.CRASH_ITEMS_MAX_HOTBAR_SLOTS_PER_SECOND.getInteger(), 25),
                     intOr(ConfigEntry.MOVE_GUARD_SPEED_MAX_HORIZONTAL_DELTA.getInteger(), 128),
                     intOr(ConfigEntry.MOVE_GUARD_SPEED_MAX_TELEPORTS_PER_SECOND.getInteger(), 5));
         }

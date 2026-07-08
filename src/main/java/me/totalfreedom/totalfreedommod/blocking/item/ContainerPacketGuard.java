@@ -141,6 +141,13 @@ public final class ContainerPacketGuard
         {
             return false;
         }
+        if (value.contains("%1$")
+                || value.contains("\"translate\"")
+                || value.contains("click_event")
+                || value.contains("hover_event"))
+        {
+            return true;
+        }
         if (value.length() > MAX_STRING_LENGTH)
         {
             return true;

@@ -52,14 +52,15 @@ public class AntiSpam extends FreedomService
 
         final FPlayer playerdata = plugin.pl.getPlayerSync(player);
 
-        if (playerdata.incrementAndGetMsgCount() > limit())
+        final int count = playerdata.incrementAndGetMsgCount();
+        if (count >= limit())
         {
-            FSync.bcastMsg(player.getName() + " was automatically kicked for spamming chat.", NamedTextColor.RED);
-            FSync.autoEject(player, "Kicked for spamming chat.");
-
-            playerdata.resetMsgCount();
-
             event.setCancelled(true);
+            if (count == limit())
+            {
+                FSync.bcastMsg(player.getName() + " was automatically kicked for spamming chat.", NamedTextColor.RED);
+                FSync.autoEject(player, "Kicked for spamming chat.");
+            }
             return;
         }
 
@@ -90,13 +91,15 @@ public class AntiSpam extends FreedomService
             return;
         }
 
-        if (fPlayer.incrementAndGetMsgCount() > limit())
+        final int count = fPlayer.incrementAndGetMsgCount();
+        if (count >= limit())
         {
-            FUtil.bcastMsg(player.getName() + " was automatically kicked for spamming commands.", NamedTextColor.RED);
-            plugin.ae.autoEject(player, "Kicked for spamming commands.");
-
-            fPlayer.resetMsgCount();
             event.setCancelled(true);
+            if (count == limit())
+            {
+                FUtil.bcastMsg(player.getName() + " was automatically kicked for spamming commands.", NamedTextColor.RED);
+                plugin.ae.autoEject(player, "Kicked for spamming commands.");
+            }
         }
     }
 
