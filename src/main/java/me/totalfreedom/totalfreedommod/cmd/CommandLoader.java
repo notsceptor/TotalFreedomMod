@@ -182,7 +182,8 @@ public class CommandLoader extends FreedomService
         } 
         catch (Exception ex) 
         {
-            FLog.warning(String.format("Error discovering Java 25 commands: \n%s", ExceptionUtils.getRootCauseMessage(ex)));
+            // Why the hell did I write this as "Java 25 Commands :'("
+            FLog.warning(String.format("Error walking commands: \n%s", ExceptionUtils.getRootCauseMessage(ex)));
         }
 
         return loaded;

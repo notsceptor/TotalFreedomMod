@@ -1,11 +1,9 @@
 package me.totalfreedom.totalfreedommod.ssh;
 
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
-import me.totalfreedom.totalfreedommod.command.FreedomCommandExecutor;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchContext;
 import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchSession;
-import org.bukkit.command.CommandExecutor;
 import me.totalfreedom.totalfreedommod.util.CallbackLogAppender;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
@@ -25,10 +23,12 @@ import org.jline.reader.LineReaderBuilder;
 import org.jline.reader.UserInterruptException;
 import org.jline.reader.EndOfFileException;
 import org.jline.terminal.Terminal;
+import org.jline.terminal.impl.ExternalTerminal;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
@@ -109,12 +109,12 @@ public class SshConsoleShellFactory implements ShellFactory
             try
             {
                 String termType = env.getEnv().getOrDefault(Environment.ENV_TERM, "xterm-256color");
-                terminal = new org.jline.terminal.impl.ExternalTerminal(
+                terminal = new ExternalTerminal(
                         "TFM-SSH",
                         termType,
                         in,
                         out,
-                        java.nio.charset.StandardCharsets.UTF_8
+                        StandardCharsets.UTF_8
                 );
 
                 lineReader = LineReaderBuilder.builder()
@@ -254,18 +254,8 @@ public class SshConsoleShellFactory implements ShellFactory
                     CompletableFuture.runAsync(() ->
                     {
                         FLog.info("[SSH: " + displayName + "] " + cmd);
-                        RemoteDispatchContext.runWithSession(sshSession, () ->
-                        {
-                            String stripped = cmd.startsWith("/") ? cmd.substring(1) : cmd;
-                            int sp = stripped.indexOf(' ');
-                            String name = (sp < 0 ? stripped : stripped.substring(0, sp)).toLowerCase();
-                            String[] args = sp < 0 ? new String[0] : stripped.substring(sp + 1).split("\\s+");
-                            CommandExecutor executor = plugin.cl.getHandler().getExecutors().get(name);
-                            if (executor instanceof FreedomCommandExecutor fce)
-                                fce.executePaper(Bukkit.getConsoleSender(), name, args);
-                            else
-                                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), stripped);
-                        });
+                        String stripped = cmd.startsWith("/") ? cmd.substring(1) : cmd;
+                        RemoteDispatchContext.dispatch(sshSession, stripped);
                     }, mainExecutor).exceptionally(ex ->
                     {
                         FLog.warning("[SSH] Command dispatch failed for " + displayName + ": " + ex.getMessage());

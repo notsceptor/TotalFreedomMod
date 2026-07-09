@@ -4,6 +4,7 @@ import com.mojang.brigadier.arguments.ArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
+import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import io.papermc.paper.command.brigadier.Commands;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
@@ -34,6 +35,7 @@ import org.bukkit.entity.Player;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -57,8 +59,11 @@ import java.util.function.Supplier;
  *
  * <h3>Handlers</h3>
  * A method annotated {@link Callback} is a handler. With a {@link Subcommand}, it hangs off
- * that literal path; without one (or with an empty path), it is the command's <em>root</em>
- * handler. Replaces abstract run() method.
+ * that literal path; without one (or with an empty path), it is a command <em>root</em>
+ * handler. Replaces abstract run() method. Multiple root handlers may coexist when they take
+ * different numbers of arguments (e.g. a bare toggle form plus a greedy-message form);
+ * same-arity root handlers are ambiguous and logged. When no zero-argument root handler
+ * exists, bare invocation falls back to echoing the {@link Command#usage() usage} string.
  *
  * <h3>Nested subcommands</h3>
  * {@link Subcommand#value()} is a space-separated literal path.
@@ -95,7 +100,8 @@ import java.util.function.Supplier;
  *    <li>Fuzzy-matched enum constant names</li>
  *    <li>Brigadier/Paper defaults</li>
  * </ol>
- */
+ */             
+@SuppressWarnings({"rawtypes", "unchecked"})
 public final class CommandProcessor
 {
 
@@ -140,6 +146,7 @@ public final class CommandProcessor
     private final TotalFreedomMod plugin;
     private final String commandName;
     private final String description;
+    private final String usage;
     private final List<String> aliases;
     private final Permission classPermission;
     private final Map<CompleterKey, Method> completers = new HashMap<>();
@@ -150,6 +157,7 @@ public final class CommandProcessor
         this.plugin = plugin;
         this.commandName = meta.name();
         this.description = meta.description();
+        this.usage = meta.usage();
         this.aliases = List.of(meta.aliases());
         this.classPermission = command.getClass().getAnnotation(Permission.class);
     }
@@ -159,7 +167,7 @@ public final class CommandProcessor
         try
         {
             registrar.register(buildNode().build(), description, aliases);
-            FLog.info(String.format("Registered /%s (aliases: %s)", commandName, aliases));
+            FLog.info(String.format("Registered /%s (aliases: %s)", commandName, String.join(", ", aliases)));
         }
         catch (Exception e)
         {
@@ -184,7 +192,7 @@ public final class CommandProcessor
         }
 
         SubcommandNode trie = new SubcommandNode(null);
-        Method rootHandler = null;
+        List<Method> rootHandlers = new ArrayList<>();
         for (Method method : command.getClass().getDeclaredMethods())
         {
             if (!method.isAnnotationPresent(Callback.class))
@@ -198,11 +206,14 @@ public final class CommandProcessor
 
             if (pathValue.isEmpty())
             {
-                if (rootHandler != null)
+                for (Method prior : rootHandlers)
                 {
-                    FLog.warning(String.format("Duplicate root handler on /%s:\n %s overrides %s", commandName, method.getName(), rootHandler.getName()));
+                    if (argumentCount(prior) == argumentCount(method))
+                    {
+                        FLog.warning(String.format("Ambiguous root handlers on /%s:\n %s and %s both take %d argument(s)", commandName, method.getName(), prior.getName(), argumentCount(method)));
+                    }
                 }
-                rootHandler = method;
+                rootHandlers.add(method);
                 continue;
             }
 
@@ -227,9 +238,18 @@ public final class CommandProcessor
         {
             root.then(buildBranch(child));
         }
-        if (rootHandler != null)
+        boolean bareExecutable = false;
+        for (Method rootHandler : rootHandlers)
         {
+            if (argumentCount(rootHandler) == 0)
+            {
+                bareExecutable = true;
+            }
             attachHandler(root, rootHandler);
+        }
+        if (!bareExecutable && !usage.isEmpty())
+        {
+            root.executes(this::sendUsage);
         }
         return root;
     }
@@ -285,6 +305,38 @@ public final class CommandProcessor
             : "";
     }
 
+    /**
+     * Number of Brigadier argument nodes a handler produces minus the optional leading sender.
+     */
+    private static int argumentCount(Method method)
+    {
+        Parameter[] params = method.getParameters();
+        boolean hasSender = params.length > 0 && ArgumentResolver.isSenderType(params[0].getType());
+        return params.length - (hasSender ? 1 : 0);
+    }
+
+    /**
+     * Fallback for bare invocations of commands with no zero-argument root handler.
+     */
+    private int sendUsage(CommandContext<CommandSourceStack> ctx)
+    {
+        CommandSender sender = PermissionGate.resolveSender(ctx.getSource().getSender());
+        if (!PermissionGate.test(plugin, sender, classPermission, true))
+        {
+            return 0;
+        }
+
+        String label = ctx.getInput();
+        int sp = label.indexOf(' ');
+        if (sp >= 0) label = label.substring(0, sp);
+        if (label.startsWith("/")) label = label.substring(1);
+        int ns = label.indexOf(':');
+        if (ns >= 0) label = label.substring(ns + 1);
+
+        sender.sendMessage(Component.text("Usage: " + usage.replace("<command>", label), NamedTextColor.RED));
+        return 1;
+    }
+
     private SuggestionProvider<CommandSourceStack> buildSuggestionProvider(Method completerMethod)
     {
         return (ctx, builder) ->
@@ -296,7 +348,6 @@ public final class CommandProcessor
             }
             try
             {
-                @SuppressWarnings("unchecked")
                 List<String> suggestions = (List<String>) completerMethod.invoke(command, sender, builder.getRemaining());
                 for (String suggestion : suggestions)
                 {
@@ -380,6 +431,7 @@ public final class CommandProcessor
             ? method.getAnnotation(Permission.class)
             : classPermission;
 
+            // We need to use the full identifier here since we already have @Command defined in the package root
         com.mojang.brigadier.Command<CommandSourceStack> dispatch = ctx ->
         {
             CommandSourceStack source = ctx.getSource();
@@ -558,7 +610,6 @@ public final class CommandProcessor
     }
 
     // This works I promise lmfao
-    @SuppressWarnings({"unchecked", "rawtypes"})
     private static Object parseEnum(Class<?> enumType, String raw)
     {
         return Enum.valueOf((Class<Enum>) enumType, raw.toUpperCase());

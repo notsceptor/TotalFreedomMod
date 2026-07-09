@@ -1,6 +1,7 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 
 /**
  * Thrown from a command handler to abort execution and message the sender.
@@ -22,7 +23,8 @@ public class CommandFailException extends RuntimeException
 
     public CommandFailException(Component component)
     {
-        super(net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(component));
+        // Fixed the auto-import inlining instead of package level
+        super(PlainTextComponentSerializer.plainText().serialize(component));
         this.component = component;
     }
 

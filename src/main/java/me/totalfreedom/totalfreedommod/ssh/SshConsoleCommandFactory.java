@@ -1,11 +1,9 @@
 package me.totalfreedom.totalfreedommod.ssh;
 
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
-import me.totalfreedom.totalfreedommod.command.FreedomCommandExecutor;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchContext;
 import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchSession;
-import org.bukkit.command.CommandExecutor;
 import me.totalfreedom.totalfreedommod.util.CallbackLogAppender;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import org.apache.logging.log4j.LogManager;
@@ -112,18 +110,8 @@ public class SshConsoleCommandFactory implements CommandFactory
             CompletableFuture.runAsync(() ->
             {
                 FLog.info("[SSH: " + resolvedName + "] " + command);
-                RemoteDispatchContext.runWithSession(session, () ->
-                {
-                    String stripped = command.startsWith("/") ? command.substring(1) : command;
-                    int sp = stripped.indexOf(' ');
-                    String name = (sp < 0 ? stripped : stripped.substring(0, sp)).toLowerCase();
-                    String[] args = sp < 0 ? new String[0] : stripped.substring(sp + 1).split("\\s+");
-                    CommandExecutor executor = plugin.cl.getHandler().getExecutors().get(name);
-                    if (executor instanceof FreedomCommandExecutor fce)
-                        fce.executePaper(Bukkit.getConsoleSender(), name, args);
-                    else
-                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), stripped);
-                });
+                String stripped = command.startsWith("/") ? command.substring(1) : command;
+                RemoteDispatchContext.dispatch(session, stripped);
             }, mainExecutor).whenComplete((v, ex) ->
             {
                 ((Logger) LogManager.getRootLogger()).removeAppender(appender);
