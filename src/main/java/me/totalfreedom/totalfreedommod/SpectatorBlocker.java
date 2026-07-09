@@ -32,10 +32,14 @@ import org.bukkit.scheduler.BukkitTask;
 public class SpectatorBlocker extends FreedomService
 {
 
+    private static final long RETRY_INTERVAL_TICKS = 40L;
+    private static final int MAX_ATTEMPTS = 15;
+
     private final Set<UUID> restrictedSpectators = ConcurrentHashMap.newKeySet();
 
     private Object registeredListener;
     private BukkitTask refreshTask;
+    private volatile boolean stopped;
 
     public SpectatorBlocker(TotalFreedomMod plugin)
     {
@@ -45,6 +49,17 @@ public class SpectatorBlocker extends FreedomService
     @Override
     protected void onStart()
     {
+        stopped = false;
+        attemptRegister(0);
+    }
+
+    private void attemptRegister(int attempt)
+    {
+        if (stopped || registeredListener != null)
+        {
+            return;
+        }
+
         Plugin packetEvents = server.getPluginManager().getPlugin("packetevents");
 
         if (packetEvents == null)
@@ -52,12 +67,23 @@ public class SpectatorBlocker extends FreedomService
             packetEvents = server.getPluginManager().getPlugin("PacketEvents");
         }
 
-        if (packetEvents == null || !packetEvents.isEnabled())
+        if (packetEvents != null && packetEvents.isEnabled())
+        {
+            register();
+            return;
+        }
+
+        if (attempt >= MAX_ATTEMPTS)
         {
             FLog.warning("[SpectatorBlocker] PacketEvents is not enabled. Spectator teleports will still be cancelled, but the teleport menu will not be grayed out.");
             return;
         }
 
+        server.getScheduler().runTaskLater(plugin, () -> attemptRegister(attempt + 1), RETRY_INTERVAL_TICKS);
+    }
+
+    private void register()
+    {
         try
         {
             registeredListener = PacketEvents.getAPI().getEventManager()
@@ -83,6 +109,8 @@ public class SpectatorBlocker extends FreedomService
     @Override
     protected void onStop()
     {
+        stopped = true;
+
         if (refreshTask != null)
         {
             refreshTask.cancel();
