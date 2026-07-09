@@ -8,6 +8,7 @@ import com.sk89q.worldedit.LocalSession;
 import com.sk89q.worldedit.MaxChangedBlocksException;
 import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.WorldEditException;
+import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import com.sk89q.worldedit.bukkit.WorldEditPlugin;
 import com.sk89q.worldedit.event.extent.EditSessionEvent;
 import com.sk89q.worldedit.extent.AbstractDelegateExtent;
@@ -54,7 +55,6 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.permissions.PermissionAttachment;
 import org.bukkit.scheduler.BukkitTask;
-import org.bukkit.util.Vector;
 
 /**
  * Loaded only after WorldEditBridge has confirmed the WorldEdit plugin is
@@ -1311,10 +1311,10 @@ public final class WorldEditHook implements Listener
                     continue;
                 }
 
-                final Vector minV = new Vector(min.x(), min.y(), min.z());
-                final Vector maxV = new Vector(max.x(), max.y(), max.z());
-
-                if (plugin.pa.isInProtectedArea(minV, maxV, world.getName()))
+                if (plugin.pa.doesRegionOverlapWithProtectedArea(
+                    BukkitAdapter.adapt(world, min),
+                    BukkitAdapter.adapt(world, max),
+                    world))
                 {
                     bukkitPlayer.sendMessage(Component.text("The region that you selected contained a protected area. Selection cleared.", NamedTextColor.RED));
                     session.getRegionSelector(wePlayer.getWorld()).clear();
@@ -1404,9 +1404,10 @@ public final class WorldEditHook implements Listener
                 return false;
             }
 
-            final Vector min = new Vector(minPos.x(), minPos.y(), minPos.z());
-            final Vector max = new Vector(maxPos.x(), maxPos.y(), maxPos.z());
-            if (plugin.pa.isInProtectedArea(min, max, world.getName()))
+            if (plugin.pa.doesRegionOverlapWithProtectedArea(
+                BukkitAdapter.adapt(world, minPos),
+                BukkitAdapter.adapt(world, maxPos),
+                world))
             {
                 bukkitPlayer.sendMessage(Component.text("You cannot perform WorldEdit operations in a protected area!", NamedTextColor.RED));
                 return true;

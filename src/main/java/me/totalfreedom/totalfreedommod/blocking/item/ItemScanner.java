@@ -141,7 +141,7 @@ final class ItemScanner
         if (item.hasData(DataComponentTypes.CUSTOM_NAME))
         {
             Component name = item.getData(DataComponentTypes.CUSTOM_NAME);
-            Verdict nameVerdict = inspectNamedComponent(name, depth, deadlineNanos, agg);
+            Verdict nameVerdict = inspectNamedComponent(name, depth, deadlineNanos);
             if (nameVerdict.isCursed())
             {
                 return nameVerdict;
@@ -150,7 +150,7 @@ final class ItemScanner
         if (item.hasData(DataComponentTypes.ITEM_NAME))
         {
             Component name = item.getData(DataComponentTypes.ITEM_NAME);
-            Verdict nameVerdict = inspectNamedComponent(name, depth, deadlineNanos, agg);
+            Verdict nameVerdict = inspectNamedComponent(name, depth, deadlineNanos);
             if (nameVerdict.isCursed())
             {
                 return nameVerdict;
