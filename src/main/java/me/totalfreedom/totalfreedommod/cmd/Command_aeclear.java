@@ -1,0 +1,37 @@
+package me.totalfreedom.totalfreedommod.cmd;
+
+import me.totalfreedom.totalfreedommod.rank.Rank;
+import me.totalfreedom.totalfreedommod.util.FUtil;
+
+import org.bukkit.World;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.AreaEffectCloud;
+import org.bukkit.entity.Entity;
+
+import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
+
+@Command(name = "aeclear", description = "Removes all area-of-effect clouds on the server.", usage = "/aeclear", aliases = {"aec"})
+@Permission(level = Rank.SUPER_ADMIN, permission = "tfm.admin.aeclear")
+public class Command_aeclear extends FCommand
+{
+    @Callback
+    public void clear(CommandSender sender)
+    {
+        FUtil.adminAction(sender.getName(), "Removing all area-of-effect clouds", true);
+
+        int removed = 0;
+        for (World world : server.getWorlds())
+        {
+            for (Entity entity : world.getEntities())
+            {
+                if (entity instanceof AreaEffectCloud)
+                {
+                    entity.remove();
+                    removed++;
+                }
+            }
+        }
+
+        msg(sender, removed + " area-of-effect clouds removed.");
+    }
+}

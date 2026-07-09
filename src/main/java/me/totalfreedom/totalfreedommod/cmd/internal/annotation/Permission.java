@@ -20,11 +20,11 @@ import me.totalfreedom.totalfreedommod.rank.Rank;
 @Documented
 public @interface Permission
 {
-    Rank level();
+    Rank level() default Rank.OP;
 
     SourceType source() default SourceType.BOTH;
 
-    String permission() default "";
+    String permission();
 
     String message() default "You do not have permission to use this command.";
 }

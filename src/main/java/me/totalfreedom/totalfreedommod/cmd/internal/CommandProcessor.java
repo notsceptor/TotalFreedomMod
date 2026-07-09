@@ -122,8 +122,10 @@ public final class CommandProcessor
             return;
         }
 
-        commands.put(meta.name(), new CommandProcessor(command, plugin, meta));
-        FLog.debug(String.format("Queued /%s for Brigadier registration", meta.name()));
+        // Apparently, brigadier is case-sensitive for the primary literal. Usage of toLowerCase() is to enforce lowercasing on them.
+        // Don't know why it's case-sensitive but it's fine I guess. Some retard shit imo.
+        commands.put(meta.name().toLowerCase(), new CommandProcessor(command, plugin, meta));
+        FLog.debug(String.format("Queued /%s for Brigadier registration", meta.name().toLowerCase()));
 
         if (hooked.compareAndSet(false, true))
         {
@@ -155,10 +157,10 @@ public final class CommandProcessor
     {
         this.command = command;
         this.plugin = plugin;
-        this.commandName = meta.name();
+        this.commandName = meta.name().toLowerCase();
         this.description = meta.description();
         this.usage = meta.usage();
-        this.aliases = List.of(meta.aliases());
+        this.aliases = Arrays.stream(meta.aliases()).map(String::toLowerCase).toList();
         this.classPermission = command.getClass().getAnnotation(Permission.class);
     }
 

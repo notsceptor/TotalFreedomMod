@@ -20,22 +20,22 @@ import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+
+import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 @Command(name = "saconfig", description = "Manage admins.",
     usage = "/<command> <list | clean | reload | setrank <username> <rank> | <add | remove | info> <username>>")
-@Permission(level = Rank.OP, source = SourceType.BOTH, permission = "tfm.manage.saconfig")
+@Permission(level = Rank.SUPER_ADMIN, permission = "tfm.manage.saconfig")
 public class Command_saconfig extends FCommand 
 {
 
     @Callback
     @Subcommand("setrank")
-    public boolean setRank(CommandSender sender, String username, String rankInput) 
+    @Permission(permission = "tfm.manage.saconfig", source = SourceType.ONLY_CONSOLE, level = Rank.SENIOR_ADMIN)
+    public boolean setRank(CommandSender sender, Player target, String rankInput) 
     {
-        checkConsole(sender);
-        checkRank(sender, Rank.SENIOR_ADMIN);
-
         final CustomRank custom = plugin.rm != null ? plugin.rm.getCustomRank(rankInput) : null;
         final Rank rank;
         final String displayName;
@@ -85,10 +85,10 @@ public class Command_saconfig extends FCommand
             return true;
         }
 
-        Admin admin = plugin.al.getEntryByName(username);
+        Admin admin = plugin.al.getEntryByName(target.getName());
         if (admin == null) 
         {
-            msg(sender, "Unknown admin: " + username);
+            msg(sender, "Unknown admin: " + target.getName());
             return true;
         }
 
@@ -98,12 +98,7 @@ public class Command_saconfig extends FCommand
         admin.setCustomRankId(custom != null ? custom.getId() : null);
         plugin.al.updateTables();
         plugin.al.saveAdminAsync(admin);
-
-        Player player = getPlayer(admin.getName());
-        if (player != null && plugin.rm != null) 
-        {
-            plugin.rm.updatePlayerTeam(player);
-        }
+        plugin.rm.updatePlayerTeam(target);
 
         msg(sender, "Set " + admin.getName() + "'s rank to " + displayName);
         return true;
@@ -111,24 +106,13 @@ public class Command_saconfig extends FCommand
 
     @Callback
     @Subcommand("info")
-    public boolean getInfo(CommandSender sender, String username) 
+    public boolean getInfo(CommandSender sender, Player target) 
     {
-        checkRank(sender, Rank.SUPER_ADMIN);
-
-        Admin admin = plugin.al.getEntryByName(username);
+        Admin admin = plugin.al.getAdmin(target);
 
         if (admin == null) 
         {
-            final Player player = getPlayer(username);
-            if (player != null) 
-            {
-                admin = plugin.al.getAdmin(player);
-            }
-        }
-
-        if (admin == null) 
-        {
-            msg(sender, "Superadmin not found: " + username);
+            msg(sender, "Superadmin not found: " + target.getName());
         } 
         else 
         {
@@ -140,19 +124,16 @@ public class Command_saconfig extends FCommand
 
     @Callback
     @Subcommand("add")
-    public boolean addUser(CommandSender sender, String username) 
+    @Permission(permission = "tfm.manage.saconfig", source = SourceType.ONLY_CONSOLE, level = Rank.SENIOR_ADMIN)
+    public boolean addUser(CommandSender sender, Player target) 
     {
-        checkConsole(sender);
-        checkRank(sender, Rank.SENIOR_ADMIN);
-
-        final Player player = getPlayer(username);
-        if (player != null && plugin.al.isAdmin(player)) 
+        if (plugin.al.isAdmin(target)) 
         {
             msg(sender, "That player is already admin.");
             return true;
         }
 
-        String name = player != null ? player.getName() : username;
+        String name = target.getName();
         Admin admin = null;
         for (Admin loopAdmin : plugin.al.getAllAdmins().values()) 
         {
@@ -165,26 +146,17 @@ public class Command_saconfig extends FCommand
 
         if (admin == null)
         {
-            if (player == null) 
-            {
-                msg(sender, PLAYER_NOT_FOUND);
-                return true;
-            }
-
-            player.setOp(true);
-            FUtil.adminAction(sender.getName(), "Adding " + player.getName() + " to the admin list", true);
-            plugin.al.addAdmin(new Admin(player));
+            target.setOp(true);
+            FUtil.adminAction(sender.getName(), "Adding " + target.getName() + " to the admin list", true);
+            plugin.al.addAdmin(new Admin(target));
         } 
         else 
         {
             FUtil.adminAction(sender.getName(), "Re-adding " + admin.getName() + " to the admin list", true);
 
-            if (player != null) 
-            {
-                player.setOp(true);
-                admin.setName(player.getName());
-                admin.addIp(player.getAddress().getAddress().getHostAddress());
-            }
+            target.setOp(true);
+            admin.setName(target.getName());
+            admin.addIp(target.getAddress().getAddress().getHostAddress());
 
             admin.setActive(true);
             admin.setLastLogin(new Date());
@@ -193,19 +165,17 @@ public class Command_saconfig extends FCommand
             plugin.al.saveAdminAsync(admin);
         }
 
-        if (player != null) 
+        
+        if (plugin.rm != null) 
         {
-            if (plugin.rm != null) 
-            {
-                plugin.rm.updatePlayerTeam(player);
-            }
+            plugin.rm.updatePlayerTeam(target);
+        }
 
-            final FPlayer fPlayer = plugin.pl.getPlayer(player);
-            if (fPlayer.getFreezeData().isFrozen()) 
-            {
-                fPlayer.getFreezeData().setFrozen(false);
-                msg(player, "You have been unfrozen.");
-            }
+        final FPlayer fPlayer = plugin.pl.getPlayer(target);
+        if (fPlayer.getFreezeData().isFrozen()) 
+        {
+            fPlayer.getFreezeData().setFrozen(false);
+            msg(target, "You have been unfrozen.");
         }
 
         return true;
@@ -213,13 +183,10 @@ public class Command_saconfig extends FCommand
 
     @Callback
     @Subcommand("remove")
+    @Permission(permission = "tfm.manage.saconfig", source = SourceType.ONLY_CONSOLE, level = Rank.SENIOR_ADMIN)
     public boolean removeUser(CommandSender sender, String username) 
     {
-        checkConsole(sender);
-        checkRank(sender, Rank.SENIOR_ADMIN);
-
-        Player player = getPlayer(username);
-        Admin admin = player != null ? plugin.al.getAdmin(player) : plugin.al.getEntryByName(username);
+        Admin admin = plugin.al.getEntryByName(username);
 
         if (admin == null) 
         {
@@ -232,6 +199,7 @@ public class Command_saconfig extends FCommand
         plugin.al.updateTables();
         plugin.al.saveAdminAsync(admin);
 
+        Player player = Bukkit.getPlayer(username);
         if (player != null && plugin.rm != null) 
         {
             plugin.rm.updatePlayerTeam(player);
@@ -244,8 +212,6 @@ public class Command_saconfig extends FCommand
     @Subcommand("reload")
     public boolean reload(CommandSender sender) 
     {
-        checkRank(sender, Rank.SUPER_ADMIN);
-
         FUtil.adminAction(sender.getName(), "Reloading the admin list", true);
         plugin.al.load();
         plugin.csr.load();
@@ -255,11 +221,9 @@ public class Command_saconfig extends FCommand
 
     @Callback
     @Subcommand("clean")
+    @Permission(permission = "tfm.manage.saconfig", level = Rank.SENIOR_ADMIN, source = SourceType.ONLY_CONSOLE)
     public boolean clean(CommandSender sender) 
     {
-        checkConsole(sender);
-        checkRank(sender, Rank.SENIOR_ADMIN);
-
         FUtil.adminAction(sender.getName(), "Cleaning admin list", true);
         plugin.al.deactivateOldEntries(true);
         getAdminList(sender);

@@ -37,8 +37,8 @@ public class InetAddressListResolver implements AbstractParameterizedArgumentRes
             throw new ArgumentResolutionException("Invalid IP address: " + arg);
         }
 
-        // Fallback onto regular players, getting all of their IPs get all of their IPs
-        final Player player = (Player) TotalFreedomMod.plugin().cl.getHandler().resolveArgument("Player", arg, null);
+        // Fallback onto regular players, getting all of their IPs
+        final Player player = new PlayerArgumentResolver().resolve(arg, (String) null);
 
         // Get all their IP addresses
         if (all)

@@ -187,7 +187,6 @@ public class Command_adminworld extends FreedomCommand
             {
                 plugin.wm.adminworld.setWeatherMode(weatherMode);
                 msg("AdminWorld weather set to: " + weatherMode.name());
-
             }
             else
             {

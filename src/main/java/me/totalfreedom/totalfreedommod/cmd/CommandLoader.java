@@ -44,7 +44,11 @@ import me.totalfreedom.totalfreedommod.cmd.resolver.PlayerArgumentResolver;
 import me.totalfreedom.totalfreedommod.cmd.resolver.PlayerListArgumentResolver;
 import me.totalfreedom.totalfreedommod.cmd.resolver.PluginArgumentResolver;
 import me.totalfreedom.totalfreedommod.cmd.resolver.PotionEffectTypeArgumentResolver;
+import me.totalfreedom.totalfreedommod.cmd.resolver.WeatherArgumentResolver;
+import me.totalfreedom.totalfreedommod.cmd.resolver.WorldTimeArgumentResolver;
 import me.totalfreedom.totalfreedommod.util.FLog;
+import me.totalfreedom.totalfreedommod.world.WorldTime;
+import me.totalfreedom.totalfreedommod.world.WorldWeather;
 import net.kyori.adventure.key.Key;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -54,6 +58,7 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.Registry;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.potion.PotionEffectType;
 
@@ -129,6 +134,8 @@ public class CommandLoader extends FreedomService
         ResolverRegistry.register(new IntegerArgumentResolver());
         ResolverRegistry.register(new DoubleArgumentResolver());
         ResolverRegistry.register(new FloatArgumentResolver());
+        ResolverRegistry.register(new WorldTimeArgumentResolver(), WorldTime.class);
+        ResolverRegistry.register(new WeatherArgumentResolver(), WorldWeather.class);
     }
 
     private static Supplier<List<String>> memoize(Supplier<List<String>> source) 
