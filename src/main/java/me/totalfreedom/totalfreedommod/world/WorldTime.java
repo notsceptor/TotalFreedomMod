@@ -2,7 +2,6 @@ package me.totalfreedom.totalfreedommod.world;
 
 import java.util.Arrays;
 import java.util.List;
-import org.apache.commons.lang3.StringUtils;
 import org.bukkit.World;
 
 public enum WorldTime
@@ -26,7 +25,7 @@ public enum WorldTime
     private WorldTime(String aliases, int timeTicks)
     {
         this.timeTicks = timeTicks;
-        this.aliases = Arrays.asList(StringUtils.split(aliases, ","));
+        this.aliases = Arrays.asList(aliases.split(","));
     }
 
     public int getTimeTicks()

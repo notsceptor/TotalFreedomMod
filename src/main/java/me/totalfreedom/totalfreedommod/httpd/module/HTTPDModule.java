@@ -4,6 +4,8 @@ import java.net.Socket;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import com.google.common.html.HtmlEscapers;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.httpd.HTTPDPageBuilder;
@@ -112,5 +114,10 @@ public abstract class HTTPDModule extends PluginComponent<TotalFreedomMod>
         }
         final List<String> trusted = ConfigEntry.HTTPD_TRUSTED_PROXIES.getStringList();
         return trusted != null && trusted.contains(address);
+    }
+
+    public static String escapeHtml(String input)
+    {
+        return HtmlEscapers.htmlEscaper().escape(input);
     }
 }

@@ -29,10 +29,7 @@ public enum ConfigEntry
     //
     MOB_LIMITER_ENABLED(Boolean.class, "moblimiter.enabled"),
     MOB_LIMITER_MAX(Integer.class, "moblimiter.max"),
-    MOB_LIMITER_DISABLE_DRAGON(Boolean.class, "moblimiter.disable.dragon"),
-    MOB_LIMITER_DISABLE_GHAST(Boolean.class, "moblimiter.disable.ghast"),
-    MOB_LIMITER_DISABLE_GIANT(Boolean.class, "moblimiter.disable.giant"),
-    MOB_LIMITER_DISABLE_SLIME(Boolean.class, "moblimiter.disable.slime"),
+    MOB_LIMITER_DISABLED_MOBS(List.class, "moblimiter.disabled"),
     //
     HTTPD_ENABLED(Boolean.class, "httpd.enabled"),
     HTTPD_PORT(Integer.class, "httpd.port"),
@@ -121,6 +118,7 @@ public enum ConfigEntry
     WORLDEDIT_RADIUS_MAX(Integer.class, "worldedit.radius_max"),
     WORLDEDIT_MAX_PATTERN_BLOCKS(Integer.class, "worldedit.max_pattern_blocks"),
     WORLDEDIT_BLOCKED_BLOCK_TYPES(List.class, "worldedit.blocked_types"),
+    WORLDEDIT_BLOCK_CLIPBOARD_PATTERN(Boolean.class, "worldedit.block_clipboard_pattern"),
     WORLDEDIT_THROTTLE_ENABLED(Boolean.class, "worldedit.throttle.enabled"),
     WORLDEDIT_THROTTLE_MAX_OPS(Integer.class, "worldedit.throttle.max_operations"),
     WORLDEDIT_THROTTLE_TIME_WINDOW(Integer.class, "worldedit.throttle.time_window"),
@@ -155,6 +153,7 @@ public enum ConfigEntry
     CRASH_ITEMS_MAX_INTERACTIONS_PER_SECOND(Integer.class, "crash_items.max_interactions_per_second"),
     CRASH_ITEMS_MAX_COMMANDS_PER_SECOND(Integer.class, "crash_items.max_commands_per_second"),
     CRASH_ITEMS_MAX_MOVEMENT_PER_SECOND(Integer.class, "crash_items.max_movement_packets_per_second"),
+    CRASH_ITEMS_MAX_HOTBAR_SLOTS_PER_SECOND(Integer.class, "crash_items.max_hotbar_slots_per_second"),
     CRASH_ITEMS_EQUIPMENT_SWEEP_TICKS(Integer.class, "crash_items.equipment_sweep_ticks"),
     CRASH_ITEMS_BASE_COMMANDS(List.class, "crash_items.base_commands"),
     CRASH_ITEMS_HIDE_CONSOLE_SPAM(Boolean.class, "crash_items.hide_console_spam"),

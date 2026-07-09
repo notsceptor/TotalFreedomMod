@@ -20,8 +20,6 @@ import me.totalfreedom.totalfreedommod.httpd.NanoHTTPD.Method;
 import me.totalfreedom.totalfreedommod.httpd.NanoHTTPD.Response;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.StringEscapeUtils;
-import org.apache.commons.lang3.StringUtils;
 
 public class Module_schematic extends HTTPDModule
 {
@@ -74,7 +72,7 @@ public class Module_schematic extends HTTPDModule
 
         final StringBuilder out = new StringBuilder();
 
-        final String[] args = StringUtils.split(uri, "/");
+        final String[] args = uri.split("/");
         final ModuleMode mode = ModuleMode.getMode(getArg(args, 1));
 
         switch (mode)
@@ -86,7 +84,7 @@ public class Module_schematic extends HTTPDModule
                 final List<String> schematicsFormatted = new ArrayList<>();
                 for (File schematic : schematics)
                 {
-                    String filename = StringEscapeUtils.escapeHtml4(schematic.getName());
+                    String filename = escapeHtml(schematic.getName());
 
                     if (SCHEMATIC_FILENAME_LC.matcher(filename.trim().toLowerCase()).find())
                     {
@@ -110,7 +108,7 @@ public class Module_schematic extends HTTPDModule
                 out
                         .append(HTMLGenerationTools.heading("Schematics:", 1))
                         .append("<ul>")
-                        .append(StringUtils.join(schematicsFormatted, "\r\n"))
+                        .append(String.join("\r\n", schematicsFormatted))
                         .append("</ul>");
 
                 break;

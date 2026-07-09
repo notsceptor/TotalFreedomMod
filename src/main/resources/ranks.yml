@@ -79,7 +79,6 @@ op:
     - tfm.player.*
     - tfm.world.adminworld
     - tfm.admin.banlist
-    - tfm.admin.myadmin
     - tfm.fun.hack
     - tfm.fun.landmine
     - tfm.fun.mp44

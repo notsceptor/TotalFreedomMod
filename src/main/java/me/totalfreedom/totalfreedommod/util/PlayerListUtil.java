@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
@@ -33,7 +32,7 @@ public final class PlayerListUtil
             names.add(player.getName());
         }
         int max = Bukkit.getMaxPlayers();
-        return "There are " + names.size() + "/" + max + " players online:\n" + StringUtils.join(names, ", ");
+        return "There are " + names.size() + "/" + max + " players online:\n" + String.join(", ", names);
     }
 
     public static String buildRankList()
@@ -97,12 +96,12 @@ public final class PlayerListUtil
                 return String.format("%ss (%s): %s",
                     rank.getName(),
                     rankedPlayers.size(),
-                    StringUtils.join(rankedPlayerNames, ", "));
+                    String.join(", ",rankedPlayerNames));
             }).collect(Collectors.toCollection(ArrayList::new));
 
         return String.format("There are %s/%s players online.\n\n%s",
             players.size(),
             max,
-            StringUtils.join(playerListings, "\n"));
+            String.join("\n", playerListings));
     }
 }

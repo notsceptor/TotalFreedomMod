@@ -26,7 +26,6 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.serializer.ansi.ANSIComponentSerializer;
 
-import org.apache.commons.lang3.StringUtils;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -129,7 +128,7 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
             }
 
             // Construct the final regular expression pattern
-            final String regex = String.format("^%s$", StringUtils.join(items, " "));
+            final String regex = String.format("^%s$", String.join(" ", items));
 
             // Create the pattern to match against
             final Pattern pattern = Pattern.compile(regex);
@@ -149,7 +148,7 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
     private final boolean dispatchCommand(CommandContext ctx, final String[] args)
     {
         final String commandName = getClass().getSimpleName();
-        final String joinedArgs = StringUtils.join(args, " ");
+        final String joinedArgs = String.join(" ", args);
 
         // Find the dispatch target, default to the normal run function if it can't find one
         final CommandDispatchTargetMeta cd = findDispatchTarget(args);
@@ -200,10 +199,10 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
                     String content = null;
                     // Add the rest of the arguments if we encounter an ellipsis
                     if (patternPart.equals(VARIABLE_LENGTH_ARGUMENT_PATTERN))
-                        content = StringUtils.join((List<String>) Arrays.stream(args)
-                            .skip(i)
-                            .filter(a -> !cd.switches.contains(a.replaceAll("^-", "")))
-                            .collect(Collectors.toCollection(ArrayList::new)), " ");
+                        content = String.join(" ", Arrays.stream(args)
+                                .skip(i)
+                                .filter(a -> !cd.switches.contains(a.replaceAll("^-", "")))
+                                .collect(Collectors.toCollection(ArrayList::new)));
                     // Add the current argument if there's a placeholder here
                     else if (patternPart.equals(SIMPLE_ARGUMENT_PATTERN))
                         content = arg;
@@ -279,9 +278,9 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
         for (CommandDispatchTargetMeta cd : dispatchers)
         {
             final Pattern pat = cd.pattern;
-            final String sanitizedArgs = StringUtils.join((List<String>) Arrays.stream(args)
-                .filter(a -> !cd.switches.contains(a.replaceAll("^-", "")))
-                .collect(Collectors.toCollection(ArrayList::new)), " ");
+            final String sanitizedArgs = String.join(" ", Arrays.stream(args)
+                    .filter(a -> !cd.switches.contains(a.replaceAll("^-", "")))
+                    .collect(Collectors.toCollection(ArrayList::new)));
             if (!pat.matcher(sanitizedArgs).matches())
                 continue;
             return cd;

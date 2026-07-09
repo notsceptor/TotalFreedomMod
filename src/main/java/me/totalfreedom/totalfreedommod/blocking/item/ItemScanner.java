@@ -6,15 +6,18 @@ import io.papermc.paper.datacomponent.item.ChargedProjectiles;
 import io.papermc.paper.datacomponent.item.ItemAttributeModifiers;
 import io.papermc.paper.datacomponent.item.ItemContainerContents;
 import io.papermc.paper.datacomponent.item.ItemLore;
+import io.papermc.paper.datacomponent.item.JukeboxPlayable;
 import io.papermc.paper.datacomponent.item.PotionContents;
 import io.papermc.paper.datacomponent.item.SuspiciousStewEffects;
 import io.papermc.paper.datacomponent.item.WritableBookContent;
 import io.papermc.paper.datacomponent.item.WrittenBookContent;
+import io.papermc.paper.datacomponent.item.attribute.AttributeModifierDisplay;
 import io.papermc.paper.text.Filtered;
 import java.util.List;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.ComponentScanner;
 import net.kyori.adventure.text.Component;
+import org.bukkit.JukeboxSong;
 import org.bukkit.MusicInstrument;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
@@ -31,6 +34,7 @@ final class ItemScanner
     private static final int MAX_BOOK_PAGE_LENGTH = 1024;
     private static final int MAX_BOOK_PAGES = 100;
     private static final int MAX_INSTRUMENT_DESC_LENGTH = 256;
+    private static final long MAX_AGGREGATE_TEXT = 262_144L;
     private static final double MAX_ITEM_SCALE = 4.0;
     private static final int MAX_NBT_NODES = 8192;
     private static final int MAX_NBT_DEPTH = 16;
@@ -45,6 +49,7 @@ final class ItemScanner
         CONTAINER_TOO_DEEP,
         OVERSIZED_NAME,
         OVERSIZED_LORE,
+        OVERSIZED_AGGREGATE,
         OVERSIZED_TOTAL,
         OVERSIZED_NBT,
         OVERSIZED_POTION,
@@ -76,6 +81,16 @@ final class ItemScanner
         }
     }
 
+    /**
+     * Running total of display text summed across an item and its nested
+     * contents, shared by every level of a single {@link #scan} so a container's
+     * children are measured against one budget rather than each in isolation.
+     */
+    private static final class Aggregate
+    {
+        private long text;
+    }
+
     static Verdict scan(ItemStack item, boolean panicMode, int maxPotionEffects)
     {
         return scan(item, panicMode, maxPotionEffects, 0L);
@@ -83,10 +98,11 @@ final class ItemScanner
 
     static Verdict scan(ItemStack item, boolean panicMode, int maxPotionEffects, long deadlineNanos)
     {
-        return scan(item, panicMode, maxPotionEffects, deadlineNanos, 0);
+        return scan(item, panicMode, maxPotionEffects, deadlineNanos, 0, new Aggregate());
     }
 
-    private static Verdict scan(ItemStack item, boolean panicMode, int maxPotionEffects, long deadlineNanos, int depth)
+    private static Verdict scan(ItemStack item, boolean panicMode, int maxPotionEffects, long deadlineNanos, int depth,
+            Aggregate agg)
     {
         if (budgetExceeded(deadlineNanos))
         {
@@ -154,7 +170,7 @@ final class ItemScanner
                 }
                 for (Component line : lines)
                 {
-                    Verdict lineVerdict = inspectLoreLine(line, depth, deadlineNanos);
+                    Verdict lineVerdict = inspectLoreLine(line, depth, deadlineNanos, agg);
                     if (lineVerdict.isCursed())
                     {
                         return lineVerdict;
@@ -163,22 +179,33 @@ final class ItemScanner
             }
         }
 
-        Verdict bookVerdict = inspectBookContent(item, depth, deadlineNanos);
+        Verdict bookVerdict = inspectBookContent(item, depth, deadlineNanos, agg);
         if (bookVerdict.isCursed())
         {
             return bookVerdict;
         }
 
-        Verdict attributeVerdict = inspectAttributeModifiers(item, depth);
+        Verdict attributeVerdict = inspectAttributeModifiers(item, depth, deadlineNanos, agg);
         if (attributeVerdict.isCursed())
         {
             return attributeVerdict;
         }
 
-        Verdict instrumentVerdict = inspectInstrument(item, depth, deadlineNanos);
+        Verdict instrumentVerdict = inspectInstrument(item, depth, deadlineNanos, agg);
         if (instrumentVerdict.isCursed())
         {
             return instrumentVerdict;
+        }
+
+        Verdict jukeboxVerdict = inspectJukebox(item, depth, deadlineNanos, agg);
+        if (jukeboxVerdict.isCursed())
+        {
+            return jukeboxVerdict;
+        }
+
+        if (agg.text > MAX_AGGREGATE_TEXT)
+        {
+            return new Verdict(Reason.OVERSIZED_AGGREGATE, agg.text, depth);
         }
 
         // CONTAINER recursion — primary vector for shulker-in-shulker hang
@@ -189,7 +216,7 @@ final class ItemScanner
             {
                 for (ItemStack inner : container.contents())
                 {
-                    Verdict v = scan(inner, panicMode, maxPotionEffects, deadlineNanos, depth + 1);
+                    Verdict v = scan(inner, panicMode, maxPotionEffects, deadlineNanos, depth + 1, agg);
                     if (v.isCursed())
                     {
                         return v;
@@ -206,7 +233,7 @@ final class ItemScanner
             {
                 for (ItemStack inner : bundle.contents())
                 {
-                    Verdict v = scan(inner, panicMode, maxPotionEffects, deadlineNanos, depth + 1);
+                    Verdict v = scan(inner, panicMode, maxPotionEffects, deadlineNanos, depth + 1, agg);
                     if (v.isCursed())
                     {
                         return v;
@@ -222,7 +249,7 @@ final class ItemScanner
             {
                 for (ItemStack projectile : charged.projectiles())
                 {
-                    Verdict v = scan(projectile, panicMode, maxPotionEffects, deadlineNanos, depth + 1);
+                    Verdict v = scan(projectile, panicMode, maxPotionEffects, deadlineNanos, depth + 1, agg);
                     if (v.isCursed())
                     {
                         return v;
@@ -296,7 +323,7 @@ final class ItemScanner
         return Verdict.CLEAN;
     }
 
-    private static Verdict inspectNamedComponent(Component name, int depth, long deadlineNanos)
+    private static Verdict inspectNamedComponent(Component name, int depth, long deadlineNanos, Aggregate agg)
     {
         if (name == null)
         {
@@ -311,10 +338,11 @@ final class ItemScanner
         {
             return new Verdict(Reason.OVERSIZED_NAME, metrics.plainTextLength(), depth);
         }
+        agg.text += metrics.plainTextLength();
         return Verdict.CLEAN;
     }
 
-    private static Verdict inspectLoreLine(Component line, int depth, long deadlineNanos)
+    private static Verdict inspectLoreLine(Component line, int depth, long deadlineNanos, Aggregate agg)
     {
         if (line == null)
         {
@@ -329,10 +357,11 @@ final class ItemScanner
         {
             return new Verdict(Reason.OVERSIZED_LORE, metrics.plainTextLength(), depth);
         }
+        agg.text += metrics.plainTextLength();
         return Verdict.CLEAN;
     }
 
-    private static Verdict inspectBookContent(ItemStack item, int depth, long deadlineNanos)
+    private static Verdict inspectBookContent(ItemStack item, int depth, long deadlineNanos, Aggregate agg)
     {
         if (item.hasData(DataComponentTypes.WRITTEN_BOOK_CONTENT))
         {
@@ -346,16 +375,19 @@ final class ItemScanner
                 }
                 for (Filtered<Component> page : pages)
                 {
-                    Component raw = page != null ? page.raw() : null;
-                    ComponentScanner.ComponentMetrics metrics = ComponentScanner.inspectComponent(
-                            raw, ConfigEntry.maxComponentNodes(), deadlineNanos);
-                    if (metrics.unsafe())
+                    if (page == null)
                     {
-                        return new Verdict(Reason.CURSED_COMPONENT, -1L, depth);
+                        continue;
                     }
-                    if (metrics.plainTextLength() > MAX_BOOK_PAGE_LENGTH)
+                    Verdict rawVerdict = inspectBookPage(page.raw(), depth, deadlineNanos, agg);
+                    if (rawVerdict.isCursed())
                     {
-                        return new Verdict(Reason.OVERSIZED_BOOK, metrics.plainTextLength(), depth);
+                        return rawVerdict;
+                    }
+                    Verdict filteredVerdict = inspectBookPage(page.filtered(), depth, deadlineNanos, agg);
+                    if (filteredVerdict.isCursed())
+                    {
+                        return filteredVerdict;
                     }
                 }
             }
@@ -374,7 +406,7 @@ final class ItemScanner
                 for (Filtered<String> page : pages)
                 {
                     String raw = page != null ? page.raw() : null;
-                    Verdict pageVerdict = inspectWritablePage(raw, depth);
+                    Verdict pageVerdict = inspectWritablePage(raw, depth, agg);
                     if (pageVerdict.isCursed())
                     {
                         return pageVerdict;
@@ -386,7 +418,27 @@ final class ItemScanner
         return Verdict.CLEAN;
     }
 
-    private static Verdict inspectWritablePage(String page, int depth)
+    private static Verdict inspectBookPage(Component page, int depth, long deadlineNanos, Aggregate agg)
+    {
+        if (page == null)
+        {
+            return Verdict.CLEAN;
+        }
+        ComponentScanner.ComponentMetrics metrics = ComponentScanner.inspectComponent(
+                page, ConfigEntry.maxComponentNodes(), deadlineNanos);
+        if (metrics.unsafe())
+        {
+            return new Verdict(Reason.CURSED_COMPONENT, -1L, depth);
+        }
+        if (metrics.plainTextLength() > MAX_BOOK_PAGE_LENGTH)
+        {
+            return new Verdict(Reason.OVERSIZED_BOOK, metrics.plainTextLength(), depth);
+        }
+        agg.text += metrics.plainTextLength();
+        return Verdict.CLEAN;
+    }
+
+    private static Verdict inspectWritablePage(String page, int depth, Aggregate agg)
     {
         if (page == null || page.isEmpty())
         {
@@ -400,10 +452,11 @@ final class ItemScanner
         {
             return new Verdict(Reason.OVERSIZED_BOOK, page.length(), depth);
         }
+        agg.text += page.length();
         return Verdict.CLEAN;
     }
 
-    private static Verdict inspectInstrument(ItemStack item, int depth, long deadlineNanos)
+    private static Verdict inspectInstrument(ItemStack item, int depth, long deadlineNanos, Aggregate agg)
     {
         if (!item.hasData(DataComponentTypes.INSTRUMENT))
         {
@@ -437,6 +490,50 @@ final class ItemScanner
         {
             return new Verdict(Reason.OVERSIZED_LORE, metrics.plainTextLength(), depth);
         }
+        agg.text += metrics.plainTextLength();
+        return Verdict.CLEAN;
+    }
+
+    private static Verdict inspectJukebox(ItemStack item, int depth, long deadlineNanos, Aggregate agg)
+    {
+        if (!item.hasData(DataComponentTypes.JUKEBOX_PLAYABLE))
+        {
+            return Verdict.CLEAN;
+        }
+        Component description;
+        try
+        {
+            JukeboxPlayable playable = item.getData(DataComponentTypes.JUKEBOX_PLAYABLE);
+            if (playable == null)
+            {
+                return Verdict.CLEAN;
+            }
+            JukeboxSong song = playable.jukeboxSong();
+            if (song == null)
+            {
+                return Verdict.CLEAN;
+            }
+            description = song.getDescription();
+        }
+        catch (Throwable t)
+        {
+            return new Verdict(Reason.CURSED_COMPONENT, -1L, depth);
+        }
+        if (description == null)
+        {
+            return Verdict.CLEAN;
+        }
+        ComponentScanner.ComponentMetrics metrics = ComponentScanner.inspectComponent(
+                description, ConfigEntry.maxComponentNodes(), deadlineNanos);
+        if (metrics.unsafe())
+        {
+            return new Verdict(Reason.CURSED_COMPONENT, -1L, depth);
+        }
+        if (metrics.plainTextLength() > MAX_INSTRUMENT_DESC_LENGTH)
+        {
+            return new Verdict(Reason.OVERSIZED_LORE, metrics.plainTextLength(), depth);
+        }
+        agg.text += metrics.plainTextLength();
         return Verdict.CLEAN;
     }
 
@@ -453,7 +550,7 @@ final class ItemScanner
         return Verdict.CLEAN;
     }
 
-    private static Verdict inspectAttributeModifiers(ItemStack item, int depth)
+    private static Verdict inspectAttributeModifiers(ItemStack item, int depth, long deadlineNanos, Aggregate agg)
     {
         if (!item.hasData(DataComponentTypes.ATTRIBUTE_MODIFIERS))
         {
@@ -466,7 +563,18 @@ final class ItemScanner
         }
         for (ItemAttributeModifiers.Entry entry : modifiers.modifiers())
         {
-            if (entry == null || entry.attribute() != Attribute.SCALE)
+            if (entry == null)
+            {
+                continue;
+            }
+
+            Verdict displayVerdict = inspectAttributeDisplay(entry, depth, deadlineNanos, agg);
+            if (displayVerdict.isCursed())
+            {
+                return displayVerdict;
+            }
+
+            if (entry.attribute() != Attribute.SCALE)
             {
                 continue;
             }
@@ -487,6 +595,26 @@ final class ItemScanner
             }
         }
         return Verdict.CLEAN;
+    }
+
+    private static Verdict inspectAttributeDisplay(ItemAttributeModifiers.Entry entry, int depth, long deadlineNanos,
+            Aggregate agg)
+    {
+        Component text;
+        try
+        {
+            AttributeModifierDisplay display = entry.display();
+            if (!(display instanceof AttributeModifierDisplay.OverrideText override))
+            {
+                return Verdict.CLEAN;
+            }
+            text = override.text();
+        }
+        catch (Throwable t)
+        {
+            return new Verdict(Reason.CURSED_COMPONENT, -1L, depth);
+        }
+        return inspectNamedComponent(text, depth, deadlineNanos, agg);
     }
 
     private static boolean budgetExceeded(long deadlineNanos)

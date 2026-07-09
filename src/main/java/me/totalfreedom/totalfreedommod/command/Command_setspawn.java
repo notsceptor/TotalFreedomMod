@@ -12,12 +12,20 @@ import org.bukkit.entity.Player;
 public class Command_setspawn extends FreedomCommand
 {
 
+    @CommandDispatchTarget
+    public boolean setSpawn(CommandContext ctx)
+    {
+        final Location location = ctx.getPlayerSender().getLocation();
+
+        plugin.sm.setSpawnLocation(location);
+
+        msg(ctx.getSender(), "Server spawn set to: " + FUtil.formatLocation(location));
+        return true;
+    }
+
     @Override
     public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
     {
-        Location location = playerSender.getLocation();
-        plugin.sm.setSpawnLocation(location);
-        msg("Server spawn set to: " + FUtil.formatLocation(location));
-        return true;
+        return false;
     }
 }

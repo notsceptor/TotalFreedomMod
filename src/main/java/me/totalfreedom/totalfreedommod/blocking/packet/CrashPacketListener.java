@@ -114,12 +114,18 @@ final class CrashPacketListener extends PacketListenerAbstract
             {
                 return;
             }
-            if (type == PacketType.Play.Client.PLAYER_BLOCK_PLACEMENT
+            if (type == PacketType.Play.Client.HELD_ITEM_CHANGE)
+            {
+                if (!spamLimiter.allowHeldSwitch(id))
+                {
+                    event.setCancelled(true);
+                }
+            }
+            else if (type == PacketType.Play.Client.PLAYER_BLOCK_PLACEMENT
                     || type == PacketType.Play.Client.USE_ITEM
                     || type == PacketType.Play.Client.PLAYER_DIGGING
                     || type == PacketType.Play.Client.INTERACT_ENTITY
                     || type == PacketType.Play.Client.ANIMATION
-                    || type == PacketType.Play.Client.HELD_ITEM_CHANGE
                     || type == PacketType.Play.Client.CREATIVE_INVENTORY_ACTION
                     || type == PacketType.Play.Client.ENTITY_ACTION)
             {

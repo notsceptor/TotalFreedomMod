@@ -19,8 +19,6 @@ import me.totalfreedom.totalfreedommod.httpd.module.Module_permbans;
 import me.totalfreedom.totalfreedommod.httpd.module.Module_players;
 import me.totalfreedom.totalfreedommod.httpd.module.Module_schematic;
 import me.totalfreedom.totalfreedommod.util.FLog;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 
 public class HTTPDaemon extends FreedomService
 {
@@ -110,7 +108,7 @@ public class HTTPDaemon extends FreedomService
         @Override
         public Response serve(HTTPSession session)
         {
-            final String[] args = StringUtils.split(session.getUri(), "/");
+            final String[] args = session.getUri().split("/");
 
             ModuleExecutable mex = modules.get("file");
             if (args.length >= 1)
@@ -130,7 +128,7 @@ public class HTTPDaemon extends FreedomService
             catch (Exception ex)
             {
                 FLog.severe(ex);
-                return new Response(Response.Status.INTERNAL_ERROR, MIME_PLAINTEXT, "Error 500: Internal Server Error\r\n" + ex.getMessage() + "\r\n" + ExceptionUtils.getStackTrace(ex));
+                return new Response(Response.Status.INTERNAL_ERROR, MIME_PLAINTEXT, "Error 500: Internal Server Error\r\n" + ex.getMessage());
             }
         }
     }

@@ -1,8 +1,8 @@
 package me.totalfreedom.totalfreedommod.fun;
 
-import java.util.HashSet;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import org.bukkit.Material;
@@ -14,16 +14,13 @@ import org.bukkit.event.player.PlayerMoveEvent;
 
 public class Trailer extends FreedomService
 {
-
-    private static final Material[] WOOL_COLORS = {
-        Material.WHITE_WOOL, Material.ORANGE_WOOL, Material.MAGENTA_WOOL, Material.LIGHT_BLUE_WOOL,
-        Material.YELLOW_WOOL, Material.LIME_WOOL, Material.PINK_WOOL, Material.GRAY_WOOL,
-        Material.LIGHT_GRAY_WOOL, Material.CYAN_WOOL, Material.PURPLE_WOOL, Material.BLUE_WOOL,
-        Material.BROWN_WOOL, Material.GREEN_WOOL, Material.RED_WOOL, Material.BLACK_WOOL
+    private final Material[] woolColors = new Material[] {
+            Material.RED_WOOL, Material.ORANGE_WOOL, Material.YELLOW_WOOL, Material.LIME_WOOL, Material.GREEN_WOOL,
+            Material.CYAN_WOOL, Material.LIGHT_BLUE_WOOL, Material.BLUE_WOOL, Material.PURPLE_WOOL,
+            Material.MAGENTA_WOOL, Material.PINK_WOOL, Material.WHITE_WOOL, Material.LIGHT_GRAY_WOOL,
+            Material.GRAY_WOOL, Material.BLACK_WOOL, Material.BROWN_WOOL
     };
-
-    private final Random random = new Random();
-    private final Set<String> trailPlayers = new HashSet<>(); // player name
+    private final Map<UUID, AtomicInteger> trailPlayers = new HashMap<>(); // player uuid
 
     public Trailer(TotalFreedomMod plugin)
     {
@@ -43,12 +40,9 @@ public class Trailer extends FreedomService
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPlayerMove(PlayerMoveEvent event)
     {
-        if (trailPlayers.isEmpty() || !event.hasExplicitlyChangedBlock())
-        {
-            return;
-        }
-
-        if (!trailPlayers.contains(event.getPlayer().getName()))
+        if (trailPlayers.isEmpty()
+                || !event.hasExplicitlyChangedBlock()
+                || !trailPlayers.containsKey(event.getPlayer().getUniqueId()))
         {
             return;
         }
@@ -59,16 +53,27 @@ public class Trailer extends FreedomService
             return;
         }
 
-        fromBlock.setType(WOOL_COLORS[random.nextInt(WOOL_COLORS.length)]);
+        final AtomicInteger entry = trailPlayers.get(event.getPlayer().getUniqueId());
+        if (entry.get() >= woolColors.length)
+        {
+            entry.set(0);
+        }
+
+        fromBlock.setType(woolColors[entry.getAndIncrement()]);
     }
 
     public void remove(Player player)
     {
-        trailPlayers.remove(player.getName());
+        trailPlayers.remove(player.getUniqueId());
     }
 
     public void add(Player player)
     {
-        trailPlayers.add(player.getName());
+        trailPlayers.put(player.getUniqueId(), new AtomicInteger(0));
+    }
+
+    public boolean has(Player player)
+    {
+        return trailPlayers.containsKey(player.getUniqueId());
     }
 }

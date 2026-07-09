@@ -82,7 +82,8 @@ public class FPlayer
     @Setter
     private boolean superadminIdVerified = false;
     private CommandSpyMode commandSpyMode = CommandSpyMode.OFF;
-    private String tag = null;
+    private Component tag = null;
+    private String tagInternal = null;
     private int warningCount = 0;
 
     public FPlayer(TotalFreedomMod plugin, Player player)
@@ -450,24 +451,18 @@ public class FPlayer
 
     public void setTag(String tag)
     {
-        if (tag == null || tag.isEmpty())
-        {
-            this.tag = tag;
-        }
-        else if (tag.indexOf('\u00A7') >= 0)
-        {
-            this.tag = tag;
-        }
-        else
-        {
-            String colorizedTag = AdventureUtil.componentToLegacySection(FUtil.colorize(tag));
-            this.tag = colorizedTag + "§f"; // §f is white
-        }
+        this.tagInternal = tag;
+        this.tag = AdventureUtil.format(tag);
     }
 
-    public String getTag()
+    public Component getTag()
     {
         return this.tag;
+    }
+
+    public String getInternalTag()
+    {
+        return this.tagInternal;
     }
 
     public int getWarningCount()

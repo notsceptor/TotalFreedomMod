@@ -120,7 +120,7 @@ public class PlayerList extends FreedomService
 
     public boolean saveCurrentTag(Player player)
     {
-        final String tag = getPlayer(player).getTag();
+        final String tag = getPlayer(player).getInternalTag();
         if (tag == null || tag.isEmpty())
         {
             return false;
@@ -273,7 +273,9 @@ public class PlayerList extends FreedomService
 
         if (data.hasCustomNickname())
         {
-            player.displayName(data.getDisplayedNickname());
+            player.displayName(data.hasCustomNickname() ?
+                    data.getDisplayedNickname() :
+                    Component.text(player.getName(), player.isOp() ? NamedTextColor.RED : NamedTextColor.WHITE));
         }
         data.setLastJoinUnix(FUtil.getUnixTime());
         if (player.getAddress() != null)

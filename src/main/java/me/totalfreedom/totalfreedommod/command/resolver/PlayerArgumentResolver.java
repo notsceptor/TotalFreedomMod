@@ -1,5 +1,6 @@
 package me.totalfreedom.totalfreedommod.command.resolver;
 
+import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
@@ -23,6 +24,15 @@ public class PlayerArgumentResolver implements AbstractArgumentResolver<Player>
         catch (IllegalArgumentException ex)
         {
             player = Bukkit.getPlayer(arg);
+        }
+
+        // Nickname
+        if (player == null)
+        {
+            player = Bukkit.getOnlinePlayers().stream()
+                    .filter(p -> AdventureUtil.componentToPlainText(p.displayName()).toLowerCase().contains(arg.toLowerCase()))
+                    .findAny()
+                    .orElse(null);
         }
 
         if (player == null)

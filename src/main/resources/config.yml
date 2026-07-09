@@ -275,6 +275,7 @@ crash_items:
   # 0 disables chat/command limiting.
   max_commands_per_second: 20
   max_movement_packets_per_second: 120
+  max_hotbar_slots_per_second: 25
   # Commands to check for preprocessed text.
   # Matched against the Minecraft subcommand, e.g. "minecraft:<name>"
   base_commands:
@@ -452,11 +453,12 @@ jumppad:
 moblimiter:
   enabled: true
   max: 50
-  disable:
-    dragon: true
-    ghast: true
-    slime: true
-    giant: true
+  disabled:
+    - "minecraft:ender_dragon"
+    - "minecraft:ghast"
+    - "minecraft:slime"
+    - "minecraft:giant"
+    - "minecraft:bat"
 
 # Flatlands
 flatlands:
@@ -511,6 +513,8 @@ worldedit:
   # Maximum number of block types that an operator may combine in a single WorldEdit
   # pattern (e.g. "//set a,b,c"). Set to -1 to disable.
   max_pattern_blocks: 7
+
+  block_clipboard_pattern: true
 
   # Rate limits the number of WorldEdit operations for an operator.
   throttle:

@@ -1,5 +1,6 @@
 package me.totalfreedom.totalfreedommod.player;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import java.util.Collections;
 import java.util.List;
@@ -13,7 +14,6 @@ import me.totalfreedom.totalfreedommod.util.ConfigInterfaces.Validatable;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 
-import org.apache.commons.lang3.Validate;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
@@ -97,7 +97,7 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
     @Override
     public void saveTo(ConfigurationSection cs)
     {
-        Validate.isTrue(isValid(), "Could not save player entry: " + username + ". Entry not valid!");
+        Preconditions.checkArgument(isValid(), "Could not save player entry: " + username + ". Entry not valid!");
         cs.set("username", username);
         cs.set("ips", ips);
         cs.set("first_join", firstJoinUnix);
@@ -183,7 +183,8 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
             this.nickname = null;
         final Player player = Bukkit.getPlayerExact(username);
         if (player != null)
-            player.displayName(hasCustomNickname() ? getDisplayedNickname() : null);
+            player.displayName(hasCustomNickname() ? getDisplayedNickname() :
+                    Component.text(player.getName(), player.isOp() ? NamedTextColor.RED : NamedTextColor.WHITE));
         final TotalFreedomMod plugin = TotalFreedomMod.plugin();
         if (plugin != null && plugin.pl != null)
             plugin.pl.saveData(this);
