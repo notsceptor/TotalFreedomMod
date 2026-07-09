@@ -38,15 +38,22 @@ public class CommandLoader extends FreedomService
         
         // Argument resolver registration
         handler.registerArgumentResolver(PlayerArgumentResolver.class);
+        handler.registerArgumentResolver(PlayerListArgumentResolver.class);
         handler.registerArgumentResolver(KeyArgumentResolver.class);
         handler.registerArgumentResolver(EnchantmentArgumentResolver.class);
         handler.registerArgumentResolver(PotionEffectTypeArgumentResolver.class);
         handler.registerArgumentResolver(EntityTypeArgumentResolver.class);
         handler.registerArgumentResolver(MaterialArgumentResolver.class);
         handler.registerArgumentResolver(MaterialQueryArgumentProvider.class);
+        handler.registerArgumentResolver(PluginArgumentResolver.class);
+        handler.registerArgumentResolver(DateOffsetArgumentResolver.class);
+        handler.registerArgumentResolver(InetAddressResolver.class);
+        handler.registerArgumentResolver(InetAddressListResolver.class);
+        handler.registerArgumentResolver(EnumArgumentResolver.class);
         handler.registerArgumentResolver(BooleanArgumentResolver.class);
         handler.registerArgumentResolver(IntegerArgumentResolver.class);
         handler.registerArgumentResolver(DoubleArgumentResolver.class);
+        handler.registerArgumentResolver(FloatArgumentResolver.class);
 
         int loaded = handler.loadFrom(FreedomCommand.class.getPackage());
         FLog.info("Loaded " + loaded + " commands.");

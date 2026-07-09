@@ -1,120 +1,83 @@
 package me.totalfreedom.totalfreedommod.command;
 
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
+import me.totalfreedom.totalfreedommod.world.AdminWorld;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.JoinConfiguration;
 import net.kyori.adventure.text.format.NamedTextColor;
-import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
 @CommandPermissions(level = Rank.SUPER_ADMIN, source = SourceType.BOTH, permission = "tfm.admin.ro")
-@CommandParameters(description = "Remove all blocks of a certain type in the radius of certain players.", usage = "/<command> <block> [radius (default=50)] [player]")
+@CommandParameters(description = "Remove all blocks of a certain type in the radius of certain players.", usage = "/<command> <blocks> [radius] [players]")
 public class Command_ro extends FreedomCommand
 {
-
-    @Override
-    public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
+    @CommandDispatchTarget(pattern = "<blocks:MaterialQuery:mode=blocks,limit=24L,nonEmpty>")
+    public boolean allPlayersDefault(CommandContext ctx, List<Material> blocks)
     {
-        if (args.length < 1 || args.length > 3)
+        return allPlayersWithRadius(ctx, blocks, 50);
+    }
+
+    @CommandDispatchTarget(pattern = "<blocks:MaterialQuery:mode=blocks,limit=24L,nonEmpty> <radius:Integer>")
+    public boolean allPlayersWithRadius(CommandContext ctx, List<Material> blocks, Integer radius)
+    {
+        return removeNear(ctx, blocks, radius, server.getOnlinePlayers().stream()
+                .filter(player -> !player.getWorld().getName().equalsIgnoreCase(AdminWorld.WORLD_NAME))
+                .map(player -> (Player) player)
+                .toList());
+    }
+
+    @CommandDispatchTarget(pattern = "<blocks:MaterialQuery:mode=blocks,limit=24L,nonEmpty> <radius:Integer> <players:PlayerList>")
+    public boolean removeNear(CommandContext ctx, List<Material> blocks, Integer radius, List<Player> players)
+    {
+        if (blocks.isEmpty())
         {
-            return false;
+            msg(ctx.getSender(), "No blocks could be found matching your query.");
+            return true;
         }
 
-        final List<Material> materials = new ArrayList<>();
+        radius = Math.clamp(radius, 1, 100);
 
-        for (String materialName : StringUtils.split(args[0], ","))
-        {
-            Material fromMaterial = me.totalfreedom.totalfreedommod.util.MaterialHelper.getMaterial(materialName);
+        FUtil.adminAction(ctx.getSender().getName(), buildRemovingMessage(blocks, radius, server.getOnlinePlayers()),
+                NamedTextColor.AQUA);
 
-            if (fromMaterial == null || fromMaterial == Material.AIR || !fromMaterial.isBlock())
-            {
-                msg("Invalid material: " + materialName, NamedTextColor.RED);
-                return true;
-            }
+        final AtomicInteger affected = new AtomicInteger(0);
+        final Integer finalRadius = radius;
 
-            materials.add(fromMaterial);
-        }
+        players.stream()
+                .map(Entity::getLocation)
+                .flatMap(location -> blocks.stream().map(block -> replaceBlocks(location, block, Material.AIR, finalRadius)))
+                .forEach(affected::addAndGet);
 
-        int radius = 20;
-        if (args.length >= 2)
-        {
-            try
-            {
-                radius = Math.max(1, Math.min(50, Integer.parseInt(args[1])));
-            }
-            catch (NumberFormatException ex)
-            {
-                msg("Invalid radius: " + args[1], NamedTextColor.RED);
-                return true;
-            }
-        }
-
-        final Player targetPlayer;
-        if (args.length == 3)
-        {
-            targetPlayer = getPlayer(args[2]);
-            if (targetPlayer == null)
-            {
-                msg(FreedomCommand.PLAYER_NOT_FOUND);
-                return true;
-            }
-        }
-        else
-        {
-            targetPlayer = null;
-        }
-
-        final String names = StringUtils.join(materials, ", ");
-
-        World adminWorld = null;
-        try
-        {
-            adminWorld = plugin.wm.adminworld.getWorld();
-        }
-        catch (Exception ex)
-        {
-        }
-
-        int affected = 0;
-        if (targetPlayer == null)
-        {
-            FUtil.adminAction(sender.getName(), "Removing all " + names + " within " + radius + " blocks of all players... Brace for lag!", false);
-
-            for (final Player player : server.getOnlinePlayers())
-            {
-                if (player.getWorld() == adminWorld)
-                {
-                    continue;
-                }
-
-                for (final Material material : materials)
-                {
-                    affected += replaceBlocks(player.getLocation(), material, Material.AIR, radius);
-                }
-            }
-        }
-        else
-        {
-            if (targetPlayer.getWorld() != adminWorld)
-            {
-                for (Material material : materials)
-                {
-                    FUtil.adminAction(sender.getName(), "Removing all " + names + " within " + radius + " blocks of " + targetPlayer.getName(), false);
-                    affected += replaceBlocks(targetPlayer.getLocation(), material, Material.AIR, radius);
-                }
-            }
-        }
-
-        FUtil.adminAction(sender.getName(), "Remove complete! " + affected + " blocks removed.", false);
-
+        msg(ctx.getSender(), "Remove complete. " + affected.get() + " blocks were removed.");
         return true;
+    }
+
+    private Component buildRemovingMessage(List<Material> blocks, int radius, Collection<? extends Player> players)
+    {
+        return Component.text("Removing all blocks of ")
+                .append(blocks.size() > 4 ?
+                        Component.text(blocks.size()).append(Component.text(" type(s)")) :
+                        Component.join(JoinConfiguration.commas(true),
+                        blocks.stream().map(block -> Component.text(block.name())).toList()))
+                .append(Component.text(" within ").append(Component.text(radius)))
+                .append(Component.text(" blocks of "))
+                .append(players.size() == server.getOnlinePlayers().size() ?
+                        Component.text("all players... Brace for lag!") :
+                        players.size() > 4 ?
+                                Component.text(players.size()).append(Component.text(" players")) :
+                                Component.join(JoinConfiguration.commas(true),
+                                        players.stream().map(player -> Component.text(player.getName())).toList()));
     }
 
     public static int replaceBlocks(Location center, Material fromMaterial, Material toMaterial, int radius)
@@ -143,5 +106,11 @@ public class Command_ro extends FreedomCommand
         }
 
         return affected;
+    }
+
+    @Override
+    public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
+    {
+        return false;
     }
 }

@@ -1,6 +1,5 @@
 package me.totalfreedom.totalfreedommod.command;
 
-import me.totalfreedom.totalfreedommod.freeze.FreezeData;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -9,59 +8,59 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 @CommandPermissions(level = Rank.SUPER_ADMIN, source = SourceType.BOTH, permission = "tfm.admin.freeze")
-@CommandParameters(description = "Freeze players (toggles on and off).", usage = "/<command> [target | purge]", aliases = "fr")
+@CommandParameters(description = "Freeze players. Append \"on\" or \"off\" at the end to set a specific state.",
+        usage = "/<command> <[on | off] | <player> [on | off]>", aliases = "fr")
 public class Command_freeze extends FreedomCommand
 {
+    @CommandDispatchTarget
+    public boolean toggleGlobalFreeze(CommandContext ctx)
+    {
+        return setGlobalFreeze(ctx, !plugin.fm.isGlobalFreeze());
+    }
+
+    @CommandDispatchTarget(pattern = "<value:Boolean>")
+    public boolean setGlobalFreeze(CommandContext ctx, Boolean value)
+    {
+        FUtil.adminAction(ctx.getSender().getName(), (value ? "En" : "Dis") + "abling global player freeze", false);
+        plugin.fm.setGlobalFreeze(value);
+
+        if (value)
+        {
+            server.getOnlinePlayers().stream().filter(player -> !plugin.al.isAdmin(player)).forEach(player ->
+                    msg(player, "You have been temporarily frozen due to rulebreakers. You will be unfrozen soon.", NamedTextColor.RED));
+        }
+
+        msg(ctx.getSender(), "Players are now " + (value ? "frozen" : "free to move") + ".");
+        return true;
+    }
+
+    @CommandDispatchTarget(pattern = "purge")
+    public boolean unfreezeAll(CommandContext ctx)
+    {
+        FUtil.adminAction(ctx.getSender().getName(), "Unfreezing all players", false);
+        plugin.fm.purge();
+        return true;
+    }
+
+    @CommandDispatchTarget(pattern = "<player:Player>")
+    public boolean togglePlayerFreeze(CommandContext ctx, Player player)
+    {
+        return setFreezeForPlayer(ctx, player, plugin.pl.getPlayer(player).getFreezeData().isFrozen());
+    }
+
+    @CommandDispatchTarget(pattern = "<player:Player> <value:Boolean>")
+    public boolean setFreezeForPlayer(CommandContext ctx, Player player, Boolean value)
+    {
+        plugin.pl.getPlayer(player).getFreezeData().setFrozen(value);
+
+        msg(ctx.getSender(), player.getName() + " has been " + (value ? "frozen" : "unfrozen") + ".");
+        msg(player, "You have been " + (value ? "frozen" : "unfrozen") + ".", NamedTextColor.AQUA);
+        return true;
+    }
 
     @Override
     public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
     {
-        if (args.length == 0)
-        {
-            boolean gFreeze = !plugin.fm.isGlobalFreeze();
-            plugin.fm.setGlobalFreeze(gFreeze);
-
-            if (!gFreeze)
-            {
-                FUtil.adminAction(sender.getName(), "Disabling global player freeze", false);
-                msg("Players are now free to move.");
-                return true;
-            }
-
-            FUtil.adminAction(sender.getName(), "Enabling global player freeze", false);
-            for (Player player : server.getOnlinePlayers())
-            {
-                if (!isAdmin(player))
-                {
-                    msg(player, "You have been frozen due to rulebreakers, you will be unfrozen soon.", NamedTextColor.RED);
-                }
-            }
-            msg("Players are now frozen.");
-
-            return true;
-        }
-
-        if (args[0].equals("purge"))
-        {
-            FUtil.adminAction(sender.getName(), "Unfreezing all players", false);
-            plugin.fm.purge();
-            return true;
-        }
-
-        final Player player = getPlayer(args[0]);
-
-        if (player == null)
-        {
-            msg(FreedomCommand.PLAYER_NOT_FOUND);
-            return true;
-        }
-
-        final FreezeData fd = plugin.pl.getPlayer(player).getFreezeData();
-        fd.setFrozen(!fd.isFrozen());
-
-        msg(player.getName() + " has been " + (fd.isFrozen() ? "frozen" : "unfrozen") + ".");
-        msg(player, "You have been " + (fd.isFrozen() ? "frozen" : "unfrozen") + ".", NamedTextColor.AQUA);
-
-        return true;
+        return false;
     }
 }

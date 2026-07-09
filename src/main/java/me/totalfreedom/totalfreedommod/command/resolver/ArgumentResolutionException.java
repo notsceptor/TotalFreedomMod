@@ -1,6 +1,7 @@
 package me.totalfreedom.totalfreedommod.command.resolver;
 
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 
 public class ArgumentResolutionException extends RuntimeException
 {
@@ -9,7 +10,7 @@ public class ArgumentResolutionException extends RuntimeException
     public ArgumentResolutionException(String message)
     {
         super(message);
-        this.message = Component.text(message);
+        this.message = Component.text(message, NamedTextColor.RED);
     }
 
     public ArgumentResolutionException(Component message)

@@ -9,16 +9,10 @@ import java.util.Map.Entry;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
-import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.WorldType;
-import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerMoveEvent;
@@ -26,10 +20,11 @@ import org.bukkit.event.player.PlayerMoveEvent;
 public final class AdminWorld extends CustomWorld
 {
 
+    public static final String WORLD_NAME = "adminworld";
+    //
     private static final long CACHE_CLEAR_FREQUENCY = 30L * 1000L; //30 seconds, milliseconds
     private static final long TP_COOLDOWN_TIME = 500L; //0.5 seconds, milliseconds
     private static final String GENERATION_PARAMETERS = ConfigEntry.FLATLANDS_GENERATE_PARAMS.getString();
-    private static final String WORLD_NAME = "adminworld";
     //
     private final Map<Player, Long> teleportCooldown = new HashMap<>();
     private final Map<CommandSender, Boolean> accessCache = new HashMap<>();
@@ -41,7 +36,7 @@ public final class AdminWorld extends CustomWorld
 
     public AdminWorld(TotalFreedomMod plugin)
     {
-        super(plugin, "adminworld");
+        super(plugin, WORLD_NAME);
     }
 
     @Override
@@ -132,7 +127,7 @@ public final class AdminWorld extends CustomWorld
             final Player supervisor = entry.getValue();
             output.add(player.getName() + " (Supervisor: " + supervisor.getName() + ")");
         }
-        return StringUtils.join(output, ", ");
+        return String.join(", ", output);
     }
 
     public void purgeGuestList()

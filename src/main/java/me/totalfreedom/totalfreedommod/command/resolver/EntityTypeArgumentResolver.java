@@ -6,6 +6,7 @@ import net.kyori.adventure.key.InvalidKeyException;
 import net.kyori.adventure.key.Key;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Player;
 
 public class EntityTypeArgumentResolver implements AbstractArgumentResolver<EntityType>
 {
@@ -46,7 +47,7 @@ public class EntityTypeArgumentResolver implements AbstractArgumentResolver<Enti
                 }
                 case "mobs" ->
                 {
-                    if (!type.isAlive() && type.isSpawnable())
+                    if (!type.isAlive() || !type.isSpawnable() || Player.class.equals(type.getEntityClass()))
                     {
                         throw new ArgumentResolutionException(type.key().asString() + " is a valid entity, however it is not a mob.");
                     }

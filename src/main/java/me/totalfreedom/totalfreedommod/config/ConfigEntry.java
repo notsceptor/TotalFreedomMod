@@ -29,10 +29,7 @@ public enum ConfigEntry
     //
     MOB_LIMITER_ENABLED(Boolean.class, "moblimiter.enabled"),
     MOB_LIMITER_MAX(Integer.class, "moblimiter.max"),
-    MOB_LIMITER_DISABLE_DRAGON(Boolean.class, "moblimiter.disable.dragon"),
-    MOB_LIMITER_DISABLE_GHAST(Boolean.class, "moblimiter.disable.ghast"),
-    MOB_LIMITER_DISABLE_GIANT(Boolean.class, "moblimiter.disable.giant"),
-    MOB_LIMITER_DISABLE_SLIME(Boolean.class, "moblimiter.disable.slime"),
+    MOB_LIMITER_DISABLED_MOBS(List.class, "moblimiter.disabled"),
     //
     HTTPD_ENABLED(Boolean.class, "httpd.enabled"),
     HTTPD_PORT(Integer.class, "httpd.port"),

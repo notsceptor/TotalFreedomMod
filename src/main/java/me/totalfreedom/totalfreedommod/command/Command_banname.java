@@ -2,8 +2,6 @@ package me.totalfreedom.totalfreedommod.command;
 
 import me.totalfreedom.totalfreedommod.banning.Ban;
 import me.totalfreedom.totalfreedommod.rank.Rank;
-import me.totalfreedom.totalfreedommod.util.FUtil;
-import org.apache.commons.lang3.StringUtils;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -12,28 +10,36 @@ import org.bukkit.entity.Player;
 @CommandParameters(description = "Bans the specified name.", usage = "/<command> <name> [reason]")
 public class Command_banname extends FreedomCommand
 {
-    @Override
-    public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
+    @CommandDispatchTarget(pattern = "<name>")
+    public boolean banName(CommandContext ctx, String name)
     {
-        if (args.length < 1)
-        {
-            return false;
-        }
-        String name = args[0];
+        return banNameWithReason(ctx, name, null);
+    }
+
+    @CommandDispatchTarget(pattern = "<name> <reason..>")
+    public boolean banNameWithReason(CommandContext ctx, String name, String reason)
+    {
         if (plugin.bm.getByUsername(name) != null)
         {
-            msg(name + " is already banned.");
+            msg(ctx.getSender(), name + " is already banned.");
             return true;
         }
-        String reason = args.length > 1 ? StringUtils.join(args, " ", 1, args.length) : null;
-        Ban ban = Ban.forPlayerName(name, sender, null, reason);
+        final Ban ban = Ban.forPlayerName(name, ctx.getSender(), null, reason);
+
         plugin.bm.addBan(ban);
-        FUtil.adminAction(sender.getName(), "Banning the name " + name, true);
-        Player player = getPlayer(name);
+
+        final Player player = server.getPlayer(name);
         if (player != null)
         {
             player.kick(ban.bakeKickMessage());
         }
+
         return true;
+    }
+
+    @Override
+    public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
+    {
+        return false;
     }
 }

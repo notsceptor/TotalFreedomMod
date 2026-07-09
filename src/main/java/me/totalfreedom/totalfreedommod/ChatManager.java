@@ -317,13 +317,15 @@ public class ChatManager extends FreedomService
     /**
      * Gets the player's custom tag (from /tag command).
      */
-    private String getPlayerCustomTag(Player player) {
+    private Component getPlayerCustomTag(Player player)
+    {
         FPlayer fPlayer = plugin.pl.getPlayer(player);
-        if (fPlayer == null) {
-            return "";
+        if (fPlayer == null)
+        {
+            return Component.empty();
         }
-        String tag = fPlayer.getTag();
-        return tag != null ? tag : "";
+        Component tag = fPlayer.getTag();
+        return tag != null ? tag : Component.empty();
     }
 
     /**
@@ -401,7 +403,7 @@ public class ChatManager extends FreedomService
             }
         }
 
-        String customTag = getPlayerCustomTag(player);
+        String customTag = AdventureUtil.componentToLegacySection(getPlayerCustomTag(player));
         boolean enforcePrefix = Boolean.TRUE.equals(ConfigEntry.VAULT_CHAT_ENFORCE_PREFIX.getBoolean());
 
         String formattedTag = null;

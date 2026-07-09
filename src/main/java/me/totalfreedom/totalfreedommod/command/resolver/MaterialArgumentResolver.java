@@ -1,7 +1,5 @@
 package me.totalfreedom.totalfreedommod.command.resolver;
 
-import io.papermc.paper.registry.RegistryAccess;
-import io.papermc.paper.registry.RegistryKey;
 import net.kyori.adventure.key.InvalidKeyException;
 import net.kyori.adventure.key.Key;
 import org.bukkit.Material;

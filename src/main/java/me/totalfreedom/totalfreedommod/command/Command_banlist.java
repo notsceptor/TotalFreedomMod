@@ -7,6 +7,7 @@ import me.totalfreedom.totalfreedommod.banning.Ban;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.JoinConfiguration;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -16,31 +17,8 @@ import org.bukkit.entity.Player;
 @CommandParameters(description = "Shows all banned players and IP addresses. Superadmins may optionally use 'purge' to clear the list.", usage = "/<command> [purge]")
 public class Command_banlist extends FreedomCommand
 {
-
-    @Override
-    public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
-    {
-        if (args.length > 0)
-        {
-            if (args[0].equalsIgnoreCase("purge"))
-            {
-                checkRank(Rank.SENIOR_ADMIN);
-
-                FUtil.adminAction(sender.getName(), "Purging the ban list", true);
-                int amount = plugin.bm.purge();
-                sender.sendMessage(Component.text("Purged " + amount + " player bans.", NamedTextColor.GRAY));
-
-                return true;
-            }
-
-            return false;
-        }
-
-        getBanList(sender);
-        return true;
-    }
-
-    private void getBanList(CommandSender sender)
+    @CommandDispatchTarget
+    public boolean showBanList(CommandContext ctx)
     {
         // Player bans: Bans that have a username.
         List<String> playerNames = new ArrayList<>();
@@ -72,31 +50,41 @@ public class Command_banlist extends FreedomCommand
 
         if (playerNames.isEmpty() && ipOnly.isEmpty() && permbanNames.isEmpty())
         {
-            msg("No bans on record.", NamedTextColor.GRAY);
-            return;
+            msg(ctx.getSender(), "No bans on record.", NamedTextColor.GRAY);
+            return true;
         }
 
         if (!playerNames.isEmpty())
         {
-            msg(buildSection("Player bans: ", NamedTextColor.RED, playerNames));
+            msg(ctx.getSender(), Component.text("Player bans: ", NamedTextColor.RED)
+                    .append(Component.join(JoinConfiguration.commas(true),
+                            playerNames.stream().map(Component::text).toList())
+                            .color(NamedTextColor.WHITE)));
         }
         if (!ipOnly.isEmpty())
         {
-            msg(buildSection("IP bans: ", NamedTextColor.GOLD, new ArrayList<>(ipOnly)));
+            msg(ctx.getSender(), Component.text("IP bans: ", NamedTextColor.RED)
+                    .append(Component.join(JoinConfiguration.commas(true),
+                                    ipOnly.stream().map(Component::text).toList())
+                            .color(NamedTextColor.WHITE)));
         }
+
+        return true;
     }
 
-    private Component buildSection(String header, NamedTextColor headerColor, List<String> entries)
+    @CommandDispatchTarget(pattern = "purge")
+    public boolean purgeBanList(CommandContext ctx)
     {
-        Component line = Component.text(header).color(headerColor);
-        for (int i = 0; i < entries.size(); i++)
-        {
-            if (i > 0)
-            {
-                line = line.append(Component.text(", ").color(NamedTextColor.WHITE));
-            }
-            line = line.append(Component.text(entries.get(i)).color(NamedTextColor.WHITE));
-        }
-        return line;
+        checkRank(Rank.SENIOR_ADMIN);
+
+        FUtil.adminAction(ctx.getSender().getName(), "Purging the ban list", true);
+        msg(ctx.getSender(), Component.text("Purged " + plugin.bm.purge() + " player bans."));
+        return true;
+    }
+
+    @Override
+    public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
+    {
+        return false;
     }
 }

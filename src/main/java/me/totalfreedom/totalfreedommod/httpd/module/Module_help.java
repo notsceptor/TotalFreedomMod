@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.command.CommandHandler;
 import me.totalfreedom.totalfreedommod.command.FreedomCommand;
@@ -15,8 +16,6 @@ import static me.totalfreedom.totalfreedommod.httpd.HTMLGenerationTools.heading;
 import static me.totalfreedom.totalfreedommod.httpd.HTMLGenerationTools.paragraph;
 import me.totalfreedom.totalfreedommod.httpd.NanoHTTPD;
 import me.totalfreedom.totalfreedommod.rank.Displayable;
-import org.apache.commons.lang3.StringUtils;
-import static org.apache.commons.lang3.StringEscapeUtils.escapeHtml4;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandMap;
 import org.bukkit.command.PluginIdentifiableCommand;
@@ -132,19 +131,20 @@ public class Module_help extends HTTPDModule
         StringBuilder sb = new StringBuilder();
         sb.append(
                 "<li><span class=\"commandName\">{$CMD_NAME}</span> - Usage: <span class=\"commandUsage\">{$CMD_USAGE}</span>"
-                .replace("{$CMD_NAME}", escapeHtml4(command.getName().trim()))
-                .replace("{$CMD_USAGE}", escapeHtml4(usage.trim())));
+                .replace("{$CMD_NAME}", escapeHtml(command.getName().trim()))
+                .replace("{$CMD_USAGE}", escapeHtml(usage.trim())));
 
         if (!command.getAliases().isEmpty())
         {
             sb.append(
                     " - Aliases: <span class=\"commandAliases\">{$CMD_ALIASES}</span>"
-                    .replace("{$CMD_ALIASES}", escapeHtml4(StringUtils.join(command.getAliases(), ", "))));
+                    .replace("{$CMD_ALIASES}", escapeHtml(String.join(", ",
+                            command.getAliases()))));
         }
 
         sb.append(
                 "<br><span class=\"commandDescription\">{$CMD_DESC}</span></li>\r\n"
-                .replace("{$CMD_DESC}", escapeHtml4(description.trim())));
+                .replace("{$CMD_DESC}", escapeHtml(description.trim())));
 
         return sb.toString();
     }

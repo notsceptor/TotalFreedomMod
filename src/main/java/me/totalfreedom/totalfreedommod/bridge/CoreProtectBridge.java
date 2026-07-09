@@ -9,9 +9,9 @@ import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.coreprotect.CoreProtect;
 import net.coreprotect.CoreProtectAPI;
+import net.coreprotect.utility.Util;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -81,13 +81,17 @@ public class CoreProtectBridge extends FreedomService
             FUtil.playerMsg(player, Component.text("Block edits at (", NamedTextColor.BLUE)
                     .append(Component.text("x" + location.getBlockX() + ", y" + location.getBlockY() + ", z" + location.getBlockZ(), NamedTextColor.WHITE))
                     .append(Component.text("):", NamedTextColor.BLUE)));
-
             results.stream().map(api::parseResult).filter(parsed -> parsed.getActionId() < 2).forEach(result ->
-                    FUtil.playerMsg(player, String.format(" - %s %s %s",
-                            result.getPlayer(),
-                            result.getActionId() == 0 ? "broke" : "placed",
-                            StringUtils.capitalize(result.getType().toString().toLowerCase())),
-                            NamedTextColor.BLUE));
+                    {
+                        final String capitalized = result.getType().toString().charAt(0)
+                                + result.getType().toString().toLowerCase().substring(1);
+
+                        FUtil.playerMsg(player, String.format(" - %s %s %s",
+                                result.getPlayer(),
+                                result.getActionId() == 0 ? "broke" : "placed",
+                                capitalized),
+                                NamedTextColor.BLUE);
+                    });
         });
     }
 

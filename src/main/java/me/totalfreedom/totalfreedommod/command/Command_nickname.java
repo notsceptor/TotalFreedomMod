@@ -1,5 +1,6 @@
 package me.totalfreedom.totalfreedommod.command;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -9,13 +10,14 @@ import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import org.apache.commons.lang3.StringUtils;
+import net.kyori.adventure.text.format.Style;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 @CommandPermissions(level = Rank.OP, source = SourceType.BOTH, permission = "tfm.player.nickname")
-@CommandParameters(description = "Manages player nicknames", usage = "/<command> <<nickname..> | set <player> <nickname..> | clear [player] | clearall>", aliases = "nick")
+@CommandParameters(description = "Manages player nicknames", usage = "/<command> <<nickname..> | set <player> <nickname..> | clean | clear [player] | clearall>", aliases = "nick")
 public class Command_nickname extends FreedomCommand
 {
     public static final int MAX_NICKNAME_LENGTH = 30;
@@ -43,6 +45,22 @@ public class Command_nickname extends FreedomCommand
         plugin.pl.getData(player).setNickname(null);
     }
 
+    private Component cleanComponent(Component component)
+    {
+        Style style = component.style()
+                .decoration(TextDecoration.OBFUSCATED, TextDecoration.State.FALSE)
+                .decoration(TextDecoration.STRIKETHROUGH, TextDecoration.State.FALSE)
+                .decoration(TextDecoration.ITALIC, TextDecoration.State.FALSE)
+                .decoration(TextDecoration.UNDERLINED, TextDecoration.State.FALSE);
+
+        if (NamedTextColor.BLACK.equals(style.color()))
+        {
+            style = style.color(null);
+        }
+
+        return component.style(style).children(component.children().stream().map(this::cleanComponent).toList());
+    }
+
     @CommandDispatchTarget(pattern = "set <player:Player> <nickname..>")
     public boolean setPlayerNickname(CommandContext ctx, Player player, final String nickname)
     {
@@ -65,7 +83,7 @@ public class Command_nickname extends FreedomCommand
         if (player == null)
             player = ctx.getPlayerSender();
 
-        final String strippedInput = StringUtils.strip(nickname).replace('§', '&');
+        final String strippedInput = nickname.trim().replace('§', '&');
 
         if (!AdventureUtil.hasVisibleText(strippedInput))
             return true;
@@ -160,6 +178,38 @@ public class Command_nickname extends FreedomCommand
         clearNickname(player);
         msg("Removed " + (player == ctx.getPlayerSender() ? "your" : (player.getName() + "'s")) + " nickname.");
 
+        return true;
+    }
+
+    @CommandDispatchTarget(pattern = "clean")
+    public boolean cleanNicknames(CommandContext ctx)
+    {
+        checkRank(Rank.SUPER_ADMIN);
+
+        FUtil.adminAction(ctx.getSender().getName(), "Cleaning all nicknames", false);
+
+        long count = server.getOnlinePlayers().stream().map(pl -> plugin.pl.getData(pl))
+                .filter(data -> data.getNickname() != null && data.hasCustomNickname())
+                .filter(data ->
+                {
+                    final Component cleaned = cleanComponent(data.getNickname());
+
+                    if (data.getNickname().equals(cleaned))
+                    {
+                        return false;
+                    }
+
+                    msg(ctx.getPlayerSender(), Component.text(data.getUsername(), NamedTextColor.GRAY)
+                            .append(Component.text(": \"", NamedTextColor.GRAY)
+                                    .append(data.getNickname())
+                                    .append(Component.text("\" -> \"", NamedTextColor.GRAY)))
+                            .append(cleaned)
+                            .append(Component.text("\"", NamedTextColor.GRAY)));
+                    return true;
+                })
+                .count();
+
+        msg(ctx.getSender(), count + " nickname(s) were cleaned.");
         return true;
     }
 
