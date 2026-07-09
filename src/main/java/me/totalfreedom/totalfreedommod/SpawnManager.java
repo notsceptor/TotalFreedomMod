@@ -13,8 +13,6 @@ import org.bukkit.event.player.PlayerRespawnEvent;
 
 public class SpawnManager extends FreedomService
 {
-    private static final String PROTECTED_AREA_LABEL = "tfm_spawn";
-
     public SpawnManager(TotalFreedomMod plugin)
     {
         super(plugin);
@@ -23,7 +21,6 @@ public class SpawnManager extends FreedomService
     @Override
     protected void onStart()
     {
-        refreshProtectedArea();
     }
 
     @Override
@@ -76,7 +73,6 @@ public class SpawnManager extends FreedomService
         ConfigEntry.SPAWN_YAW.setDouble((double) location.getYaw());
         ConfigEntry.SPAWN_PITCH.setDouble((double) location.getPitch());
         plugin.config.save();
-        refreshProtectedArea(location);
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
@@ -117,22 +113,6 @@ public class SpawnManager extends FreedomService
         {
             event.setRespawnLocation(spawn);
         }
-    }
-
-    private void refreshProtectedArea()
-    {
-        refreshProtectedArea(getSpawnLocation());
-    }
-
-    private void refreshProtectedArea(Location location)
-    {
-        if (location == null || !ConfigEntry.PROTECTAREA_ENABLED.getBoolean() || !ConfigEntry.PROTECTAREA_SPAWNPOINTS.getBoolean())
-        {
-            return;
-        }
-
-        plugin.pa.removeProtectedArea(PROTECTED_AREA_LABEL);
-        plugin.pa.addProtectedArea(PROTECTED_AREA_LABEL, location, ConfigEntry.PROTECTAREA_RADIUS.getDouble());
     }
 
     private enum JoinSpawnPolicy

@@ -4,6 +4,12 @@ import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
+
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+
+import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
@@ -166,4 +172,117 @@ public class WorldEditBridge extends FreedomService
         }
     }
 
+    public Region getSelection(Player player)
+    {
+        final Plugin wep = getWorldEditPlugin();
+        if (wep == null)
+            return null;
+        // `session` is a LocalSession.
+        final Object session = getPlayerSession(player);
+        if (session == null)
+            return null;
+
+        Method getSelectionMethod = null;
+        try
+        {
+            getSelectionMethod = session.getClass().getMethod("getSelection");
+        }
+        catch (NoSuchMethodException ex)
+        {
+            FLog.severe(ex);
+            return null;
+        }
+
+        // `selection` is a Region.
+        Object selection = null;
+        try
+        {
+            selection = getSelectionMethod.invoke(session);
+        }
+        catch (InvocationTargetException ex)
+        {
+            // Do not send diagnostics if the region just doesn't exist
+            if (ex.getCause() != null &&
+                ex.getCause().getClass().getSimpleName().equals("IncompleteRegionException"))
+                return null;
+            FLog.severe(ex);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            FLog.severe(ex);
+            return null;
+        }
+
+        // `minPoint` and `maxPoint` have type BlockVector3.
+        Object minPoint = null;
+        Object maxPoint = null;
+        // `world` has type World.
+        Object world = null;
+        try
+        {
+            // minPoint = selection.getMinimumPoint()
+            // maxPoint = selection.getMaximumPoint()
+            // world = selection.getWorld()
+
+            final Method getMinimumPointMethod = selection.getClass().getMethod("getMinimumPoint");
+            final Method getMaximumPointMethod = selection.getClass().getMethod("getMaximumPoint");
+            final Method getWorldMethod = selection.getClass().getMethod("getWorld");
+            minPoint = getMinimumPointMethod.invoke(selection);
+            maxPoint = getMaximumPointMethod.invoke(selection);
+            world = getWorldMethod.invoke(selection);
+        }
+        catch (Exception ex)
+        {
+            FLog.severe(ex);
+            return null;
+        }
+
+        Location min = null;
+        Location max = null;
+        try
+        {
+            // bukkitWorld = world.getWorld()
+            // min = BukkitAdapter.adapt(bukkitWorld, minPoint)
+            // max = BukkitAdapter.adapt(bukkitWorld, maxPoint)
+
+            final Class<?> adapter = Class.forName("com.sk89q.worldedit.bukkit.BukkitAdapter");
+
+            final Method getWorldMethod = world.getClass().getMethod("getWorld");
+            final World bukkitWorld = (World) getWorldMethod.invoke(world);
+            
+            final Method adaptLocationMethod = adapter.getMethod("adapt", World.class, minPoint.getClass());
+            min = (Location) adaptLocationMethod.invoke(null, bukkitWorld, minPoint);
+            max = (Location) adaptLocationMethod.invoke(null, bukkitWorld, maxPoint);
+        }
+        catch (Exception ex)
+        {
+            FLog.severe(ex);
+            return null;
+        }
+
+        return new Region(min.getWorld(), min, max);
+    }
+
+    
+    public static record Region(World world, Location min, Location max)
+    {
+    }
+
+    public boolean isWorldEditEnabled()
+    {
+        try
+        {
+            final Plugin worldedit = getWorldEditPlugin();
+            if (worldedit != null)
+            {
+                return worldedit.isEnabled();
+            }
+        }
+        catch (Exception ex)
+        {
+            FLog.severe(ex);
+        }
+        return false;
+    }
 }
