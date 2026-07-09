@@ -74,6 +74,16 @@ public class Command_strikes extends FreedomCommand
         return true;
     }
 
+    @CommandDispatchTarget(pattern = "purge")
+    public boolean purge(final CommandContext ctx)
+    {
+        msg(ctx.getSender(), String.format("Purged strikes for %s player(s).",
+            plugin.pl.getAllData()
+                .stream()
+                .peek(data -> data.setStrikes(0)).count()));
+        return true;
+    }
+
     @Override
     public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
     {

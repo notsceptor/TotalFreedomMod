@@ -2,6 +2,7 @@ package me.totalfreedom.totalfreedommod.player;
 
 import com.google.common.collect.Maps;
 import java.io.File;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 import lombok.Getter;
@@ -244,6 +245,15 @@ public class PlayerList extends FreedomService
         }
 
         return data;
+    }
+
+    public Collection<PlayerData> getAllData()
+    {
+        return Arrays.stream(configFolder.listFiles())
+            .filter(file -> file != null)
+            .map(File::getName)
+            .filter(name -> name.endsWith(".yml"))
+            .map(name -> getData(name.substring(0, name.length() - ".yml".length()))).toList();
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
