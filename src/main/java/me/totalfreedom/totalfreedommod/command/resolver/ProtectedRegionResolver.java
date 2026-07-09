@@ -17,7 +17,7 @@ public class ProtectedRegionResolver implements AbstractArgumentResolver<Protect
     {
         final ProtectedRegion region = TotalFreedomMod.plugin().pa.getProtectedRegion(name);
         if (region == null)
-            throw new ArgumentResolutionException(Component.text("There exists no protected region with the name '")
+            throw new ArgumentResolutionException(Component.text("There is no protected region named '")
                 .append(Component.text(name))
                 .append(Component.text("'."))
                 .color(NamedTextColor.GRAY));
