@@ -31,7 +31,7 @@ import me.totalfreedom.totalfreedommod.bridge.EssentialsBridge;
 import me.totalfreedom.totalfreedommod.bridge.LibsDisguisesBridge;
 import me.totalfreedom.totalfreedommod.bridge.WorldEditBridge;
 import me.totalfreedom.totalfreedommod.caging.Cager;
-import me.totalfreedom.totalfreedommod.command.CommandLoader;
+import me.totalfreedom.totalfreedommod.cmd.CommandLoader;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.config.MainConfig;
 import me.totalfreedom.totalfreedommod.discord.DiscordBridge;
@@ -78,7 +78,8 @@ public class TotalFreedomMod extends JavaPlugin
     public AdminList al; // AdminList - Manages admin list and permissions
     public RankManager rm; // RankManager - Handles player ranks and display
     public ConsoleSenderRegistry csr; // ConsoleSenderRegistry - Maps console senders to appropriate rank
-    public CommandLoader cl; // CommandLoader - Loads and registers commands
+    // public CommandLoader cl; // CommandLoader - Loads and registers commands (LEGACY)
+    public CommandLoader cmdl; // CmdLoader - Loads and registers Brigadier commands 
     public CommandBlocker cb; // CommandBlocker - Blocks specific commands
     public SweepScheduler sweepScheduler; // SweepScheduler - Shared budgeted world/chunk sweep walker
     public ItemValidator iv; // ItemValidator - Blocks unwanted NBT items
@@ -197,7 +198,8 @@ public class TotalFreedomMod extends JavaPlugin
         // Console sender whitelist — loaded after RankManager so custom rank ids resolve.
         csr = new ConsoleSenderRegistry(this);
         csr.load();
-        cl = services.registerService(CommandLoader.class);
+        // cl = services.registerService(CommandLoader.class);
+        cmdl = services.registerService(CommandLoader.class);
         cb = services.registerService(CommandBlocker.class);
         // SweepScheduler must start before any guard that registers a visitor.
         sweepScheduler = services.registerService(SweepScheduler.class);
