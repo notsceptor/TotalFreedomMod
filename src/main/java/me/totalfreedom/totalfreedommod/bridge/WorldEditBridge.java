@@ -242,16 +242,33 @@ public class WorldEditBridge extends FreedomService
         Location max = null;
         try
         {
-            // bukkitWorld = world.getWorld()
-            // min = BukkitAdapter.adapt(bukkitWorld, minPoint)
-            // max = BukkitAdapter.adapt(bukkitWorld, maxPoint)
+            // WE:
+            //  bukkitWorld = world.getWorld()
+            // FAWE:
+            //  bukkitWorld = world.getParent().getWorld()
 
             final Class<?> adapter = Class.forName("com.sk89q.worldedit.bukkit.BukkitAdapter");
+            final Class<?> blockVector3Clazz = Class.forName("com.sk89q.worldedit.math.BlockVector3");
 
-            final Method getWorldMethod = world.getClass().getMethod("getWorld");
-            final World bukkitWorld = (World) getWorldMethod.invoke(world);
+            World bukkitWorld;
+            try
+            {
+                final Method getWorldMethod = world.getClass().getMethod("getWorld");
+                bukkitWorld = (World) getWorldMethod.invoke(world);
+            }
+            // Assuming that we're using FAWE at this point
+            catch (NoSuchMethodException ex)
+            {
+                final Method getParentMethod = world.getClass().getMethod("getParent");
+                final Object parentWorld = getParentMethod.invoke(world);
+                final Method getWorldMethod = parentWorld.getClass().getMethod("getWorld");
+                bukkitWorld = (World) getWorldMethod.invoke(parentWorld);
+            }
+
+            // min = BukkitAdapter.adapt(bukkitWorld, minPoint)
+            // max = BukkitAdapter.adapt(bukkitWorld, maxPoint)
             
-            final Method adaptLocationMethod = adapter.getMethod("adapt", World.class, minPoint.getClass());
+            final Method adaptLocationMethod = adapter.getMethod("adapt", World.class, blockVector3Clazz);
             min = (Location) adaptLocationMethod.invoke(null, bukkitWorld, minPoint);
             max = (Location) adaptLocationMethod.invoke(null, bukkitWorld, maxPoint);
         }
