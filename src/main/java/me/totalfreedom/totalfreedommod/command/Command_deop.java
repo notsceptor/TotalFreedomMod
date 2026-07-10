@@ -9,7 +9,7 @@ import org.bukkit.entity.Player;
 
 @CommandPermissions(level = Rank.SUPER_ADMIN, source = SourceType.BOTH, permission = "tfm.admin.deop")
 @CommandParameters(description = "Deop a player.", usage = "/<command> <player>")
-public class  Command_deop extends FreedomCommand
+public class Command_deop extends FreedomCommand
 {
     @CommandDispatchTarget(pattern = "<player:OfflinePlayer>")
     public boolean deopPlayer(CommandContext ctx, OfflinePlayer player)
