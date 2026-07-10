@@ -55,6 +55,7 @@ final class ItemScanner
         OVERSIZED_POTION,
         OVERSIZED_BOOK,
         OVERSIZED_ATTRIBUTE,
+        ILLEGAL_STACK_SIZE,
         UNINSPECTABLE_NBT,
         MALFORMED_ENTITY_DATA,
         CURSED_COMPONENT,
@@ -130,6 +131,12 @@ final class ItemScanner
             }
         }
 
+        Verdict stackSize = inspectStackSize(item, depth);
+        if (stackSize.isCursed())
+        {
+            return stackSize;
+        }
+
         // POTION_CONTENTS / SUSPICIOUS_STEW_EFFECTS — status-effect spam bombs.
         Verdict effects = inspectEffectBearer(item, maxPotionEffects, depth);
         if (effects.isCursed())
@@ -141,7 +148,7 @@ final class ItemScanner
         if (item.hasData(DataComponentTypes.CUSTOM_NAME))
         {
             Component name = item.getData(DataComponentTypes.CUSTOM_NAME);
-            Verdict nameVerdict = inspectNamedComponent(name, depth, deadlineNanos);
+            Verdict nameVerdict = inspectNamedComponent(name, depth, deadlineNanos, agg);
             if (nameVerdict.isCursed())
             {
                 return nameVerdict;
@@ -150,7 +157,7 @@ final class ItemScanner
         if (item.hasData(DataComponentTypes.ITEM_NAME))
         {
             Component name = item.getData(DataComponentTypes.ITEM_NAME);
-            Verdict nameVerdict = inspectNamedComponent(name, depth, deadlineNanos);
+            Verdict nameVerdict = inspectNamedComponent(name, depth, deadlineNanos, agg);
             if (nameVerdict.isCursed())
             {
                 return nameVerdict;
@@ -284,6 +291,24 @@ final class ItemScanner
             }
         }
 
+        return Verdict.CLEAN;
+    }
+
+    private static Verdict inspectStackSize(ItemStack item, int depth)
+    {
+        if (item.getType().getMaxDurability() <= 0)
+        {
+            return Verdict.CLEAN;
+        }
+        if (!item.hasData(DataComponentTypes.MAX_STACK_SIZE))
+        {
+            return Verdict.CLEAN;
+        }
+        Integer maxStackSize = item.getData(DataComponentTypes.MAX_STACK_SIZE);
+        if (maxStackSize != null && maxStackSize > 1)
+        {
+            return new Verdict(Reason.ILLEGAL_STACK_SIZE, maxStackSize, depth);
+        }
         return Verdict.CLEAN;
     }
 
