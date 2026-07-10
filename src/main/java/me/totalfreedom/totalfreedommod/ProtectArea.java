@@ -1,18 +1,22 @@
 package me.totalfreedom.totalfreedommod;
 
 import com.google.common.collect.Maps;
+
+import lombok.Getter;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
+
+import me.totalfreedom.totalfreedommod.ProtectArea.ProtectedRegion.CantFindWorldException;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
+
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -63,7 +67,7 @@ public class ProtectArea extends FreedomService
     // How often (in ticks) to sweep loose items out of protected areas.
     private static final long ITEM_SWEEP_RATE = 40L;
     //
-    private final Map<String, ProtectedRegion> areas = Maps.newHashMap();
+    private final Map<UUID, ProtectedRegion> areas = Maps.newHashMap();
     private BukkitTask itemSweepTask;
 
     public ProtectArea(TotalFreedomMod plugin)
@@ -88,7 +92,6 @@ public class ProtectArea extends FreedomService
         }
 
         loadFromYaml(ymlFile);
-        Bukkit.getScheduler().runTask(plugin, this::cleanProtectedAreas);
 
         itemSweepTask = Bukkit.getScheduler().runTaskTimer(
             plugin, this::sweepItems, ITEM_SWEEP_RATE, ITEM_SWEEP_RATE);
@@ -107,12 +110,14 @@ public class ProtectArea extends FreedomService
             areas.clear();
             for (Map.Entry<String, SerializableProtectedRegion> entry : legacyAreas.entrySet())
             {
+                final UUID uuid = UUID.fromString(entry.getKey());
                 SerializableProtectedRegion legacy = entry.getValue();
-                areas.put(entry.getKey(), new ProtectedRegion(
-                    legacy.x, legacy.y, legacy.z, 
-                    legacy.radius, 
-                    legacy.worldName, 
-                    legacy.worldUUID
+                areas.put(uuid, new ProtectedRegion(
+                    uuid,
+                    UUID.randomUUID().toString(),
+                    (int) (legacy.x - legacy.radius), (int) (legacy.y - legacy.radius), (int) (legacy.z - legacy.radius),
+                    (int) (legacy.x + legacy.radius), (int) (legacy.y + legacy.radius), (int) (legacy.z + legacy.radius),
+                    legacy.worldUUID.toString()
                 ));
             }
             
@@ -154,23 +159,32 @@ public class ProtectArea extends FreedomService
                 return;
             }
 
-            for (String label : areasSection.getKeys(false))
+            for (String id : areasSection.getKeys(false))
             {
-                ConfigurationSection areaSection = areasSection.getConfigurationSection(label);
+                ConfigurationSection areaSection = areasSection.getConfigurationSection(id);
                 if (areaSection == null)
                 {
                     continue;
                 }
 
-                double x = areaSection.getDouble("x");
-                double y = areaSection.getDouble("y");
-                double z = areaSection.getDouble("z");
-                double radius = areaSection.getDouble("radius");
-                String worldName = areaSection.getString("world_name");
-                String worldUuidStr = areaSection.getString("world_uuid");
-                UUID worldUUID = worldUuidStr != null ? UUID.fromString(worldUuidStr) : null;
+                UUID uuid = UUID.fromString(id);
+                String name = areaSection.getString("name");
+                int minX = areaSection.getInt("min_x");
+                int minY = areaSection.getInt("min_y");
+                int minZ = areaSection.getInt("min_z");
+                int maxX = areaSection.getInt("max_x");
+                int maxY = areaSection.getInt("max_y");
+                int maxZ = areaSection.getInt("max_z");
+                String worldUUID = areaSection.getString("world");
 
-                areas.put(label, new ProtectedRegion(x, y, z, radius, worldName, worldUUID));
+                try
+                {
+                    areas.put(uuid, new ProtectedRegion(uuid, name, minX, minY, minZ, maxX, maxY, maxZ, worldUUID));
+                }
+                catch (CantFindWorldException ex)
+                {
+                    FLog.warning(ex.getMessage());
+                }
             }
         }
         catch (Exception ex)
@@ -198,17 +212,28 @@ public class ProtectArea extends FreedomService
             YamlConfiguration config = new YamlConfiguration();
             ConfigurationSection areasSection = config.createSection("areas");
 
-            for (Map.Entry<String, ProtectedRegion> entry : areas.entrySet())
+            for (Map.Entry<UUID, ProtectedRegion> entry : areas.entrySet())
             {
-                ConfigurationSection areaSection = areasSection.createSection(entry.getKey());
+                ConfigurationSection areaSection = areasSection.createSection(entry.getKey().toString());
                 ProtectedRegion region = entry.getValue();
                 
-                areaSection.set("x", region.x);
-                areaSection.set("y", region.y);
-                areaSection.set("z", region.z);
-                areaSection.set("radius", region.radius);
-                areaSection.set("world_name", region.worldName);
-                areaSection.set("world_uuid", region.worldUUID != null ? region.worldUUID.toString() : null);
+                areaSection.set("name", region.getName());
+                try
+                {
+                    areaSection.set("min_x", region.getMinimumPoint().getBlockX());
+                    areaSection.set("min_y", region.getMinimumPoint().getBlockY());
+                    areaSection.set("min_z", region.getMinimumPoint().getBlockZ());
+                    areaSection.set("max_x", region.getMaximumPoint().getBlockX());
+                    areaSection.set("max_y", region.getMaximumPoint().getBlockY());
+                    areaSection.set("max_z", region.getMaximumPoint().getBlockZ());
+                    areaSection.set("world", region.getWorld().getUID().toString());
+                }
+                catch (CantFindWorldException ex)
+                {
+                    FLog.warning(String.format("Failed to save protected area '%s' (%s) because the UUID of the world it's in was invalid",
+                        region.getName(),
+                        region.getUuid()));
+                }
             }
 
             config.save(new File(plugin.getDataFolder(), DATA_FILENAME));
@@ -738,139 +763,51 @@ public class ProtectArea extends FreedomService
 
     public boolean isInProtectedArea(final Location modifyLocation)
     {
-        boolean doSave = false;
-        boolean inProtectedArea = false;
-
-        final Iterator<Map.Entry<String, ProtectedRegion>> it = areas.entrySet().iterator();
-
-        while (it.hasNext())
-        {
-            final ProtectedRegion region = it.next().getValue();
-
-            Location regionCenter = null;
-            try
-            {
-                regionCenter = region.getLocation();
-            }
-            catch (ProtectedRegion.CantFindWorldException ex)
-            {
-                it.remove();
-                doSave = true;
-                continue;
-            }
-
-            if (regionCenter != null)
-            {
-                if (modifyLocation.getWorld() == regionCenter.getWorld())
-                {
-                    final double regionRadius = region.getRadius();
-                    if (modifyLocation.distanceSquared(regionCenter) <= (regionRadius * regionRadius))
-                    {
-                        inProtectedArea = true;
-                        break;
-                    }
-                }
-            }
-        }
-
-        if (doSave)
-        {
-            save();
-        }
-
-        return inProtectedArea;
+        return areas
+            .values()
+            .stream()
+            .anyMatch(area -> area.within(modifyLocation));
     }
 
-    public boolean isInProtectedArea(final Vector min, final Vector max, final String worldName)
+    public boolean doesRegionOverlapWithProtectedArea(final Location min, final Location max, final World world)
     {
-        boolean doSave = false;
-        boolean inProtectedArea = false;
-
-        final Iterator<Map.Entry<String, ProtectedRegion>> it = areas.entrySet().iterator();
-
-        while (it.hasNext())
-        {
-            final ProtectedRegion region = it.next().getValue();
-
-            Location regionCenter = null;
-            try
-            {
-                regionCenter = region.getLocation();
-            }
-            catch (ProtectedRegion.CantFindWorldException ex)
-            {
-                it.remove();
-                doSave = true;
-                continue;
-            }
-
-            if (regionCenter != null)
-            {
-                if (worldName.equals(regionCenter.getWorld().getName()))
-                {
-                    if (cubeIntersectsSphere(min, max, regionCenter.toVector(), region.getRadius()))
-                    {
-                        inProtectedArea = true;
-                        break;
-                    }
-                }
-            }
-        }
-
-        if (doSave)
-        {
-            save();
-        }
-
-        return inProtectedArea;
+        return areas
+            .values()
+            .stream()
+            .anyMatch(area -> area.within(min, max, world));
     }
 
-    private boolean cubeIntersectsSphere(Vector min, Vector max, Vector sphere, double radius)
+    public ProtectedRegion addProtectedArea(final String name, final Location min, final Location max, final World world)
     {
-        double d = square(radius);
-
-        if (sphere.getX() < min.getX())
-        {
-            d -= square(sphere.getX() - min.getX());
-        }
-        else if (sphere.getX() > max.getX())
-        {
-            d -= square(sphere.getX() - max.getX());
-        }
-        if (sphere.getY() < min.getY())
-        {
-            d -= square(sphere.getY() - min.getY());
-        }
-        else if (sphere.getY() > max.getY())
-        {
-            d -= square(sphere.getY() - max.getY());
-        }
-        if (sphere.getZ() < min.getZ())
-        {
-            d -= square(sphere.getZ() - min.getZ());
-        }
-        else if (sphere.getZ() > max.getZ())
-        {
-            d -= square(sphere.getZ() - max.getZ());
-        }
-
-        return d > 0;
-    }
-
-    private double square(double v)
-    {
-        return v * v;
-    }
-
-    public void addProtectedArea(String label, Location location, double radius)
-    {
-        areas.put(label.toLowerCase(), new ProtectedRegion(location, radius));
+        if (areas.values().stream().filter(area -> area.getName().equals(name)).count() != 0)
+            return null;
+        final UUID uuid = UUID.randomUUID();
+        final ProtectedRegion region = new ProtectedRegion(uuid, name, min, max, world);
+        areas.put(uuid, region);
         save();
+        return region;
     }
 
-    public void removeProtectedArea(String label)
+    public ProtectedRegion updateProtectedRegion(final ProtectedRegion region, final Location min, final Location max, final World world)
     {
-        areas.remove(label.toLowerCase());
+        region.setMinimumPoint(min);
+        region.setMaximumPoint(max);
+        region.setWorld(world);
+        save();
+        return region;
+    }
+
+    public ProtectedRegion getProtectedRegion(final String name)
+    {
+        for (final ProtectedRegion region : areas.values())
+            if (region.getName().equals(name))
+                return region;
+        return null;
+    }
+
+    public void removeProtectedArea(final ProtectedRegion region)
+    {
+        areas.remove(region.getUuid());
         save();
     }
 
@@ -882,169 +819,166 @@ public class ProtectArea extends FreedomService
     public void clearProtectedAreas(boolean createSpawnpointProtectedAreas)
     {
         areas.clear();
-
-        if (createSpawnpointProtectedAreas)
-        {
-            autoAddSpawnpoints();
-        }
-
         save();
-    }
-
-    public void cleanProtectedAreas()
-    {
-        boolean doSave = false;
-
-        final Iterator<Map.Entry<String, ProtectedRegion>> it = areas.entrySet().iterator();
-
-        while (it.hasNext())
-        {
-            try
-            {
-                it.next().getValue().getLocation();
-            }
-            catch (ProtectedRegion.CantFindWorldException ex)
-            {
-                it.remove();
-                doSave = true;
-            }
-        }
-
-        if (doSave)
-        {
-            save();
-        }
     }
 
     private void sweepItems()
     {
         if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean() || !ConfigEntry.PROTECTAREA_BLOCK_ITEMS.getBoolean())
-        {
             return;
-        }
 
-        boolean doSave = false;
-        final Iterator<Map.Entry<String, ProtectedRegion>> it = areas.entrySet().iterator();
-
-        while (it.hasNext())
-        {
-            final ProtectedRegion region = it.next().getValue();
-
-            final Location center;
-            try
-            {
-                center = region.getLocation();
-            }
-            catch (ProtectedRegion.CantFindWorldException ex)
-            {
-                it.remove();
-                doSave = true;
-                continue;
-            }
-
-            if (center == null || center.getWorld() == null)
-            {
-                continue;
-            }
-
-            final double radius = region.getRadius();
-            final double radiusSquared = radius * radius;
-            for (Entity entity : center.getWorld().getNearbyEntities(center, radius, radius, radius))
-            {
-                if (entity instanceof Item && entity.getLocation().distanceSquared(center) <= radiusSquared)
+        // Remove all items inside protected areas
+        areas
+            .values()
+            .stream()
+            .forEach(area -> {
+                try
                 {
-                    entity.remove();
+                    area
+                        .getWorld()
+                        .getEntities()
+                        .stream()
+                        .filter(entity -> entity != null && entity instanceof Item && area.within(entity.getLocation()))
+                        .forEach(Entity::remove);
                 }
-            }
-        }
-
-        if (doSave)
-        {
-            save();
-        }
-    }
-
-    public Set<String> getProtectedAreaLabels()
-    {
-        return areas.keySet();
-    }
-
-    public void autoAddSpawnpoints()
-    {
-        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
-        {
-            return;
-        }
-
-        if (ConfigEntry.PROTECTAREA_SPAWNPOINTS.getBoolean())
-        {
-            for (World world : Bukkit.getWorlds())
-            {
-                String spawnLabel = "spawn_" + world.getName();
-                removeProtectedArea(spawnLabel);
-                addProtectedArea(spawnLabel, world.getSpawnLocation(), ConfigEntry.PROTECTAREA_RADIUS.getDouble());
-            }
-        }
+                catch (CantFindWorldException _) {}
+            });
     }
 
     public static class ProtectedRegion
     {
-        private final double x, y, z;
-        private final double radius;
-        private final String worldName;
-        private final UUID worldUUID;
-        private transient Location location = null;
+        @Getter
+        private UUID uuid;
+        @Getter
+        private String name;
+        private Vector min;
+        private Vector max;
+        private UUID worldUUID;
+        private World world;
 
-        public ProtectedRegion(final Location location, final double radius)
+        public ProtectedRegion(final UUID uuid, final String name, final Location min, final Location max, final World world)
         {
-            this.x = location.getX();
-            this.y = location.getY();
-            this.z = location.getZ();
-            this.radius = radius;
-            this.worldName = location.getWorld().getName();
-            this.worldUUID = location.getWorld().getUID();
-            this.location = location;
+            this.uuid = uuid;
+            this.name = name;
+            setMinimumPoint(min);
+            setMaximumPoint(max);
+            this.worldUUID = world.getUID();
         }
 
-        public ProtectedRegion(double x, double y, double z, double radius, String worldName, UUID worldUUID)
+        public ProtectedRegion(final UUID uuid,
+            final String name,
+            final int minX,
+            final int minY,
+            final int minZ,
+            final int maxX,
+            final int maxY,
+            final int maxZ,
+            final String worldUUID) throws CantFindWorldException
         {
-            this.x = x;
-            this.y = y;
-            this.z = z;
-            this.radius = radius;
-            this.worldName = worldName;
-            this.worldUUID = worldUUID;
-        }
-
-        public Location getLocation() throws CantFindWorldException
-        {
-            if (this.location == null)
+            this.uuid = uuid;
+            this.name = name;
+            try
             {
-                World world = null;
-                
-                if (this.worldUUID != null)
-                {
-                    world = Bukkit.getWorld(this.worldUUID);
-                }
-
-                if (world == null && this.worldName != null)
-                {
-                    world = Bukkit.getWorld(this.worldName);
-                }
-
-                if (world == null)
-                {
-                    throw new CantFindWorldException("Can't find world " + this.worldName + ", UUID: " + this.worldUUID);
-                }
-
-                location = new Location(world, x, y, z);
+                // World is not deserialized directly here because
+                // worlds are loaded dynamically. Save the UUID
+                // and fetch the world from Bukkit later.
+                this.worldUUID = UUID.fromString(worldUUID);
             }
-            return this.location;
+            catch (IllegalArgumentException _)
+            {
+                throw new CantFindWorldException("Protected region has an invalid UUID for its world: " + worldUUID);
+            }
+            this.min = new Vector(minX, minY, minZ);
+            this.max = new Vector(maxX, maxY, maxZ);
         }
 
-        public double getRadius()
+        public World getWorld() throws CantFindWorldException
         {
-            return radius;
+            if (this.world != null)
+                return this.world;
+            this.world = Bukkit.getWorld(worldUUID);
+            if (this.world == null)
+                throw new CantFindWorldException("Can't find world with UUID: " + worldUUID);
+            return this.world;
+        }
+
+        public void setWorld(final World world)
+        {
+            this.worldUUID = world.getUID();
+        }
+
+        public Location getMinimumPoint() throws CantFindWorldException
+        {
+            return new Location(getWorld(), min.getBlockX(), min.getBlockY(), min.getBlockZ());
+        }
+
+        public Location getMaximumPoint() throws CantFindWorldException
+        {
+            return new Location(getWorld(), max.getBlockX(), max.getBlockY(), max.getBlockZ());
+        }
+
+        public void setMinimumPoint(final Location min)
+        {
+            this.min = new Vector(min.getBlockX(), min.getBlockY(), min.getBlockZ());
+        }
+
+        public void setMaximumPoint(final Location max)
+        {
+            this.max = new Vector(max.getBlockX(), max.getBlockY(), max.getBlockZ());
+        }
+
+        @Override
+        public String toString()
+        {
+            final World world = Bukkit.getWorld(worldUUID);
+            final String worldContent = world != null ? world.getName() : worldUUID.toString();
+
+            return String.format("'%s' is a protected region in the '%s' world spanning from (%s, %s, %s) to (%s, %s, %s).",
+                name,
+                worldContent,
+                min.getBlockX(),
+                min.getBlockY(),
+                min.getBlockZ(),
+                max.getBlockX(),
+                max.getBlockY(),
+                max.getBlockZ());
+        } 
+
+        /**
+         * Checks if a location is within the protected region.
+         * 
+         * @param loc the location to check
+         * @return whether the location is in the protected region
+         */
+        public boolean within(final Location loc)
+        {
+            if (!worldUUID.equals(loc.getWorld().getUID()))
+                return false;
+            return loc.getY() <= max.getY() &&
+                loc.getY() >= min.getY() &&
+                loc.getX() <= max.getX() &&
+                loc.getX() >= min.getX() &&
+                loc.getZ() <= max.getZ() &&
+                loc.getZ() >= min.getZ();
+        }
+
+        public boolean within(final Location min, final Location max, final World world)
+        {
+            if (!this.worldUUID.equals(world.getUID()))
+                return false;
+
+            // This logic is really hairy, but it's derived from here:
+            // https://math.stackexchange.com/a/2651718
+
+            final int thisMinX = this.min.getBlockX();
+            final int thisMaxX = this.max.getBlockX();
+            final int thatMinX = min.getBlockX();
+            final int thatMaxX = max.getBlockX();
+
+            return (thisMinX <= thatMinX && thatMinX <= thisMaxX) ||
+                (thisMinX <= thatMaxX && thatMaxX <= thisMaxX) ||
+                (thatMinX <= thisMinX && thisMinX <= thatMaxX) ||
+                (thatMinX <= thisMaxX && thisMaxX <= thatMaxX);
         }
 
         public static class CantFindWorldException extends Exception

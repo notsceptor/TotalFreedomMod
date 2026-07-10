@@ -55,6 +55,7 @@ final class ItemScanner
         OVERSIZED_POTION,
         OVERSIZED_BOOK,
         OVERSIZED_ATTRIBUTE,
+        ILLEGAL_STACK_SIZE,
         UNINSPECTABLE_NBT,
         MALFORMED_ENTITY_DATA,
         CURSED_COMPONENT,
@@ -128,6 +129,12 @@ final class ItemScanner
             {
                 return new Verdict(Reason.PANIC_BLANKET_REJECT, 0L, depth);
             }
+        }
+
+        Verdict stackSize = inspectStackSize(item, depth);
+        if (stackSize.isCursed())
+        {
+            return stackSize;
         }
 
         // POTION_CONTENTS / SUSPICIOUS_STEW_EFFECTS — status-effect spam bombs.
@@ -284,6 +291,24 @@ final class ItemScanner
             }
         }
 
+        return Verdict.CLEAN;
+    }
+
+    private static Verdict inspectStackSize(ItemStack item, int depth)
+    {
+        if (item.getType().getMaxDurability() <= 0)
+        {
+            return Verdict.CLEAN;
+        }
+        if (!item.hasData(DataComponentTypes.MAX_STACK_SIZE))
+        {
+            return Verdict.CLEAN;
+        }
+        Integer maxStackSize = item.getData(DataComponentTypes.MAX_STACK_SIZE);
+        if (maxStackSize != null && maxStackSize > 1)
+        {
+            return new Verdict(Reason.ILLEGAL_STACK_SIZE, maxStackSize, depth);
+        }
         return Verdict.CLEAN;
     }
 

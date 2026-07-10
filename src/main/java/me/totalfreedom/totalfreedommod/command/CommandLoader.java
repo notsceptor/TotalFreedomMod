@@ -53,6 +53,7 @@ public class CommandLoader extends FreedomService
         handler.registerArgumentResolver(BooleanArgumentResolver.class);
         handler.registerArgumentResolver(IntegerArgumentResolver.class);
         handler.registerArgumentResolver(DoubleArgumentResolver.class);
+        handler.registerArgumentResolver(ProtectedRegionResolver.class);
         handler.registerArgumentResolver(FloatArgumentResolver.class);
 
         int loaded = handler.loadFrom(FreedomCommand.class.getPackage());

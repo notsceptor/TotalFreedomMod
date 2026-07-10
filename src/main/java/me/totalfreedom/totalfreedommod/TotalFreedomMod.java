@@ -278,9 +278,6 @@ public class TotalFreedomMod extends JavaPlugin
 
         timer.update();
         FLog.info("Version " + pluginVersion + " enabled in " + timer.getTotal() + "ms");
-
-        // Add spawnpoints later - https://github.com/TotalFreedom/TotalFreedomMod/issues/438
-        getServer().getScheduler().runTaskLater(this, () -> pa.autoAddSpawnpoints(), 60L);
     }
 
     @Override

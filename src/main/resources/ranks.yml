@@ -134,6 +134,7 @@ super_admin:
     - tfm.admin.whohas
     - tfm.admin.wildcard
     - tfm.admin.gamemode
+    - tfm.admin.protectregion
     - tfm.server.*
     - tfm.manage.saconfig
 
