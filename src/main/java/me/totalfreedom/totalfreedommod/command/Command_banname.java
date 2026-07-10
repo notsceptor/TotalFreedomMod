@@ -2,6 +2,9 @@ package me.totalfreedom.totalfreedommod.command;
 
 import me.totalfreedom.totalfreedommod.banning.Ban;
 import me.totalfreedom.totalfreedommod.rank.Rank;
+import me.totalfreedom.totalfreedommod.util.FUtil;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -27,6 +30,12 @@ public class Command_banname extends FreedomCommand
         final Ban ban = Ban.forPlayerName(name, ctx.getSender(), null, reason);
 
         plugin.bm.addBan(ban);
+
+        FUtil.adminAction(name, Component.text("Banning the username ").append(Component.text(name)
+                .append(reason != null ?
+                        Component.newline().append(Component.text("  Reason: ")
+                                .append(Component.text(reason, NamedTextColor.YELLOW))) :
+                        Component.empty())), NamedTextColor.RED);
 
         final Player player = server.getPlayer(name);
         if (player != null)
