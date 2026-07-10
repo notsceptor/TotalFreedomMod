@@ -1,21 +1,14 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.lang.reflect.Modifier;
 import java.net.InetAddress;
-import java.net.JarURLConnection;
 import java.net.URL;
-import java.net.URLConnection;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.Enumeration;
 import java.util.List;
 import java.util.function.Supplier;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
 import java.util.stream.Stream;
 
 import io.papermc.paper.registry.RegistryAccess;
@@ -58,7 +51,6 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.Registry;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.EntityType;
-import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.potion.PotionEffectType;
 

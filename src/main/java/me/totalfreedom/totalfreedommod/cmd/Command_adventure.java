@@ -22,7 +22,7 @@ public class Command_adventure extends FCommand
        }
 
        @Callback
-       @Subcommand("-a")
+       @Subcommand("-a") // a switch wouldn't be really appropriate here due to the nature of the @Permission annotation
        @Permission(permission = "tfm.admin.gamemode", level = Rank.SUPER_ADMIN)
        public void changeGamemodeAll(CommandSender sender)
        {

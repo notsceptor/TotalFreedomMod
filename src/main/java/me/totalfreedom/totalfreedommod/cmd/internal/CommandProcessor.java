@@ -2,6 +2,7 @@ package me.totalfreedom.totalfreedommod.cmd.internal;
 
 import com.mojang.brigadier.arguments.ArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
@@ -22,6 +23,7 @@ import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Greedy;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Permission;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Resolve;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Subcommand;
+import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Switch;
 import me.totalfreedom.totalfreedommod.cmd.resolver.AbstractArgumentResolver;
 import me.totalfreedom.totalfreedommod.cmd.resolver.ArgumentResolutionException;
 import me.totalfreedom.totalfreedommod.util.FLog;
@@ -69,7 +71,10 @@ import java.util.function.Supplier;
  * {@link Subcommand#value()} is a space-separated literal path.
  * Methods are grouped into a trie keyed by path segment before the
  * Brigadier tree is built, so declarations sharing a prefix like {@code "set"} and
- * {@code "set default"} merge into one branch. A node may carry both a handler and children at once.
+ * {@code "set default"} merge into one branch. A node may carry both handlers and children at
+ * once. As with root handlers, multiple handlers may share a path when they take different
+ * numbers of arguments (e.g. {@code "-s"} alone plus {@code "-s"} with a trailing greedy reason);
+ * same-arity handlers on the same path are ambiguous and logged.
  *
  * <h3>Permissions</h3>
  * {@link Permission} on the {@code FCommand} class gates the whole command and is wired into
@@ -193,6 +198,7 @@ public final class CommandProcessor
             completers.put(new CompleterKey(c.value(), c.position()), method);
         }
 
+        // subcommands trie together based on common roots (guest add, guest list, etc... fall under guest trie)
         SubcommandNode trie = new SubcommandNode(null);
         List<Method> rootHandlers = new ArrayList<>();
         for (Method method : command.getClass().getDeclaredMethods())
@@ -224,11 +230,14 @@ public final class CommandProcessor
             {
                 node = node.children.computeIfAbsent(segment, SubcommandNode::new);
             }
-            if (node.handlerMethod != null)
+            for (Method existing : node.handlerMethods)
             {
-                FLog.warning(String.format("Duplicate subcommand path \"%s\" on /%s:\n %s overrides %s", pathValue, commandName, method.getName(), node.handlerMethod.getName()));
+                if (argumentCount(existing) == argumentCount(method))
+                {
+                    FLog.warning(String.format("Ambiguous handlers for subcommand \"%s\" on /%s:\n %s and %s both take %d argument(s)", pathValue, commandName, method.getName(), existing.getName(), argumentCount(method)));
+                }
             }
-            node.handlerMethod = method;
+            node.handlerMethods.add(method);
         }
 
         LiteralArgumentBuilder<CommandSourceStack> root = LiteralArgumentBuilder.literal(commandName);
@@ -263,7 +272,7 @@ public final class CommandProcessor
     {
         final String literal;
         final Map<String, SubcommandNode> children = new LinkedHashMap<>();
-        Method handlerMethod;
+        final List<Method> handlerMethods = new ArrayList<>();
 
         SubcommandNode(String literal)
         {
@@ -284,9 +293,9 @@ public final class CommandProcessor
         {
             branch.then(buildBranch(child));
         }
-        if (node.handlerMethod != null)
+        for (Method handler : node.handlerMethods)
         {
-            attachHandler(branch, node.handlerMethod);
+            attachHandler(branch, handler);
         }
         return branch;
     }
@@ -308,13 +317,29 @@ public final class CommandProcessor
     }
 
     /**
-     * Number of Brigadier argument nodes a handler produces minus the optional leading sender.
+     * Number of Brigadier positional argument nodes a handler produces, i.e. its parameters
+     * minus the optional leading sender and minus any {@link Switch} parameters (which become
+     * literal branches rather than argument nodes).
      */
     private static int argumentCount(Method method)
     {
         Parameter[] params = method.getParameters();
         boolean hasSender = params.length > 0 && ArgumentResolver.isSenderType(params[0].getType());
-        return params.length - (hasSender ? 1 : 0);
+        int count = 0;
+        for (int i = hasSender ? 1 : 0; i < params.length; i++)
+        {
+            if (!isSwitchParam(params[i])) count++;
+        }
+        return count;
+    }
+
+    /**
+     * @return true if {@code param} is a valid {@link Switch}-annotated boolean parameter.
+     */
+    private static boolean isSwitchParam(Parameter param)
+    {
+        return param.isAnnotationPresent(Switch.class)
+            && (param.getType() == boolean.class || param.getType() == Boolean.class);
     }
 
     /**
@@ -419,22 +444,159 @@ public final class CommandProcessor
     }
 
     /**
-     * Attaches a handler's argument chain (and/or {@code executes()}) onto its literal branch.
+     * Attaches a handler's switch branches, argument chain, and/or {@code executes()} onto its
+     * literal branch. Splits the method's parameters into {@link Switch} parameters (which
+     * become literal branches, one subset at a time via {@link #attachSwitchLevel}) and
+     * positional parameters (which become the Brigadier argument chain via
+     * {@link #buildPositionalChain}).
      */
     private void attachHandler(LiteralArgumentBuilder<CommandSourceStack> branch, Method method)
     {
         String subPath = subcommandPath(method);
-
         Parameter[] params = method.getParameters();
         boolean hasSender = params.length > 0 && ArgumentResolver.isSenderType(params[0].getType());
         int argStart = hasSender ? 1 : 0;
+
+        List<Parameter> switchParams = new ArrayList<>();
+        List<Integer> switchIndices = new ArrayList<>();
+        List<Parameter> positionalParams = new ArrayList<>();
+        List<Integer> positionalIndices = new ArrayList<>();
+        for (int i = argStart; i < params.length; i++)
+        {
+            if (params[i].isAnnotationPresent(Switch.class) && !isSwitchParam(params[i]))
+            {
+                FLog.warning(String.format("@Switch on non-boolean parameter '%s' of /%s %s is ignored", params[i].getName(), commandName, subPath));
+            }
+            if (isSwitchParam(params[i]))
+            {
+                switchParams.add(params[i]);
+                switchIndices.add(i);
+            }
+            else
+            {
+                positionalParams.add(params[i]);
+                positionalIndices.add(i);
+            }
+        }
 
         Permission methodPermission = method.isAnnotationPresent(Permission.class)
             ? method.getAnnotation(Permission.class)
             : classPermission;
 
-            // We need to use the full identifier here since we already have @Command defined in the package root
-        com.mojang.brigadier.Command<CommandSourceStack> dispatch = ctx ->
+        attachSwitchLevel(branch, method, subPath, methodPermission, params, hasSender,
+            switchParams, switchIndices, positionalParams, positionalIndices, 0, new boolean[switchParams.size()]);
+    }
+
+    /**
+     * Recursively attaches, at position {@code from} into the declared switch order, both the
+     * "no more switches" terminal (the positional argument chain, or direct {@code executes()})
+     * and one literal branch per remaining switch that recurses to include it. Generates every
+     * subset of the handler's switches, in declaration order, as its own literal path.
+     */
+    private void attachSwitchLevel(
+        ArgumentBuilder<CommandSourceStack, ?> parent, Method method, String subPath, Permission methodPermission,
+        Parameter[] params, boolean hasSender,
+        List<Parameter> switchParams, List<Integer> switchIndices,
+        List<Parameter> positionalParams, List<Integer> positionalIndices,
+        int from, boolean[] chosen)
+    {
+        com.mojang.brigadier.Command<CommandSourceStack> dispatch = buildDispatch(
+            method, subPath, methodPermission, params, hasSender, switchIndices, chosen.clone());
+        RequiredArgumentBuilder<CommandSourceStack, ?> head = buildPositionalChain(positionalParams, positionalIndices, subPath, dispatch);
+        if (head != null)
+        {
+            parent.then(head);
+        }
+        else
+        {
+            parent.executes(dispatch);
+        }
+
+        for (int j = from; j < switchParams.size(); j++)
+        {
+            Switch sw = switchParams.get(j).getAnnotation(Switch.class);
+            LiteralArgumentBuilder<CommandSourceStack> switchBranch = LiteralArgumentBuilder.literal("-" + sw.value());
+            boolean[] next = chosen.clone();
+            next[j] = true;
+            attachSwitchLevel(switchBranch, method, subPath, methodPermission, params, hasSender,
+                switchParams, switchIndices, positionalParams, positionalIndices, j + 1, next);
+            parent.then(switchBranch);
+        }
+    }
+
+    /**
+     * Builds the positional Brigadier argument chain (innermost-first) for a handler's non-switch
+     * parameters, terminating in {@code dispatch}. Returns {@code null} when there are no
+     * positional parameters, in which case the caller should call {@code executes(dispatch)} directly.
+     */
+    private RequiredArgumentBuilder<CommandSourceStack, ?> buildPositionalChain(
+        List<Parameter> positionalParams, List<Integer> positionalIndices, String subPath,
+        com.mojang.brigadier.Command<CommandSourceStack> dispatch)
+    {
+        RequiredArgumentBuilder<CommandSourceStack, ?> head = null;
+        for (int position = positionalParams.size() - 1; position >= 0; position--)
+        {
+            Parameter param = positionalParams.get(position);
+            Class<?> type = param.getType();
+            boolean greedy = param.isAnnotationPresent(Greedy.class);
+            if (greedy && position != positionalParams.size() - 1)
+            {
+                FLog.warning(String.format("@Greedy on non-last parameter '%s' of /%s %s is ignored", param.getName(), commandName, subPath));
+                greedy = false;
+            }
+
+            RequiredArgumentBuilder<CommandSourceStack, ?> arg;
+            if (greedy)
+            {
+                arg = RequiredArgumentBuilder.argument(param.getName(), StringArgumentType.greedyString());
+            }
+            else if (isCustomResolved(param))
+            {
+                arg = RequiredArgumentBuilder.argument(param.getName(), StringArgumentType.word());
+            }
+            else if (ArgumentResolver.isPlayerArgType(type))
+            {
+                arg = RequiredArgumentBuilder.argument(param.getName(), ArgumentTypes.player());
+            }
+            else
+            {
+                arg = RequiredArgumentBuilder.argument(param.getName(), (ArgumentType<?>) ArgumentResolver.resolve(type));
+            }
+
+            Method completer = completers.get(new CompleterKey(subPath, position));
+            Supplier<List<String>> candidates = ResolverRegistry.suggestionsFor(type);
+            if (completer != null)
+            {
+                arg.suggests(buildSuggestionProvider(completer));
+            }
+            else if (isCustomResolved(param) && candidates != null)
+            {
+                arg.suggests(buildCandidateSuggestionProvider(candidates));
+            }
+            else if (type.isEnum())
+            {
+                arg.suggests(buildEnumSuggestionProvider(type));
+            }
+
+            if (position == positionalParams.size() - 1) arg.executes(dispatch);
+            if (head != null) arg.then(head);
+            head = arg;
+        }
+        return head;
+    }
+
+    /**
+     * Builds the {@code Command<CommandSourceStack>} invoked once all of a handler's argument
+     * nodes (positional and switch) have parsed successfully. {@code switchValues} is fixed at
+     * tree-build time (one per subset generated by {@link #attachSwitchLevel}); positional values
+     * are read from {@code ctx} at dispatch time.
+     */
+    private com.mojang.brigadier.Command<CommandSourceStack> buildDispatch(
+        Method method, String subPath, Permission methodPermission, Parameter[] params, boolean hasSender,
+        List<Integer> switchIndices, boolean[] switchValues)
+    {
+        int argStart = hasSender ? 1 : 0;
+        return ctx ->
         {
             CommandSourceStack source = ctx.getSource();
             CommandSender sender = PermissionGate.resolveSender(source.getSender());
@@ -468,11 +630,17 @@ public final class CommandProcessor
 
             Object[] invokeArgs = new Object[params.length];
             if (hasSender) invokeArgs[0] = sender;
+            for (int s = 0; s < switchIndices.size(); s++)
+            {
+                invokeArgs[switchIndices.get(s)] = switchValues[s];
+            }
 
             try
             {
                 for (int i = argStart; i < params.length; i++)
                 {
+                    if (isSwitchParam(params[i])) continue;
+
                     String paramName = params[i].getName();
                     Class<?> type = params[i].getType();
 
@@ -555,60 +723,6 @@ public final class CommandProcessor
                 return 0;
             }
         };
-
-        RequiredArgumentBuilder<CommandSourceStack, ?> head = null;
-        for (int i = params.length - 1; i >= argStart; i--)
-        {
-            int position = i - argStart;
-            Parameter param = params[i];
-            Class<?> type = param.getType();
-            boolean greedy = param.isAnnotationPresent(Greedy.class);
-            if (greedy && i != params.length - 1)
-            {
-                FLog.warning(String.format("@Greedy on non-final parameter '%s' of /%s %s is ignored", param.getName(), commandName, subPath));
-                greedy = false;
-            }
-
-            RequiredArgumentBuilder<CommandSourceStack, ?> arg;
-            if (greedy)
-            {
-                arg = RequiredArgumentBuilder.argument(param.getName(), StringArgumentType.greedyString());
-            }
-            else if (isCustomResolved(param))
-            {
-                arg = RequiredArgumentBuilder.argument(param.getName(), StringArgumentType.word());
-            }
-            else if (ArgumentResolver.isPlayerArgType(type))
-            {
-                arg = RequiredArgumentBuilder.argument(param.getName(), ArgumentTypes.player());
-            }
-            else
-            {
-                arg = RequiredArgumentBuilder.argument(param.getName(), (ArgumentType<?>) ArgumentResolver.resolve(type));
-            }
-
-            Method completer = completers.get(new CompleterKey(subPath, position));
-            Supplier<List<String>> candidates = ResolverRegistry.suggestionsFor(type);
-            if (completer != null)
-            {
-                arg.suggests(buildSuggestionProvider(completer));
-            }
-            else if (isCustomResolved(param) && candidates != null)
-            {
-                arg.suggests(buildCandidateSuggestionProvider(candidates));
-            }
-            else if (type.isEnum())
-            {
-                arg.suggests(buildEnumSuggestionProvider(type));
-            }
-
-            if (i == params.length - 1) arg.executes(dispatch);
-            if (head != null) arg.then(head);
-            head = arg;
-        }
-
-        if (head != null) branch.then(head);
-        else branch.executes(dispatch);
     }
 
     // This works I promise lmfao

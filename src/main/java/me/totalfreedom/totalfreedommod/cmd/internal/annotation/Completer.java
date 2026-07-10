@@ -11,7 +11,9 @@ import java.lang.annotation.Target;
  * <p>
  * {@link #value()} must match the {@link me.totalfreedom.totalfreedommod.cmd.internal.annotation.Subcommand#value() Subcommand#value()} path of the handler this
  * completer applies to (a Completer is always a separate method from the handler, so it needs an explicit link). 
- * {@link #position()} is zero-based and counts only the non-sender parameters of that handler.
+ * {@link #position()} is zero-based and counts only the handler's positional (Brigadier argument)
+ * parameters: the sender and any {@link Switch}-annotated parameters are excluded, since switches
+ * become literal branches rather than argument nodes.
  * <p>
  * The annotated method must return {@code List<String>} and accept exactly two parameters:
  * the same sender type as the handler, followed by the partially-typed input ({@code String}).
