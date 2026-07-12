@@ -15,6 +15,7 @@ import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.cmd.CommandFailException;
 import me.totalfreedom.totalfreedommod.cmd.FCommand;
+import me.totalfreedom.totalfreedommod.cmd.MessageUtils;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Callback;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Command;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Completer;
@@ -46,6 +47,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
+import java.util.stream.IntStream;
 
 /**
  * Builds Brigadier command node trees from {@link FCommand} declarations and wires them
@@ -136,10 +138,7 @@ public final class CommandProcessor
         {
             plugin.getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event ->
             {
-                for (CommandProcessor p : commands.values())
-                {
-                    p.registerWith(event.registrar());
-                }
+                commands.values().forEach(p -> p.registerWith(event.registrar()));
             });
         }
     }
@@ -185,83 +184,73 @@ public final class CommandProcessor
     private LiteralArgumentBuilder<CommandSourceStack> buildNode()
     {
         completers.clear();
-        for (Method method : command.getClass().getDeclaredMethods())
-        {
-            if (!method.isAnnotationPresent(Completer.class)) continue;
-            method.setAccessible(true);
-            if (!isValidCompleterSignature(method))
-            {
-                FLog.warning(String.format("%s has @Completer but an invalid signature (expected (SenderType, String) -> List<String>); skipped.", method.getName()));
-                continue;
-            }
-            Completer c = method.getAnnotation(Completer.class);
-            completers.put(new CompleterKey(c.value(), c.position()), method);
-        }
 
-        // subcommands trie together based on common roots (guest add, guest list, etc... fall under guest trie)
+        Arrays.stream(command.getClass().getDeclaredMethods())
+                .filter(method -> method.isAnnotationPresent(Completer.class))
+                .peek(method -> method.setAccessible(true))
+                .forEach(method -> 
+                {
+                    if (!isValidCompleterSignature(method)) 
+                    {
+                        FLog.warning(String.format("%s has @Completer but an invalid signature (expected (SenderType, String) -> List<String>); skipped.", method.getName()));
+                        return;
+                    }
+                    Completer c = method.getAnnotation(Completer.class);
+                    completers.put(new CompleterKey(c.value(), c.position()), method);
+                });
+
         SubcommandNode trie = new SubcommandNode(null);
         List<Method> rootHandlers = new ArrayList<>();
-        for (Method method : command.getClass().getDeclaredMethods())
-        {
-            if (!method.isAnnotationPresent(Callback.class))
-            {
-                continue;
-            }
-            method.setAccessible(true);
-            String pathValue = method.isAnnotationPresent(Subcommand.class)
-                ? method.getAnnotation(Subcommand.class).value().trim()
-                : "";
 
-            if (pathValue.isEmpty())
-            {
-                for (Method prior : rootHandlers)
+        Arrays.stream(command.getClass().getDeclaredMethods())
+                .filter(method -> method.isAnnotationPresent(Callback.class))
+                .peek(method -> method.setAccessible(true))
+                .forEach(method -> 
                 {
-                    if (argumentCount(prior) == argumentCount(method))
+                    String pathValue = method.isAnnotationPresent(Subcommand.class)
+                            ? method.getAnnotation(Subcommand.class).value().trim()
+                            : "";
+
+                    if (pathValue.isEmpty()) 
                     {
-                        FLog.warning(String.format("Ambiguous root handlers on /%s:\n %s and %s both take %d argument(s)", commandName, method.getName(), prior.getName(), argumentCount(method)));
+                        rootHandlers.stream()
+                                .filter(prior -> argumentCount(prior) == argumentCount(method))
+                                .forEach(prior -> FLog.warning(String.format("Ambiguous root handlers on /%s:\n %s and %s both take %d argument(s)", commandName, method.getName(), prior.getName(), argumentCount(method))));
+                        
+                        rootHandlers.add(method);
+                        return;
                     }
-                }
-                rootHandlers.add(method);
-                continue;
-            }
 
-            SubcommandNode node = trie;
-            for (String segment : pathValue.split("\\s+"))
-            {
-                node = node.children.computeIfAbsent(segment, SubcommandNode::new);
-            }
-            for (Method existing : node.handlerMethods)
-            {
-                if (argumentCount(existing) == argumentCount(method))
-                {
-                    FLog.warning(String.format("Ambiguous handlers for subcommand \"%s\" on /%s:\n %s and %s both take %d argument(s)", pathValue, commandName, method.getName(), existing.getName(), argumentCount(method)));
-                }
-            }
-            node.handlerMethods.add(method);
-        }
+                    SubcommandNode node = Arrays.stream(pathValue.split("\\s+"))
+                            .reduce(trie, 
+                                (current, segment) -> current.children.computeIfAbsent(segment, SubcommandNode::new), 
+                                (a, b) -> a);
+
+                    node.handlerMethods.stream()
+                            .filter(existing -> argumentCount(existing) == argumentCount(method))
+                            .forEach(existing -> FLog.warning(String.format("Ambiguous handlers for subcommand \"%s\" on /%s:\n %s and %s both take %d argument(s)", pathValue, commandName, method.getName(), existing.getName(), argumentCount(method))));
+                    
+                    node.handlerMethods.add(method);
+                });
 
         LiteralArgumentBuilder<CommandSourceStack> root = LiteralArgumentBuilder.literal(commandName);
-        if (classPermission != null)
+        
+        if (classPermission != null) 
         {
             root.requires(source -> PermissionGate.test(plugin, source.getSender(), classPermission, false));
         }
-        for (SubcommandNode child : trie.children.values())
-        {
-            root.then(buildBranch(child));
-        }
-        boolean bareExecutable = false;
-        for (Method rootHandler : rootHandlers)
-        {
-            if (argumentCount(rootHandler) == 0)
-            {
-                bareExecutable = true;
-            }
-            attachHandler(root, rootHandler);
-        }
-        if (!bareExecutable && !usage.isEmpty())
+
+        trie.children.values().forEach(child -> root.then(buildBranch(child)));
+
+        boolean bareExecutable = rootHandlers.stream()
+                .peek(rootHandler -> attachHandler(root, rootHandler))
+                .anyMatch(rootHandler -> argumentCount(rootHandler) == 0);
+
+        if (!bareExecutable && !usage.isEmpty()) 
         {
             root.executes(this::sendUsage);
         }
+
         return root;
     }
 
@@ -289,14 +278,8 @@ public final class CommandProcessor
     private LiteralArgumentBuilder<CommandSourceStack> buildBranch(SubcommandNode node)
     {
         LiteralArgumentBuilder<CommandSourceStack> branch = LiteralArgumentBuilder.literal(node.literal);
-        for (SubcommandNode child : node.children.values())
-        {
-            branch.then(buildBranch(child));
-        }
-        for (Method handler : node.handlerMethods)
-        {
-            attachHandler(branch, handler);
-        }
+        node.children.values().forEach(child -> branch.then(buildBranch(child)));
+        node.handlerMethods.forEach(handler -> attachHandler(branch, handler));
         return branch;
     }
 
@@ -325,12 +308,11 @@ public final class CommandProcessor
     {
         Parameter[] params = method.getParameters();
         boolean hasSender = params.length > 0 && ArgumentResolver.isSenderType(params[0].getType());
-        int count = 0;
-        for (int i = hasSender ? 1 : 0; i < params.length; i++)
-        {
-            if (!isSwitchParam(params[i])) count++;
-        }
-        return count;
+        
+        return (int) Arrays.stream(params)
+                .skip(hasSender ? 1 : 0)
+                .filter(param -> !isSwitchParam(param))
+                .count();
     }
 
     /**
@@ -376,10 +358,7 @@ public final class CommandProcessor
             try
             {
                 List<String> suggestions = (List<String>) completerMethod.invoke(command, sender, builder.getRemaining());
-                for (String suggestion : suggestions)
-                {
-                    builder.suggest(suggestion);
-                }
+                suggestions.forEach(builder::suggest);
             }
             catch (Exception e)
             {
@@ -397,14 +376,13 @@ public final class CommandProcessor
     private SuggestionProvider<CommandSourceStack> buildEnumSuggestionProvider(Class<?> enumType)
     {
         List<String> names = Arrays.stream(enumType.getEnumConstants())
-            .map(c -> ((Enum<?>) c).name())
-            .toList();
-        return (ctx, builder) ->
-        {
-            for (String name : FuzzyMatch.filter(names, builder.getRemaining()))
-            {
-                builder.suggest(name);
-            }
+                .map(c -> ((Enum<?>) c).name())
+                .toList();
+
+        return (ctx, builder) -> {
+            FuzzyMatch.filter(names, builder.getRemaining())
+                    .forEach(builder::suggest);
+                    
             return builder.buildFuture();
         };
     }
@@ -415,12 +393,10 @@ public final class CommandProcessor
      */
     private SuggestionProvider<CommandSourceStack> buildCandidateSuggestionProvider(Supplier<List<String>> candidates)
     {
-        return (ctx, builder) ->
-        {
-            for (String name : FuzzyMatch.filter(candidates.get(), builder.getRemaining()))
-            {
-                builder.suggest(name);
-            }
+        return (ctx, builder) -> {
+            FuzzyMatch.filter(candidates.get(), builder.getRemaining())
+                    .forEach(builder::suggest);
+                    
             return builder.buildFuture();
         };
     }
@@ -461,30 +437,35 @@ public final class CommandProcessor
         List<Integer> switchIndices = new ArrayList<>();
         List<Parameter> positionalParams = new ArrayList<>();
         List<Integer> positionalIndices = new ArrayList<>();
-        for (int i = argStart; i < params.length; i++)
-        {
-            if (params[i].isAnnotationPresent(Switch.class) && !isSwitchParam(params[i]))
-            {
-                FLog.warning(String.format("@Switch on non-boolean parameter '%s' of /%s %s is ignored", params[i].getName(), commandName, subPath));
-            }
-            if (isSwitchParam(params[i]))
-            {
-                switchParams.add(params[i]);
-                switchIndices.add(i);
-            }
-            else
-            {
-                positionalParams.add(params[i]);
-                positionalIndices.add(i);
-            }
-        }
+
+        IntStream.range(argStart, params.length)
+                .forEach(i -> 
+                {
+                    Parameter param = params[i];
+                    
+                    if (param.isAnnotationPresent(Switch.class) && !isSwitchParam(param)) 
+                    {
+                        FLog.warning(String.format("@Switch on non-boolean parameter '%s' of /%s %s is ignored", param.getName(), commandName, subPath));
+                    }
+                    
+                    if (isSwitchParam(param)) 
+                    {
+                        switchParams.add(param);
+                        switchIndices.add(i);
+                    } 
+                    else 
+                    {
+                        positionalParams.add(param);
+                        positionalIndices.add(i);
+                    }
+                });
 
         Permission methodPermission = method.isAnnotationPresent(Permission.class)
-            ? method.getAnnotation(Permission.class)
-            : classPermission;
+                ? method.getAnnotation(Permission.class)
+                : classPermission;
 
         attachSwitchLevel(branch, method, subPath, methodPermission, params, hasSender,
-            switchParams, switchIndices, positionalParams, positionalIndices, 0, new boolean[switchParams.size()]);
+                switchParams, switchIndices, positionalParams, positionalIndices, 0, new boolean[switchParams.size()]);
     }
 
     /**
@@ -502,26 +483,28 @@ public final class CommandProcessor
     {
         com.mojang.brigadier.Command<CommandSourceStack> dispatch = buildDispatch(
             method, subPath, methodPermission, params, hasSender, switchIndices, chosen.clone());
+            
         RequiredArgumentBuilder<CommandSourceStack, ?> head = buildPositionalChain(positionalParams, positionalIndices, subPath, dispatch);
-        if (head != null)
-        {
+        
+        if (head != null) {
             parent.then(head);
-        }
-        else
-        {
+        } else {
             parent.executes(dispatch);
         }
 
-        for (int j = from; j < switchParams.size(); j++)
-        {
-            Switch sw = switchParams.get(j).getAnnotation(Switch.class);
-            LiteralArgumentBuilder<CommandSourceStack> switchBranch = LiteralArgumentBuilder.literal("-" + sw.value());
-            boolean[] next = chosen.clone();
-            next[j] = true;
-            attachSwitchLevel(switchBranch, method, subPath, methodPermission, params, hasSender,
-                switchParams, switchIndices, positionalParams, positionalIndices, j + 1, next);
-            parent.then(switchBranch);
-        }
+        IntStream.range(from, switchParams.size())
+                .forEach(j -> {
+                    Switch sw = switchParams.get(j).getAnnotation(Switch.class);
+                    LiteralArgumentBuilder<CommandSourceStack> switchBranch = LiteralArgumentBuilder.literal("-" + sw.value());
+                    
+                    boolean[] next = chosen.clone();
+                    next[j] = true;
+                    
+                    attachSwitchLevel(switchBranch, method, subPath, methodPermission, params, hasSender,
+                        switchParams, switchIndices, positionalParams, positionalIndices, j + 1, next);
+                        
+                    parent.then(switchBranch);
+                });
     }
 
     /**
@@ -533,56 +516,52 @@ public final class CommandProcessor
         List<Parameter> positionalParams, List<Integer> positionalIndices, String subPath,
         com.mojang.brigadier.Command<CommandSourceStack> dispatch)
     {
-        RequiredArgumentBuilder<CommandSourceStack, ?> head = null;
-        for (int position = positionalParams.size() - 1; position >= 0; position--)
-        {
-            Parameter param = positionalParams.get(position);
-            Class<?> type = param.getType();
-            boolean greedy = param.isAnnotationPresent(Greedy.class);
-            if (greedy && position != positionalParams.size() - 1)
-            {
-                FLog.warning(String.format("@Greedy on non-last parameter '%s' of /%s %s is ignored", param.getName(), commandName, subPath));
-                greedy = false;
-            }
+        return IntStream.iterate(positionalParams.size() - 1, i -> i >= 0, i -> i - 1) // IntStream is my new favorite thing ever
+                .boxed()
+                .reduce(
+                    (RequiredArgumentBuilder<CommandSourceStack, ?>) null, 
+                    (RequiredArgumentBuilder<CommandSourceStack, ?> head, Integer position) -> {
+                        Parameter param = positionalParams.get(position);
+                        Class<?> type = param.getType();
+                        boolean greedy = param.isAnnotationPresent(Greedy.class);
+                        
+                        if (greedy && position != positionalParams.size() - 1) {
+                            FLog.warning(String.format("@Greedy on non-last parameter '%s' of /%s %s is ignored", param.getName(), commandName, subPath));
+                            greedy = false;
+                        }
 
-            RequiredArgumentBuilder<CommandSourceStack, ?> arg;
-            if (greedy)
-            {
-                arg = RequiredArgumentBuilder.argument(param.getName(), StringArgumentType.greedyString());
-            }
-            else if (isCustomResolved(param))
-            {
-                arg = RequiredArgumentBuilder.argument(param.getName(), StringArgumentType.word());
-            }
-            else if (ArgumentResolver.isPlayerArgType(type))
-            {
-                arg = RequiredArgumentBuilder.argument(param.getName(), ArgumentTypes.player());
-            }
-            else
-            {
-                arg = RequiredArgumentBuilder.argument(param.getName(), (ArgumentType<?>) ArgumentResolver.resolve(type));
-            }
+                        RequiredArgumentBuilder<CommandSourceStack, ?> arg;
+                        if (greedy) {
+                            arg = RequiredArgumentBuilder.argument(param.getName(), StringArgumentType.greedyString());
+                        } else if (isCustomResolved(param)) {
+                            arg = RequiredArgumentBuilder.argument(param.getName(), StringArgumentType.word());
+                        } else if (ArgumentResolver.isPlayerArgType(type)) {
+                            arg = RequiredArgumentBuilder.argument(param.getName(), ArgumentTypes.player());
+                        } else {
+                            arg = RequiredArgumentBuilder.argument(param.getName(), (ArgumentType<?>) ArgumentResolver.resolve(type));
+                        }
 
-            Method completer = completers.get(new CompleterKey(subPath, position));
-            Supplier<List<String>> candidates = ResolverRegistry.suggestionsFor(type);
-            if (completer != null)
-            {
-                arg.suggests(buildSuggestionProvider(completer));
-            }
-            else if (isCustomResolved(param) && candidates != null)
-            {
-                arg.suggests(buildCandidateSuggestionProvider(candidates));
-            }
-            else if (type.isEnum())
-            {
-                arg.suggests(buildEnumSuggestionProvider(type));
-            }
+                        Method completer = completers.get(new CompleterKey(subPath, position));
+                        Supplier<List<String>> candidates = ResolverRegistry.suggestionsFor(type);
+                        if (completer != null) {
+                            arg.suggests(buildSuggestionProvider(completer));
+                        } else if (isCustomResolved(param) && candidates != null) {
+                            arg.suggests(buildCandidateSuggestionProvider(candidates));
+                        } else if (type.isEnum()) {
+                            arg.suggests(buildEnumSuggestionProvider(type));
+                        }
 
-            if (position == positionalParams.size() - 1) arg.executes(dispatch);
-            if (head != null) arg.then(head);
-            head = arg;
-        }
-        return head;
+                        if (position == positionalParams.size() - 1) {
+                            arg.executes(dispatch);
+                        }
+                        if (head != null) {
+                            RequiredArgumentBuilder rawHead = head;
+                            arg.then(rawHead);
+                        }
+                        return arg;
+                    }, 
+                    (a, b) -> a
+                );
     }
 
     /**
@@ -592,8 +571,8 @@ public final class CommandProcessor
      * are read from {@code ctx} at dispatch time.
      */
     private com.mojang.brigadier.Command<CommandSourceStack> buildDispatch(
-        Method method, String subPath, Permission methodPermission, Parameter[] params, boolean hasSender,
-        List<Integer> switchIndices, boolean[] switchValues)
+    Method method, String subPath, Permission methodPermission, Parameter[] params, boolean hasSender,
+    List<Integer> switchIndices, boolean[] switchValues)
     {
         int argStart = hasSender ? 1 : 0;
         return ctx ->
@@ -630,10 +609,9 @@ public final class CommandProcessor
 
             Object[] invokeArgs = new Object[params.length];
             if (hasSender) invokeArgs[0] = sender;
-            for (int s = 0; s < switchIndices.size(); s++)
-            {
-                invokeArgs[switchIndices.get(s)] = switchValues[s];
-            }
+            
+            IntStream.range(0, switchIndices.size())
+                    .forEach(s -> invokeArgs[switchIndices.get(s)] = switchValues[s]);
 
             try
             {
@@ -659,8 +637,7 @@ public final class CommandProcessor
                     }
                     else if (ArgumentResolver.isPlayerArgType(type))
                     {
-                        var resolver = ctx.getArgument(paramName,
-                            PlayerSelectorArgumentResolver.class);
+                        var resolver = ctx.getArgument(paramName, PlayerSelectorArgumentResolver.class);
                         List<Player> players = resolver.resolve(source);
                         if (players.isEmpty())
                         {
@@ -705,7 +682,7 @@ public final class CommandProcessor
                 Throwable cause = e.getCause();
                 if (cause instanceof CommandFailException cfe)
                 {
-                    sender.sendMessage(cfe.getComponentMessage());
+                    sender.sendMessage(MessageUtils.parse(cfe.getMessage()));
                     return 0;
                 }
                 if (cause instanceof ArgumentResolutionException are)
@@ -724,6 +701,7 @@ public final class CommandProcessor
             }
         };
     }
+
 
     // This works I promise lmfao
     private static Object parseEnum(Class<?> enumType, String raw)

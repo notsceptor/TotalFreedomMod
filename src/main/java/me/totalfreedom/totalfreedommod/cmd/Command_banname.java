@@ -22,7 +22,7 @@ public class Command_banname extends FCommand
     {
         if (plugin.bm.getByUsername(name) != null)
         {
-            msg(sender, name + " is already banned.");
+            msg(sender, "%s is already banned.", name);
             return;
         }
         final Ban ban = Ban.forPlayerName(name, sender, null, reason);
@@ -32,7 +32,7 @@ public class Command_banname extends FCommand
         final Player player = server.getPlayer(name);
         if (player != null)
         {
-            player.kick(ban.bakeKickMessage());
+            kickPlayer(player, MessageUtils.toPlainText(ban.bakeKickMessage()));
         }
     }
 }

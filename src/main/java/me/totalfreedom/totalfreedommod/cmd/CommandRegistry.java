@@ -4,8 +4,10 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Command;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Subcommand;
@@ -21,11 +23,12 @@ public final class CommandRegistry
         Command meta = command.getClass().getAnnotation(Command.class);
         if (meta == null) throw new IllegalArgumentException(
             command.getClass().getName() + " is missing @Command");
-        registry.put(meta.name().toLowerCase(), command);
-        for (String alias : meta.aliases())
-        {
-            registry.putIfAbsent(alias.toLowerCase(), command);
-        }
+            
+        registry.put(meta.name().toLowerCase(Locale.ROOT), command);
+        
+        Stream.of(meta.aliases())
+              .map(alias -> alias.toLowerCase(Locale.ROOT))
+              .forEach(alias -> registry.putIfAbsent(alias, command));
     }
 
     public static List<String> listAliases(String commandName)
@@ -39,10 +42,10 @@ public final class CommandRegistry
     {
         FCommand cmd = registry.get(commandName.toLowerCase());
         if (cmd == null) return List.of();
-        return Arrays.stream(cmd.getClass().getDeclaredMethods())
-            .filter(m -> m.isAnnotationPresent(Subcommand.class))
-            .map(m -> m.getAnnotation(Subcommand.class).value())
-            .collect(Collectors.toUnmodifiableList());
+        return Stream.of(cmd.getClass().getDeclaredMethods())
+                     .filter(m -> m.isAnnotationPresent(Subcommand.class))
+                     .map(m -> m.getAnnotation(Subcommand.class).value())
+                     .collect(Collectors.toUnmodifiableList());
     }
 
     public static Collection<FCommand> all()

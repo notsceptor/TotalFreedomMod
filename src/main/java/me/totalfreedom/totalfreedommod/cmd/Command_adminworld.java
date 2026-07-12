@@ -6,7 +6,6 @@ import org.bukkit.entity.Player;
 
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.rank.Rank;
-import me.totalfreedom.totalfreedommod.util.FUtil;
 import me.totalfreedom.totalfreedommod.world.WorldTime;
 import me.totalfreedom.totalfreedommod.world.WorldWeather;
 
@@ -49,10 +48,10 @@ public class Command_adminworld extends FCommand
     {
         if (plugin.wm.adminworld.addGuest(target, sender))
         {
-            FUtil.adminAction(sender.getName(), "AdminWorld guest added: " + target.getName(), false);
+            adminAction(sender, "<aqua>AdminWorld guest added: %s", target.getName());
             return;
         }
-        msg(sender, "Could not add player to guest list.");
+        msg(sender, "<red>Could not add player to guest list.");
     }
 
     @Callback
@@ -62,11 +61,11 @@ public class Command_adminworld extends FCommand
     {
         if (plugin.wm.adminworld.hasGuests())
         {
-            msg(sender, "AdminWorld guest list: " + plugin.wm.adminworld.guestListToString());
+            msg(sender, "<aqua>AdminWorld guest list: %s", plugin.wm.adminworld.guestListToString());
             return;
         }
 
-        msg(sender, "There are no AdminWorld guests.");
+        msg(sender, "<red>There are no AdminWorld guests.");
     }
 
     @Callback
@@ -76,7 +75,7 @@ public class Command_adminworld extends FCommand
     {
         if (plugin.wm.adminworld.removeGuest(target))
         {
-            FUtil.adminAction(sender.getName(), "AdminWorld guest removed: " + target.getName(), false);
+            adminAction(sender, "<aqua>AdminWorld guest removed: %s", target.getName());
         }
         else
         {
@@ -90,7 +89,7 @@ public class Command_adminworld extends FCommand
     public void purgeGuests(CommandSender sender)
     {
         plugin.wm.adminworld.purgeGuestList();
-        FUtil.adminAction(sender.getName(), "AdminWorld guest list purged.", false);
+        adminAction(sender, "<aqua>AdminWorld guest list purged.");
     }
 
     @Callback
@@ -108,6 +107,6 @@ public class Command_adminworld extends FCommand
     public void setWeather(CommandSender sender, WorldWeather weather)
     {
         plugin.wm.adminworld.setWeatherMode(weather);
-        msg(sender, "AdminWorld eather set to: " + weather.name());
+        msg(sender, "<aqua>AdminWorld eather set to: %s", weather.name());
     }
 }

@@ -42,6 +42,7 @@ public class FUtil
 {
 
     private static final Random RANDOM = new Random();
+    private static final Component separator = Component.text(" - ");
     // See https://github.com/TotalFreedom/License - None of the listed names may be removed.
     public static final List<String> DEVELOPERS = Arrays.asList("Madgeek1450", "Prozza", "Wild1145", "WickedGamingUK", "aggelosQQ", "aokod", "rptt", "ERR_666");
     public static String DATE_STORAGE_FORMAT = "EEE, d MMM yyyy HH:mm:ss Z";
@@ -127,16 +128,25 @@ public class FUtil
         player.setFlying(flying);
     }
 
+    @Deprecated
     public static void adminAction(String adminName, String action, boolean isRed)
     {
         FUtil.bcastMsg(adminName + " - " + action, (isRed ? NamedTextColor.RED : NamedTextColor.AQUA));
     }
 
+    @Deprecated
     public static void adminAction(String adminName, Component action, NamedTextColor color)
     {
         FUtil.bcastMsg(Component.text(adminName, color)
                 .append(Component.text(" - "))
                 .append(action));
+    }
+
+    public static void adminAction(CommandSender sender, Component action)
+    {
+        final Component name = sender.name().color(action.color());
+        
+        FUtil.bcastMsg(name.append(separator.color(action.color()).append(action)));
     }
 
     public static String formatLocation(Location location)

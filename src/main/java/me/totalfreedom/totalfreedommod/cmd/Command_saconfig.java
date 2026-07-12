@@ -5,7 +5,12 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.EnumMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.cmd.internal.FuzzyMatch;
@@ -18,7 +23,6 @@ import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.rank.CustomRank;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 
 import org.bukkit.Bukkit;
@@ -34,7 +38,7 @@ public class Command_saconfig extends FCommand
     @Callback
     @Subcommand("setrank")
     @Permission(permission = "tfm.manage.saconfig", source = SourceType.ONLY_CONSOLE, level = Rank.SENIOR_ADMIN)
-    public boolean setRank(CommandSender sender, Player target, String rankInput) 
+    public void setRank(CommandSender sender, Player target, String rankInput) 
     {
         final CustomRank custom = plugin.rm != null ? plugin.rm.getCustomRank(rankInput) : null;
         final Rank rank;
@@ -44,19 +48,19 @@ public class Command_saconfig extends FCommand
         {
             if (custom.isConsoleOnly()) 
             {
-                msg(sender, "You cannot set players to a console rank");
-                return true;
+                msg(sender, "<red>You cannot set players to a console rank");
+                return;
             }
             if (!custom.isAdmin()) 
             {
-                msg(sender, "Rank '" + custom.getName() + "' is not an admin rank.", NamedTextColor.RED);
-                return true;
+                msg(sender, "<red>Rank \"%s\" is not an admin rank.", custom.getName());
+                return;
             }
             rank = resolveLegacyTier(custom);
             if (rank == null) 
             {
-                msg(sender, "Rank '" + custom.getName() + "' has no legacy tier; set or inherit from super_admin or senior_admin.", NamedTextColor.RED);
-                return true;
+                msg(sender, "<red>Rank \"%s\" has no legacy tier; set or inherit from super_admin or senior_admin.", custom.getName());
+                return;
             }
             displayName = custom.getName();
         } 
@@ -68,31 +72,31 @@ public class Command_saconfig extends FCommand
             } 
             catch (IllegalArgumentException ignored) 
             {
-                msg(sender, "Unknown rank: " + rankInput, NamedTextColor.RED);
-                return true;
+                msg(sender, "<red>Unknown rank: %s", rankInput);
+                return;
             }
             if (rank.isConsole()) 
             {
-                msg(sender, "You cannot set players to a console rank");
-                return true;
+                msg(sender, "<red>You cannot set players to a console rank");
+                return;
             }
             displayName = rank.getName();
         }
 
         if (!rank.isAtLeast(Rank.SUPER_ADMIN)) 
         {
-            msg(sender, "Rank must be superadmin or higher.", NamedTextColor.RED);
-            return true;
+            msg(sender, "<red>Rank must be superadmin or higher.");
+            return;
         }
 
         Admin admin = plugin.al.getEntryByName(target.getName());
         if (admin == null) 
         {
-            msg(sender, "Unknown admin: " + target.getName());
-            return true;
+            msg(sender, "Unknown admin: %s", target.getName());
+            return;
         }
 
-        FUtil.adminAction(sender.getName(), "Setting " + admin.getName() + "'s rank to " + displayName, true);
+        adminAction(sender, "<red>Setting %s's rank to %s", admin.getName(), displayName);
 
         admin.setRank(rank);
         admin.setCustomRankId(custom != null ? custom.getId() : null);
@@ -100,8 +104,7 @@ public class Command_saconfig extends FCommand
         plugin.al.saveAdminAsync(admin);
         plugin.rm.updatePlayerTeam(target);
 
-        msg(sender, "Set " + admin.getName() + "'s rank to " + displayName);
-        return true;
+        msg(sender, "Set %s's rank to %s.", admin.getName(), displayName);
     }
 
     @Callback
@@ -112,7 +115,7 @@ public class Command_saconfig extends FCommand
 
         if (admin == null) 
         {
-            msg(sender, "Superadmin not found: " + target.getName());
+            msg(sender, "Superadmin not found: %s", target.getName());
         } 
         else 
         {
@@ -147,12 +150,12 @@ public class Command_saconfig extends FCommand
         if (admin == null)
         {
             target.setOp(true);
-            FUtil.adminAction(sender.getName(), "Adding " + target.getName() + " to the admin list", true);
+            adminAction(sender, "<red>Adding %s to the admin list", target.getName());
             plugin.al.addAdmin(new Admin(target));
         } 
         else 
         {
-            FUtil.adminAction(sender.getName(), "Re-adding " + admin.getName() + " to the admin list", true);
+            adminAction(sender, "<red>Re-adding %s to the admin list", admin.getName());
 
             target.setOp(true);
             admin.setName(target.getName());
@@ -194,7 +197,7 @@ public class Command_saconfig extends FCommand
             return true;
         }
 
-        FUtil.adminAction(sender.getName(), "Removing " + admin.getName() + " from the admin list", true);
+        adminAction(sender, "<red>Removing %s from the admin list", admin.getName());
         admin.setActive(false);
         plugin.al.updateTables();
         plugin.al.saveAdminAsync(admin);
@@ -212,7 +215,7 @@ public class Command_saconfig extends FCommand
     @Subcommand("reload")
     public boolean reload(CommandSender sender) 
     {
-        FUtil.adminAction(sender.getName(), "Reloading the admin list", true);
+        adminAction(sender, "<red>Reloading the admin list");
         plugin.al.load();
         plugin.csr.load();
         msg(sender, "Admin list reloaded!");
@@ -224,7 +227,7 @@ public class Command_saconfig extends FCommand
     @Permission(permission = "tfm.manage.saconfig", level = Rank.SENIOR_ADMIN, source = SourceType.ONLY_CONSOLE)
     public boolean clean(CommandSender sender) 
     {
-        FUtil.adminAction(sender.getName(), "Cleaning admin list", true);
+        adminAction(sender, "<red>Cleaning admin list");
         plugin.al.deactivateOldEntries(true);
         getAdminList(sender);
         return true;
@@ -247,21 +250,18 @@ public class Command_saconfig extends FCommand
     @Completer(value = "setrank", position = 1)
     public List<String> completeSetrankRank(CommandSender sender, String partial) 
     {
-        List<String> candidates = new ArrayList<>();
-        for (Rank rank : Rank.values()) 
-        {
-            if (rank.isAdmin() && !rank.isConsole()) 
-            {
-                candidates.add(rank.name().toLowerCase());
-            }
-        }
-        for (CustomRank custom : plugin.rm.getCustomRanks().values()) 
-        {
-            if (custom.isAdmin() && !custom.isConsoleOnly()) 
-            {
-                candidates.add(custom.getId());
-            }
-        }
+        Stream<String> rankNames = Stream.of(Rank.values())
+                                         .filter(rank -> rank.isAdmin() && !rank.isConsole())
+                                         .map(rank -> rank.name().toLowerCase(Locale.ROOT));
+
+        Stream<String> customRankIds = plugin.rm.getCustomRanks()
+                                                .values()
+                                                .stream()
+                                                .filter(custom -> custom.isAdmin() && !custom.isConsoleOnly())
+                                                .map(CustomRank::getId);
+
+        List<String> candidates = Stream.concat(rankNames, customRankIds).toList();
+
         return FuzzyMatch.filter(candidates, partial);
     }
 
@@ -297,82 +297,59 @@ public class Command_saconfig extends FCommand
 
     private void getAdminList(CommandSender sender) 
     {
-        if (plugin.al.getActiveAdmins().isEmpty()) 
+        Set<Admin> activeAdmins = plugin.al.getActiveAdmins();
+        if (activeAdmins.isEmpty()) 
         {
-            msg(sender, "No active admins.", NamedTextColor.GRAY);
+            msg(sender, "<gray>No active admins.");
             return;
         }
 
-        Map<Rank, List<Admin>> byRank = new EnumMap<>(Rank.class);
-        for (Admin admin : plugin.al.getActiveAdmins()) 
-        {
-            byRank.computeIfAbsent(admin.getRank(), r -> new ArrayList<>()).add(admin);
-        }
+        Map<Rank, List<Admin>> byRank = activeAdmins.stream().collect(
+            Collectors.groupingBy(Admin::getRank, () -> new EnumMap<>(Rank.class), Collectors.toList())
+        );
 
-        List<Rank> order = new ArrayList<>();
-        for (Rank r : Rank.values()) 
-        {
-            if (r.isAdmin() && !r.isConsole()) 
-            {
-                order.add(r);
-            }
-        }
-        order.sort(Comparator.comparingInt(Rank::getLevel).reversed());
+        Stream.of(Rank.values())
+              .filter(r -> r.isAdmin() && !r.isConsole())
+              .filter(byRank::containsKey)
+              .sorted(Comparator.comparingInt(Rank::getLevel).reversed())
+              .forEach(rank -> {
+                List<Admin> bucket = byRank.get(rank);
+                String joinedAdmins = bucket.stream()
+                        .sorted(Comparator.comparing(a -> a.getName().toLowerCase()))
+                        .map(admin -> {
+                            CustomRank customRank = admin.getCustomRankId() == null
+                                    ? null
+                                    : plugin.rm.getCustomRank(admin.getCustomRankId());
+                                    
+                            if (customRank != null) {
+                                String tagText = customRank.getName();
+                                String colorTag = customRank.getColor().asHexString();
+                                return String.format("<%s>%s <white>%s", colorTag, tagText, admin.getName());
+                            }
+                            return String.format("<white>%s", admin.getName());
+                        })
+                        .collect(Collectors.joining("<white>, "));
 
-        for (Rank rank : order) 
-        {
-            List<Admin> bucket = byRank.get(rank);
-            if (bucket == null || bucket.isEmpty()) 
-            {
-                continue;
-            }
+                String rankColorTag = "<" + rank.getColor().asHexString() + ">";
+                String line = rankColorTag + rank.getName() + "s: " + joinedAdmins;
 
-            bucket.sort(Comparator.comparing(a -> a.getName().toLowerCase()));
-
-            Component line = Component.text(rank.getName() + "s: ").color(rank.getColor());
-            for (int i = 0; i < bucket.size(); i++) 
-            {
-                if (i > 0) 
-                {
-                    line = line.append(Component.text(", ").color(NamedTextColor.WHITE));
-                }
-                Admin admin = bucket.get(i);
-                CustomRank customRank = admin.getCustomRankId() == null
-                        ? null
-                        : plugin.rm.getCustomRank(admin.getCustomRankId());
-                if (customRank != null) 
-                {
-                    line = line.append(customRank.getColoredTag())
-                            .append(Component.text(" "))
-                            .append(Component.text(admin.getName()).color(NamedTextColor.WHITE));
-                } 
-                else 
-                {
-                    line = line.append(Component.text(admin.getName()).color(NamedTextColor.WHITE));
-                }
-            }
-            msg(sender, line);
-        }
+                msg(sender, line);
+            });
     }
 
     private Rank resolveLegacyTier(CustomRank custom) 
     {
-        CustomRank current = custom;
-        int safety = 32;
-        while (current != null && safety-- > 0) {
-            try 
-            {
-                return Rank.valueOf(current.getId().toUpperCase());
-            } 
-            catch (IllegalArgumentException ignored) {}
-
-            String parentId = current.getInheritFrom();
-            if (parentId == null) 
-            {
-                return null;
-            }
-            current = plugin.rm.getCustomRank(parentId);
-        }
-        return null;
+        return Stream.iterate(custom, Objects::nonNull, current -> plugin.rm.getCustomRank(current.getInheritFrom()))
+            .limit(32)
+            .map(current -> {
+                try {
+                    return Rank.valueOf(current.getId().toUpperCase(Locale.ROOT));
+                } catch (IllegalArgumentException ignored) {
+                    return null;
+                }
+            })
+            .filter(Objects::nonNull)
+            .findFirst()
+            .orElse(null);
     }
 }

@@ -1,5 +1,6 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,7 +12,10 @@ import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.serializer.ansi.ANSIComponentSerializer;
+
+import org.bukkit.Location;
 import org.bukkit.Server;
+import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -39,11 +43,13 @@ public abstract class FCommand
     protected final TotalFreedomMod plugin = TotalFreedomMod.plugin();
     protected final Server server = plugin.getServer();
 
+    @Deprecated
     protected boolean isConsole(CommandSender sender)
     {
         return !(sender instanceof Player);
     }
 
+    @Deprecated
     protected void checkConsole(CommandSender sender)
     {
         if (!isConsole(sender))
@@ -52,6 +58,7 @@ public abstract class FCommand
         }
     }
 
+    @Deprecated
     protected void checkPlayer(CommandSender sender)
     {
         if (isConsole(sender))
@@ -60,6 +67,7 @@ public abstract class FCommand
         }
     }
 
+    @Deprecated
     protected void checkRank(CommandSender sender, Rank rank)
     {
         if (!plugin.rm.getRank(sender).isAtLeast(rank))
@@ -68,6 +76,12 @@ public abstract class FCommand
         }
     }
 
+    protected void adminAction(CommandSender sender, String action, Object... refs)
+    {
+        FUtil.adminAction(sender, MessageUtils.parse(String.format(action, refs)));
+    }
+
+    @Deprecated
     protected boolean noPerms()
     {
         throw new CommandFailException("You do not have permission to use this command.");
@@ -77,7 +91,7 @@ public abstract class FCommand
     {
         if (name == null || name.isEmpty())
         {
-            return null;
+            throw new InvalidParameterException("String cannot be Null-or-Empty");
         }
 
         Player player = server.getPlayerExact(name);
@@ -109,37 +123,31 @@ public abstract class FCommand
             return matches.get(0);
         }
 
-        return null;
+        throw new CommandFailException("That player cannot be found!");
     }
 
-    protected void msg(final CommandSender sender, final String message, final NamedTextColor color)
+    protected void msg(final CommandSender sender, final String message, Object... refs)
     {
-        if (sender == null || message == null)
-        {
-            return;
-        }
-        msg(sender, FUtil.colorizeWithLinks(message, color));
+        MessageUtils.send(sender, String.format(message, refs));
     }
 
-    protected void msg(final CommandSender sender, final String message)
+    protected void kickPlayer(final Player player, final String message)
     {
-        msg(sender, message, NamedTextColor.GRAY);
+        player.kick(MessageUtils.parse(message));
     }
 
-    protected void msg(final CommandSender sender, final Component component)
+    protected void smitePlayer(final Player player)
     {
-        if (sender == null || component == null)
+        final Location targetPos = player.getLocation();
+        final World world = player.getWorld();
+        for (int x = -1; x <= 1; x++)
         {
-            return;
+            for (int z = -1; z <= 1; z++)
+            {
+                final Location strike_pos = new Location(world, targetPos.getBlockX() + x, targetPos.getBlockY(), targetPos.getBlockZ() + z);
+                world.strikeLightning(strike_pos);
+            }
         }
-
-        if (!(sender instanceof Player))
-        {
-            sender.sendMessage(ANSIComponentSerializer.ansi().serialize(component));
-            return;
-        }
-
-        sender.sendMessage(component);
     }
 
     protected boolean isAdmin(CommandSender sender)

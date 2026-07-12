@@ -12,6 +12,6 @@ public class Command_announce extends FCommand
     @Callback
     public void broadcast(CommandSender sender, @Greedy String content)
     {
-        plugin.an.announce(content);
+        plugin.an.announce(content); // TODO: Trace this all the way to the root, and modify to use new MessageUtils
     }
 }

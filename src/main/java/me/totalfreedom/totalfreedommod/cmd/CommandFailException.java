@@ -1,11 +1,8 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
-
 /**
  * Thrown from a command handler to abort execution and message the sender.
- * The dispatcher catches this, sends {@link #getComponentMessage()} to the sender,
+ * The dispatcher catches this, sends {@link #getMessage()} to the sender,
  * and treats the command as handled.
  */
 public class CommandFailException extends RuntimeException
@@ -13,23 +10,16 @@ public class CommandFailException extends RuntimeException
 
     private static final long serialVersionUID = -92333791173124L;
 
-    private final transient Component component;
+    private final transient String message;
 
     public CommandFailException(String message)
     {
         super(message);
-        this.component = Component.text(message);
+        this.message = message;
     }
 
-    public CommandFailException(Component component)
+    public String getMessage()
     {
-        // Fixed the auto-import inlining instead of package level
-        super(PlainTextComponentSerializer.plainText().serialize(component));
-        this.component = component;
-    }
-
-    public Component getComponentMessage()
-    {
-        return component;
+        return message;
     }
 }

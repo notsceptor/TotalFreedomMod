@@ -10,9 +10,6 @@ import org.bukkit.entity.Player;
 import me.totalfreedom.totalfreedommod.banning.Ban;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.rank.Rank;
-import me.totalfreedom.totalfreedommod.util.FUtil;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 
 @Command(name = "banip", description = "Bans an IP address or all known IP addresses for a player.", usage = "/banip <player|ip> [reason]")
 @Permission(level = Rank.SUPER_ADMIN, permission = "tfm.admin.ban")
@@ -29,13 +26,13 @@ public class Command_banip extends FCommand
     @Callback
     public void banIpsWithReason(CommandSender sender, @Resolve("IPs") List<InetAddress> addressList, @Greedy String reason)
     {
-        FUtil.adminAction(sender.getName(), Component.text("Banning ")
-                .append(Component.text(addressList.size()))
-                .append(Component.text(" IP address(es)"))
-                .append(reason != null ?
-                        Component.newline().append(Component.text("  Reason: ")
-                                .append(Component.text(reason, NamedTextColor.YELLOW))) :
-                        Component.empty()), NamedTextColor.RED);
+        StringBuilder sb = new StringBuilder("<red>Banning ");
+        sb.append(addressList.size())
+        .append(" IP address")
+        .append(addressList.size() == 1 ? "" : "es");
+
+        if (reason != null && !reason.isEmpty())
+            sb.append("\n - Reason: <yellow>").append(reason);
 
         addressList.stream()
                 .filter(ip -> !plugin.bm.isIpBanned(ip.getHostAddress()))

@@ -1,8 +1,10 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import org.bukkit.command.CommandSender;
 
@@ -10,10 +12,9 @@ import me.totalfreedom.totalfreedommod.banning.Ban;
 import me.totalfreedom.totalfreedommod.banning.PermBan;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 
-@Command(name = "", description = "")
+@Command(name = "baninfo", description = "Show info about a ban by username or the first match to a (partial) IP.", usage = "/baninfo <name|ip>", aliases = {"checkban"})
+@Permission(permission = "tfm.admin.baninfo")
 public class Command_baninfo extends FCommand
 {
     @Callback
@@ -51,159 +52,108 @@ public class Command_baninfo extends FCommand
             String normalized = normalizePartialIP(target);
             int leading = countLeadingOctets(target);
             
-            for (Ban candidate : plugin.bm.getAllBans())
-            {
-                if (candidate.isExpired()) continue;
-
-                for (String ip : candidate.getIps())
-                {
-                    if (FUtil.fuzzyIpMatch(normalized, ip, leading))
+            plugin.bm.getAllBans()
+                .stream()
+                .filter(candidate -> !candidate.isExpired())
+                .forEach(candidate -> 
                     {
-                        printBan(sender, candidate);
-                        return;
-                    }
-                }
-            }
+                        candidate.getIps()
+                            .stream()
+                            .filter(ip -> FUtil.fuzzyIpMatch(normalized, ip, leading))
+                            .findFirst()
+                            .ifPresent(ip -> printBan(sender, candidate));
+                    });
 
-            for (String name : plugin.pm.getPermbannedNames())
-            {
-                PermBan candidate = plugin.pm.getPermban(name);
-                
-                if (candidate == null || candidate.getIps() == null) continue;
-
-                for (String ip : candidate.getIps())
-                {
-                    if (FUtil.fuzzyIpMatch(normalized, ip, leading))
+            plugin.pm.getPermbannedNames()
+                .forEach(name -> 
                     {
-                        printPermban(sender, candidate);
-                        return;
-                    }
-                }
-            }
+                        PermBan candidate = plugin.pm.getPermban(name);
+                        if (candidate == null || candidate.getIps() == null) return; // in a lambda, return does NOT return the execution back to the caller. It simply moves to the next element in the set.
+                        candidate.getIps()
+                            .stream()
+                            .filter(ip -> FUtil.fuzzyIpMatch(normalized, ip, leading))
+                            .findFirst()
+                            .ifPresent(ip -> printPermban(sender, candidate));
+                    });
         }
 
-        msg(sender, Component.text("No ban or permban found for: ").color(NamedTextColor.GRAY)
-                .append(Component.text(target).color(NamedTextColor.WHITE)));
+        msg(sender, "<gray>No ban or permban found for: <white>%s", target);
     }
 
     private static boolean isPartialIP(String s)
     {
-        if (s == null || s.indexOf('.') < 0) return false;
-
         String[] parts = s.split("\\.", -1);
-        if (parts.length > 4) return false;
+        if (parts.length == 4 || s.isEmpty()) 
+            return false;
 
-        boolean hasWildcard = false;
-        for (String part : parts)
-        {
-            if (part.isEmpty()) return false;
+        if (Stream.of(parts).allMatch(part -> !part.isEmpty() && (part.equals("*") || part.chars().allMatch(Character::isDigit)))) 
+            return false;
 
-            if (part.equals("*"))
-            {
-                hasWildcard = true;
-                continue;
-            }
-
-            for (int i = 0; i < part.length(); i++)
-            {
-                if (!Character.isDigit(part.charAt(i))) return false;
-            }
-        }
-
+        boolean hasWildcard = Stream.of(parts).anyMatch(part -> part.equals("*"));
         return hasWildcard || parts.length < 4;
     }
 
-    private static String normalizePartialIP(String s)
+    private static String normalizePartialIP(String s) 
     {
         String[] parts = s.split("\\.", -1);
-        StringBuilder out = new StringBuilder();
-
-        for (int i = 0; i < 4; i++)
-        {
-            if (i > 0) out.append('.');
-
-            out.append(i < parts.length ? parts[i] : "*");
-        }
-
-        return out.toString();
+    
+        return IntStream.range(0, 4)
+                        .mapToObj(i -> i < parts.length ? parts[i] : "*")
+                        .collect(Collectors.joining("."));
     }
 
-    private static int countLeadingOctets(String s)
+    private static int countLeadingOctets(String s) 
     {
         String[] parts = s.split("\\.", -1);
-        int n = 0;
-
-        for (String part : parts)
-        {
-            if (part.equals("*")) break;
-
-            n++;
-        }
-
-        return Math.min(n, 4);
+    
+        long count = Stream.of(parts)
+                           .takeWhile(part -> !part.equals("*"))
+                           .count();
+        
+        return (int) Math.min(count, 4);
     }
 
     private void printBan(CommandSender sender, Ban ban)
     {
-        String header = ban.hasUsername() ? ban.getUsername() : "(IP-only)";
-
-        msg(sender, Component.text("Ban: ").color(NamedTextColor.RED)
-                .append(Component.text(header).color(NamedTextColor.WHITE)));
-
-        msg(sender, Component.text("  Reason: ").color(NamedTextColor.GRAY)
-                .append(FUtil.colorizeWithLinks(blankOr(ban.getReason(), "(none)"), NamedTextColor.WHITE)));
-
-        msg(sender, Component.text("  Banned by: ").color(NamedTextColor.GRAY)
-                .append(Component.text(blankOr(ban.getBy(), "(unknown)")).color(NamedTextColor.WHITE)));
-
-        msg(sender, Component.text("  IPs: ").color(NamedTextColor.GRAY)
-                .append(Component.text(formatIps(sender, ban.getIps())).color(NamedTextColor.WHITE)));
+        StringBuilder sb = new StringBuilder("<red>Ban: <white>");
+        sb.append(ban.hasUsername() ? ban.getUsername() : "(IP-only)")
+          .append("\n<gray> - Reason: <white>")
+          .append(MessageUtils.toPlainText(FUtil.colorizeWithLinks(blankOr(ban.getReason(), "(none)"))))
+          .append("\n<gray> - Banned by: <white>")
+          .append(blankOr(ban.getBy(), "(none)"))
+          .append("\n<gray> - IPs: <white>")
+          .append(formatIps(sender, ban.getIps()))
+          .append("\n<gray> - Expires: <white>");
 
         if (ban.hasExpiry())
-        {
-            msg(sender, Component.text("  Expires: ").color(NamedTextColor.GRAY)
-                    .append(Component.text(Ban.DATE_FORMAT.format(ban.getExpiryDate())).color(NamedTextColor.WHITE)));
-        }
+            sb.append(Ban.DATE_FORMAT.format(ban.getExpiryDate()));
         else
-        {
-            msg(sender, Component.text("  Expires: ").color(NamedTextColor.GRAY)
-                    .append(Component.text("Unknown (legacy ban)").color(NamedTextColor.YELLOW)));
-        }
+            sb.append("<yellow>Unknown (legacy ban)");
+
+        msg(sender, sb.toString());
     }
 
     private void printPermban(CommandSender sender, PermBan permban)
     {
-        String header = permban.getUsername() != null && !permban.getUsername().isEmpty()
-                ? permban.getUsername()
-                : "(IP-only)";
+        StringBuilder sb = new StringBuilder("<dark_red>Permban: <white>");
+        sb.append(permban.getUsername() != null && !permban.getUsername().isEmpty() ? permban.getUsername() : "(IP-only)")
+          .append("\n<gray> - Reason: <white>")
+          .append(MessageUtils.toPlainText(FUtil.colorizeWithLinks(blankOr(permban.getReason(), "(none)"))))
+          .append("\n<gray> - IPs: <white>")
+          .append(formatIps(sender, permban.getIps()))
+          .append("\n<gray> - Expires: <red>Permanent");
 
-        msg(sender, Component.text("Permban: ").color(NamedTextColor.DARK_RED)
-                .append(Component.text(header).color(NamedTextColor.WHITE)));
-
-        msg(sender, Component.text("  Reason: ").color(NamedTextColor.GRAY)
-                .append(FUtil.colorizeWithLinks(blankOr(permban.getReason(), "(none)"), NamedTextColor.WHITE)));
-
-        msg(sender, Component.text("  IPs: ").color(NamedTextColor.GRAY)
-                .append(Component.text(formatIps(sender, permban.getIps())).color(NamedTextColor.WHITE)));
-
-        msg(sender, Component.text("  Expires: ").color(NamedTextColor.GRAY)
-                .append(Component.text("Permanent").color(NamedTextColor.RED)));
+        msg(sender, sb.toString());
     }
 
     private String formatIps(CommandSender sender, List<String> ips)
     {
         if (ips == null || ips.isEmpty())
-        {
             return "(none)";
-        }
 
-        List<String> masked = new ArrayList<>(ips.size());
-        for (String ip : ips)
-        {
-            masked.add(FUtil.sanitizeIp(sender, ip));
-        }
-
-        return String.join(", ", masked);
+        return ips.stream()
+                  .map(ip -> FUtil.sanitizeIp(sender, ip))
+                  .collect(Collectors.joining(", "));
     }
 
     private static String blankOr(String value, String fallback)

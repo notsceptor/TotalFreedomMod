@@ -1,7 +1,6 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
 import me.totalfreedom.totalfreedommod.rank.Rank;
-import me.totalfreedom.totalfreedommod.util.FUtil;
 
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
@@ -17,7 +16,7 @@ public class Command_aeclear extends FCommand
     @Callback
     public void clear(CommandSender sender)
     {
-        FUtil.adminAction(sender.getName(), "Removing all area-of-effect clouds", true);
+        adminAction(sender, "<red>Removing all area-of-effect clouds");
 
         int removed = 0;
         for (World world : server.getWorlds())

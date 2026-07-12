@@ -151,7 +151,6 @@ public class CommandLoader extends FreedomService
 
     private int discoverCommands() 
     {
-        int loaded = 0;
         ClassLoader classLoader = plugin.getClass().getClassLoader();
 
         try 
@@ -163,29 +162,20 @@ public class CommandLoader extends FreedomService
 
             try (Stream<Path> stream = Files.list(targetPath)) 
             {
-                for (Path path : stream.toList()) 
-                {
-                    String fileName = path.getFileName().toString();
-                    
-                    if (fileName.startsWith("Command_") && fileName.endsWith(".class")) 
-                    {
-                        String className = COMMANDS_PACKAGE + "." + fileName.substring(0, fileName.length() - ".class".length());
-                        
-                        if (loadCommandClass(className, classLoader)) 
-                        {
-                            loaded++;
-                        }
-                    }
-                }
+                return (int) stream
+                        .map(path -> path.getFileName().toString())
+                        .filter(name -> name.startsWith("Command_") && name.endsWith(".class"))
+                        .map(name -> COMMANDS_PACKAGE + "." + name.substring(0, name.length() - ".class".length()))
+                        .filter(className -> loadCommandClass(className, classLoader))
+                        .count();
             }
         } 
         catch (Exception ex) 
         {
-            // Why the hell did I write this as "Java 25 Commands :'("
             FLog.warning(String.format("Error walking commands: \n%s", ExceptionUtils.getRootCauseMessage(ex)));
         }
 
-        return loaded;
+        return 0;
     }
 
     private boolean loadCommandClass(String className, ClassLoader classLoader) 

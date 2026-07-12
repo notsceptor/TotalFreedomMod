@@ -3,7 +3,6 @@ package me.totalfreedom.totalfreedommod.cmd;
 import java.util.List;
 
 import org.bukkit.GameMode;
-import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -21,33 +20,32 @@ public class Command_ban extends FCommand
 {
 
     @Callback
-    public void ban(CommandSender sender, String playerName, @Switch("s") boolean silent, @Switch("nrb") boolean noRollback, @Greedy String reason)
+    public void ban(CommandSender sender, Player player, @Greedy String reason, @Switch("s") boolean silent, @Switch("nrb") boolean noRollback)
     {
-        doBan(sender, playerName, reason, silent, noRollback);
+        doBan(sender, player, reason, silent, noRollback);
     }
 
     @Callback
-    public void banNoReason(CommandSender sender, String playerName, @Switch("s") boolean silent, @Switch("nrb") boolean noRollback)
+    public void banNoReason(CommandSender sender, Player player, @Switch("s") boolean silent, @Switch("nrb") boolean noRollback)
     {
-        doBan(sender, playerName, null, silent, noRollback);
+        doBan(sender, player, null, silent, noRollback);
     }
 
-    private void doBan(CommandSender sender, String playerName, String reason, boolean silent, boolean noRollback)
+    private void doBan(CommandSender sender, Player player, String reason, boolean silent, boolean noRollback)
     {
-        Player player = getPlayer(playerName);
-        PlayerData data = BanCommandUtil.getData(plugin, playerName, player);
+        PlayerData data = BanCommandUtil.getData(plugin, player.getName(), player);
 
-        if (player == null && data == null)
+        if (data == null)
         {
             msg(sender, "Can't find that player. Use /banname to ban an arbitrary name.");
             return;
         }
 
-        String name = BanCommandUtil.getCanonicalName(playerName, player, data);
+        String name = BanCommandUtil.getCanonicalName(player.getName(), player, data);
 
         if (plugin.bm.getByUsername(name) != null)
         {
-            msg(sender, name + " is already banned.");
+            msg(sender, "%s is already banned.", name);
             return;
         }
 
@@ -62,11 +60,11 @@ public class Command_ban extends FCommand
         plugin.bm.addBan(ban);
         if (!silent)
         {
-            FUtil.adminAction(sender.getName(), "Banning " + name, true);
+            adminAction(sender, "<red>Banning %s", name);
 
             if (reason != null)
             {
-                FUtil.bcastMsg("  Reason: " + reason, NamedTextColor.YELLOW);
+                FUtil.bcastMsg("  Reason: " + reason, NamedTextColor.YELLOW); // TODO: replace with MessageUtils stuff
             }
 
             plugin.db.sendActionMessage(sender.getName(), name, reason, ConfigEntry.DISCORD_PLAYER_BAN_MESSAGE);
@@ -97,26 +95,10 @@ public class Command_ban extends FCommand
                 player.setOp(false);
                 player.setGameMode(GameMode.SURVIVAL);
                 player.getInventory().clear();
-
-                Location targetPos = player.getLocation();
-                if (targetPos.getWorld() != null)
-                {
-                    for (int x = -1; x <= 1; x++)
-                    {
-                        for (int z = -1; z <= 1; z++)
-                        {
-                            Location strikePos = new Location(
-                                    targetPos.getWorld(),
-                                    targetPos.getBlockX() + x,
-                                    targetPos.getBlockY(),
-                                    targetPos.getBlockZ() + z);
-                            targetPos.getWorld().strikeLightning(strikePos);
-                        }
-                    }
-                }
+                smitePlayer(player);
             }
 
-            player.kick(ban.bakeKickMessage());
+            kickPlayer(player, MessageUtils.toPlainText(ban.bakeKickMessage()));
         }
     }
 }

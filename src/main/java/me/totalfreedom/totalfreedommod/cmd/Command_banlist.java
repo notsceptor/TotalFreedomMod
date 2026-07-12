@@ -3,6 +3,7 @@ package me.totalfreedom.totalfreedommod.cmd;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 import org.bukkit.command.CommandSender;
 
@@ -10,8 +11,6 @@ import me.totalfreedom.totalfreedommod.banning.Ban;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.JoinConfiguration;
 import net.kyori.adventure.text.format.NamedTextColor;
 
 @Command(name = "banlist", description = "Shows all banned players and IP addresses. Superadmins may optionally use 'purge' to clear the list.", usage = "/banlist [purge]")
@@ -46,28 +45,25 @@ public class Command_banlist extends FCommand
 
         if (!playerNames.isEmpty())
         {
-            msg(sender, Component.text("Player bans: ", NamedTextColor.RED)
-                    .append(Component.join(JoinConfiguration.commas(true),
-                            playerNames.stream().map(Component::text).toList())
-                            .color(NamedTextColor.WHITE)));
+            StringBuilder sb = new StringBuilder("<red>Player bans: <white>");
+            sb.append(playerNames.stream().collect(Collectors.joining("<gray>, <white>")));
+            msg(sender, sb.toString());
         }
         if (!ipOnly.isEmpty())
         {
-            msg(sender, Component.text("IP bans: ", NamedTextColor.RED)
-                    .append(Component.join(JoinConfiguration.commas(true),
-                                    ipOnly.stream().map(Component::text).toList())
-                            .color(NamedTextColor.WHITE)));
+            StringBuilder sb = new StringBuilder("<red>IP bans: <white>");
+            sb.append(ipOnly.stream().collect(Collectors.joining("<gray>, <white>")));
+            msg(sender, sb.toString());
         }
     }   
 
-    // So purging is effectively noop for intended function???
     @Callback
     @Subcommand("purge")
     @Permission(level = Rank.SENIOR_ADMIN, permission = "tfm.admin.banlist")
     public void purgeBans(CommandSender sender)
     {
-        //TODO: Actually implement purging. That's not in scope for this particular branch, but it needs to be done.
-        FUtil.adminAction(sender.getName(), "Purging the ban list.", true);
-        msg(sender, Component.text("Purged " + plugin.bm.purge() + " player bans."));        
+        // Ok so apparently plugin.bm.purge() purges the banlist then returns an int to count how many bans were purged. 
+        adminAction(sender, "<red>Purging the ban list.");
+        msg(sender, "Purged %i player bans.", plugin.bm.purge());
     }
 }
