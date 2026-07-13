@@ -20,18 +20,18 @@ public class Command_banip extends FCommand
     
     // @Resolve("IPs") indicates to the command processor that the provided argument should be resolved via the InetAddressListResolver
     @Callback
-    public void banIps(CommandSender sender, @Resolve("IPs") List<InetAddress> addressList)
+    public void banIps(CommandSender sender, @Resolve(value = "IPs", strategy = "allowPlayers,all") List<InetAddress> addressList)
     {
         banIpsWithReason(sender, addressList, null);
     }
     
     @Callback
-    public void banIpsWithReason(CommandSender sender, @Resolve("IPs") List<InetAddress> addressList, @Greedy String reason)
+    public void banIpsWithReason(CommandSender sender, @Resolve(value = "IPs", strategy = "allowPlayers,all") List<InetAddress> addressList, @Greedy String reason)
     {
-        adminAction(sender, "<red>Banning <count> address<plural:es:><include_reason: - Reason: <yellow><reason>:>",
+        adminAction(sender, "<red>Banning <count> address<plural:es:><include_reason:\" - Reason: <yellow><reason>\":\"\">",
                 Formatter.number("count", addressList.size()),
                 Formatter.booleanChoice("plural", addressList.size() != 1),
-                Formatter.booleanChoice("include_reason", reason != null && reason.isEmpty()),
+                Formatter.booleanChoice("include_reason", reason != null && !reason.isEmpty()),
                 Placeholder.unparsed("reason", reason != null ? reason : ""));
 
         addressList.stream()
