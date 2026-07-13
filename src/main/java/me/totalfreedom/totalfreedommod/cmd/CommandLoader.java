@@ -3,6 +3,8 @@ package me.totalfreedom.totalfreedommod.cmd;
 import java.lang.reflect.Modifier;
 import java.net.InetAddress;
 import java.net.URL;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -153,26 +155,20 @@ public class CommandLoader extends FreedomService
     {
         ClassLoader classLoader = plugin.getClass().getClassLoader();
 
-        try 
+        try (final FileSystem zipFs = FileSystems.newFileSystem(Path.of(plugin.getClass().getProtectionDomain().getCodeSource().getLocation().toURI()));
+             final Stream<Path> walk = Files.walk(zipFs.getPath("/" + getClass().getPackageName().replaceAll("\\.", "/"))))
         {
-            URL url = CommandLoader.class.getResource("");
-            if (url == null) return 0;
-
-            Path targetPath = Path.of(url.toURI());
-
-            try (Stream<Path> stream = Files.list(targetPath)) 
-            {
-                return (int) stream
-                        .map(path -> path.getFileName().toString())
-                        .filter(name -> name.startsWith("Command_") && name.endsWith(".class"))
-                        .map(name -> COMMANDS_PACKAGE + "." + name.substring(0, name.length() - ".class".length()))
-                        .filter(className -> loadCommandClass(className, classLoader))
-                        .count();
-            }
-        } 
+            return (int) walk
+                    .map(path -> path.getFileName().toString())
+                    .filter(name -> name.startsWith("Command_") && name.endsWith(".class"))
+                    .map(name -> COMMANDS_PACKAGE + "." + name.substring(0, name.length() - ".class".length()))
+                    .filter(className -> loadCommandClass(className, classLoader))
+                    .count();
+        }
         catch (Exception ex) 
         {
             FLog.warning(String.format("Error walking commands: \n%s", ExceptionUtils.getRootCauseMessage(ex)));
+            FLog.warning(ex);
         }
 
         return 0;

@@ -4,6 +4,8 @@ import java.net.InetAddress;
 import java.util.List;
 import java.util.Objects;
 
+import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -18,21 +20,19 @@ public class Command_banip extends FCommand
     
     // @Resolve("IPs") indicates to the command processor that the provided argument should be resolved via the InetAddressListResolver
     @Callback
-    public void banIps(CommandSender sender, @Resolve("IPs") List<InetAddress> addressList)
+    public void banIps(CommandSender sender, @Resolve(value = "IPs", strategy = "allowPlayers,all") List<InetAddress> addressList)
     {
         banIpsWithReason(sender, addressList, null);
     }
     
     @Callback
-    public void banIpsWithReason(CommandSender sender, @Resolve("IPs") List<InetAddress> addressList, @Greedy String reason)
+    public void banIpsWithReason(CommandSender sender, @Resolve(value = "IPs", strategy = "allowPlayers,all") List<InetAddress> addressList, @Greedy String reason)
     {
-        StringBuilder sb = new StringBuilder("<red>Banning ");
-        sb.append(addressList.size())
-        .append(" IP address")
-        .append(addressList.size() == 1 ? "" : "es");
-
-        if (reason != null && !reason.isEmpty())
-            sb.append("\n - Reason: <yellow>").append(reason);
+        adminAction(sender, "<red>Banning <count> address<plural:es:><include_reason:\" - Reason: <yellow><reason>\":\"\">",
+                Formatter.number("count", addressList.size()),
+                Formatter.booleanChoice("plural", addressList.size() != 1),
+                Formatter.booleanChoice("include_reason", reason != null && !reason.isEmpty()),
+                Placeholder.unparsed("reason", reason != null ? reason : ""));
 
         addressList.stream()
                 .filter(ip -> !plugin.bm.isIpBanned(ip.getHostAddress()))

@@ -122,7 +122,7 @@ public class MessageUtils {
             throw new IllegalArgumentException("MiniMessage string cannot be null");
         }
         String escaped = escapeUnknownTags(miniMessage);
-        return MM.deserialize(autoCloseTags(escaped));
+        return MM.deserialize(escaped);
     }
 
     /**
@@ -138,80 +138,8 @@ public class MessageUtils {
         if (miniMessage == null) {
             throw new IllegalArgumentException("MiniMessage string cannot be null");
         }
-        String escaped = escapeUnknownTags(miniMessage);
-        return MM.deserialize(autoCloseTags(escaped), resolvers);
-    }
-
-    /**
-     * Automatically closes any unclosed tags in a MiniMessage string.
-     * Useful for ensuring that all tags are properly closed, even if the input is malformed.
-     * Note that this method does not validate the tags or their syntax, it simply ensures that
-     * for every opening tag there is a corresponding closing tag, and that they are properly nested.
-     * 
-     * @param input MiniMessage string to be processed
-     * @return MiniMessage string with automatically closed tags
-     */
-    private static String autoCloseTags(String input) {
-        if (input == null || input.isEmpty()) return input;
-
-        StringBuilder out = new StringBuilder();
-        Deque<String> openTags = new ArrayDeque<>();
-
-        Matcher matcher = TAG_PATTERN.matcher(input);
-
-        int last = 0;
-        while (matcher.find()) {
-            out.append(input, last, matcher.start());
-
-            String slash = matcher.group(1);
-            String tag = matcher.group(2).toLowerCase();
-            String args = matcher.group(3);
-            boolean selfClosing = args != null && args.trim().endsWith("/");
-
-            if (slash.isEmpty() && !selfClosing) {
-                out.append(matcher.group(0));
-
-                if (!"reset".equals(tag)) {
-                    openTags.push(tag);
-                }
-            } else if (!slash.isEmpty()) {
-                if (openTags.contains(tag)) {
-                    while (!openTags.isEmpty()) {
-                        String top = openTags.pop();
-
-                        if (isSpecialTag(top) && !top.equals(tag)) {
-                            throw new IllegalStateException(
-                                "You must close special tags properly. Found </" + tag + "> before closing <" + top + ">."
-                            );
-                        }
-
-                        out.append("</").append(top).append(">");
-                        if (top.equals(tag)) break;
-                    }
-                } else {
-                    // Unmatched closing tag - append it as-is for validation by MiniMessage
-                    out.append(matcher.group(0));
-                }
-            } else {
-                out.append(matcher.group(0));
-            }
-
-            last = matcher.end();
-        }
-
-        out.append(input.substring(last));
-
-        while (!openTags.isEmpty()) {
-            String top = openTags.pop();
-            if (isSpecialTag(top)) {
-                throw new IllegalStateException(
-                    "You must close special tags properly. Unclosed special tag <" + top + ">."
-                );
-            }
-            out.append("</").append(top).append(">");
-        }
-
-        return out.toString();
+        String escaped = escapeUnknownTags(miniMessage, resolvers);
+        return MM.deserialize(escaped, resolvers);
     }
 
     /**
@@ -303,7 +231,7 @@ public class MessageUtils {
      * @param input String potentially containing unknown tags
      * @return String with unknown tags escaped
      */
-    private static String escapeUnknownTags(String input) {
+    private static String escapeUnknownTags(String input, TagResolver... tags) {
         if (input == null || input.isEmpty()) return input;
 
         StringBuilder out = new StringBuilder();
@@ -319,7 +247,7 @@ public class MessageUtils {
             boolean selfClosing = args.trim().endsWith("/");
 
             // Check if this is a valid MiniMessage tag
-            boolean isValid = isValidMiniMessageTag(slash, tagName, args, selfClosing);
+            boolean isValid = isValidMiniMessageTag(slash, tagName, args, selfClosing, tags);
 
             if (isValid) {
                 out.append(matcher.group(0));
@@ -344,13 +272,13 @@ public class MessageUtils {
      * @param selfClosing Whether the tag is self-closing (ends with /)
      * @return True if the tag is a valid MiniMessage tag, false otherwise
      */
-    private static boolean isValidMiniMessageTag(String slash, String tagName, String args, boolean selfClosing) {
+    private static boolean isValidMiniMessageTag(String slash, String tagName, String args, boolean selfClosing, TagResolver... tags) {
         if (!slash.isEmpty()) {
             return true;
         }
 
         String lower = tagName.toLowerCase();
-        if (isStyleTag(lower) || isSpecialTag(lower)) return true;
+        if (isStyleTag(lower) || isSpecialTag(lower) || isManuallySpecifiedTag(lower, tags)) return true;
 
         return false;
     }
@@ -409,4 +337,15 @@ public class MessageUtils {
     private static boolean isStyleTag(String tag) {
         return isNamedColor(tag) || isDecoration(tag) || "color".equals(tag);
     }
+
+    /**
+     * Checks if a tag is a special interactive tag that must be explicitly closed.
+     *
+     * @param tag Tag name
+     * @return True if the tag is a special tag, false otherwise
+     */
+    private static boolean isManuallySpecifiedTag(String tag, TagResolver[] resolvers) {
+        return Stream.of(resolvers).anyMatch(resolver -> resolver.has(tag));
+    }
+
 }

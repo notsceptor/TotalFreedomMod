@@ -11,6 +11,7 @@ import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import net.kyori.adventure.text.serializer.ansi.ANSIComponentSerializer;
 
 import org.bukkit.Location;
@@ -81,6 +82,11 @@ public abstract class FCommand
         FUtil.adminAction(sender, MessageUtils.parse(String.format(action, refs)));
     }
 
+    protected void adminAction(CommandSender sender, String action, TagResolver... resolvers)
+    {
+        FUtil.adminAction(sender, MessageUtils.parse(action, resolvers));
+    }
+
     @Deprecated
     protected boolean noPerms()
     {
@@ -129,6 +135,11 @@ public abstract class FCommand
     protected void msg(final CommandSender sender, final String message, Object... refs)
     {
         MessageUtils.send(sender, String.format(message, refs));
+    }
+
+    protected void msg(final CommandSender sender, final String message, TagResolver... refs)
+    {
+        MessageUtils.send(sender, message, refs);
     }
 
     protected void kickPlayer(final Player player, final String message)
