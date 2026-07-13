@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -16,6 +18,8 @@ public class Command_autotp extends FCommand
         final boolean enabled = plugin.lp.TELEPORT_ON_JOIN.removeIf(entry -> entry.equalsIgnoreCase(target.getName()))
                 || !plugin.lp.TELEPORT_ON_JOIN.add(target.getName());
 
-        msg(sender, "<gold>%s <aqua>%s be automatically teleported when they join.", (enabled ? "will no longer" : "will now"));
+        msg(sender, "<gold><player> <aqua><enabled:will no longer:will now> be automatically teleported when they join.",
+                Placeholder.unparsed("player", target.getName()),
+                Formatter.booleanChoice("enabled", enabled));
     }
 }

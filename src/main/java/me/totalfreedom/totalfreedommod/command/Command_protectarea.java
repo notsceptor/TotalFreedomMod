@@ -28,7 +28,7 @@ public class Command_protectarea extends FreedomCommand
         {
             if (args[0].equalsIgnoreCase("list"))
             {
-                msg("Protected Areas: " + StringUtils.join(plugin.pa.getProtectedAreaLabels(), ", "));
+                //msg("Protected Areas: " + StringUtils.join(plugin.pa.getProtectedAreaLabels(), ", "));
             }
             else if (args[0].equalsIgnoreCase("clear"))
             {
@@ -47,9 +47,9 @@ public class Command_protectarea extends FreedomCommand
         {
             if ("remove".equals(args[0]))
             {
-                plugin.pa.removeProtectedArea(args[1]);
+                //plugin.pa.removeProtectedArea(args[1]);
 
-                msg("Area removed. Protected Areas: " + StringUtils.join(plugin.pa.getProtectedAreaLabels(), ", "));
+                //msg("Area removed. Protected Areas: " + StringUtils.join(plugin.pa.getProtectedAreaLabels(), ", "));
             }
             else
             {
@@ -85,9 +85,9 @@ public class Command_protectarea extends FreedomCommand
                     return true;
                 }
 
-                plugin.pa.addProtectedArea(args[1], playerSender.getLocation(), radius);
+                //plugin.pa.addProtectedArea(args[1], playerSender.getLocation(), radius);
 
-                msg("Area added. Protected Areas: " + StringUtils.join(plugin.pa.getProtectedAreaLabels(), ", "));
+                //msg("Area added. Protected Areas: " + StringUtils.join(plugin.pa.getProtectedAreaLabels(), ", "));
             }
             else
             {

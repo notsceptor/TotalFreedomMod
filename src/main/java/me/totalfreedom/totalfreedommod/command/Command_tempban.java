@@ -35,7 +35,8 @@ public class Command_tempban extends FreedomCommand
     @CommandDispatchTarget(pattern = "<playerName> <duration:DateOffset> <reason..>", switches = "rb")
     public boolean tempBanPlayer(CommandContext ctx, String player, Date offset, String reason, boolean rollback)
     {
-        final Player actualPlayer = (Player) plugin.cl.getHandler().resolveArgument("Player", player, null);
+        final Player actualPlayer = //(Player) plugin.cl.getHandler().resolveArgument("Player", player, null);
+        null;
         final PlayerData playerData = BanCommandUtil.getData(plugin, player, actualPlayer);
         final Ban ban;
         final String name;

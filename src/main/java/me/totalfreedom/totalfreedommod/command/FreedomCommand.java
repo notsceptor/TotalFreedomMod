@@ -215,7 +215,7 @@ public abstract class FreedomCommand extends AbstractCommandBase<TotalFreedomMod
                     final String resolverStrategy = cd.resolverStrategies[j];
                     if (resolverName != null)
                     {
-                        passedArg = plugin.cl.getHandler().resolveArgument(resolverName, content, resolverStrategy);
+                        //passedArg = plugin.cl.getHandler().resolveArgument(resolverName, content, resolverStrategy);
                         FLog.debug(String.format("Argument '%s' in '%s' command resolved to '%s'",
                             arg,
                             commandName,

@@ -138,7 +138,7 @@ public class MessageUtils {
         if (miniMessage == null) {
             throw new IllegalArgumentException("MiniMessage string cannot be null");
         }
-        String escaped = escapeUnknownTags(miniMessage);
+        String escaped = escapeUnknownTags(miniMessage, resolvers);
         return MM.deserialize(autoCloseTags(escaped), resolvers);
     }
 
@@ -303,7 +303,7 @@ public class MessageUtils {
      * @param input String potentially containing unknown tags
      * @return String with unknown tags escaped
      */
-    private static String escapeUnknownTags(String input) {
+    private static String escapeUnknownTags(String input, TagResolver... tags) {
         if (input == null || input.isEmpty()) return input;
 
         StringBuilder out = new StringBuilder();
@@ -319,7 +319,7 @@ public class MessageUtils {
             boolean selfClosing = args.trim().endsWith("/");
 
             // Check if this is a valid MiniMessage tag
-            boolean isValid = isValidMiniMessageTag(slash, tagName, args, selfClosing);
+            boolean isValid = isValidMiniMessageTag(slash, tagName, args, selfClosing, tags);
 
             if (isValid) {
                 out.append(matcher.group(0));
@@ -344,13 +344,13 @@ public class MessageUtils {
      * @param selfClosing Whether the tag is self-closing (ends with /)
      * @return True if the tag is a valid MiniMessage tag, false otherwise
      */
-    private static boolean isValidMiniMessageTag(String slash, String tagName, String args, boolean selfClosing) {
+    private static boolean isValidMiniMessageTag(String slash, String tagName, String args, boolean selfClosing, TagResolver... tags) {
         if (!slash.isEmpty()) {
             return true;
         }
 
         String lower = tagName.toLowerCase();
-        if (isStyleTag(lower) || isSpecialTag(lower)) return true;
+        if (isStyleTag(lower) || isSpecialTag(lower) || isManuallySpecifiedTag(lower, tags)) return true;
 
         return false;
     }
@@ -409,4 +409,15 @@ public class MessageUtils {
     private static boolean isStyleTag(String tag) {
         return isNamedColor(tag) || isDecoration(tag) || "color".equals(tag);
     }
+
+    /**
+     * Checks if a tag is a special interactive tag that must be explicitly closed.
+     *
+     * @param tag Tag name
+     * @return True if the tag is a special tag, false otherwise
+     */
+    private static boolean isManuallySpecifiedTag(String tag, TagResolver[] resolvers) {
+        return Stream.of(resolvers).anyMatch(resolver -> resolver.has(tag));
+    }
+
 }
