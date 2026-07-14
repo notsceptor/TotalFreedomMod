@@ -10,6 +10,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
@@ -122,7 +123,7 @@ public class MessageUtils {
             throw new IllegalArgumentException("MiniMessage string cannot be null");
         }
         String escaped = escapeUnknownTags(miniMessage);
-        return MM.deserialize(escaped);
+        return AdventureUtil.addLinks(MM.deserialize(escaped));
     }
 
     /**
@@ -139,7 +140,7 @@ public class MessageUtils {
             throw new IllegalArgumentException("MiniMessage string cannot be null");
         }
         String escaped = escapeUnknownTags(miniMessage, resolvers);
-        return MM.deserialize(escaped, resolvers);
+        return AdventureUtil.addLinks(MM.deserialize(escaped, resolvers));
     }
 
     /**

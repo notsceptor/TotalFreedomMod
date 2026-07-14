@@ -26,9 +26,11 @@ import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.totalfreedommod.cmd.MessageUtils;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import net.kyori.adventure.text.serializer.ansi.ANSIComponentSerializer;
 import org.apache.commons.io.FileUtils;
 import org.bukkit.Bukkit;
@@ -93,14 +95,21 @@ public class FUtil
         }
     }
 
+    @Deprecated
     public static void bcastMsg(String message, NamedTextColor color)
     {
         bcastMsg(colorizeWithLinks(message, color));
     }
 
+    @Deprecated
     public static void bcastMsg(String message)
     {
         bcastMsg(colorizeWithLinks(message));
+    }
+
+    public static void bcastMsg(String miniMessage, TagResolver... resolvers)
+    {
+        bcastMsg(MessageUtils.parse(miniMessage, resolvers));
     }
 
     public static void playerMsg(CommandSender sender, Component component)
