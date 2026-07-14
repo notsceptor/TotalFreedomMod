@@ -2,6 +2,8 @@ package me.totalfreedom.totalfreedommod.cmd;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
+import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -18,35 +20,44 @@ public class Command_blockcmd extends FCommand
     {
         if (isAdmin(player))
         {
-            msg(sender, "%s is a Superadmin, and cannot have their commands blocked.", player.getName());
+            msg(sender, "<player> is an admin, and cannot have their commands blocked.",
+                    Placeholder.unparsed("player", player.getName()));
             return;
         }
 
         FPlayer playerdata = plugin.pl.getPlayer(player);
 
+        adminAction(sender, "<red><blocked:Unb:B>locking all commands for <player>",
+                Formatter.booleanChoice("blocked", playerdata.allCommandsBlocked()),
+                Placeholder.unparsed("player", player.getName()));
+
         playerdata.setCommandsBlocked(!playerdata.allCommandsBlocked());
 
-        adminAction(sender,  "<red>%slocking all commands for %s", (playerdata.allCommandsBlocked() ? "B" : "Unb"), player.getName());
-        msg(sender, "%slocked all commands for %s", (playerdata.allCommandsBlocked() ? "B" : "Unb"), player.getName());
+        if (playerdata.allCommandsBlocked())
+            msg(player, "<red>Your commands have been blocked by an admin.");
+
+        msg(sender, "<gray><blocked:B:Unb>locked all commands for <player>.",
+                Formatter.booleanChoice("blocked", playerdata.allCommandsBlocked()),
+                Placeholder.unparsed("player", player.getName()));
     }
 
     @Callback
     @Subcommand("-a") // This one is also not fit for a switch, but this case is due to the way handlers are implemented
     public void blockAll(final CommandSender sender)
     {
-            adminAction(sender, "<red>Blocking commands for all non-admins");
-            AtomicInteger counter = new AtomicInteger(0);
+        adminAction(sender, "<red>Blocking commands for all non-admins");
 
-            server.getOnlinePlayers()
-                  .stream()
-                  .filter(p -> !isAdmin(p))
-                  .forEach(p -> {
+        long count = server.getOnlinePlayers()
+                .stream()
+                .filter(p -> !isAdmin(p))
+                .peek(p -> {
                     plugin.pl.getPlayer(p).setCommandsBlocked(true);
                     msg(p, "<red>Your commands have been blocked by an admin.");
-                    counter.incrementAndGet();
-                  });
+                })
+                .count();
 
-            msg(sender, "Blocked commands for %i players.", counter.get());
+        msg(sender, "Blocked commands for <count> players.",
+                Formatter.number("count", count));
     }
 
     @Callback

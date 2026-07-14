@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
+import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import org.bukkit.command.CommandSender;
 
 import me.totalfreedom.totalfreedommod.banning.Ban;
@@ -13,7 +14,7 @@ import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.format.NamedTextColor;
 
-@Command(name = "banlist", description = "Shows all banned players and IP addresses. Superadmins may optionally use 'purge' to clear the list.", usage = "/banlist [purge]")
+@Command(name = "banlist", description = "Shows all banned players and IP addresses. Senior Admins may optionally use 'purge' to clear the list.", usage = "/banlist [purge]")
 @Permission(permission = "tfm.admin.banlist")
 public class Command_banlist extends FCommand
 {
@@ -39,21 +40,24 @@ public class Command_banlist extends FCommand
 
         if (playerNames.isEmpty() && ipOnly.isEmpty() && permbanNames.isEmpty())
         {
-            msg(sender, "No bans on record.", NamedTextColor.GRAY);
+            msg(sender, "<gray>No bans on record.");
             return;
         }
 
         if (!playerNames.isEmpty())
         {
-            StringBuilder sb = new StringBuilder("<red>Player bans: <white>");
-            sb.append(playerNames.stream().collect(Collectors.joining("<gray>, <white>")));
-            msg(sender, sb.toString());
+            msg(sender, "<red>Player bans: <white><list>",
+                    Formatter.joining("list", playerNames.stream()
+                            .map(name -> MessageUtils.parse(name + "<gray>, <white>"))
+                            .toList()));
         }
+
         if (!ipOnly.isEmpty())
         {
-            StringBuilder sb = new StringBuilder("<red>IP bans: <white>");
-            sb.append(ipOnly.stream().collect(Collectors.joining("<gray>, <white>")));
-            msg(sender, sb.toString());
+            msg(sender, "<red>IP bans: <white><list>",
+                    Formatter.joining("list", ipOnly.stream()
+                            .map(ip -> MessageUtils.parse(ip + "<gray>, <white>"))
+                            .toList()));
         }
     }   
 
@@ -63,7 +67,7 @@ public class Command_banlist extends FCommand
     public void purgeBans(CommandSender sender)
     {
         // Ok so apparently plugin.bm.purge() purges the banlist then returns an int to count how many bans were purged. 
-        adminAction(sender, "<red>Purging the ban list.");
-        msg(sender, "Purged %i player bans.", plugin.bm.purge());
+        adminAction(sender, "<red>Purging the ban list");
+        msg(sender, "Purged <count> player bans.", Formatter.number("count", plugin.bm.purge()));
     }
 }

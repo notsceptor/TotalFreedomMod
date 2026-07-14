@@ -16,15 +16,15 @@ public class Command_autotp extends FreedomCommand
     public boolean autotp(CommandContext ctx, Player player)
     {
         final String playerName = player.getName();
-        final boolean enabled = plugin.lp.TELEPORT_ON_JOIN.contains(playerName);
+        /*final boolean enabled = plugin.lp.TELEPORT_ON_JOIN.contains(playerName);
 
         if (enabled)
         {
-            plugin.lp.TELEPORT_ON_JOIN.remove(playerName);
+            //plugin.lp.TELEPORT_ON_JOIN.remove(playerName);
         }
         else
         {
-            plugin.lp.TELEPORT_ON_JOIN.add(playerName);
+            //plugin.lp.TELEPORT_ON_JOIN.add(playerName);
         }
 
         msg(Component.text(playerName, NamedTextColor.GOLD)
@@ -33,7 +33,7 @@ public class Command_autotp extends FreedomCommand
                                 ? " will no longer be automatically teleported when they join."
                                 : " will now be automatically teleported when they join.",
                         NamedTextColor.AQUA)));
-
+        */
         return true;
     }
 

@@ -36,9 +36,7 @@ public class Command_baninfo extends FCommand
         {
             permban = plugin.pm.getPermbannedNames().stream()
                 .map(plugin.pm::getPermban)    
-                .filter(candidate -> {
-                    return candidate != null && candidate.getIps() != null && candidate.getIps().contains(target);
-                })
+                .filter(candidate -> candidate != null && candidate.getIps() != null && candidate.getIps().contains(target))
                 .findFirst();
         }
 

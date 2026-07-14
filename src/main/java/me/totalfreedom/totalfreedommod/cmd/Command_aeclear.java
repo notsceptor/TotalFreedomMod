@@ -2,6 +2,8 @@ package me.totalfreedom.totalfreedommod.cmd;
 
 import me.totalfreedom.totalfreedommod.rank.Rank;
 
+import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.AreaEffectCloud;
@@ -31,6 +33,6 @@ public class Command_aeclear extends FCommand
             }
         }
 
-        msg(sender, removed + " area-of-effect clouds removed.");
+        msg(sender, "<gray><count> area-of-effect clouds removed.", Formatter.number("count", removed));
     }
 }

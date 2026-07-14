@@ -25,6 +25,8 @@ import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.format.NamedTextColor;
 
+import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -53,13 +55,15 @@ public class Command_saconfig extends FCommand
             }
             if (!custom.isAdmin()) 
             {
-                msg(sender, "<red>Rank \"%s\" is not an admin rank.", custom.getName());
+                msg(sender, "<red>Rank \"<rank>\" is not an admin rank.",
+                        Placeholder.unparsed("rank", custom.getName()));
                 return;
             }
             rank = resolveLegacyTier(custom);
             if (rank == null) 
             {
-                msg(sender, "<red>Rank \"%s\" has no legacy tier; set or inherit from super_admin or senior_admin.", custom.getName());
+                msg(sender, "<red>Rank \"<rank>\" has no legacy tier; set or inherit from super_admin or senior_admin.",
+                        Placeholder.unparsed("rank", custom.getName()));
                 return;
             }
             displayName = custom.getName();
@@ -72,7 +76,7 @@ public class Command_saconfig extends FCommand
             } 
             catch (IllegalArgumentException ignored) 
             {
-                msg(sender, "<red>Unknown rank: %s", rankInput);
+                msg(sender, "<red>Unknown rank: <rank>", Placeholder.unparsed("rank", rankInput));
                 return;
             }
             if (rank.isConsole()) 
@@ -92,11 +96,14 @@ public class Command_saconfig extends FCommand
         Admin admin = plugin.al.getEntryByName(target.getName());
         if (admin == null) 
         {
-            msg(sender, "Unknown admin: %s", target.getName());
+            msg(sender, "Unknown admin: <player>",
+                    Placeholder.unparsed("player", target.getName()));
             return;
         }
 
-        adminAction(sender, "<red>Setting %s's rank to %s", admin.getName(), displayName);
+        adminAction(sender, "<red>Setting <player>'s rank to <rank>",
+                Placeholder.unparsed("player", admin.getName()),
+                Placeholder.unparsed("rank", displayName));
 
         admin.setRank(rank);
         admin.setCustomRankId(custom != null ? custom.getId() : null);
@@ -104,7 +111,9 @@ public class Command_saconfig extends FCommand
         plugin.al.saveAdminAsync(admin);
         plugin.rm.updatePlayerTeam(target);
 
-        msg(sender, "Set %s's rank to %s.", admin.getName(), displayName);
+        msg(sender, "Set <player>'s rank to <rank>.",
+                Placeholder.unparsed("player", admin.getName()),
+                Placeholder.unparsed("rank", displayName));
     }
 
     @Callback
@@ -115,7 +124,8 @@ public class Command_saconfig extends FCommand
 
         if (admin == null) 
         {
-            msg(sender, "Superadmin not found: %s", target.getName());
+            msg(sender, "Admin not found: <player>",
+                    Placeholder.unparsed("player", target.getName()));
         } 
         else 
         {
@@ -147,17 +157,18 @@ public class Command_saconfig extends FCommand
             }
         }
 
+        adminAction(sender, "<red><new_entry:A:Re-a>dding <player> to the admin list",
+                Formatter.booleanChoice("new_entry", admin == null),
+                Placeholder.unparsed("player", target.getName()));
+
+        target.setOp(true);
+
         if (admin == null)
         {
-            target.setOp(true);
-            adminAction(sender, "<red>Adding %s to the admin list", target.getName());
             plugin.al.addAdmin(new Admin(target));
         } 
         else 
         {
-            adminAction(sender, "<red>Re-adding %s to the admin list", admin.getName());
-
-            target.setOp(true);
             admin.setName(target.getName());
             admin.addIp(target.getAddress().getAddress().getHostAddress());
 
@@ -193,11 +204,12 @@ public class Command_saconfig extends FCommand
 
         if (admin == null) 
         {
-            msg(sender, "Superadmin not found: " + username);
+            msg(sender, "Admin not found: " + username);
             return true;
         }
 
-        adminAction(sender, "<red>Removing %s from the admin list", admin.getName());
+        adminAction(sender, "<red>Removing <player> from the admin list",
+                Placeholder.unparsed("player", admin.getName()));
         admin.setActive(false);
         plugin.al.updateTables();
         plugin.al.saveAdminAsync(admin);
