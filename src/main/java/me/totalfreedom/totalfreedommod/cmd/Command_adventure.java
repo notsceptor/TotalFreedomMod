@@ -1,5 +1,6 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.command.CommandSender;
@@ -25,8 +26,8 @@ public class Command_adventure extends FCommand
 	@Permission(permission = "tfm.admin.gamemode", level = Rank.SUPER_ADMIN)
 	public void changeGamemodeAll(CommandSender sender)
 	{
+		adminAction(sender, "<red>Changing everyone's gamemode to Adventure");
 		Bukkit.getOnlinePlayers().forEach(player -> player.setGameMode(GameMode.ADVENTURE));
-		adminAction(sender, "<red>Changing everyone's gamemode to Adventure.");
 	}
 
 	@Callback
@@ -34,7 +35,9 @@ public class Command_adventure extends FCommand
 	public void changeGamemodeOther(CommandSender sender, Player target)
 	{
 		target.setGameMode(GameMode.ADVENTURE);
-		msg(sender, "Setting %s's gamemode to Adventure.", target.getName());
-		msg(target, "%s set your gamemode to Adventure.", sender.getName());
+		msg(sender, "Setting <player>'s gamemode to Adventure.",
+				Placeholder.unparsed("player", target.getName()));
+		msg(target, "<sender> set your gamemode to Adventure.",
+				Placeholder.unparsed("sender", sender.getName()));
 	}
 }

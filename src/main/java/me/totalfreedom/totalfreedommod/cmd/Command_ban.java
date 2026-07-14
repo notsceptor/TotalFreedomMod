@@ -2,6 +2,8 @@ package me.totalfreedom.totalfreedommod.cmd;
 
 import java.util.List;
 
+import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.GameMode;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -20,20 +22,21 @@ public class Command_ban extends FCommand
 {
 
     @Callback
-    public void ban(CommandSender sender, Player player, @Greedy String reason, @Switch("s") boolean silent, @Switch("nrb") boolean noRollback)
+    public void ban(CommandSender sender, String name, @Greedy String reason, @Switch("s") boolean silent, @Switch("nrb") boolean noRollback)
     {
-        doBan(sender, player, reason, silent, noRollback);
+        doBan(sender, name, reason, silent, noRollback);
     }
 
     @Callback
-    public void banNoReason(CommandSender sender, Player player, @Switch("s") boolean silent, @Switch("nrb") boolean noRollback)
+    public void banNoReason(CommandSender sender, String name, @Switch("s") boolean silent, @Switch("nrb") boolean noRollback)
     {
-        doBan(sender, player, null, silent, noRollback);
+        doBan(sender, name, null, silent, noRollback);
     }
 
-    private void doBan(CommandSender sender, Player player, String reason, boolean silent, boolean noRollback)
+    private void doBan(CommandSender sender, String name, String reason, boolean silent, boolean noRollback)
     {
-        PlayerData data = BanCommandUtil.getData(plugin, player.getName(), player);
+        final Player player = getPlayer(name);
+        PlayerData data = BanCommandUtil.getData(plugin, name, player);
 
         if (data == null)
         {
@@ -41,11 +44,12 @@ public class Command_ban extends FCommand
             return;
         }
 
-        String name = BanCommandUtil.getCanonicalName(player.getName(), player, data);
+        name = BanCommandUtil.getCanonicalName(name, player, data);
 
         if (plugin.bm.getByUsername(name) != null)
         {
-            msg(sender, "%s is already banned.", name);
+            msg(sender, "<gray><player> is already banned.",
+                    Placeholder.unparsed("player", name));
             return;
         }
 
@@ -54,18 +58,17 @@ public class Command_ban extends FCommand
 
         if (!silent && player != null)
         {
-            FUtil.bcastMsg(player.getName() + " has been a VERY naughty, naughty boy.", NamedTextColor.RED);
+            MessageUtils.broadcast("<red><player> has been a VERY naughty, naughty boy.",
+                    Placeholder.unparsed("player", name));
         }
 
         plugin.bm.addBan(ban);
         if (!silent)
         {
-            adminAction(sender, "<red>Banning %s", name);
-
-            if (reason != null)
-            {
-                FUtil.bcastMsg("  Reason: " + reason, NamedTextColor.YELLOW); // TODO: replace with MessageUtils stuff
-            }
+            adminAction(sender, "<red>Banning <player><include_reason:\" - Reason: <yellow><reason>\":\"\">",
+                    Placeholder.unparsed("player", name),
+                    Formatter.booleanChoice("include_reason", reason != null && !reason.isEmpty()),
+                    Placeholder.unparsed("reason", reason != null ? reason : ""));
 
             plugin.db.sendActionMessage(sender.getName(), name, reason, ConfigEntry.DISCORD_PLAYER_BAN_MESSAGE);
         }

@@ -1,11 +1,9 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Callback;
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Command;
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Greedy;
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Permission;
+import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.rank.Rank;
+import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -18,17 +16,14 @@ public class Command_adminchat extends FCommand
 {
 
     @Callback
-    public void toggle(CommandSender sender)
+    @Permission(permission = "tfm.admin.adminchat", source = SourceType.ONLY_IN_GAME)
+    public void toggle(Player sender)
     {
-        if (isConsole(sender))
-        {
-            msg(sender, "Only in-game players can toggle AdminChat.");
-            return;
-        }
+        final FPlayer fplayer = plugin.pl.getPlayer(sender);
+        boolean mode = !fplayer.inAdminChat();
 
-        FPlayer userinfo = plugin.pl.getPlayer((Player) sender);
-        userinfo.setAdminChat(!userinfo.inAdminChat());
-        msg(sender, "Toggled Admin Chat " + (userinfo.inAdminChat() ? "on" : "off") + ".");
+        fplayer.setAdminChat(mode);
+        msg(sender, "<gray>Toggled Admin Chat <mode:on:off>.", Formatter.booleanChoice("mode", mode));
     }
 
     @Callback

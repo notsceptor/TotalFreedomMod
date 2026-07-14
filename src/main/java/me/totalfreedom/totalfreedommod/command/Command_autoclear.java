@@ -24,7 +24,7 @@ public class Command_autoclear extends FreedomCommand
         }
 
         final String name = player.getName();
-        final boolean enabled = plugin.lp.CLEAR_ON_JOIN.stream()
+        /*final boolean enabled = plugin.lp.CLEAR_ON_JOIN.stream()
                 .anyMatch(entry -> entry.equalsIgnoreCase(name));
 
         if (enabled)
@@ -41,7 +41,7 @@ public class Command_autoclear extends FreedomCommand
                         enabled
                                 ? " will no longer have their inventory cleared when they join."
                                 : " will now have their inventory cleared when they join.",
-                        NamedTextColor.AQUA)));
+                        NamedTextColor.AQUA)));*/
 
         return true;
     }

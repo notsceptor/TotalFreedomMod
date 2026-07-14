@@ -35,18 +35,10 @@ public class Command_cake extends FCommand
 
         final ItemStack heldItem = new ItemStack(Material.CAKE);
         final ItemMeta heldItemMeta = heldItem.getItemMeta();
-        heldItemMeta.displayName(Component.text("The ", NamedTextColor.WHITE)
-                    .append(Component.text("Lie", NamedTextColor.DARK_GRAY)));
-        heldItem.setItemMeta(heldItemMeta);
+        heldItemMeta.displayName(MessageUtils.parse("<white>The <dark_gray>Lie"));
 
-        server.getOnlinePlayers()
-              .forEach(player -> {
-                int firstEmpty = player.getInventory().firstEmpty();
-                if (firstEmpty >= 0)
-                    player.getInventory().setItem(firstEmpty, heldItem);
-              });
+        server.getOnlinePlayers().forEach(player -> player.getInventory().addItem(heldItem));
 
-        FUtil.bcastMsg(MessageUtils.parse(randomCakeLyrics));
+        MessageUtils.broadcast(randomCakeLyrics);
     }
-
 }

@@ -2,6 +2,7 @@ package me.totalfreedom.totalfreedommod.cmd;
 
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -13,13 +14,12 @@ import me.totalfreedom.totalfreedommod.rank.Rank;
 public class Command_autotp extends FCommand
 {
     @Callback
-    public void autotp(CommandSender sender, Player target)
+    public void autotp(CommandSender sender, OfflinePlayer target)
     {
-        final boolean enabled = plugin.lp.TELEPORT_ON_JOIN.removeIf(entry -> entry.equalsIgnoreCase(target.getName()))
-                || !plugin.lp.TELEPORT_ON_JOIN.add(target.getName());
+        final boolean enabled = plugin.lp.TELEPORT_ON_JOIN.removeIf(entry -> entry.equals(target.getUniqueId()));
 
-        msg(sender, "<gold><player> <aqua><enabled:will no longer:will now> be automatically teleported when they join.",
-                Placeholder.unparsed("player", target.getName()),
+        msg(sender, "<gold><player> <aqua>will <enabled:no longer:now> be automatically teleported when they join.",
+                Placeholder.unparsed("player", target.getName() != null ? target.getName() : target.getUniqueId().toString()),
                 Formatter.booleanChoice("enabled", enabled));
     }
 }

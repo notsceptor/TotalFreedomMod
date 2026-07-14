@@ -1,5 +1,6 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -48,7 +49,8 @@ public class Command_adminworld extends FCommand
     {
         if (plugin.wm.adminworld.addGuest(target, sender))
         {
-            adminAction(sender, "<aqua>AdminWorld guest added: %s", target.getName());
+            adminAction(sender, "<aqua>AdminWorld guest added: <target>",
+                    Placeholder.unparsed("target", target.getName()));
             return;
         }
         msg(sender, "<red>Could not add player to guest list.");
@@ -61,7 +63,9 @@ public class Command_adminworld extends FCommand
     {
         if (plugin.wm.adminworld.hasGuests())
         {
-            msg(sender, "<aqua>AdminWorld guest list: %s", plugin.wm.adminworld.guestListToString());
+            // TODO: Probably not use this weird guestListToString
+            msg(sender, "<aqua>AdminWorld guest list: <list>",
+                    Placeholder.parsed("list", plugin.wm.adminworld.guestListToString()));
             return;
         }
 
@@ -75,11 +79,13 @@ public class Command_adminworld extends FCommand
     {
         if (plugin.wm.adminworld.removeGuest(target))
         {
-            adminAction(sender, "<aqua>AdminWorld guest removed: %s", target.getName());
+            adminAction(sender, "<aqua>AdminWorld guest removed: <target>",
+                    Placeholder.unparsed("target", target.getName()));
         }
         else
         {
-            msg(sender, "Can't find guest entry for: " + target.getName());
+            msg(sender, "<gray>Can't find guest entry for <target>.",
+                    Placeholder.unparsed("target", target.getName()));
         }
     }
 
@@ -98,7 +104,8 @@ public class Command_adminworld extends FCommand
     public void setTime(CommandSender sender, WorldTime time)
     {
         plugin.wm.adminworld.setTimeOfDay(time);
-        msg(sender, "AdminWorld time set to: " + time.name());
+        msg(sender, "AdminWorld time set to <time>.",
+                Placeholder.unparsed("time", time.name()));
     }
 
     @Callback
@@ -107,6 +114,7 @@ public class Command_adminworld extends FCommand
     public void setWeather(CommandSender sender, WorldWeather weather)
     {
         plugin.wm.adminworld.setWeatherMode(weather);
-        msg(sender, "<aqua>AdminWorld eather set to: %s", weather.name());
+        msg(sender, "<aqua>AdminWorld weather set to <weather>.",
+                Placeholder.unparsed("weather", weather.name()));
     }
 }

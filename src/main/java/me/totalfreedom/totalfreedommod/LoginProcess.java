@@ -2,6 +2,7 @@ package me.totalfreedom.totalfreedommod;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.regex.Pattern;
 import lombok.Getter;
 import lombok.Setter;
@@ -29,8 +30,8 @@ public class LoginProcess extends FreedomService {
     public static final int MIN_USERNAME_LENGTH = 2;
     public static final int MAX_USERNAME_LENGTH = 20;
     public static final Pattern USERNAME_REGEX = Pattern.compile("^[\\w\\d_]{3,20}$");
-    public List<String> TELEPORT_ON_JOIN = new ArrayList<String>();
-    public List<String> CLEAR_ON_JOIN = new ArrayList<String>();
+    public List<UUID> TELEPORT_ON_JOIN = new ArrayList<>();
+    public List<UUID> CLEAR_ON_JOIN = new ArrayList<>();
     //
     @Getter
     @Setter
@@ -179,7 +180,7 @@ public class LoginProcess extends FreedomService {
             player.setOp(true);
         }
 
-        if (TELEPORT_ON_JOIN.contains(player.getName()) || ConfigEntry.AUTO_TP.getBoolean()) {
+        if (TELEPORT_ON_JOIN.contains(player.getUniqueId()) || ConfigEntry.AUTO_TP.getBoolean()) {
             final int x = ThreadLocalRandom.current().nextInt(-10000, 10001);
             final int z = ThreadLocalRandom.current().nextInt(-10000, 10001);
             final World world = player.getWorld();
@@ -223,7 +224,7 @@ public class LoginProcess extends FreedomService {
                 return;
             }
 
-            if (CLEAR_ON_JOIN.stream().anyMatch(name -> name.equalsIgnoreCase(player.getName()))
+            if (CLEAR_ON_JOIN.stream().anyMatch(name -> name.equals(player.getUniqueId()))
                     || ConfigEntry.AUTO_CLEAR.getBoolean()) {
                 player.getInventory().clear();
                 player.updateInventory();

@@ -1,5 +1,6 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -22,12 +23,15 @@ public class Command_banname extends FCommand
     {
         if (plugin.bm.getByUsername(name) != null)
         {
-            msg(sender, "%s is already banned.", name);
+            msg(sender, "<name> is already banned.", Placeholder.unparsed("name", name));
             return;
         }
         final Ban ban = Ban.forPlayerName(name, sender, null, reason);
 
         plugin.bm.addBan(ban);
+
+        adminAction(sender, "<red>Banning the username <name>",
+                Placeholder.unparsed("name", name));
 
         final Player player = server.getPlayer(name);
         if (player != null)
