@@ -235,6 +235,7 @@ public enum ConfigEntry
     NOADMIN_IPS(List.class, "noadmin_ips"),
     MASK_IPS(Boolean.class, "mask_ips"),
     RANGE_BAN_IPS(Boolean.class, "range_ban_ips"),
+    LOCKDOWN_MODE(Boolean.class, "lockdown_mode"),
     ADMIN_ONLY_MODE(Boolean.class, "admin_only_mode"),
     ADMIN_INFO(List.class, "admininfo"),
     AUTO_ENTITY_WIPE(Boolean.class, "auto_wipe"),

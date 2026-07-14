@@ -102,10 +102,10 @@ public class Command_toggle extends FreedomCommand
 
         if (args[0].equals("lockdown"))
         {
-            boolean active = !plugin.lp.isLockdownEnabled();
-            plugin.lp.setLockdownEnabled(active);
+            // boolean active = !plugin.lp.isLockdownEnabled();
+            // plugin.lp.setLockdownEnabled(active);
 
-            FUtil.adminAction(sender.getName(), (active ? "A" : "De-a") + "ctivating server lockdown", true);
+            // FUtil.adminAction(sender.getName(), (active ? "A" : "De-a") + "ctivating server lockdown", true);
             return true;
         }
 

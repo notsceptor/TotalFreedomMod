@@ -3,16 +3,17 @@ package me.totalfreedom.totalfreedommod.cmd;
 import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.admin.Admin;
+import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
-import net.kyori.adventure.text.serializer.ansi.ANSIComponentSerializer;
 
 import org.bukkit.Location;
 import org.bukkit.Server;
@@ -85,6 +86,11 @@ public abstract class FCommand
     protected void adminAction(CommandSender sender, String action, TagResolver... resolvers)
     {
         FUtil.adminAction(sender, MessageUtils.parse(action, resolvers));
+    }
+
+    protected ConfigEntry getConfigEntry(final String value)
+    {
+        return ConfigEntry.valueOf(value.toUpperCase(Locale.ROOT));
     }
 
     @Deprecated
