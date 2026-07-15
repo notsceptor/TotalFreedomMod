@@ -5,8 +5,9 @@ import java.util.function.Consumer;
 
 import org.bukkit.GameRules;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.totalfreedommod.PluginProvider;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.rank.Rank;
@@ -68,6 +69,8 @@ public class Command_settings extends FCommand
     @Subcommand("toggle")
     public void toggleConfigOption(final CommandSender sender, final Setting setting)
     {
+        setting.checkSource(sender);
+
         if (setting.equals(Setting.EXPLOSIVES))
         {
             setExplosiveRadius(sender, defaultExplosionRadius);
@@ -96,6 +99,8 @@ public class Command_settings extends FCommand
     @Subcommand("set")
     public void setExplicit(final CommandSender sender, final Setting setting, final boolean value)
     {
+        setting.checkSource(sender);
+
         if (setting.equals(Setting.EXPLOSIVES))
         {
             setExplosiveRadius(sender, defaultExplosionRadius);
@@ -124,6 +129,7 @@ public class Command_settings extends FCommand
     public void setExplosiveRadius(final CommandSender sender, final double radius)
     {
         final Setting setting = Setting.EXPLOSIVES;
+        setting.checkSource(sender);
 
         if (radius != 0)
         {
@@ -160,6 +166,7 @@ public class Command_settings extends FCommand
     public void setMonitorAndCount(final CommandSender sender, final double range, final int count)
     {
         Setting setting = Setting.NO_NUKE;
+        setting.checkSource(sender);
 
         if (range >= 1 || count >= 1)
         {
@@ -188,7 +195,7 @@ public class Command_settings extends FCommand
         LAVA_PLACE("lavaplace", "Lava Placement", ALLOW_LAVA_PLACE),
         SIGN_PLACE("signplace", "Sign Placement", ALLOW_SIGN_PLACE),
         WATER_PLACE("waterplace", "Water Placement", ALLOW_WATER_PLACE),        
-        FIRE_SPREAD("firespread", "Fire Spreading", ALLOW_FIRE_SPREAD, c -> TotalFreedomMod.plugin().gr.setGameRule(GameRules.FIRE_SPREAD_RADIUS_AROUND_PLAYER, c.getBoolean() ? 128 : 0)),
+        FIRE_SPREAD("firespread", "Fire Spreading", ALLOW_FIRE_SPREAD, c -> PluginProvider.get().gr.setGameRule(GameRules.FIRE_SPREAD_RADIUS_AROUND_PLAYER, c.getBoolean() ? 128 : 0)),
         FLUID_SPREAD("fluidspread", "Fluid Spreading", ALLOW_FLUID_SPREAD),
 
         LAVA_DAMAGE("lavadmg", "Lava Damage", ALLOW_LAVA_DAMAGE),
@@ -196,7 +203,7 @@ public class Command_settings extends FCommand
         FALLING_BLOCKS("fallingblocks", "Falling Blocks", ALLOW_FALLING_BLOCKS),
         FALLING_SIGNS("fallingsigns", "Falling Signs", ALLOW_FALLING_SIGNS),
 
-        ADMIN_MODE("adminmode", "Admin-Only Mode", ADMIN_ONLY_MODE),
+        ADMIN_MODE("adminmode", "Admin-Only Mode", ADMIN_ONLY_MODE, SourceType.ONLY_CONSOLE),
         LOCKDOWN("lockdown", "Lockdown", LOCKDOWN_MODE),
         ENTITY_WIPE("entitywipe", "Automatic Entity Wiping", AUTO_ENTITY_WIPE),
 
@@ -213,27 +220,53 @@ public class Command_settings extends FCommand
         final String flag, displayable;
         final ConfigEntry value;
         final Consumer<ConfigEntry> consumer;
+        final SourceType requiredSource;
 
         Setting(final String flag, final String displayable, final ConfigEntry value, final Consumer<ConfigEntry> consumer)
+        {
+            this(flag, displayable, value, consumer, SourceType.BOTH);
+        }
+
+        Setting(final String flag, final String displayable, final ConfigEntry value)
+        {
+            this(flag, displayable, value, null, SourceType.BOTH);
+        }
+
+        Setting(final String flag, final String displayable, final ConfigEntry value, final SourceType requiredSource)
+        {
+            this(flag, displayable, value, null, requiredSource);
+        }
+
+        Setting(final String flag, final String displayable, final ConfigEntry value, final Consumer<ConfigEntry> consumer, final SourceType requiredSource)
         {
             this.flag = flag;
             this.displayable = displayable;
             this.value = value;
             this.consumer = consumer;
-        }
-
-        Setting(final String flag, final String displayable, final ConfigEntry value)
-        {
-            this.flag = flag;
-            this.displayable = displayable;
-            this.value = value;
-            this.consumer = null;
+            this.requiredSource = requiredSource;
         }
 
         void consume()
         {
             Optional.ofNullable(consumer)
                     .ifPresent(c -> c.accept(value));
+        }
+
+        /**
+         * Throws if {@code sender} isn't allowed to change this setting given its {@link #requiredSource}.
+         * Doesn't gate {@link #queryConfigOption} — viewing status is left open to both sources.
+         */
+        void checkSource(final CommandSender sender)
+        {
+            if (requiredSource == SourceType.ONLY_CONSOLE && sender instanceof Player)
+            {
+                throw new CommandFailException(displayable + " can only be changed from the console.");
+            }
+
+            if (requiredSource == SourceType.ONLY_IN_GAME && !(sender instanceof Player))
+            {
+                throw new CommandFailException(displayable + " can only be changed in-game.");
+            }
         }
 
         String getFlag()

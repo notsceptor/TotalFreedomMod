@@ -1,6 +1,6 @@
 package me.totalfreedom.totalfreedommod.command.resolver;
 
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.totalfreedommod.PluginProvider;
 import me.totalfreedom.totalfreedommod.ProtectArea.ProtectedRegion;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -15,7 +15,7 @@ public class ProtectedRegionResolver implements AbstractArgumentResolver<Protect
 
     public ProtectedRegion resolveDefault(String name)
     {
-        final ProtectedRegion region = TotalFreedomMod.plugin().pa.getProtectedRegion(name);
+        final ProtectedRegion region = PluginProvider.get().pa.getProtectedRegion(name);
         if (region == null)
             throw new ArgumentResolutionException(Component.text("There is no protected region named '")
                 .append(Component.text(name))

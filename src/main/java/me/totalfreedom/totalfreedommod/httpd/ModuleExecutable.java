@@ -6,6 +6,7 @@ import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import lombok.Getter;
+import me.totalfreedom.totalfreedommod.PluginProvider;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.httpd.module.HTTPDModule;
 import me.totalfreedom.totalfreedommod.util.FLog;
@@ -33,7 +34,7 @@ public abstract class ModuleExecutable
             }
 
             // Sync to server thread
-            return Bukkit.getScheduler().callSyncMethod(TotalFreedomMod.plugin(), new Callable<NanoHTTPD.Response>()
+            return Bukkit.getScheduler().callSyncMethod(PluginProvider.get(), new Callable<NanoHTTPD.Response>()
             {
                 @Override
                 public NanoHTTPD.Response call() throws Exception

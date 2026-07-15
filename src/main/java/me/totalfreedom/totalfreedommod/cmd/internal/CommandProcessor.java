@@ -651,9 +651,9 @@ public final class CommandProcessor
                         String raw = ctx.getArgument(paramName, String.class);
                         try
                         {
-                            invokeArgs[i] = parseEnum(type, raw);
+                            invokeArgs[i] = resolveEnum(type, raw);
                         }
-                        catch (IllegalArgumentException e)
+                        catch (ArgumentResolutionException | IllegalArgumentException e)
                         {
                             sender.sendMessage(Component.text("Invalid value '" + raw + "' for argument: " + paramName, NamedTextColor.RED));
                             return 0;
@@ -703,10 +703,16 @@ public final class CommandProcessor
     }
 
 
-    // This works I promise lmfao
-    private static Object parseEnum(Class<?> enumType, String raw)
+    /**
+     * Resolves a non-{@link Resolve @Resolve} enum parameter through the 
+     * {@link me.totalfreedom.totalfreedommod.cmd.resolver.EnumArgumentResolver EnumArgumentResolver}, 
+     * forcing {@code mode=uppercase} so the raw token is always uppercased 
+     * before either the enum's {@code fromString} or {@code Enum::valueOf} lookup runs.
+     */
+    private static Object resolveEnum(Class<?> enumType, String raw)
     {
-        return Enum.valueOf((Class<Enum>) enumType, raw.toUpperCase());
+        AbstractArgumentResolver<?> resolver = ResolverRegistry.byName("Enum");
+        return resolver.resolve(raw, "class=" + enumType.getName() + ",mode=uppercase");
     }
 
     public static String cooldownKey(String commandName, String subcommandValue)

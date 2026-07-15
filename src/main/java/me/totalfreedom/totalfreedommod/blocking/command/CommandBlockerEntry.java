@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import lombok.Getter;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.totalfreedommod.PluginProvider;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.CommandSender;
@@ -204,7 +204,7 @@ public class CommandBlockerEntry
     {
         if (action == CommandBlockerAction.BLOCK_AND_EJECT && sender instanceof Player)
         {
-            TotalFreedomMod.plugin().ae.autoEject((Player) sender, "You used a prohibited command: " + command);
+            PluginProvider.get().ae.autoEject((Player) sender, "You used a prohibited command: " + command);
             FUtil.bcastMsg(sender.getName() + " was automatically kicked for using harmful commands.", NamedTextColor.RED);
             return;
         }

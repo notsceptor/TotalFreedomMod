@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+import me.totalfreedom.totalfreedommod.PluginProvider;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
@@ -42,7 +43,7 @@ public abstract class FCommand
     public static final Component NOT_FROM_CONSOLE = Component.text("This command may not be used from the console.", NamedTextColor.GRAY);
     public static final Component PLAYER_NOT_FOUND = Component.text("Player not found!", NamedTextColor.GRAY);
 
-    protected final TotalFreedomMod plugin = TotalFreedomMod.plugin();
+    protected final TotalFreedomMod plugin = PluginProvider.get();
     protected final Server server = plugin.getServer();
 
     @Deprecated

@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
+import me.totalfreedom.totalfreedommod.PluginProvider;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.rank.CustomRank;
 import me.totalfreedom.totalfreedommod.rank.Rank;
@@ -37,7 +38,7 @@ public final class PlayerListUtil
 
     public static String buildRankList()
     {
-        final TotalFreedomMod plugin = TotalFreedomMod.plugin();
+        final TotalFreedomMod plugin = PluginProvider.get();
         // If this somehow fails, just send back a list with no additional rank context
         if (plugin == null)
             return buildPlainList();

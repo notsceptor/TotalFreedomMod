@@ -2,7 +2,7 @@ package me.totalfreedom.totalfreedommod.config;
 
 import java.util.Collections;
 import java.util.List;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.totalfreedommod.PluginProvider;
 import org.bukkit.configuration.ConfigurationSection;
 
 public enum ConfigEntry
@@ -376,7 +376,7 @@ public enum ConfigEntry
 
     private MainConfig getConfig()
     {
-        return TotalFreedomMod.plugin().config;
+        return PluginProvider.get().config;
     }
 
     /** Effective max component-graph nodes for cursed-text scanning (default 1024). */

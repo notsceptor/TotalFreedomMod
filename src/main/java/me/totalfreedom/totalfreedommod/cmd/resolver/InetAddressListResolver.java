@@ -1,7 +1,7 @@
 package me.totalfreedom.totalfreedommod.cmd.resolver;
 
 import com.google.common.net.InetAddresses;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.totalfreedommod.PluginProvider;
 import me.totalfreedom.totalfreedommod.cmd.internal.ResolverRegistry;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
 import org.bukkit.entity.Player;
@@ -44,7 +44,7 @@ public class InetAddressListResolver implements AbstractParameterizedArgumentRes
         // Get all their IP addresses
         if (all)
         {
-            final PlayerData playerData = TotalFreedomMod.plugin().pl.getData(player);
+            final PlayerData playerData = PluginProvider.get().pl.getData(player);
             return playerData.getIps().stream()
                     .filter(InetAddresses::isInetAddress)
                     .map(InetAddress::ofLiteral)

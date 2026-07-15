@@ -25,7 +25,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.totalfreedommod.PluginProvider;
 import me.totalfreedom.totalfreedommod.cmd.MessageUtils;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import net.kyori.adventure.text.Component;
@@ -372,8 +372,8 @@ public class FUtil
         {
             return ip;
         }
-        if (sender != null && TotalFreedomMod.plugin().rm != null
-                && TotalFreedomMod.plugin().rm.hasPermission(sender, "tfm.manage.showips"))
+        if (sender != null && PluginProvider.get().rm != null
+                && PluginProvider.get().rm.hasPermission(sender, "tfm.manage.showips"))
         {
             return ip;
         }

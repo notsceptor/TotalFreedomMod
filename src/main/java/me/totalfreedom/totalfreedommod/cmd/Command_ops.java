@@ -1,0 +1,23 @@
+package me.totalfreedom.totalfreedommod.cmd;
+
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+
+import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
+import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
+
+@Command(name = "ops", description = "Manage operators", usage = "/ops")
+@Permission(permission = "tfm.player.ops")
+public class Command_ops extends FCommand
+{
+    @Callback
+    public void ops(CommandSender sender)
+    {
+        int totalOps = server.getOperators().size();
+        int onlineOps = (int) server.getOnlinePlayers().stream().filter(Player::isOp).count();
+
+        msg(sender, "Online OPs: <count>", Formatter.number("count", onlineOps));
+        msg(sender, "Offline OPs: <count>", Formatter.number("count", totalOps - onlineOps));
+        msg(sender, "Total OPs: <count>", Formatter.number("count", totalOps));
+    }
+}

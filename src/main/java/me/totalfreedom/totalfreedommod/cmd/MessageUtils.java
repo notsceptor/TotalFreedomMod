@@ -1,17 +1,17 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.JoinConfiguration;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
@@ -65,12 +65,14 @@ import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
  *          MessageUtils.parsed("label", "<gold>trusted</gold>") → parses MiniMessage in the value
  *   }
  */
-public class MessageUtils {
+public class MessageUtils 
+{
     private static final MiniMessage MM = MiniMessage.miniMessage();
     private static final PlainTextComponentSerializer PLAIN = PlainTextComponentSerializer.plainText();
     private static final Pattern TAG_PATTERN = Pattern.compile("<(/?)([ a-zA-Z_][a-zA-Z0-9_-]*)([^>]*)>");
 
-    private MessageUtils() {
+    private MessageUtils() 
+    {
         throw new IllegalAccessError("Utility class");
     }
 
@@ -81,7 +83,8 @@ public class MessageUtils {
      * @param value Value to be used as the placeholder
      * @return A TagResolver for the unparsed placeholder
      */
-    public static TagResolver unparsed(String key, String value) {
+    public static TagResolver unparsed(String key, String value) 
+    {
         return Placeholder.unparsed(key, value);
     }
 
@@ -94,7 +97,8 @@ public class MessageUtils {
      * @param miniMessageValue MiniMessage string to be parsed as the placeholder value
      * @return A TagResolver for the parsed placeholder
      */
-    public static TagResolver parsed(String key, String miniMessageValue) {
+    public static TagResolver parsed(String key, String miniMessageValue) 
+    {
         return Placeholder.parsed(key, miniMessageValue);
     }
 
@@ -107,8 +111,26 @@ public class MessageUtils {
      * @param value Component to be used as the placeholder value
      * @return A TagResolver for the component placeholder
      */
-    public static TagResolver component(String key, Component value) {
+    public static TagResolver component(String key, Component value) 
+    {
         return Placeholder.component(key, value);
+    }
+
+    /**
+     * Creates a placeholder that joins {@code items} the way {@link JoinConfiguration#commas(boolean)}
+     * would (comma-separated, with "and" before the last item), each styled in {@code color}.
+     * MiniMessage has no built-in tag for this, so command code should reach for this instead of
+     * hand-joining/building Components itself.
+     *
+     * @param key Placeholder key to be used in the MiniMessage string
+     * @param items Items to join
+     * @param color Color applied to each item
+     * @return A TagResolver for the joined, styled list
+     */
+    public static TagResolver joinedList(String key, List<String> items, NamedTextColor color) 
+    {
+        List<Component> parts = items.stream().<Component>map(item -> Component.text(item, color)).toList();
+        return Placeholder.component(key, Component.join(JoinConfiguration.commas(true), parts));
     }
 
     /**
@@ -118,10 +140,11 @@ public class MessageUtils {
      * @param miniMessage MiniMessage string to be parsed
      * @return Parsed Component
      */
-    public static Component parse(String miniMessage) {
-        if (miniMessage == null) {
+    public static Component parse(String miniMessage) 
+    {
+        if (miniMessage == null) 
             throw new IllegalArgumentException("MiniMessage string cannot be null");
-        }
+        
         String escaped = escapeUnknownTags(miniMessage);
         return AdventureUtil.addLinks(MM.deserialize(escaped));
     }
@@ -135,10 +158,11 @@ public class MessageUtils {
      * @param resolvers Additional TagResolvers to resolve placeholders in the MiniMessage
      * @return Parsed Component with placeholders resolved
      */
-    public static Component parse(String miniMessage, TagResolver... resolvers) {
-        if (miniMessage == null) {
+    public static Component parse(String miniMessage, TagResolver... resolvers) 
+    {
+        if (miniMessage == null)
             throw new IllegalArgumentException("MiniMessage string cannot be null");
-        }
+
         String escaped = escapeUnknownTags(miniMessage, resolvers);
         return AdventureUtil.addLinks(MM.deserialize(escaped, resolvers));
     }
@@ -149,7 +173,8 @@ public class MessageUtils {
      * @param sender CommandSender to send the message to
      * @param miniMessage MiniMessage string to be sent
      */
-    public static void send(CommandSender sender, String miniMessage) {
+    public static void send(CommandSender sender, String miniMessage) 
+    {
         sender.sendMessage(parse(miniMessage));
     }
 
@@ -160,7 +185,8 @@ public class MessageUtils {
      * @param miniMessage MiniMessage string to be sent
      * @param resolvers Additional TagResolvers to resolve placeholders in the MiniMessage
      */
-    public static void send(CommandSender sender, String miniMessage, TagResolver... resolvers) {
+    public static void send(CommandSender sender, String miniMessage, TagResolver... resolvers) 
+    {
         sender.sendMessage(parse(miniMessage, resolvers));
     }
 
@@ -169,7 +195,8 @@ public class MessageUtils {
      * 
      * @param miniMessage MiniMessage string to be broadcasted
      */
-    public static void broadcast(String miniMessage) {
+    public static void broadcast(String miniMessage) 
+    {
         Bukkit.broadcast(parse(miniMessage));
     }
 
@@ -179,7 +206,8 @@ public class MessageUtils {
      * @param miniMessage MiniMessage string to be broadcasted
      * @param resolvers Additional TagResolvers to resolve placeholders in the MiniMessage
      */
-    public static void broadcast(String miniMessage, TagResolver... resolvers) {
+    public static void broadcast(String miniMessage, TagResolver... resolvers) 
+    {
         Bukkit.broadcast(parse(miniMessage, resolvers));
     }
 
@@ -188,7 +216,8 @@ public class MessageUtils {
      * 
      * @param miniMessage MiniMessage string to be sent
      */
-    public static void console(String miniMessage) {
+    public static void console(String miniMessage) 
+    {
         Bukkit.getConsoleSender().sendMessage(parse(miniMessage));
     }
 
@@ -198,7 +227,8 @@ public class MessageUtils {
      * @param component Component to be converted
      * @return Plain text string
      */
-    public static String toPlainText(Component component) {
+    public static String toPlainText(Component component) 
+    {
         return PLAIN.serialize(component);
     }
 
@@ -208,7 +238,8 @@ public class MessageUtils {
      * @param miniMessage MiniMessage string to be converted
      * @return Plain text string
      */
-    public static String toPlainText(String miniMessage) {
+    public static String toPlainText(String miniMessage) 
+    {
         return PLAIN.serialize(parse(miniMessage));
     }
 
@@ -219,7 +250,8 @@ public class MessageUtils {
      * @param text Text to be wrapped in the color
      * @return Text wrapped in a hex color tag
      */
-    public static String hex(String hex, String text) {
+    public static String hex(String hex, String text) 
+    {
         String clean = hex.startsWith("#") ? hex.substring(1) : hex;
         return "<color:#" + clean + ">" + text + "</color>";
     }
@@ -232,7 +264,8 @@ public class MessageUtils {
      * @param input String potentially containing unknown tags
      * @return String with unknown tags escaped
      */
-    private static String escapeUnknownTags(String input, TagResolver... tags) {
+    private static String escapeUnknownTags(String input, TagResolver... tags) 
+    {
         if (input == null || input.isEmpty()) return input;
 
         StringBuilder out = new StringBuilder();
@@ -250,11 +283,11 @@ public class MessageUtils {
             // Check if this is a valid MiniMessage tag
             boolean isValid = isValidMiniMessageTag(slash, tagName, args, selfClosing, tags);
 
-            if (isValid) {
+            if (isValid) 
                 out.append(matcher.group(0));
-            } else {
+
+            else 
                 out.append("\\<").append(slash).append(tagName).append(args).append("\\>");
-            }
 
             last = matcher.end();
         }
@@ -273,13 +306,16 @@ public class MessageUtils {
      * @param selfClosing Whether the tag is self-closing (ends with /)
      * @return True if the tag is a valid MiniMessage tag, false otherwise
      */
-    private static boolean isValidMiniMessageTag(String slash, String tagName, String args, boolean selfClosing, TagResolver... tags) {
-        if (!slash.isEmpty()) {
+    private static boolean isValidMiniMessageTag(String slash, String tagName, String args, boolean selfClosing, TagResolver... tags) 
+    {
+        if (!slash.isEmpty()) 
             return true;
-        }
 
         String lower = tagName.toLowerCase();
-        if (isStyleTag(lower) || isSpecialTag(lower) || isManuallySpecifiedTag(lower, tags)) return true;
+        if (isStyleTag(lower) || 
+            isSpecialTag(lower) || 
+            isManuallySpecifiedTag(lower, tags)) 
+                return true;
 
         return false;
     }
@@ -290,8 +326,10 @@ public class MessageUtils {
      * @param tag Tag name
      * @return True if the tag is a named color, false otherwise
      */
-    private static boolean isNamedColor(String tag) {
-        final String[] namedColors = {
+    private static boolean isNamedColor(String tag) 
+    {
+        final String[] namedColors = 
+        {
             "black", "dark_blue", "dark_green", "dark_aqua", "dark_red", "dark_purple",
             "gold", "gray", "dark_gray", "blue", "green", "aqua", "red", "light_purple",
             "yellow", "white"
@@ -306,8 +344,10 @@ public class MessageUtils {
      * @param tag Decoration tag name
      * @return True if the tag is a decoration, false otherwise
      */
-    private static boolean isDecoration(String tag) {
-        final String[] decorations = {
+    private static boolean isDecoration(String tag) 
+    {
+        final String[] decorations = 
+        {
             "bold", "italic", "underlined", "strikethrough", "obfuscated"
         };
 
@@ -315,14 +355,17 @@ public class MessageUtils {
     }
 
     /**
-     * Checks if a tag is a special interactive tag that must be explicitly closed.
-     * 
+     * Checks if a tag is a special interactive or self-closing tag (click/hover need an explicit
+     * close; reset/newline/br are self-closing and take no content).
+     *
      * @param tag Tag name
      * @return True if the tag is a special tag, false otherwise
      */
-    private static boolean isSpecialTag(String tag) {
-        final String[] specialTags = {
-            "click", "hover", "reset"
+    private static boolean isSpecialTag(String tag)
+    {
+        final String[] specialTags =
+        {
+            "click", "hover", "reset", "newline", "br"
         };
 
         return Stream.of(specialTags).anyMatch(tag::equals);
@@ -335,8 +378,11 @@ public class MessageUtils {
      * @param tag Tag name
      * @return True if the tag is a style tag, false otherwise
      */
-    private static boolean isStyleTag(String tag) {
-        return isNamedColor(tag) || isDecoration(tag) || "color".equals(tag);
+    private static boolean isStyleTag(String tag) 
+    {
+        return isNamedColor(tag) || 
+               isDecoration(tag) || 
+               "color".equals(tag);
     }
 
     /**
@@ -345,7 +391,8 @@ public class MessageUtils {
      * @param tag Tag name
      * @return True if the tag is a special tag, false otherwise
      */
-    private static boolean isManuallySpecifiedTag(String tag, TagResolver[] resolvers) {
+    private static boolean isManuallySpecifiedTag(String tag, TagResolver[] resolvers) 
+    {
         return Stream.of(resolvers).anyMatch(resolver -> resolver.has(tag));
     }
 

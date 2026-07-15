@@ -66,8 +66,6 @@ public class TotalFreedomMod extends JavaPlugin
     public static String pluginName;
     public static String pluginVersion;
     //
-    private static TotalFreedomMod instance;
-    //
     public MainConfig config;
     //
     // Services
@@ -137,7 +135,7 @@ public class TotalFreedomMod extends JavaPlugin
     @Override
     public void onLoad()
     {
-        instance = this;
+        PluginProvider.bind(() -> this);
         TotalFreedomMod.pluginName = getPluginMeta().getName();
         TotalFreedomMod.pluginVersion = getPluginMeta().getVersion();
 
@@ -316,7 +314,7 @@ public class TotalFreedomMod extends JavaPlugin
         getServer().getScheduler().cancelTasks(this);
 
         FLog.info("Plugin disabled");
-        instance = null;
+        PluginProvider.unbind();
     }
 
     public static class BuildProperties
@@ -369,11 +367,6 @@ public class TotalFreedomMod extends JavaPlugin
         }
     }
 
-    public static TotalFreedomMod plugin()
-    {
-        return instance;
-    }
-    
     /**
      * Run YAML to SQL migrations for admins, bans, and permbans.
      * This converts existing YAML files to the new SQL database format.
