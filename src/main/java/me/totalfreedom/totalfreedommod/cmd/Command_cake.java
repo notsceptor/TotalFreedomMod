@@ -11,9 +11,6 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.rank.Rank;
-import me.totalfreedom.totalfreedommod.util.FUtil;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 
 @Command(name = "cake", description = "For the people that are still alive.", usage = "/cake")
 @Permission(level = Rank.SUPER_ADMIN, source = SourceType.BOTH, permission = "tfm.fun.cake")
@@ -37,7 +34,7 @@ public class Command_cake extends FCommand
         final ItemMeta heldItemMeta = heldItem.getItemMeta();
         heldItemMeta.displayName(MessageUtils.parse("<white>The <dark_gray>Lie"));
 
-        server.getOnlinePlayers().forEach(player -> player.getInventory().addItem(heldItem));
+        server().getOnlinePlayers().forEach(player -> player.getInventory().addItem(heldItem));
 
         MessageUtils.broadcast(randomCakeLyrics);
     }

@@ -204,7 +204,7 @@ public class Command_settings extends FCommand
         FALLING_SIGNS("fallingsigns", "Falling Signs", ALLOW_FALLING_SIGNS),
 
         ADMIN_MODE("adminmode", "Admin-Only Mode", ADMIN_ONLY_MODE, SourceType.ONLY_CONSOLE),
-        LOCKDOWN("lockdown", "Lockdown", LOCKDOWN_MODE),
+        LOCKDOWN("lockdown", "Lockdown", LOCKDOWN_MODE, SourceType.ONLY_CONSOLE),
         ENTITY_WIPE("entitywipe", "Automatic Entity Wiping", AUTO_ENTITY_WIPE),
 
         EXPLOSIVES("explosives", "Allow Explosions", ALLOW_EXPLOSIONS),
@@ -253,8 +253,8 @@ public class Command_settings extends FCommand
         }
 
         /**
-         * Throws if {@code sender} isn't allowed to change this setting given its {@link #requiredSource}.
-         * Doesn't gate {@link #queryConfigOption} — viewing status is left open to both sources.
+         * Throws a CommandFailException if the intended source doesn't match. 
+         * This maintains standard functionality that the old toggle command had, for example, lockdown / adminmode could be run by a superadmin but only from console.
          */
         void checkSource(final CommandSender sender)
         {

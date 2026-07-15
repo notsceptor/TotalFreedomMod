@@ -22,19 +22,19 @@ public class Command_adminworld extends FCommand
         World adminWorld = null;
         try
         {
-            adminWorld = plugin.wm.adminworld.getWorld();
+            adminWorld = plugin().wm.adminworld.getWorld();
         }
         catch (Exception ignored) {}
 
         if (adminWorld == null || player.getWorld().equals(adminWorld))
         {
             msg(player, "Going to the main world.");
-            player.teleport(server.getWorlds().get(0).getSpawnLocation().clone());
+            player.teleport(server().getWorlds().get(0).getSpawnLocation().clone());
         }
-        else if (plugin.wm.adminworld.canAccessWorld(player))
+        else if (plugin().wm.adminworld.canAccessWorld(player))
         {
             msg(player, "Going to the AdminWorld.");
-            plugin.wm.adminworld.sendToWorld(player);
+            plugin().wm.adminworld.sendToWorld(player);
         }
         else
         {
@@ -47,7 +47,7 @@ public class Command_adminworld extends FCommand
     @Permission(level = Rank.SUPER_ADMIN, source = SourceType.ONLY_IN_GAME, permission = "tfm.world.adminworld")
     public void addGuest(Player sender, Player target) 
     {
-        if (plugin.wm.adminworld.addGuest(target, sender))
+        if (plugin().wm.adminworld.addGuest(target, sender))
         {
             adminAction(sender, "<aqua>AdminWorld guest added: <target>",
                     Placeholder.unparsed("target", target.getName()));
@@ -61,11 +61,11 @@ public class Command_adminworld extends FCommand
     @Permission(permission = "tfm.world.adminworld")
     public void listGuests(CommandSender sender)
     {
-        if (plugin.wm.adminworld.hasGuests())
+        if (plugin().wm.adminworld.hasGuests())
         {
             // TODO: Probably not use this weird guestListToString
             msg(sender, "<aqua>AdminWorld guest list: <list>",
-                    Placeholder.parsed("list", plugin.wm.adminworld.guestListToString()));
+                    Placeholder.parsed("list", plugin().wm.adminworld.guestListToString()));
             return;
         }
 
@@ -77,7 +77,7 @@ public class Command_adminworld extends FCommand
     @Permission(level = Rank.SUPER_ADMIN, permission = "tfm.world.adminworld")
     public void removeGuest(CommandSender sender, Player target) 
     {
-        if (plugin.wm.adminworld.removeGuest(target))
+        if (plugin().wm.adminworld.removeGuest(target))
         {
             adminAction(sender, "<aqua>AdminWorld guest removed: <target>",
                     Placeholder.unparsed("target", target.getName()));
@@ -94,7 +94,7 @@ public class Command_adminworld extends FCommand
     @Permission(level = Rank.SUPER_ADMIN, permission = "tfm.world.adminworld")
     public void purgeGuests(CommandSender sender)
     {
-        plugin.wm.adminworld.purgeGuestList();
+        plugin().wm.adminworld.purgeGuestList();
         adminAction(sender, "<aqua>AdminWorld guest list purged.");
     }
 
@@ -103,7 +103,7 @@ public class Command_adminworld extends FCommand
     @Permission(level = Rank.SUPER_ADMIN, permission = "tfm.world.adminworld")
     public void setTime(CommandSender sender, WorldTime time)
     {
-        plugin.wm.adminworld.setTimeOfDay(time);
+        plugin().wm.adminworld.setTimeOfDay(time);
         msg(sender, "AdminWorld time set to <time>.",
                 Placeholder.unparsed("time", time.name()));
     }
@@ -113,7 +113,7 @@ public class Command_adminworld extends FCommand
     @Permission(level = Rank.SUPER_ADMIN, permission = "tfm.world.adminworld")
     public void setWeather(CommandSender sender, WorldWeather weather)
     {
-        plugin.wm.adminworld.setWeatherMode(weather);
+        plugin().wm.adminworld.setWeatherMode(weather);
         msg(sender, "<aqua>AdminWorld weather set to <weather>.",
                 Placeholder.unparsed("weather", weather.name()));
     }

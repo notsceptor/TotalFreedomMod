@@ -43,8 +43,15 @@ public abstract class FCommand
     public static final Component NOT_FROM_CONSOLE = Component.text("This command may not be used from the console.", NamedTextColor.GRAY);
     public static final Component PLAYER_NOT_FOUND = Component.text("Player not found!", NamedTextColor.GRAY);
 
-    protected final TotalFreedomMod plugin = PluginProvider.get();
-    protected final Server server = plugin.getServer();
+    protected final TotalFreedomMod plugin()
+    {
+        return PluginProvider.get();
+    }
+
+    protected final Server server()
+    {
+        return plugin().getServer();
+    }
 
     @Deprecated
     protected boolean isConsole(CommandSender sender)
@@ -73,7 +80,7 @@ public abstract class FCommand
     @Deprecated
     protected void checkRank(CommandSender sender, Rank rank)
     {
-        if (!plugin.rm.getRank(sender).isAtLeast(rank))
+        if (!plugin().rm.getRank(sender).isAtLeast(rank))
         {
             noPerms();
         }
@@ -107,14 +114,14 @@ public abstract class FCommand
             throw new InvalidParameterException("String cannot be Null-or-Empty");
         }
 
-        Player player = server.getPlayerExact(name);
+        Player player = server().getPlayerExact(name);
         if (player != null)
         {
             return player;
         }
 
         name = name.toLowerCase();
-        for (Player p : server.getOnlinePlayers())
+        for (Player p : server().getOnlinePlayers())
         {
             if (p.getName().toLowerCase().equals(name))
             {
@@ -123,7 +130,7 @@ public abstract class FCommand
         }
 
         List<Player> matches = new ArrayList<>();
-        for (Player p : server.getOnlinePlayers())
+        for (Player p : server().getOnlinePlayers())
         {
             if (p.getName().toLowerCase().startsWith(name))
             {
@@ -170,21 +177,21 @@ public abstract class FCommand
 
     protected boolean isAdmin(CommandSender sender)
     {
-        return plugin.al.isAdmin(sender);
+        return plugin().al.isAdmin(sender);
     }
 
     protected Admin getAdmin(CommandSender sender)
     {
-        return plugin.al.getAdmin(sender);
+        return plugin().al.getAdmin(sender);
     }
 
     protected Admin getAdmin(Player player)
     {
-        return plugin.al.getAdmin(player);
+        return plugin().al.getAdmin(player);
     }
 
     protected PlayerData getData(Player player)
     {
-        return plugin.pl.getData(player);
+        return plugin().pl.getData(player);
     }
 }

@@ -19,7 +19,7 @@ public class Command_adminchat extends FCommand
     @Permission(permission = "tfm.admin.adminchat", source = SourceType.ONLY_IN_GAME)
     public void toggle(Player sender)
     {
-        final FPlayer fplayer = plugin.pl.getPlayer(sender);
+        final FPlayer fplayer = plugin().pl.getPlayer(sender);
         boolean mode = !fplayer.inAdminChat();
 
         fplayer.setAdminChat(mode);
@@ -29,6 +29,6 @@ public class Command_adminchat extends FCommand
     @Callback
     public void sendMessage(CommandSender sender, @Greedy String message)
     {
-        plugin.cm.adminChat(sender, message);
+        plugin().cm.adminChat(sender, message);
     }
 }

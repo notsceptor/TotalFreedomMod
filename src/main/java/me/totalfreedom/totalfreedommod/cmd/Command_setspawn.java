@@ -16,7 +16,7 @@ public class Command_setspawn extends FCommand
     public void setspawn(Player player)
     {
         Location location = player.getLocation();
-        plugin.sm.setSpawnLocation(location);
+        plugin().sm.setSpawnLocation(location);
         msg(player, "Server spawn set to: <location>", Placeholder.unparsed("location", FUtil.formatLocation(location)));
     }
 }

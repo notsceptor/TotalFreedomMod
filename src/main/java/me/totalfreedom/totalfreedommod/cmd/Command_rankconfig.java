@@ -1,0 +1,310 @@
+package me.totalfreedom.totalfreedommod.cmd;
+
+import java.util.List;
+
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+
+import me.totalfreedom.totalfreedommod.admin.Admin;
+import me.totalfreedom.totalfreedommod.cmd.internal.FuzzyMatch;
+import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
+import me.totalfreedom.totalfreedommod.rank.CustomRank;
+import me.totalfreedom.totalfreedommod.rank.Rank;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+
+@Command(
+    name = "rankconfig",
+    description = "Configure custom ranks.",
+    usage = "/rankconfig [list | create <id> | edit <rank> | delete <rank> | set <rank> <property> <value> | setrank <player> <rank> | reload | save]",
+    aliases = {"rankconf", "rankcfg"}
+)
+@Permission(permission = "tfm.manage.ranks", level = Rank.SENIOR_ADMIN)
+public class Command_rankconfig extends FCommand // Gonna be honest, this one was the most difficult one by far. I hated every second of this.
+{
+    @Callback
+    public void menu(CommandSender sender)
+    {
+        requireManageRanks(sender);
+        sender.sendMessage(plugin().rm.buildMainMenu());
+    }
+
+    @Callback
+    @Subcommand("list")
+    public void list(CommandSender sender)
+    {
+        menu(sender);
+    }
+
+    @Callback
+    @Subcommand("create")
+    public void create(CommandSender sender, String id)
+    {
+        requireManageRanks(sender);
+
+        String rankId = id.toLowerCase();
+        if (plugin().rm.hasCustomRank(rankId))
+        {
+            msg(sender, "<red>A rank with that ID already exists!");
+            return;
+        }
+
+        CustomRank rank = new CustomRank(rankId);
+        plugin().rm.setCustomRank(rank);
+
+        adminAction(sender, "<aqua>Created new rank: <rank>", Placeholder.unparsed("rank", rank.getName()));
+        sender.sendMessage(plugin().rm.buildEditMenu(rank));
+    }
+
+    @Callback
+    @Subcommand("edit")
+    public void edit(CommandSender sender, String rank)
+    {
+        requireManageRanks(sender);
+
+        CustomRank target = plugin().rm.getCustomRank(rank.toLowerCase());
+        if (target == null)
+        {
+            msg(sender, "<red>Rank not found: <rank>", Placeholder.unparsed("rank", rank));
+            return;
+        }
+
+        sender.sendMessage(plugin().rm.buildEditMenu(target));
+    }
+
+    @Completer(value = "edit", position = 0)
+    public List<String> completeEdit(CommandSender sender, String partial)
+    {
+        return rankIdCandidates(partial);
+    }
+
+    @Callback
+    @Subcommand("delete")
+    public void delete(CommandSender sender, String rank)
+    {
+        requireManageRanks(sender);
+
+        String rankId = rank.toLowerCase();
+        CustomRank target = plugin().rm.getCustomRank(rankId);
+        if (target == null)
+        {
+            msg(sender, "<red>Rank not found: <rank>", Placeholder.unparsed("rank", rankId));
+            return;
+        }
+
+        plugin().rm.removeCustomRank(rankId);
+        adminAction(sender, "<red>Deleted rank: <rank>", Placeholder.unparsed("rank", target.getName()));
+        sender.sendMessage(plugin().rm.buildMainMenu());
+    }
+
+    @Completer(value = "delete", position = 0)
+    public List<String> completeDelete(CommandSender sender, String partial)
+    {
+        return rankIdCandidates(partial);
+    }
+
+    @Callback
+    @Subcommand("set")
+    public void set(CommandSender sender, String rank, Property property, @Greedy String value)
+    {
+        requireManageRanks(sender);
+
+        String rankId = rank.toLowerCase();
+        CustomRank target = plugin().rm.getCustomRank(rankId);
+        if (target == null)
+        {
+            msg(sender, "<red>Rank not found: <rank>", Placeholder.unparsed("rank", rankId));
+            return;
+        }
+
+        switch (property)
+        {
+            case NAME -> target.setName(value);
+            case ABBREVIATION -> target.setAbbreviation(value);
+            case PREFIX -> target.setPrefix(value);
+            case DETERMINER -> target.setDeterminer(value);
+            case COLOR -> target.setColor(parseColor(value));
+            case ADMIN -> target.setAdmin(isTruthy(value));
+            case CONSOLE -> target.setConsoleOnly(isTruthy(value));
+            case ADDPERM -> target.addPermission(value);
+            case REMPERM -> target.removePermission(value);
+            case LEVEL ->
+            {
+                try
+                {
+                    target.setLevel(Integer.parseInt(value.trim()));
+                }
+                catch (NumberFormatException e)
+                {
+                    msg(sender, "<red>Invalid number: <value>", Placeholder.unparsed("value", value));
+                    return;
+                }
+            }
+            case INHERIT ->
+            {
+                String trimmed = value.trim();
+                if (trimmed.isEmpty() || trimmed.equalsIgnoreCase("none"))
+                {
+                    target.setInheritFrom(null);
+                }
+                else if (!plugin().rm.hasCustomRank(trimmed.toLowerCase()))
+                {
+                    msg(sender, "<red>Rank '<rank>' does not exist!", Placeholder.unparsed("rank", trimmed));
+                    return;
+                }
+                else
+                {
+                    target.setInheritFrom(trimmed.toLowerCase());
+                }
+            }
+        }
+
+        plugin().rm.setCustomRank(target);
+        msg(
+            sender,
+            "<green>Updated <property> for rank <rank>",
+            Placeholder.unparsed("property", property.name().toLowerCase()),
+            Placeholder.unparsed("rank", target.getName())
+        );
+
+        if (sender instanceof Player)
+        {
+            sender.sendMessage(plugin().rm.buildEditMenu(target));
+        }
+    }
+
+    @Completer(value = "set", position = 0)
+    public List<String> completeSetRank(CommandSender sender, String partial)
+    {
+        return rankIdCandidates(partial);
+    }
+
+    @Callback
+    @Subcommand("setrank")
+    public void setRank(CommandSender sender, Player target, String rank)
+    {
+        requireManageRanks(sender);
+
+        String rankId = rank.toLowerCase();
+        if (rankId.equals("none") || rankId.equals("clear"))
+        {
+            Admin admin = plugin().al.getAdmin(target);
+            if (admin == null)
+            {
+                msg(sender, "<red>Player is not an admin, no custom rank to clear.");
+                return;
+            }
+
+            admin.setCustomRankId(null);
+            plugin().al.save();
+            msg(sender, "<green>Cleared custom rank for <player>", Placeholder.unparsed("player", target.getName()));
+            return;
+        }
+
+        CustomRank customRank = plugin().rm.getCustomRank(rankId);
+        if (customRank == null)
+        {
+            msg(sender, "<red>Rank not found: <rank>", Placeholder.unparsed("rank", rankId));
+            return;
+        }
+
+        Admin admin = plugin().al.getAdmin(target);
+        if (admin == null)
+        {
+            msg(sender, "<red>Player must be an admin to have a custom rank assigned.");
+            msg(sender, "<gray>Add them to the admin list first using /saconfig add <player>", Placeholder.unparsed("player", target.getName()));
+            return;
+        }
+
+        admin.setCustomRankId(rankId);
+        plugin().al.save();
+
+        adminAction(
+            sender,
+            "<aqua>Set <player>'s custom rank to <rank>",
+            Placeholder.unparsed("player", target.getName()),
+            Placeholder.unparsed("rank", customRank.getName())
+        );
+    }
+
+    @Completer(value = "setrank", position = 1)
+    public List<String> completeSetRankRank(CommandSender sender, String partial)
+    {
+        return rankIdCandidates(partial);
+    }
+
+    @Callback
+    @Subcommand("reload")
+    public void reload(CommandSender sender)
+    {
+        requireManageRanks(sender);
+
+        plugin().rm.loadRanks();
+        adminAction(sender, "<aqua>Reloaded rank configuration");
+        msg(sender, "<green>Ranks reloaded from file.");
+        sender.sendMessage(plugin().rm.buildMainMenu());
+    }
+
+    @Callback
+    @Subcommand("save")
+    public void save(CommandSender sender)
+    {
+        requireManageRanks(sender);
+
+        plugin().rm.saveRanks();
+        msg(sender, "<green>Ranks saved to file.");
+    }
+
+    private List<String> rankIdCandidates(String partial)
+    {
+        List<String> ids = plugin().rm.getCustomRanksSorted().stream().map(CustomRank::getId).toList();
+        return FuzzyMatch.filter(ids, partial);
+    }
+
+    /**
+     * Internal (non-Bukkit) rank-management permission, layered on top of the Brigadier
+     * {@code @Permission} gate — mirrors the legacy check, since all TFM players are OP and
+     * this system doesn't use Bukkit permission nodes for rank authority.
+     */
+    private void requireManageRanks(CommandSender sender)
+    {
+        if (!plugin().rm.canManageRanks(sender))
+        {
+            throw new CommandFailException("You do not have permission to manage ranks.");
+        }
+    }
+
+    private static boolean isTruthy(String value)
+    {
+        String trimmed = value.trim();
+        return trimmed.equalsIgnoreCase("true") || trimmed.equalsIgnoreCase("yes") || trimmed.equalsIgnoreCase("y");
+    }
+
+    private static NamedTextColor parseColor(String name)
+    {
+        return switch (name.toLowerCase().replace("_", ""))
+        {
+            case "black" -> NamedTextColor.BLACK;
+            case "darkblue" -> NamedTextColor.DARK_BLUE;
+            case "darkgreen" -> NamedTextColor.DARK_GREEN;
+            case "darkaqua", "darkcyan" -> NamedTextColor.DARK_AQUA;
+            case "darkred" -> NamedTextColor.DARK_RED;
+            case "darkpurple", "purple" -> NamedTextColor.DARK_PURPLE;
+            case "gold", "orange" -> NamedTextColor.GOLD;
+            case "gray", "grey" -> NamedTextColor.GRAY;
+            case "darkgray", "darkgrey" -> NamedTextColor.DARK_GRAY;
+            case "blue" -> NamedTextColor.BLUE;
+            case "green" -> NamedTextColor.GREEN;
+            case "aqua", "cyan" -> NamedTextColor.AQUA;
+            case "red" -> NamedTextColor.RED;
+            case "lightpurple", "pink", "magenta" -> NamedTextColor.LIGHT_PURPLE;
+            case "yellow" -> NamedTextColor.YELLOW;
+            default -> NamedTextColor.WHITE;
+        };
+    }
+
+    private enum Property
+    {
+        NAME, ABBREVIATION, LEVEL, COLOR, DETERMINER, ADMIN, CONSOLE, PREFIX, INHERIT, ADDPERM, REMPERM
+    }
+}

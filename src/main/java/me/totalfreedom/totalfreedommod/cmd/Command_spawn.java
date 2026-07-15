@@ -13,7 +13,7 @@ public class Command_spawn extends FCommand
     @Callback
     public void spawnSelf(Player player)
     {
-        if (plugin.sm.sendToSpawn(player))
+        if (plugin().sm.sendToSpawn(player))
         {
             msg(player, "Teleported to spawn.");
         }
@@ -28,7 +28,7 @@ public class Command_spawn extends FCommand
             return;
         }
 
-        if (plugin.sm.sendToSpawn(target))
+        if (plugin().sm.sendToSpawn(target))
         {
             msg(sender, "Sent <player> to spawn.", Placeholder.unparsed("player", target.getName()));
         }

@@ -19,9 +19,9 @@ public class Command_say extends FCommand
     public void say(CommandSender sender, @Greedy String message)
     {
         final Component broadcast = MessageUtils.parse("<light_purple>[Server:<name>] ", Placeholder.unparsed("name", sender.getName()))
-                .append(ChatMentionUtil.highlightAndPing(plugin, FUtil.colorizeWithLinks(message, NamedTextColor.LIGHT_PURPLE), true));
+                .append(ChatMentionUtil.highlightAndPing(plugin(), FUtil.colorizeWithLinks(message, NamedTextColor.LIGHT_PURPLE), true));
 
         FUtil.bcastMsg(broadcast);
-        plugin.db.sendBroadcastMessage(sender.getName(), MessageUtils.toPlainText(broadcast), ConfigEntry.DISCORD_SAY_MESSAGE);
+        plugin().db.sendBroadcastMessage(sender.getName(), MessageUtils.toPlainText(broadcast), ConfigEntry.DISCORD_SAY_MESSAGE);
     }
 }

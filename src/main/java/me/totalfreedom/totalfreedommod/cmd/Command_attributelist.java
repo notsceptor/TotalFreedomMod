@@ -2,8 +2,6 @@ package me.totalfreedom.totalfreedommod.cmd;
 
 import java.util.Comparator;
 import java.util.List;
-import java.util.Locale;
-import java.util.stream.Collectors;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.JoinConfiguration;

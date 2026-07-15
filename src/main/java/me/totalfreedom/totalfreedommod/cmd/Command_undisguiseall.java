@@ -12,13 +12,13 @@ public class Command_undisguiseall extends FCommand
     @Callback
     public void undisguiseall(CommandSender sender)
     {
-        if (!plugin.ldb.isPluginEnabled())
+        if (!plugin().ldb.isPluginEnabled())
         {
             msg(sender, "LibsDisguises is not enabled.");
             return;
         }
 
-        if (!plugin.ldb.isDisguisesEnabled())
+        if (!plugin().ldb.isDisguisesEnabled())
         {
             msg(sender, "Disguises are not enabled.");
             return;
@@ -26,6 +26,6 @@ public class Command_undisguiseall extends FCommand
 
         adminAction(sender, "<red>Undisguising all non-admins");
 
-        plugin.ldb.undisguiseAll(false);
+        plugin().ldb.undisguiseAll(false);
     }
 }

@@ -15,21 +15,21 @@ public class Command_link extends FCommand
     @Callback
     public void link(Player player)
     {
-        if (plugin.db == null || !plugin.db.isReady())
+        if (plugin().db == null || !plugin().db.isReady())
         {
             msg(player, "<red>Discord bridge is not enabled or not ready.");
             return;
         }
 
-        Admin admin = plugin.al.getAdmin(player);
+        Admin admin = plugin().al.getAdmin(player);
         if (admin == null)
         {
             msg(player, "<red>You're not in the admin list.");
             return;
         }
 
-        String code = plugin.db.createPendingLink(admin.getUuid());
-        int ttlSeconds = plugin.db.getLinkCodeTtlSeconds();
+        String code = plugin().db.createPendingLink(admin.getUuid());
+        int ttlSeconds = plugin().db.getLinkCodeTtlSeconds();
 
         // OKAY SO i forgot about string blocks; 
         // the newline byte sent by this IS parsed by MiniMessage (unlike \n).

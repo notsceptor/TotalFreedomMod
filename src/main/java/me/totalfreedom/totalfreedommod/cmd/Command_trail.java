@@ -12,7 +12,7 @@ public class Command_trail extends FCommand
     @Callback
     public void toggle(Player player)
     {
-        setTrail(player, plugin.tr.has(player));
+        setTrail(player, plugin().tr.has(player));
     }
 
     @Callback
@@ -22,12 +22,12 @@ public class Command_trail extends FCommand
     {
         if (value)
         {
-            plugin.tr.remove(player);
+            plugin().tr.remove(player);
             msg(player, "Trail disabled.");
         }
         else
         {
-            plugin.tr.add(player);
+            plugin().tr.add(player);
             msg(player, "Trail enabled.");
         }
     }

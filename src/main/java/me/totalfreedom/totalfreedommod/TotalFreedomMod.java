@@ -135,7 +135,7 @@ public class TotalFreedomMod extends JavaPlugin
     @Override
     public void onLoad()
     {
-        PluginProvider.bind(() -> this);
+        PluginProvider.bind(this);
         TotalFreedomMod.pluginName = getPluginMeta().getName();
         TotalFreedomMod.pluginVersion = getPluginMeta().getVersion();
 

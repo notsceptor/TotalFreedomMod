@@ -20,7 +20,7 @@ public class Command_opall extends FCommand
 
         GameMode gamemode = creative ? GameMode.CREATIVE : survival ? GameMode.SURVIVAL : null;
 
-        server.getOnlinePlayers().forEach(player -> 
+        server().getOnlinePlayers().forEach(player -> 
         {
             msg(player, "<name> - Opping all players on the server", Placeholder.unparsed("name", sender.getName()));
             player.setOp(true);

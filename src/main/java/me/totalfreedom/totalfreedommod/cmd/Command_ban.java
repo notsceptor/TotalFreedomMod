@@ -14,7 +14,6 @@ import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import net.kyori.adventure.text.format.NamedTextColor;
 
 @Command(name = "ban", description = "Bans an online or previously known player and their known IP addresses.", usage = "/<command> [-s] [-nrb] <player> [reason]", aliases = {"gtfo"})
 @Permission(permission = "tfm.admin.ban", level = Rank.SUPER_ADMIN)
@@ -36,7 +35,7 @@ public class Command_ban extends FCommand
     private void doBan(CommandSender sender, String name, String reason, boolean silent, boolean noRollback)
     {
         final Player player = getPlayer(name);
-        PlayerData data = BanCommandUtil.getData(plugin, name, player);
+        PlayerData data = BanCommandUtil.getData(plugin(), name, player);
 
         if (data == null)
         {
@@ -46,7 +45,7 @@ public class Command_ban extends FCommand
 
         name = BanCommandUtil.getCanonicalName(name, player, data);
 
-        if (plugin.bm.getByUsername(name) != null)
+        if (plugin().bm.getByUsername(name) != null)
         {
             msg(sender, "<gray><player> is already banned.",
                     Placeholder.unparsed("player", name));
@@ -62,7 +61,7 @@ public class Command_ban extends FCommand
                     Placeholder.unparsed("player", name));
         }
 
-        plugin.bm.addBan(ban);
+        plugin().bm.addBan(ban);
         if (!silent)
         {
             adminAction(sender, "<red>Banning <player><include_reason:\" - Reason: <yellow><reason>\":\"\">",
@@ -70,15 +69,15 @@ public class Command_ban extends FCommand
                     Formatter.booleanChoice("include_reason", reason != null && !reason.isEmpty()),
                     Placeholder.unparsed("reason", reason != null ? reason : ""));
 
-            plugin.db.sendActionMessage(sender.getName(), name, reason, ConfigEntry.DISCORD_PLAYER_BAN_MESSAGE);
+            plugin().db.sendActionMessage(sender.getName(), name, reason, ConfigEntry.DISCORD_PLAYER_BAN_MESSAGE);
         }
 
         if (!noRollback)
         {
-            plugin.cpb.rollback(name);
+            plugin().cpb.rollback(name);
         }
 
-        if (!plugin.al.isAdmin(player))
+        if (!plugin().al.isAdmin(player))
         {
             data.setStrikes(0);
         }
@@ -87,7 +86,7 @@ public class Command_ban extends FCommand
         {
             try
             {
-                plugin.web.undo(player, 15);
+                plugin().web.undo(player, 15);
             }
             catch (NoClassDefFoundError ignored)
             {

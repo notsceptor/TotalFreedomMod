@@ -42,7 +42,7 @@ public class Command_cookie extends FCommand
         heldItemMeta.lore(lore);
         heldItem.setItemMeta(heldItemMeta);
 
-        server.getOnlinePlayers()
+        server().getOnlinePlayers()
               .forEach(player -> {
                 int firstEmpty = player.getInventory().firstEmpty();
                 if (firstEmpty >= 0)

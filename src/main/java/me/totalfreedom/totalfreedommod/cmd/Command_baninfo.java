@@ -20,9 +20,9 @@ public class Command_baninfo extends FCommand
     @Callback
     public void query(CommandSender sender, String target)
     {
-        Optional<Ban> ban = Optional.ofNullable(plugin.bm.getByUsername(target));
+        Optional<Ban> ban = Optional.ofNullable(plugin().bm.getByUsername(target));
 
-        if (ban.isEmpty()) ban.map(c -> plugin.bm.getByIp(target));
+        if (ban.isEmpty()) ban.map(c -> plugin().bm.getByIp(target));
 
         if (ban.isPresent()) 
         {
@@ -30,12 +30,12 @@ public class Command_baninfo extends FCommand
             return;
         }
 
-        Optional<PermBan> permban = Optional.ofNullable(plugin.pm.getPermban(target));
+        Optional<PermBan> permban = Optional.ofNullable(plugin().pm.getPermban(target));
 
         if (permban.isEmpty())
         {
-            permban = plugin.pm.getPermbannedNames().stream()
-                .map(plugin.pm::getPermban)    
+            permban = plugin().pm.getPermbannedNames().stream()
+                .map(plugin().pm::getPermban)    
                 .filter(candidate -> candidate != null && candidate.getIps() != null && candidate.getIps().contains(target))
                 .findFirst();
         }
@@ -50,7 +50,7 @@ public class Command_baninfo extends FCommand
             String normalized = normalizePartialIP(target);
             int leading = countLeadingOctets(target);
             
-            plugin.bm.getAllBans()
+            plugin().bm.getAllBans()
                 .stream()
                 .filter(candidate -> !candidate.isExpired())
                 .forEach(candidate -> 
@@ -62,10 +62,10 @@ public class Command_baninfo extends FCommand
                             .ifPresent(ip -> printBan(sender, candidate));
                     });
 
-            plugin.pm.getPermbannedNames()
+            plugin().pm.getPermbannedNames()
                 .forEach(name -> 
                     {
-                        PermBan candidate = plugin.pm.getPermban(name);
+                        PermBan candidate = plugin().pm.getPermban(name);
                         if (candidate == null || candidate.getIps() == null) return; // in a lambda, return does NOT return the execution back to the caller. It simply moves to the next element in the set.
                         candidate.getIps()
                             .stream()

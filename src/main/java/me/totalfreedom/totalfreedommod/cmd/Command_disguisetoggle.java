@@ -13,7 +13,7 @@ public class Command_disguisetoggle extends FCommand
     @Callback
     public void disguisetoggle(CommandSender sender)
     {
-        if (!plugin.ldb.isPluginEnabled())
+        if (!plugin().ldb.isPluginEnabled())
         {
             msg(sender, "<red>LibsDisguises is not enabled.");
             return;
@@ -22,23 +22,23 @@ public class Command_disguisetoggle extends FCommand
         adminAction(
                     sender, 
                     "<aqua><value:Enabling:Disabling> Disguises.", 
-                    Formatter.booleanChoice("value", !plugin.ldb.isDisguisesEnabled())
+                    Formatter.booleanChoice("value", !plugin().ldb.isDisguisesEnabled())
                 );
 
-        if (plugin.ldb.isDisguisesEnabled())
+        if (plugin().ldb.isDisguisesEnabled())
         {
-            plugin.ldb.undisguiseAll(true);
-            plugin.ldb.setDisguisesEnabled(false);
+            plugin().ldb.undisguiseAll(true);
+            plugin().ldb.setDisguisesEnabled(false);
         }
         else
         {
-            plugin.ldb.setDisguisesEnabled(true);
+            plugin().ldb.setDisguisesEnabled(true);
         }
 
         msg(
             sender, 
             "Disguises are now <value:enabled:disabled>",
-            Formatter.booleanChoice("value", plugin.ldb.isDisguisesEnabled())
+            Formatter.booleanChoice("value", plugin().ldb.isDisguisesEnabled())
         );
     }
 }

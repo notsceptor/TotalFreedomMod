@@ -13,11 +13,11 @@ public class Command_stop extends FCommand
     {
         MessageUtils.broadcast("<light_purple>Server is going offline!");
 
-        server.getOnlinePlayers().forEach(player -> 
+        server().getOnlinePlayers().forEach(player -> 
         {
             kickPlayer(player, "Server is going offline, come back in about 20 seconds.");
         });
 
-        server.shutdown();
+        server().shutdown();
     }
 }

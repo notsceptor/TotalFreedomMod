@@ -18,7 +18,7 @@ public class Command_cage extends FCommand
     @Callback // /cage [-s] <player> | Will auto-toggle, but switch -s can be used to guarantee uncaging.
     public void toggle(final CommandSender sender, final Player player, @Switch("s") boolean stop)
     {
-        CageData cageData = plugin.pl.getPlayer(player).getCageData();
+        CageData cageData = plugin().pl.getPlayer(player).getCageData();
 
         if (stop || cageData.isCaged())
         {
@@ -32,9 +32,9 @@ public class Command_cage extends FCommand
     @Subcommand("purge")
     public void purge(final CommandSender sender)
     {
-        server.getOnlinePlayers()
+        server().getOnlinePlayers()
               .stream()
-              .map(plugin.pl::getPlayer)
+              .map(plugin().pl::getPlayer)
               .map(FPlayer::getCageData)
               .forEach(cd -> cd.setCaged(false));
 
@@ -44,7 +44,7 @@ public class Command_cage extends FCommand
     @Callback // /cage <player> <outer_mat> <inner_mat>   =   No support for switch here because why would you supply a -s and then define materials? would default to switch above anyways.
     public void cage(final CommandSender sender, final Player player, final Material outer, final Material inner)
     {
-        CageData data = plugin.pl.getPlayer(player).getCageData();
+        CageData data = plugin().pl.getPlayer(player).getCageData();
         Location loc = player.getLocation().clone().add(0, 1, 0);
 
         adminAction(sender, "<red>Caging <player>...", Placeholder.unparsed("player", player.getName()));

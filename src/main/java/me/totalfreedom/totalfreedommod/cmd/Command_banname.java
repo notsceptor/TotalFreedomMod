@@ -21,19 +21,19 @@ public class Command_banname extends FCommand
     @Callback
     public void banNameWithReason(CommandSender sender, String name, @Greedy String reason)
     {
-        if (plugin.bm.getByUsername(name) != null)
+        if (plugin().bm.getByUsername(name) != null)
         {
             msg(sender, "<name> is already banned.", Placeholder.unparsed("name", name));
             return;
         }
         final Ban ban = Ban.forPlayerName(name, sender, null, reason);
 
-        plugin.bm.addBan(ban);
+        plugin().bm.addBan(ban);
 
         adminAction(sender, "<red>Banning the username <name>",
                 Placeholder.unparsed("name", name));
 
-        final Player player = server.getPlayer(name);
+        final Player player = server().getPlayer(name);
         if (player != null)
         {
             kickPlayer(player, MessageUtils.toPlainText(ban.bakeKickMessage()));

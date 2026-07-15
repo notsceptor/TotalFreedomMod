@@ -191,7 +191,7 @@ public class MessageUtils
     }
 
     /**
-     * Broadcasts a MiniMessage string to all players on the server.
+     * Broadcasts a MiniMessage string to all players on the server().
      * 
      * @param miniMessage MiniMessage string to be broadcasted
      */
@@ -201,7 +201,7 @@ public class MessageUtils
     }
 
     /**
-     * Broadcasts a MiniMessage string with placeholders to all players on the server.
+     * Broadcasts a MiniMessage string with placeholders to all players on the server().
      * 
      * @param miniMessage MiniMessage string to be broadcasted
      * @param resolvers Additional TagResolvers to resolve placeholders in the MiniMessage

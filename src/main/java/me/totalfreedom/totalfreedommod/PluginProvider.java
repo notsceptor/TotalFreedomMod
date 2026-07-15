@@ -1,6 +1,7 @@
 package me.totalfreedom.totalfreedommod;
 
-import java.util.function.Supplier;
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Supplier for TotalFreedomMod that replaces the static singleton. 
@@ -8,29 +9,47 @@ import java.util.function.Supplier;
  */
 public final class PluginProvider
 {
-    private static Supplier<TotalFreedomMod> supplier = PluginProvider::unbound;
+    private static final AtomicReference<TotalFreedomMod> INSTANCE = new AtomicReference<>();
 
     private PluginProvider()
     {
     }
 
-    public static void bind(Supplier<TotalFreedomMod> pluginSupplier)
+    public static void bind(TotalFreedomMod plugin)
     {
-        supplier = pluginSupplier;
+        Objects.requireNonNull(plugin, "Cannot bind a null plugin instance.");
+
+        if (!INSTANCE.compareAndSet(null, plugin))
+        {
+            throw new IllegalStateException("TotalFreedomMod is already bound.");
+        }
     }
 
     public static void unbind()
     {
-        supplier = PluginProvider::unbound;
+        INSTANCE.set(null);
     }
 
+    /**
+     * It is preferred that this is called at Point of Use.
+     * Realistically, this should not be cached across bind boundaries because it will cause invariant states.
+     * HOWEVER, since binding should only be done in onLoad(), never during the plugins lifetime, and only unbound at onDisable()
+     * caching the variable as in `var plugin = PluginProvider.get()` like in FCommand is fine, since the bind never changes during lifetime
+     * and binding is the first thing that happens in the plugins lifecycle in onLoad() and everything else is registered and initialized in the onEnable() method.
+     * 
+     * This however should be avoided moving forward; I will replace plugin and server variable with overload getters that just return this get method instead.
+     * There are many locations in the code where this occurs, FCommand is the only one thats feasibly fixable in this scope. 
+     * 
+     * @return the live plugin instance.
+     * @throws IllegalStateException if the plugin is not currently bound.
+     */
     public static TotalFreedomMod get()
     {
-        return supplier.get();
-    }
-
-    private static TotalFreedomMod unbound()
-    {
-        throw new IllegalStateException("TotalFreedomMod is not currently initialized.");
+        TotalFreedomMod plugin = INSTANCE.get(); // volatile read
+        if (plugin == null)
+        {
+            throw new IllegalStateException("TotalFreedomMod is not currently initialized.");
+        }
+        return plugin;
     }
 }

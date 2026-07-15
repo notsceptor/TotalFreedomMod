@@ -17,7 +17,7 @@ public class Command_entitywipe extends FCommand
     public void entitywipeAll(CommandSender sender)
     {
         adminAction(sender, "<red>Removing all server entities");
-        int removed = plugin.ew.wipeEntities(true);
+        int removed = plugin().ew.wipeEntities(true);
         msg(
             sender,
             "<count> <noun> removed.",
@@ -37,7 +37,7 @@ public class Command_entitywipe extends FCommand
         }
 
         adminAction(sender, "<red>Removing entities in world <world>", Placeholder.unparsed("world", target.getName()));
-        int removed = plugin.ew.wipeEntities(target, true);
+        int removed = plugin().ew.wipeEntities(target, true);
         msg(
             sender,
             "<count> <noun> removed from \"<world>\".",

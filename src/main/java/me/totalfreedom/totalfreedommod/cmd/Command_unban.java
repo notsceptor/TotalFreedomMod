@@ -28,9 +28,9 @@ public class Command_unban extends FCommand
             player = null;
         }
 
-        PlayerData data = BanCommandUtil.getData(plugin, playerName, player);
+        PlayerData data = BanCommandUtil.getData(plugin(), playerName, player);
         String name = BanCommandUtil.getCanonicalName(playerName, player, data);
-        Set<Ban> bans = BanCommandUtil.findLinkedBans(plugin, playerName, player, data);
+        Set<Ban> bans = BanCommandUtil.findLinkedBans(plugin(), playerName, player, data);
 
         if (bans.isEmpty())
         {
@@ -40,7 +40,7 @@ public class Command_unban extends FCommand
 
         for (Ban ban : bans)
         {
-            plugin.bm.removeBan(ban);
+            plugin().bm.removeBan(ban);
         }
 
         if (!silent)
@@ -50,7 +50,7 @@ public class Command_unban extends FCommand
 
         if (restore)
         {
-            plugin.cpb.restore(name);
+            plugin().cpb.restore(name);
         }
     }
 }

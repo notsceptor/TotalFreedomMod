@@ -13,8 +13,8 @@ public class Command_ops extends FCommand
     @Callback
     public void ops(CommandSender sender)
     {
-        int totalOps = server.getOperators().size();
-        int onlineOps = (int) server.getOnlinePlayers().stream().filter(Player::isOp).count();
+        int totalOps = server().getOperators().size();
+        int onlineOps = (int) server().getOnlinePlayers().stream().filter(Player::isOp).count();
 
         msg(sender, "Online OPs: <count>", Formatter.number("count", onlineOps));
         msg(sender, "Offline OPs: <count>", Formatter.number("count", totalOps - onlineOps));

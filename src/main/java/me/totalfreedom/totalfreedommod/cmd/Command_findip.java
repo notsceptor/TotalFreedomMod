@@ -25,7 +25,7 @@ public class Command_findip extends FCommand
             sender,
             "<gray><player></gray>'s IP(s): <ips>",
             Placeholder.unparsed("player", player.getName()),
-            MessageUtils.joinedList("ips", plugin.pl.getData(player).getIps(), NamedTextColor.WHITE)
+            MessageUtils.joinedList("ips", plugin().pl.getData(player).getIps(), NamedTextColor.WHITE)
         );
     }
 }

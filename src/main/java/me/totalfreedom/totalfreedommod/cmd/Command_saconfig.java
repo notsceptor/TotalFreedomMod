@@ -39,7 +39,7 @@ public class Command_saconfig extends FCommand
     @Permission(permission = "tfm.manage.saconfig", source = SourceType.ONLY_CONSOLE, level = Rank.SENIOR_ADMIN)
     public void setRank(CommandSender sender, Player target, String rankInput) 
     {
-        final CustomRank custom = plugin.rm != null ? plugin.rm.getCustomRank(rankInput) : null;
+        final CustomRank custom = plugin().rm != null ? plugin().rm.getCustomRank(rankInput) : null;
         final Rank rank;
         final String displayName;
 
@@ -90,7 +90,7 @@ public class Command_saconfig extends FCommand
             return;
         }
 
-        Admin admin = plugin.al.getEntryByName(target.getName());
+        Admin admin = plugin().al.getEntryByName(target.getName());
         if (admin == null) 
         {
             msg(sender, "Unknown admin: <player>",
@@ -104,9 +104,9 @@ public class Command_saconfig extends FCommand
 
         admin.setRank(rank);
         admin.setCustomRankId(custom != null ? custom.getId() : null);
-        plugin.al.updateTables();
-        plugin.al.saveAdminAsync(admin);
-        plugin.rm.updatePlayerTeam(target);
+        plugin().al.updateTables();
+        plugin().al.saveAdminAsync(admin);
+        plugin().rm.updatePlayerTeam(target);
 
         msg(sender, "Set <player>'s rank to <rank>.",
                 Placeholder.unparsed("player", admin.getName()),
@@ -117,7 +117,7 @@ public class Command_saconfig extends FCommand
     @Subcommand("info")
     public boolean getInfo(CommandSender sender, Player target) 
     {
-        Admin admin = plugin.al.getAdmin(target);
+        Admin admin = plugin().al.getAdmin(target);
 
         if (admin == null) 
         {
@@ -137,7 +137,7 @@ public class Command_saconfig extends FCommand
     @Permission(permission = "tfm.manage.saconfig", source = SourceType.ONLY_CONSOLE, level = Rank.SENIOR_ADMIN)
     public boolean addUser(CommandSender sender, Player target) 
     {
-        if (plugin.al.isAdmin(target)) 
+        if (plugin().al.isAdmin(target)) 
         {
             msg(sender, "That player is already admin.");
             return true;
@@ -145,7 +145,7 @@ public class Command_saconfig extends FCommand
 
         String name = target.getName();
         Admin admin = null;
-        for (Admin loopAdmin : plugin.al.getAllAdmins().values()) 
+        for (Admin loopAdmin : plugin().al.getAllAdmins().values()) 
         {
             if (loopAdmin.getName().equalsIgnoreCase(name)) 
             {
@@ -162,7 +162,7 @@ public class Command_saconfig extends FCommand
 
         if (admin == null)
         {
-            plugin.al.addAdmin(new Admin(target));
+            plugin().al.addAdmin(new Admin(target));
         } 
         else 
         {
@@ -172,17 +172,17 @@ public class Command_saconfig extends FCommand
             admin.setActive(true);
             admin.setLastLogin(new Date());
 
-            plugin.al.updateTables();
-            plugin.al.saveAdminAsync(admin);
+            plugin().al.updateTables();
+            plugin().al.saveAdminAsync(admin);
         }
 
         
-        if (plugin.rm != null) 
+        if (plugin().rm != null) 
         {
-            plugin.rm.updatePlayerTeam(target);
+            plugin().rm.updatePlayerTeam(target);
         }
 
-        final FPlayer fPlayer = plugin.pl.getPlayer(target);
+        final FPlayer fPlayer = plugin().pl.getPlayer(target);
         if (fPlayer.getFreezeData().isFrozen()) 
         {
             fPlayer.getFreezeData().setFrozen(false);
@@ -197,7 +197,7 @@ public class Command_saconfig extends FCommand
     @Permission(permission = "tfm.manage.saconfig", source = SourceType.ONLY_CONSOLE, level = Rank.SENIOR_ADMIN)
     public boolean removeUser(CommandSender sender, String username) 
     {
-        Admin admin = plugin.al.getEntryByName(username);
+        Admin admin = plugin().al.getEntryByName(username);
 
         if (admin == null) 
         {
@@ -208,13 +208,13 @@ public class Command_saconfig extends FCommand
         adminAction(sender, "<red>Removing <player> from the admin list",
                 Placeholder.unparsed("player", admin.getName()));
         admin.setActive(false);
-        plugin.al.updateTables();
-        plugin.al.saveAdminAsync(admin);
+        plugin().al.updateTables();
+        plugin().al.saveAdminAsync(admin);
 
         Player player = Bukkit.getPlayer(username);
-        if (player != null && plugin.rm != null) 
+        if (player != null && plugin().rm != null) 
         {
-            plugin.rm.updatePlayerTeam(player);
+            plugin().rm.updatePlayerTeam(player);
         }
 
         return true;
@@ -225,8 +225,8 @@ public class Command_saconfig extends FCommand
     public boolean reload(CommandSender sender) 
     {
         adminAction(sender, "<red>Reloading the admin list");
-        plugin.al.load();
-        plugin.csr.load();
+        plugin().al.load();
+        plugin().csr.load();
         msg(sender, "Admin list reloaded!");
         return true;
     }
@@ -237,7 +237,7 @@ public class Command_saconfig extends FCommand
     public boolean clean(CommandSender sender) 
     {
         adminAction(sender, "<red>Cleaning admin list");
-        plugin.al.deactivateOldEntries(true);
+        plugin().al.deactivateOldEntries(true);
         getAdminList(sender);
         return true;
     }
@@ -263,7 +263,7 @@ public class Command_saconfig extends FCommand
                                          .filter(rank -> rank.isAdmin() && !rank.isConsole())
                                          .map(rank -> rank.name().toLowerCase(Locale.ROOT));
 
-        Stream<String> customRankIds = plugin.rm.getCustomRanks()
+        Stream<String> customRankIds = plugin().rm.getCustomRanks()
                                                 .values()
                                                 .stream()
                                                 .filter(custom -> custom.isAdmin() && !custom.isConsoleOnly())
@@ -289,7 +289,7 @@ public class Command_saconfig extends FCommand
     @Completer(value = "add", position = 0)
     public List<String> completeAddPlayer(CommandSender sender, String partial) 
     {
-        List<String> names = server.getOnlinePlayers().stream()
+        List<String> names = server().getOnlinePlayers().stream()
             .map(Player::getName)
             .toList();
         return FuzzyMatch.filter(names, partial);
@@ -297,7 +297,7 @@ public class Command_saconfig extends FCommand
 
     private List<String> adminNames(String partial) 
     {
-        List<String> names = plugin.al.getActiveAdmins().stream()
+        List<String> names = plugin().al.getActiveAdmins().stream()
             .map(Admin::getName)
             .sorted(String.CASE_INSENSITIVE_ORDER)
             .toList();
@@ -306,7 +306,7 @@ public class Command_saconfig extends FCommand
 
     private void getAdminList(CommandSender sender) 
     {
-        Set<Admin> activeAdmins = plugin.al.getActiveAdmins();
+        Set<Admin> activeAdmins = plugin().al.getActiveAdmins();
         if (activeAdmins.isEmpty()) 
         {
             msg(sender, "<gray>No active admins.");
@@ -328,7 +328,7 @@ public class Command_saconfig extends FCommand
                         .map(admin -> {
                             CustomRank customRank = admin.getCustomRankId() == null
                                     ? null
-                                    : plugin.rm.getCustomRank(admin.getCustomRankId());
+                                    : plugin().rm.getCustomRank(admin.getCustomRankId());
                                     
                             if (customRank != null) {
                                 String tagText = customRank.getName();
@@ -348,7 +348,7 @@ public class Command_saconfig extends FCommand
 
     private Rank resolveLegacyTier(CustomRank custom) 
     {
-        return Stream.iterate(custom, Objects::nonNull, current -> plugin.rm.getCustomRank(current.getInheritFrom()))
+        return Stream.iterate(custom, Objects::nonNull, current -> plugin().rm.getCustomRank(current.getInheritFrom()))
             .limit(32)
             .map(current -> {
                 try {

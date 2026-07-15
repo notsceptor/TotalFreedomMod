@@ -35,15 +35,15 @@ public class Command_banip extends FCommand
                 Placeholder.unparsed("reason", reason != null ? reason : ""));
 
         addressList.stream()
-                .filter(ip -> !plugin.bm.isIpBanned(ip.getHostAddress()))
+                .filter(ip -> !plugin().bm.isIpBanned(ip.getHostAddress()))
                 .forEach(ip -> 
                     {
                         final Ban ban = Ban.forPlayerIp(ip.getHostAddress(), sender, null, reason);
                         BanCommandUtil.addRangeIpIfEnabled(ban, ip.getHostAddress());
 
-                        if (plugin.bm.addBan(ban))
+                        if (plugin().bm.addBan(ban))
                         {
-                            server.getOnlinePlayers().stream()
+                            server().getOnlinePlayers().stream()
                                 .filter(player -> Objects.requireNonNull(player.getAddress()).getAddress().equals(ip))
                                 .map(player -> (Player) player)
                                 .forEach(player -> player.kick(ban.bakeKickMessage()));
