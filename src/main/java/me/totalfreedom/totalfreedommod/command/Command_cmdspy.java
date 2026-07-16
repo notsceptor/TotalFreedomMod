@@ -6,6 +6,8 @@ import me.totalfreedom.totalfreedommod.player.CommandSpyMode;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.rank.Rank;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -18,61 +20,45 @@ public class Command_cmdspy extends FreedomCommand
     public boolean toggleCommandSpy(CommandContext ctx)
     {
         final FPlayer playerData = plugin.pl.getPlayer(ctx.getPlayerSender());
-        return setCommandSpyMode(ctx, playerData.cmdspyEnabled() ? CommandSpyMode.OFF : CommandSpyMode.ALL);
+        final CommandSpyMode mode = playerData.cmdspyEnabled()
+                ? CommandSpyMode.OFF
+                : CommandSpyMode.ALL;
+
+        return setCommandSpyMode(ctx, mode);
     }
 
     @CommandDispatchTarget(pattern = "<mode:Enum:class=me.totalfreedom.totalfreedommod.player.CommandSpyMode,mode=UPPERCASE>")
     public boolean setCommandSpyMode(CommandContext ctx, CommandSpyMode mode)
     {
-        final FPlayer playerData = plugin.pl.getPlayer(playerSender);
-        final PlayerData data = plugin.pl.getData(playerSender);
+        final Player player = ctx.getPlayerSender();
+        final FPlayer playerData = plugin.pl.getPlayer(player);
+        final PlayerData data = plugin.pl.getData(player);
 
         playerData.setCommandSpyMode(mode);
         data.setCommandSpyMode(mode);
         plugin.pl.saveAsync();
 
-        msg(ctx.getSender(), "CommandSpy enabled for " + mode.getName() + ".");
+        final Component message = switch (mode)
+        {
+            case OFF -> Component.text("CommandSpy disabled.", NamedTextColor.RED);
+            case ADMINS -> Component.text("CommandSpy set to ", NamedTextColor.GRAY)
+                    .append(Component.text("ADMINS", NamedTextColor.GREEN))
+                    .append(Component.text(" mode. You will only see admins' commands.", NamedTextColor.GRAY));
+            case OPS -> Component.text("CommandSpy set to ", NamedTextColor.GRAY)
+                    .append(Component.text("OPS", NamedTextColor.GREEN))
+                    .append(Component.text(" mode. You will only see OPs' commands.", NamedTextColor.GRAY));
+            case ALL -> Component.text("CommandSpy set to ", NamedTextColor.GRAY)
+                    .append(Component.text("ALL", NamedTextColor.GREEN))
+                    .append(Component.text(" mode. You will see both OPs' and admins' commands.", NamedTextColor.GRAY));
+        };
+
+        ctx.getSender().sendMessage(message);
         return true;
     }
 
     @Override
     public boolean run(CommandSender sender, Player playerSender, Command cmd, String commandLabel, String[] args, boolean senderIsConsole)
     {
-        /*final FPlayer playerData = plugin.pl.getPlayer(playerSender);
-        final PlayerData data = plugin.pl.getData(playerSender);
-
-        if (args.length == 0)
-        {
-            final CommandSpyMode mode = playerData.cmdspyEnabled() ? CommandSpyMode.OFF : CommandSpyMode.ALL;
-            playerData.setCommandSpyMode(mode);
-            data.setCommandSpyMode(mode);
-            plugin.pl.saveAsync();
-            msg(mode == CommandSpyMode.OFF ? "CommandSpy disabled." : "CommandSpy enabled for all.");
-            return true;
-        }
-
-        if (args.length != 1)
-        {
-            return false;
-        }
-
-        final CommandSpyMode mode = switch (args[0].toLowerCase(Locale.ROOT))
-        {
-            case "admins" -> CommandSpyMode.ADMINS;
-            case "ops" -> CommandSpyMode.OPS;
-            case "all" -> CommandSpyMode.ALL;
-            default -> null;
-        };
-
-        if (mode == null)
-        {
-            return false;
-        }
-
-        playerData.setCommandSpyMode(mode);
-        data.setCommandSpyMode(mode);
-        plugin.pl.saveAsync();
-        msg("CommandSpy enabled for " + mode.getName() + ".");*/
         return true;
     }
 
@@ -85,6 +71,7 @@ public class Command_cmdspy extends FreedomCommand
         }
 
         final String partial = args[0].toLowerCase(Locale.ROOT);
+
         return List.of("admins", "ops", "all").stream()
                 .filter(mode -> mode.startsWith(partial))
                 .toList();
