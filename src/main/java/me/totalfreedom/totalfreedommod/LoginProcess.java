@@ -70,7 +70,7 @@ public class LoginProcess extends FreedomService
 
         server.getOnlinePlayers()
               .stream()
-              .filter(p -> !p.getName().equalsIgnoreCase(event.getName()))
+              .filter(p -> p.getName().equalsIgnoreCase(event.getName()))
               .findAny()
               .ifPresent(p -> 
                     {

@@ -15,7 +15,7 @@ public class Command_spawn extends FCommand
     {
         if (plugin().sm.sendToSpawn(player))
         {
-            msg(player, "Teleported to spawn.");
+            msg(player, "<gray>Teleported to spawn.");
         }
     }
 
@@ -24,13 +24,13 @@ public class Command_spawn extends FCommand
     {
         if (!isAdmin(sender))
         {
-            msg(sender, "No permission to send other players to spawn.");
+            msg(sender, "<red>No permission to send other players to spawn.");
             return;
         }
 
         if (plugin().sm.sendToSpawn(target))
         {
-            msg(sender, "Sent <player> to spawn.", Placeholder.unparsed("player", target.getName()));
+            msg(sender, "<gray>Sent <player> to spawn.", Placeholder.unparsed("player", target.getName()));
         }
     }
 }

@@ -100,7 +100,8 @@ public class Command_plugincontrol extends FreedomCommand
                 return true;
             }
 
-            return ((Command_totalfreedommod) tfmCommand).reloadPlugin(ctx);
+            //need to rewrite this still
+            //return ((Command_totalfreedommod) tfmCommand).reloadPlugin(ctx);
         }
 
         pluginManager.disablePlugin(otherPlugin);

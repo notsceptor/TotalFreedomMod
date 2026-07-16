@@ -20,7 +20,7 @@ public class Command_entitywipe extends FCommand
         int removed = plugin().ew.wipeEntities(true);
         msg(
             sender,
-            "<count> <noun> removed.",
+            "<gray><count> <noun> removed.",
             Formatter.number("count", removed),
             Placeholder.unparsed("noun", removed == 1 ? "entity" : "entities")
         );
@@ -40,7 +40,7 @@ public class Command_entitywipe extends FCommand
         int removed = plugin().ew.wipeEntities(target, true);
         msg(
             sender,
-            "<count> <noun> removed from \"<world>\".",
+            "<gray><count> <noun> removed from \"<world>\".",
             Formatter.number("count", removed),
             Placeholder.unparsed("noun", removed == 1 ? "entity" : "entities"),
             Placeholder.unparsed("world", target.getName())

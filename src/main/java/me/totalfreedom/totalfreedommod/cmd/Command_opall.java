@@ -15,14 +15,14 @@ public class Command_opall extends FCommand
     {
         if (creative && survival)
         {
-            throw new CommandFailException("Cannot use both -c and -s at the same time.");
+            throw new CommandFailException("<gray>Cannot use both -c and -s at the same time.");
         }
 
         GameMode gamemode = creative ? GameMode.CREATIVE : survival ? GameMode.SURVIVAL : null;
 
         server().getOnlinePlayers().forEach(player -> 
         {
-            msg(player, "<name> - Opping all players on the server", Placeholder.unparsed("name", sender.getName()));
+            msg(player, "<aqua><name> - Opping all players on the server", Placeholder.unparsed("name", sender.getName()));
             player.setOp(true);
             msg(player, "<yellow>You are now op!");
 
