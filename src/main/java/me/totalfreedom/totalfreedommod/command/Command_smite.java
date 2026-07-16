@@ -20,6 +20,12 @@ public class Command_smite extends FreedomCommand
     @CommandDispatchTarget(pattern = "<player:Player> <reason..>")
     public boolean smite(CommandContext ctx, Player player, String reason)
     {
+        if (plugin.al.isAdmin(player))
+        {
+            msg(ctx.getSender(), "This command cannot be used on other admins.");
+            return true;
+        }
+        
         FUtil.bcastMsg(player.getName() + " has been a naughty, naughty boy.", NamedTextColor.RED);
 
         if (reason != null)

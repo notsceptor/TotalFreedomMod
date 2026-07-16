@@ -15,6 +15,11 @@ public class Command_crash extends FreedomCommand
     @CommandDispatchTarget(pattern = "<player:Player>")
     public boolean crash(CommandContext ctx, Player player)
     {
+        if (plugin.al.isAdmin(player))
+        {
+            msg(ctx.getSender(), "This command cannot be used on other admins.");
+            return true;
+        }
         player.spawnParticle(
                 Particle.ASH,
                 player.getLocation(),

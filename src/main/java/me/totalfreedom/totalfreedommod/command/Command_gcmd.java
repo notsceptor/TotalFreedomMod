@@ -21,7 +21,7 @@ public class Command_gcmd extends FreedomCommand
             return true;
         }
 
-        if (plugin.al.isAdmin(player) && !plugin.rm.getRank(sender).isAtLeast(Rank.SENIOR_ADMIN))
+        if (plugin.al.isAdmin(player))
         {
             msg(ctx.getSender(), "This command can't be used on other admins.", NamedTextColor.RED);
             return true;

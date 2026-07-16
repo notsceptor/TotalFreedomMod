@@ -23,6 +23,12 @@ public class Command_ban extends FreedomCommand
         Player player = getPlayer(playerName);
         PlayerData data = BanCommandUtil.getData(plugin, playerName, player);
 
+        if (plugin.al.isAdmin(player))
+        {
+            msg(ctx.getSender(), "This command cannot be used on other admins.");
+            return true;
+        }
+
         if (player == null && data == null)
         {
             msg("Can't find that player. Use /banname to ban an arbitrary name.");

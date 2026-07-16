@@ -16,9 +16,9 @@ public class Command_kick extends FreedomCommand
     @CommandDispatchTarget(pattern = "<player:Player> <reason..>", switches = "s")
     public boolean kick(CommandContext ctx, Player player, String reason, boolean silent)
     {
-        if (isAdmin(player))
+        if (plugin.al.isAdmin(player))
         {
-            msg("Admins can not be kicked", NamedTextColor.RED);
+            msg(ctx.getSender(), "This command cannot be used on other admins.");
             return true;
         }
 
