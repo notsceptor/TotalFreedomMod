@@ -57,38 +57,50 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
             convert = true;
         }
 
-        if (!convert)
+        if (convert)
         {
-            return;
-        }
+            FLog.warning("Converting old configs to new format...");
 
-        FLog.warning("Converting old configs to new format...");
+            File backup = new File(data, "backup_old_format");
+            backup.mkdirs();
 
-        File backup = new File(data, "backup_old_format");
-        backup.mkdirs();
-
-        for (File file : data.listFiles())
-        {
-            if (file.equals(backup) || file.equals(versionFile))
+            for (File file : data.listFiles())
             {
-                continue;
+                if (file.equals(backup) || file.equals(versionFile))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    Files.move(file, new File(backup, file.getName()));
+                }
+                catch (IOException ex)
+                {
+                    FLog.severe("Could not backup file: " + file.getName());
+                    FLog.severe(ex);
+                }
             }
 
+            convertSuperadmins(new File(backup, "superadmin.yml"));
+            convertPermbans(new File(backup, "permban.yml"));
+
+            FLog.info("Conversion complete!");
+        }
+
+        if (config.getInt("version", -1) != CURRENT_CONFIG_VERSION)
+        {
+            config.set("version", CURRENT_CONFIG_VERSION);
             try
             {
-                Files.move(file, new File(backup, file.getName()));
+                config.save(versionFile);
             }
             catch (IOException ex)
             {
-                FLog.severe("Could not backup file: " + file.getName());
+                FLog.severe("Could not save version.yml");
                 FLog.severe(ex);
             }
         }
-
-        convertSuperadmins(new File(backup, "superadmin.yml"));
-        convertPermbans(new File(backup, "permban.yml"));
-
-        FLog.info("Conversion complete!");
     }
 
     /**
