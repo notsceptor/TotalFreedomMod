@@ -64,8 +64,10 @@ public class CommandLoader extends FreedomService
     }
 
     @Override
-    protected void onStop() 
+    protected void onStop()
     {
+        started = false;
+
         CommandRegistry.clear();
         CommandProcessor.reset();
         CooldownManager.clearAll();
