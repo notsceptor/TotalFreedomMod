@@ -779,9 +779,16 @@ httpd:
 ssh:
   enabled: false
   port: 2222
-  # Authentication mode: "password", "key", or "both"
-  auth_mode: password
-  # Password for SSH access (used when auth_mode is "password" or "both")
+  # Authentication modes
+  auth:
+    # Whether to accept a password (ssh.password).
+    password: true
+    # Whether to accept a public key belonging to an admin (ssh_auth_keys/).
+    key: false
+    # Asks for a second factor key using TOTP after public key auth.  Requires `key` to be true.
+    # This does not affect password-based auth (should have `password` as false).
+    totp: false
+
   password: ""
   max_failed_attempts: 3
 
@@ -795,7 +802,7 @@ ssh:
   # When true, commands dispatched via SSH will run at the permission level of the user's
   # admin rank rather than the host_senders whitelist (see above).
   #
-  # The session must be authenticated via public key (see ssh.auth_mode).
+  # The session must be authenticated via public key (see ssh.auth.key).
   # This is required because the password does not bind a username to an identity.
   inherit_rank: false
 
