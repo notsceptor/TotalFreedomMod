@@ -242,8 +242,9 @@ public final class CommandProcessor
 
         trie.children.values().forEach(child -> root.then(buildBranch(child)));
 
+        rootHandlers.forEach(rootHandler -> attachHandler(root, rootHandler));
+
         boolean bareExecutable = rootHandlers.stream()
-                .peek(rootHandler -> attachHandler(root, rootHandler))
                 .anyMatch(rootHandler -> argumentCount(rootHandler) == 0);
 
         if (!bareExecutable && !usage.isEmpty()) 
