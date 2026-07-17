@@ -32,7 +32,7 @@ public class Command_ro extends FreedomCommand
     public boolean allPlayersWithRadius(CommandContext ctx, List<Material> blocks, Integer radius)
     {
         return removeNear(ctx, blocks, radius, server.getOnlinePlayers().stream()
-                .filter(player -> !player.getWorld().getName().equalsIgnoreCase(AdminWorld.WORLD_NAME))
+                .filter(player -> !player.getWorld().getName().equalsIgnoreCase(plugin.wm.adminworld.getName()))
                 .map(player -> (Player) player)
                 .toList());
     }
