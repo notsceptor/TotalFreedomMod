@@ -10,7 +10,7 @@ import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.world.WorldTime;
 import me.totalfreedom.totalfreedommod.world.WorldWeather;
 
-@Command(name = "adminworld", description = "Go to, or manage the AdminWorld.", usage = "/adminworld [guest <add | remove | purge | list>]")
+@Command(name = "adminworld", description = "Go to, or manage the AdminWorld.", usage = "/adminworld [guest <add | remove | purge | list>]", aliases = {"aw"})
 @Permission(permission = "tfm.world.adminworld") // default permission is op, and default source is BOTH
 public class Command_adminworld extends FCommand 
 {

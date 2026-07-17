@@ -3,7 +3,6 @@ package me.totalfreedom.totalfreedommod.cmd;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Callback;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Command;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Permission;
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Resolve;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
@@ -13,26 +12,25 @@ import org.bukkit.entity.Player;
 import java.util.Comparator;
 import java.util.List;
 
-@Command(name = "radar", description = "Shows nearby people sorted by distance.", usage = "/radar [limit]")
+@Command(name = "radar", description = "Shows nearby people sorted by distance.", usage = "/radar [radius]")
 @Permission(permission = "tfm.player.radar", level = Rank.OP, source = SourceType.ONLY_IN_GAME)
 public class Command_radar extends FCommand
 {
     @Callback
     public void showNearbyPlayers(Player sender)
     {
-        showNearbyPlayersInRange(sender, 5);
+        showNearbyPlayersInRange(sender, 200);
     }
 
     @Callback
-    public void showNearbyPlayersInRange(Player sender, @Resolve("Integer") Integer limit)
+    public void showNearbyPlayersInRange(Player sender, Integer limit)
     {
-        limit = Math.clamp(limit, 1, 64);
-
+        final int radius = Math.clamp(limit, 1, 200);
         final Location center = sender.getLocation();
         final List<Player> nearbyPlayers = center.getWorld().getPlayers().stream()
                 .filter(player -> !player.equals(sender))
+                .filter(player -> player.getLocation().distance(center) <= radius)
                 .sorted(Comparator.comparingDouble(player -> player.getLocation().distance(center)))
-                .limit(limit)
                 .toList();
 
         if (nearbyPlayers.isEmpty())

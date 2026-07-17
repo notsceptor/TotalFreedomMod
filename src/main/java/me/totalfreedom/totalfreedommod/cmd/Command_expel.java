@@ -3,7 +3,6 @@ package me.totalfreedom.totalfreedommod.cmd;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Callback;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Command;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Permission;
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Resolve;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
@@ -27,7 +26,14 @@ public class Command_expel extends FCommand
         expelWithRadius(sender, 20.0, 5.0);
     }
 
-    public void expelWithRadius(Player sender, @Resolve("Double") Double radius, @Resolve("Double") Double strength)
+    @Callback
+    public void expelWithRadius(Player sender, Double radius)
+    {
+        expelWithRadius(sender, radius, 5.0);
+    }
+
+    @Callback
+    public void expelWithRadius(Player sender, Double radius, Double strength)
     {
         radius = Math.clamp(radius, 1.0, 100.0);
         strength = Math.clamp(strength, 1.0, 100.0);
