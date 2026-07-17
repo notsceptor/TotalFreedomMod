@@ -3,6 +3,7 @@ package me.totalfreedom.totalfreedommod.blocking.item;
 import io.papermc.paper.datacomponent.DataComponentTypes;
 import io.papermc.paper.datacomponent.item.BundleContents;
 import io.papermc.paper.datacomponent.item.ChargedProjectiles;
+import io.papermc.paper.datacomponent.item.Fireworks;
 import io.papermc.paper.datacomponent.item.ItemAttributeModifiers;
 import io.papermc.paper.datacomponent.item.ItemContainerContents;
 import io.papermc.paper.datacomponent.item.ItemLore;
@@ -17,6 +18,7 @@ import java.util.List;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.ComponentScanner;
 import net.kyori.adventure.text.Component;
+import org.bukkit.FireworkEffect;
 import org.bukkit.JukeboxSong;
 import org.bukkit.MusicInstrument;
 import org.bukkit.attribute.Attribute;
@@ -36,6 +38,8 @@ final class ItemScanner
     private static final int MAX_INSTRUMENT_DESC_LENGTH = 256;
     private static final long MAX_AGGREGATE_TEXT = 262_144L;
     private static final double MAX_ITEM_SCALE = 4.0;
+    private static final int MAX_FIREWORK_EXPLOSIONS = 64;
+    private static final int MAX_FIREWORK_COLORS = 256;
     private static final int MAX_NBT_NODES = 8192;
     private static final int MAX_NBT_DEPTH = 16;
 
@@ -53,6 +57,7 @@ final class ItemScanner
         OVERSIZED_TOTAL,
         OVERSIZED_NBT,
         OVERSIZED_POTION,
+        OVERSIZED_FIREWORK,
         OVERSIZED_BOOK,
         OVERSIZED_ATTRIBUTE,
         ILLEGAL_STACK_SIZE,
@@ -142,6 +147,12 @@ final class ItemScanner
         if (effects.isCursed())
         {
             return effects;
+        }
+
+        Verdict firework = inspectFirework(item, depth);
+        if (firework.isCursed())
+        {
+            return firework;
         }
 
         // CUSTOM_NAME / ITEM_NAME — gate the serializer behind a safe-graph check
@@ -345,6 +356,52 @@ final class ItemScanner
             }
         }
 
+        return Verdict.CLEAN;
+    }
+
+    private static Verdict inspectFirework(ItemStack item, int depth)
+    {
+        if (item.hasData(DataComponentTypes.FIREWORKS))
+        {
+            Fireworks fireworks = item.getData(DataComponentTypes.FIREWORKS);
+            if (fireworks != null)
+            {
+                List<FireworkEffect> explosions = fireworks.effects();
+                if (explosions.size() > MAX_FIREWORK_EXPLOSIONS)
+                {
+                    return new Verdict(Reason.OVERSIZED_FIREWORK, explosions.size(), depth);
+                }
+                for (FireworkEffect explosion : explosions)
+                {
+                    Verdict v = inspectFireworkEffect(explosion, depth);
+                    if (v.isCursed())
+                    {
+                        return v;
+                    }
+                }
+            }
+        }
+
+        if (item.hasData(DataComponentTypes.FIREWORK_EXPLOSION))
+        {
+            return inspectFireworkEffect(item.getData(DataComponentTypes.FIREWORK_EXPLOSION), depth);
+        }
+
+        return Verdict.CLEAN;
+    }
+
+    private static Verdict inspectFireworkEffect(FireworkEffect effect, int depth)
+    {
+        if (effect == null)
+        {
+            return Verdict.CLEAN;
+        }
+        int colors = effect.getColors().size();
+        int fadeColors = effect.getFadeColors().size();
+        if (colors > MAX_FIREWORK_COLORS || fadeColors > MAX_FIREWORK_COLORS)
+        {
+            return new Verdict(Reason.OVERSIZED_FIREWORK, Math.max(colors, fadeColors), depth);
+        }
         return Verdict.CLEAN;
     }
 

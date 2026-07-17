@@ -82,6 +82,12 @@ public class Command_stfu extends FreedomCommand
     {
         final FPlayer fplayer = plugin.pl.getPlayer(player);
 
+        if (plugin.al.isAdmin(player))
+        {
+            msg(ctx.getSender(), "This command cannot be used on other admins.");
+            return true;
+        }
+
         if (fplayer.isMuted())
         {
             FUtil.adminAction(ctx.getSender().getName(), "Unmuting " + player.getName(), false);

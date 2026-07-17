@@ -23,7 +23,7 @@ public class Command_warn extends FreedomCommand
         }
         else if (plugin.al.isAdmin(player))
         {
-            msg(ctx.getSender(), "You can't warn admins.", NamedTextColor.RED);
+            msg(ctx.getSender(), "This command cannot be used on other admins.");
             return true;
         }
 

@@ -29,7 +29,7 @@ public class Command_gchat extends FreedomCommand
 
         if (plugin.al.isAdmin(player))
         {
-            msg(ctx.getSender(), "This command can't be used on other admins.");
+            msg(ctx.getSender(), "This command cannot be used on other admins.");
             return true;
         }
 

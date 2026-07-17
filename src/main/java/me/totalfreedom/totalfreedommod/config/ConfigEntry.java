@@ -39,7 +39,9 @@ public enum ConfigEntry
     //
     SSH_ENABLED(Boolean.class, "ssh.enabled"),
     SSH_PORT(Integer.class, "ssh.port"),
-    SSH_AUTH_MODE(String.class, "ssh.auth_mode"),
+    SSH_AUTH_PASSWORD(Boolean.class, "ssh.auth.password"),
+    SSH_AUTH_KEY(Boolean.class, "ssh.auth.key"),
+    SSH_AUTH_TOTP(Boolean.class, "ssh.auth.totp"),
     SSH_PASSWORD(String.class, "ssh.password"),
     SSH_MAX_FAILED_ATTEMPTS(Integer.class, "ssh.max_failed_attempts"),
     SSH_SHOW_USER(Boolean.class, "ssh.show_user"),

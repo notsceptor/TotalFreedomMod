@@ -20,8 +20,6 @@ import org.bukkit.event.player.PlayerMoveEvent;
 public final class AdminWorld extends CustomWorld
 {
 
-    public static final String WORLD_NAME = "adminworld";
-    //
     private static final long CACHE_CLEAR_FREQUENCY = 30L * 1000L; //30 seconds, milliseconds
     private static final long TP_COOLDOWN_TIME = 500L; //0.5 seconds, milliseconds
     private static final String GENERATION_PARAMETERS = ConfigEntry.FLATLANDS_GENERATE_PARAMS.getString();
@@ -36,7 +34,7 @@ public final class AdminWorld extends CustomWorld
 
     public AdminWorld(TotalFreedomMod plugin)
     {
-        super(plugin, WORLD_NAME);
+        super(plugin, "adminworld", "Admin World");
     }
 
     @Override
