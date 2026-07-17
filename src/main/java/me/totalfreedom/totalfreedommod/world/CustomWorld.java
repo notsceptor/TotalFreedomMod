@@ -18,13 +18,22 @@ public abstract class CustomWorld extends PluginComponent<TotalFreedomMod>
 
     @Getter
     private final String name;
+
+    @Getter
+    private final String displayName;
     //
     private World world;
 
-    public CustomWorld(TotalFreedomMod plugin, String name)
+    public CustomWorld(TotalFreedomMod plugin, String name, String displayName)
     {
         super(plugin);
         this.name = name;
+        this.displayName = displayName;
+    }
+
+    public CustomWorld(TotalFreedomMod plugin, String name)
+    {
+        this(plugin, name, name);
     }
 
     public final World getWorld()
@@ -43,7 +52,7 @@ public abstract class CustomWorld extends PluginComponent<TotalFreedomMod>
             org.bukkit.block.Sign welcomeSign = (org.bukkit.block.Sign) welcomeSignBlock.getState();
 
             Component[] lines = {
-                    Component.text("Flatlands", NamedTextColor.GREEN),
+                    Component.text(this.displayName, NamedTextColor.GREEN),
                     Component.text("---", NamedTextColor.DARK_GRAY),
                     Component.text("Spawn Point", NamedTextColor.YELLOW),
                     Component.text("---", NamedTextColor.DARK_GRAY)

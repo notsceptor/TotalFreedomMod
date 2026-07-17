@@ -22,7 +22,7 @@ public class Flatlands extends CustomWorld
 
     public Flatlands(TotalFreedomMod plugin)
     {
-        super(plugin, "flatlands");
+        super(plugin, "flatlands", "Flatlands");
     }
 
     @Override
