@@ -4,11 +4,15 @@ import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import me.totalfreedom.totalfreedommod.PluginProvider;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
+import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
@@ -21,6 +25,9 @@ import org.bukkit.Server;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitTask;
+
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 
 /**
  * Base class for command declarations in the new command framework.
@@ -193,5 +200,26 @@ public abstract class FCommand
     protected PlayerData getData(Player player)
     {
         return plugin().pl.getData(player);
+    }
+
+    protected BukkitTask sync(final Runnable task, long delayInTicks)
+    {
+        if (delayInTicks == 0L)
+            return server().getScheduler().runTask(plugin(), task);
+
+        return server().getScheduler().runTaskLater(plugin(), task, delayInTicks); // naturally runs in ticks
+    }
+
+    protected ScheduledTask async(final Consumer<ScheduledTask> consumer, final long delayInTicks)
+    {
+        if (delayInTicks == 0L)
+            return server().getAsyncScheduler().runNow(plugin(), consumer);
+            
+        return server().getAsyncScheduler().runDelayed(plugin(), consumer, delayInTicks * 50L, TimeUnit.MILLISECONDS); // for some reason does not, and allows time unit selection, so we handle that appropriately to keep the expected usage.
+    }
+
+    protected FPlayer fplayer(final Player player)
+    {
+        return plugin().pl.getPlayer(player);
     }
 }

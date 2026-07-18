@@ -127,10 +127,23 @@ public class MessageUtils
      * @param color Color applied to each item
      * @return A TagResolver for the joined, styled list
      */
-    public static TagResolver joinedList(String key, List<String> items, NamedTextColor color) 
+    public static TagResolver joinedList(String key, List<String> items, NamedTextColor color)
     {
         List<Component> parts = items.stream().<Component>map(item -> Component.text(item, color)).toList();
         return Placeholder.component(key, Component.join(JoinConfiguration.commas(true), parts));
+    }
+
+    /**
+     * Like {@link #joinedList}, but for items that are already built/styled Components (e.g. one
+     * per-player segment with its own rank color) instead of plain strings sharing one color.
+     *
+     * @param key Placeholder key to be used in the MiniMessage string
+     * @param items Already-styled Components to join
+     * @return A TagResolver for the joined list
+     */
+    public static TagResolver joinedComponents(String key, List<Component> items)
+    {
+        return Placeholder.component(key, Component.join(JoinConfiguration.commas(true), items));
     }
 
     /**

@@ -26,7 +26,7 @@ public class Command_rankconfig extends FCommand // Gonna be honest, this one wa
     public void menu(CommandSender sender)
     {
         requireManageRanks(sender);
-        sender.sendMessage(plugin().rm.buildMainMenu());
+        msg(sender, "<menu>", MessageUtils.component("menu", plugin().rm.buildMainMenu()));
     }
 
     @Callback
@@ -53,7 +53,7 @@ public class Command_rankconfig extends FCommand // Gonna be honest, this one wa
         plugin().rm.setCustomRank(rank);
 
         adminAction(sender, "<aqua>Created new rank: <rank>", Placeholder.unparsed("rank", rank.getName()));
-        sender.sendMessage(plugin().rm.buildEditMenu(rank));
+        msg(sender, "<menu>", MessageUtils.component("menu", plugin().rm.buildEditMenu(rank)));
     }
 
     @Callback
@@ -69,7 +69,7 @@ public class Command_rankconfig extends FCommand // Gonna be honest, this one wa
             return;
         }
 
-        sender.sendMessage(plugin().rm.buildEditMenu(target));
+        msg(sender, "<menu>", MessageUtils.component("menu", plugin().rm.buildEditMenu(target)));
     }
 
     @Completer(value = "edit", position = 0)
@@ -94,7 +94,7 @@ public class Command_rankconfig extends FCommand // Gonna be honest, this one wa
 
         plugin().rm.removeCustomRank(rankId);
         adminAction(sender, "<red>Deleted rank: <rank>", Placeholder.unparsed("rank", target.getName()));
-        sender.sendMessage(plugin().rm.buildMainMenu());
+        msg(sender, "<menu>", MessageUtils.component("menu", plugin().rm.buildMainMenu()));
     }
 
     @Completer(value = "delete", position = 0)
@@ -169,7 +169,7 @@ public class Command_rankconfig extends FCommand // Gonna be honest, this one wa
 
         if (sender instanceof Player)
         {
-            sender.sendMessage(plugin().rm.buildEditMenu(target));
+            msg(sender, "<menu>", MessageUtils.component("menu", plugin().rm.buildEditMenu(target)));
         }
     }
 
@@ -242,7 +242,7 @@ public class Command_rankconfig extends FCommand // Gonna be honest, this one wa
         plugin().rm.loadRanks();
         adminAction(sender, "<aqua>Reloaded rank configuration");
         msg(sender, "<green>Ranks reloaded from file.");
-        sender.sendMessage(plugin().rm.buildMainMenu());
+        msg(sender, "<menu>", MessageUtils.component("menu", plugin().rm.buildMainMenu()));
     }
 
     @Callback
@@ -257,15 +257,15 @@ public class Command_rankconfig extends FCommand // Gonna be honest, this one wa
 
     private List<String> rankIdCandidates(String partial)
     {
-        List<String> ids = plugin().rm.getCustomRanksSorted().stream().map(CustomRank::getId).toList();
+        List<String> ids = plugin().rm
+                                   .getCustomRanksSorted()
+                                   .stream()
+                                   .map(r -> r.getId())
+                                   .toList();
+                                   
         return FuzzyMatch.filter(ids, partial);
     }
 
-    /**
-     * Internal (non-Bukkit) rank-management permission, layered on top of the Brigadier
-     * {@code @Permission} gate — mirrors the legacy check, since all TFM players are OP and
-     * this system doesn't use Bukkit permission nodes for rank authority.
-     */
     private void requireManageRanks(CommandSender sender)
     {
         if (!plugin().rm.canManageRanks(sender))

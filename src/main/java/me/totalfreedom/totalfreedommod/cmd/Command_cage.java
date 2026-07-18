@@ -7,7 +7,6 @@ import org.bukkit.entity.Player;
 
 import me.totalfreedom.totalfreedommod.caging.CageData;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
-import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
@@ -35,13 +34,13 @@ public class Command_cage extends FCommand
         server().getOnlinePlayers()
               .stream()
               .map(plugin().pl::getPlayer)
-              .map(FPlayer::getCageData)
+              .map(fp -> fp.getCageData())
               .forEach(cd -> cd.setCaged(false));
 
         adminAction(sender, "<red>Uncaging all players.");
     }
 
-    @Callback // /cage <player> <outer_mat> <inner_mat>   =   No support for switch here because why would you supply a -s and then define materials? would default to switch above anyways.
+    @Callback // /cage <player> <outer_mat> <inner_mat>   -   No support for switch here because why would you supply a -s and then define materials? would default to switch above anyways.
     public void cage(final CommandSender sender, final Player player, final Material outer, final Material inner)
     {
         CageData data = plugin().pl.getPlayer(player).getCageData();
