@@ -51,6 +51,7 @@ public class EnumArgumentResolver implements AbstractParameterizedArgumentResolv
         try
         {
             final Method method = enumClazz.getDeclaredMethod("fromString", String.class);
+            method.setAccessible(true); // the enum is often a private nested type; without this the invoke silently falls through to valueOf
             return (Enum<T>) method.invoke(null, arg);
         }
         // Well, we got an IAE, so at least the method exists but just kind of... sucks. We'll rethrow it.

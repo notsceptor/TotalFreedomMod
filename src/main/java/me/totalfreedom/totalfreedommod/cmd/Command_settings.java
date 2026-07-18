@@ -1,5 +1,6 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.function.Consumer;
 
@@ -77,12 +78,14 @@ public class Command_settings extends FCommand
             return;
         }
 
+        final boolean enabled = !setting.getValue().getBoolean();
+        setting.getValue().setBoolean(enabled);
         setting.consume();
 
         msg(sender, "<gray><displayable> (<flag>) changed to <status:enabled:disabled>",
                 Placeholder.unparsed("displayable", setting.getDisplayable()),
                 Placeholder.unparsed("flag", setting.getFlag()),
-                Formatter.booleanChoice("status", setting.getValue().setBoolean(!setting.getValue().getBoolean()))
+                Formatter.booleanChoice("status", enabled)
         );
     }
 
@@ -105,18 +108,41 @@ public class Command_settings extends FCommand
             return;
         }
 
+        setting.getValue().setBoolean(value);
         setting.consume();
 
         msg(sender, "<gray><displayable> (<flag>) changed to <status:enabled:disabled>",
                 Placeholder.unparsed("displayable", setting.getDisplayable()),
                 Placeholder.unparsed("flag", setting.getFlag()),
-                Formatter.booleanChoice("status", setting.getValue().setBoolean(value))
+                Formatter.booleanChoice("status", value)
         );
     }
 
     @Callback
-    @Subcommand("set explosives")
-    public void setExplosiveRadius(final CommandSender sender, final double radius)
+    @Subcommand("set")
+    public void setNumeric(final CommandSender sender, final Setting setting, final double range)
+    {
+        switch (setting)
+        {
+            case EXPLOSIVES -> setExplosiveRadius(sender, range);
+            case NO_NUKE -> setMonitorAndCount(sender, range, defaultBreakCount);
+            default -> throw new CommandFailException(setting.getDisplayable() + " (" + setting.getFlag() + ") only accepts true or false.");
+        }
+    }
+
+    @Callback
+    @Subcommand("set")
+    public void setRangeAndCount(final CommandSender sender, final Setting setting, final double range, final int count)
+    {
+        if (setting != Setting.NO_NUKE)
+        {
+            throw new CommandFailException(setting.getDisplayable() + " (" + setting.getFlag() + ") does not take a range and break count.");
+        }
+
+        setMonitorAndCount(sender, range, count);
+    }
+
+    private void setExplosiveRadius(final CommandSender sender, final double radius)
     {
         final Setting setting = Setting.EXPLOSIVES;
         setting.checkSource(sender);
@@ -143,24 +169,13 @@ public class Command_settings extends FCommand
         );
     }
 
-    @Callback
-    @Subcommand("set nonuke")
-    public void setWithMonitorRange(final CommandSender sender, final double range)
-    {
-        if (range != 0)
-        {
-            setMonitorAndCount(sender, range, defaultBreakCount);
-        }
-    }
-
-    @Callback
-    @Subcommand("set nonuke")
-    public void setMonitorAndCount(final CommandSender sender, final double range, final int count)
+    private void setMonitorAndCount(final CommandSender sender, final double range, final int count)
     {
         Setting setting = Setting.NO_NUKE;
         setting.checkSource(sender);
 
-        if (range >= 1 || count >= 1)
+        // Both must be at least 1: a range of 0 means there is nothing to monitor, and a count of 0 would flag every broken block.
+        if (range >= 1 && count >= 1)
         {
             setting.getValue().setBoolean(true);
             NUKE_MONITOR_RANGE.setDouble(range);
@@ -171,7 +186,7 @@ public class Command_settings extends FCommand
             setting.getValue().setBoolean(false);
         }
 
-        msg(sender, "<gray><displayable> (<flag>) changed to enabled with range <range> and break count <count>",
+        msg(sender, "<gray><displayable> (<flag>) changed to <status:'enabled with range <range> and break count <count>':disabled>",
                 Placeholder.unparsed("displayable", setting.getDisplayable()),
                 Placeholder.unparsed("flag", setting.getFlag()),
                 Formatter.number("range", range),
@@ -271,6 +286,19 @@ public class Command_settings extends FCommand
         ConfigEntry getValue()
         {
             return value;
+        }
+
+        /**
+         * Reflective access point for enum resolver so we can accept either the flag ("nonuke") or the constant name ("NO_NUKE") in any casing. 
+         * This is marked "unused" but it is called via reflection so please DO NOT REMOVE IT.
+         */
+        @SuppressWarnings("unused")
+        static Setting fromString(final String input)
+        {
+            return Arrays.stream(values())
+                    .filter(setting -> setting.flag.equalsIgnoreCase(input) || setting.name().equalsIgnoreCase(input))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("Unknown setting: " + input));
         }
     }
 }

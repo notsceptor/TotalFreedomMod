@@ -65,8 +65,9 @@ import java.util.stream.IntStream;
  * A method annotated {@link Callback} is a handler. With a {@link Subcommand}, it hangs off
  * that literal path; without one (or with an empty path), it is a command <em>root</em>
  * handler. Replaces abstract run() method. Multiple root handlers may coexist when they take
- * different numbers of arguments (e.g. a bare toggle form plus a greedy-message form);
- * same-arity root handlers are ambiguous and logged. When no zero-argument root handler
+ * different numbers of arguments (e.g. a bare toggle form plus a greedy-message form) or the
+ * same number with disjoint token sets (boolean vs numeric); root handlers whose argument
+ * chains overlap are ambiguous and logged. When no zero-argument root handler
  * exists, bare invocation falls back to echoing the {@link Command#usage() usage} string.
  *
  * <h3>Nested subcommands</h3>
@@ -75,8 +76,10 @@ import java.util.stream.IntStream;
  * Brigadier tree is built, so declarations sharing a prefix like {@code "set"} and
  * {@code "set default"} merge into one branch. A node may carry both handlers and children at
  * once. As with root handlers, multiple handlers may share a path when they take different
- * numbers of arguments (e.g. {@code "-s"} alone plus {@code "-s"} with a trailing greedy reason);
- * same-arity handlers on the same path are ambiguous and logged.
+ * numbers of arguments (e.g. {@code "-s"} alone plus {@code "-s"} with a trailing greedy reason)
+ * or the same number with disjoint token sets (boolean vs numeric, as in {@code /settings set});
+ * handlers on the same path whose argument chains overlap are ambiguous and logged
+ * (see {@link #conflicts}).
  *
  * <h3>Permissions</h3>
  * {@link Permission} on the {@code FCommand} class gates the whole command and is wired into
@@ -164,7 +167,7 @@ public final class CommandProcessor
         this.commandName = meta.name().toLowerCase();
         this.description = meta.description();
         this.usage = meta.usage();
-        this.aliases = Arrays.stream(meta.aliases()).map(String::toLowerCase).toList();
+        this.aliases = Arrays.stream(meta.aliases()).map(s -> s.toLowerCase()).toList();
         this.classPermission = command.getClass().getAnnotation(Permission.class);
     }
 
@@ -211,12 +214,18 @@ public final class CommandProcessor
                             ? method.getAnnotation(Subcommand.class).value().trim()
                             : "";
 
-                    if (pathValue.isEmpty()) 
+                    if (pathValue.isEmpty())
                     {
                         rootHandlers.stream()
-                                .filter(prior -> argumentCount(prior) == argumentCount(method))
-                                .forEach(prior -> FLog.warning(String.format("Ambiguous root handlers on /%s:\n %s and %s both take %d argument(s)", commandName, method.getName(), prior.getName(), argumentCount(method))));
-                        
+                                .filter(prior -> conflicts(prior, method))
+                                .forEach(prior -> FLog.warning(String.format(
+                                                                            "Ambiguous root handlers on /%s:\n %s and %s cannot be told apart at parse time (%d argument(s) with overlapping tokens)", 
+                                                                            commandName, 
+                                                                            method.getName(), 
+                                                                            prior.getName(), 
+                                                                            argumentCount(method)
+                                                                        )));
+
                         rootHandlers.add(method);
                         return;
                     }
@@ -227,8 +236,15 @@ public final class CommandProcessor
                                 (a, b) -> a);
 
                     node.handlerMethods.stream()
-                            .filter(existing -> argumentCount(existing) == argumentCount(method))
-                            .forEach(existing -> FLog.warning(String.format("Ambiguous handlers for subcommand \"%s\" on /%s:\n %s and %s both take %d argument(s)", pathValue, commandName, method.getName(), existing.getName(), argumentCount(method))));
+                            .filter(existing -> conflicts(existing, method))
+                            .forEach(existing -> FLog.warning(String.format(
+                                                                            "Ambiguous handlers for subcommand \"%s\" on /%s:\n %s and %s cannot be told apart at parse time (%d argument(s) with overlapping tokens)", 
+                                                                            pathValue, 
+                                                                            commandName, 
+                                                                            method.getName(), 
+                                                                            existing.getName(), 
+                                                                            argumentCount(method)
+                                                                        )));
                     
                     node.handlerMethods.add(method);
                 });
@@ -307,13 +323,85 @@ public final class CommandProcessor
      */
     private static int argumentCount(Method method)
     {
+        return positionalParams(method).size();
+    }
+
+    /**
+     * A handler's positional parameters: everything except the optional leading sender and any
+     * {@link Switch} parameters (which become literal branches rather than argument nodes).
+     */
+    private static List<Parameter> positionalParams(Method method)
+    {
         Parameter[] params = method.getParameters();
         boolean hasSender = params.length > 0 && ArgumentResolver.isSenderType(params[0].getType());
-        
-        return (int) Arrays.stream(params)
+
+        return Arrays.stream(params)
                 .skip(hasSender ? 1 : 0)
                 .filter(param -> !isSwitchParam(param))
-                .count();
+                .toList();
+    }
+
+    /**
+     * Whether two handlers on the same path cannot both be routed reliably. Handlers with
+     * different positional arities never conflict: the longer chain simply extends the shorter
+     * one's tree. Same-arity handlers are walked position by position: identically-named,
+     * identically-typed parameters merge into the same Brigadier node, so the walk continues;
+     * at the first diverging position the handlers split into sibling argument nodes, which is
+     * only deterministic when the siblings have distinct node names AND mutually exclusive
+     * token sets (currently: boolean vs a numeric type, since {@code true}/{@code false} never
+     * parse as numbers). Everything else is order-dependent and flagged: identical signatures
+     * (duplicate leaf), same-name-different-type positions (Brigadier merges nodes by name,
+     * corrupting the tree), and overlapping siblings (string-like arguments accept any token;
+     * numeric types overlap each other).
+     */
+    private static boolean conflicts(Method a, Method b)
+    {
+        List<Parameter> left = positionalParams(a);
+        List<Parameter> right = positionalParams(b);
+
+        if (left.size() != right.size())
+        {
+            return false;
+        }
+
+        for (int i = 0; i < left.size(); i++)
+        {
+            Parameter x = left.get(i);
+            Parameter y = right.get(i);
+
+            if (x.getName().equals(y.getName()) && x.getType() == y.getType())
+            {
+                continue;
+            }
+
+            return x.getName().equals(y.getName()) || !tokenSetsDisjoint(x, y);
+        }
+
+        return true;
+    }
+
+    /**
+     * @return true if no input token can parse under both parameters' Brigadier argument types.
+     */
+    private static boolean tokenSetsDisjoint(Parameter a, Parameter b)
+    {
+        return (isBoolArg(a) && isNumericArg(b)) || (isNumericArg(a) && isBoolArg(b));
+    }
+
+    private static boolean isBoolArg(Parameter param)
+    {
+        return !isCustomResolved(param)
+            && (param.getType() == boolean.class || param.getType() == Boolean.class);
+    }
+
+    private static boolean isNumericArg(Parameter param)
+    {
+        Class<?> type = param.getType();
+        return !isCustomResolved(param)
+            && (type == int.class || type == Integer.class
+                || type == long.class || type == Long.class
+                || type == double.class || type == Double.class
+                || type == float.class || type == Float.class);
     }
 
     /**
