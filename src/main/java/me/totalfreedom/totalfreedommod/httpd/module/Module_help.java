@@ -10,8 +10,9 @@ import java.util.List;
 import java.util.Map;
 
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
-import me.totalfreedom.totalfreedommod.command.CommandHandler;
-import me.totalfreedom.totalfreedommod.command.FreedomCommand;
+import me.totalfreedom.totalfreedommod.cmd.CommandRegistry;
+import me.totalfreedom.totalfreedommod.cmd.FCommand;
+import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Permission;
 import static me.totalfreedom.totalfreedommod.httpd.HTMLGenerationTools.heading;
 import static me.totalfreedom.totalfreedommod.httpd.HTMLGenerationTools.paragraph;
 import me.totalfreedom.totalfreedommod.httpd.NanoHTTPD;
@@ -78,14 +79,15 @@ public class Module_help extends HTTPDModule
                     continue;
                 }
 
-                FreedomCommand fc = FreedomCommand.getFrom(command);
-                if (fc == null || fc.getPerms() == null)
+                FCommand fc = CommandRegistry.getByName(command.getName());
+                Permission perm = fc == null ? null : fc.getClass().getAnnotation(Permission.class);
+                if (perm == null)
                 {
                     responseBody.append(buildDescription(command));
                     continue;
                 }
 
-                Displayable tfmCommandLevel = fc.getPerms().level();
+                Displayable tfmCommandLevel = perm.level();
                 if (lastTfmCommandLevel == null || lastTfmCommandLevel != tfmCommandLevel)
                 {
                     responseBody.append("</ul>\r\n").append(heading(tfmCommandLevel.getName(), 3)).append("<ul>\r\n");
@@ -102,20 +104,23 @@ public class Module_help extends HTTPDModule
 
     private static String buildDescription(Command command)
     {
-        // Fall back to annotation data from the FreedomCommand registry.
+        // Fall back to annotation data from the FCommand registry.
         String usage = command.getUsage();
         String description = command.getDescription();
 
-        FreedomCommand fc = CommandHandler.getByName(command.getName());
-        if (fc != null && fc.getParams() != null)
+        FCommand fc = CommandRegistry.getByName(command.getName());
+        me.totalfreedom.totalfreedommod.cmd.internal.annotation.Command meta = fc == null
+                ? null
+                : fc.getClass().getAnnotation(me.totalfreedom.totalfreedommod.cmd.internal.annotation.Command.class);
+        if (meta != null)
         {
             if (usage == null || usage.isBlank())
             {
-                usage = fc.getParams().usage();
+                usage = meta.usage();
             }
             if (description == null || description.isBlank())
             {
-                description = fc.getParams().description();
+                description = meta.description();
             }
         }
 
@@ -167,15 +172,18 @@ public class Module_help extends HTTPDModule
         @Override
         public int compare(Command a, Command b)
         {
-            FreedomCommand ca = FreedomCommand.getFrom(a);
-            FreedomCommand cb = FreedomCommand.getFrom(b);
+            FCommand ca = CommandRegistry.getByName(a.getName());
+            FCommand cb = CommandRegistry.getByName(b.getName());
 
-            if (ca == null || cb == null || ca.getPerms() == null || cb.getPerms() == null)
+            Permission pa = ca == null ? null : ca.getClass().getAnnotation(Permission.class);
+            Permission pb = cb == null ? null : cb.getClass().getAnnotation(Permission.class);
+
+            if (pa == null || pb == null)
             {
                 return a.getName().compareTo(b.getName());
             }
 
-            return ca.getPerms().level().getName().compareTo(cb.getPerms().level().getName());
+            return pa.level().getName().compareTo(pb.level().getName());
         }
     }
 }

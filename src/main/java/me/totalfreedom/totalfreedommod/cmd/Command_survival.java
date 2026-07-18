@@ -7,6 +7,7 @@ import org.bukkit.entity.Player;
 
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.rank.Rank;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
 @Command(
     name = "survival", 
@@ -39,7 +40,7 @@ public class Command_survival extends FCommand
 	public void changeGamemodeOther(CommandSender sender, Player target)
 	{
 		target.setGameMode(GameMode.SURVIVAL);
-		msg(sender, "Setting %s's gamemode to Survival.", target.getName());
-		msg(target, "%s set your gamemode to Survival.", sender.getName());
+		msg(sender, "Setting <player>'s gamemode to Survival.", Placeholder.unparsed("player", target.getName()));
+		msg(target, "<sender> set your gamemode to Survival.", Placeholder.unparsed("sender", sender.getName()));
 	}
 }

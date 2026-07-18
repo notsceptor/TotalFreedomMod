@@ -55,13 +55,13 @@ public class Command_tossmob extends FCommand
     }
 
     @Callback
-    public void toss(final Player player, final @Resolve("EntityType") EntityType type, final @Resolve("Double") double speed)
+    public void toss(final Player player, final @Resolve(value = "EntityType", strategy = "mobs") EntityType type, final @Resolve("Double") double speed)
     {
         tossmob(player, type, speed);
     }
 
     @Callback
-    public void tossDefaultSpeed(final Player player, final @Resolve("EntityType") EntityType type)
+    public void tossDefaultSpeed(final Player player, final @Resolve(value = "EntityType", strategy = "mobs") EntityType type)
     {
         tossmob(player, type, 1.0);
     }

@@ -75,7 +75,7 @@ public class Command_baninfo extends FCommand
                     });
         }
 
-        msg(sender, "<gray>No ban or permban found for: <white>%s", target);
+        msg(sender, "<gray>No ban or permban found for: <white><target>", MessageUtils.unparsed("target", target));
     }
 
     private static boolean isPartialIP(String s)

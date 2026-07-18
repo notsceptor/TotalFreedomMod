@@ -2,7 +2,6 @@ package me.totalfreedom.totalfreedommod.cmd;
 
 import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 
@@ -16,16 +15,12 @@ public class Command_report extends FCommand
         // This cast will never fail since the command may only be executed by players
         if (player.equals(target))
         {
-            msg(player, "Please, don't try to report yourself.", NamedTextColor.RED);
+            msg(player, "<red>Please, don't try to report yourself.");
             return;
         }
 
-        // HTTP request may complete after the player logs out
         boolean sendFeedback = player.isOnline();
-        // We'd still like to send the report though
 
-        // getOfflinePlayer can return players that haven't played before
-        // if (!target.hasPlayedBefore()) -- Doesn't seem like changes are reflected immediately
         if (target.getFirstPlayed() == 0)
         {
             if (sendFeedback)
@@ -70,7 +65,7 @@ public class Command_report extends FCommand
             {
                 OfflinePlayer target = server().getOfflinePlayer(playerName);
 
-                // Avoid interacting with Bukkit API & TFM outside the main thread where possible
+                // NEVER interact with Bukkit API OR TFM outside the main thread.
                 sync(() -> doReport(
                                     sender,
                                     target,

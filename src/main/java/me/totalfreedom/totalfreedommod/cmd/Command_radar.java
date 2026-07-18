@@ -27,11 +27,13 @@ public class Command_radar extends FCommand
     {
         final int radius = Math.clamp(limit, 1, 200);
         final Location center = sender.getLocation();
-        final List<Player> nearbyPlayers = center.getWorld().getPlayers().stream()
-                .filter(player -> !player.equals(sender))
-                .filter(player -> player.getLocation().distance(center) <= radius)
-                .sorted(Comparator.comparingDouble(player -> player.getLocation().distance(center)))
-                .toList();
+        final List<Player> nearbyPlayers = center.getWorld()
+                                                 .getPlayers()
+                                                 .stream()
+                                                 .filter(player -> !player.equals(sender))
+                                                 .filter(player -> player.getLocation().distance(center) <= radius)
+                                                 .sorted(Comparator.comparingDouble(player -> player.getLocation().distance(center)))
+                                                 .toList();
 
         if (nearbyPlayers.isEmpty())
         {
@@ -40,16 +42,19 @@ public class Command_radar extends FCommand
         }
 
         msg(
-                sender,
-                "<yellow>People nearby in <world>:<newline><list:'<newline>'>",
-                Placeholder.unparsed("world", center.getWorld().getName()),
-                Formatter.joining(
+            sender,
+            "<yellow>People nearby in <world>:<newline><list:'<newline>'>",
+            Placeholder.unparsed("world", center.getWorld().getName()),
+            Formatter.joining(
                         "list",
-                        nearbyPlayers.stream()
-                                .map(player -> MessageUtils.parse("<player> - <distance> blocks",
-                                        Placeholder.unparsed("player", player.getName()),
-                                        Formatter.number("distance", Math.round(player.getLocation().distance(center)))))
-                                .toList()
-                ));
+                            nearbyPlayers.stream()
+                                            .map(player -> MessageUtils.parse(
+                                                                            "<player> - <distance> blocks",
+                                                                            Placeholder.unparsed("player", player.getName()),
+                                                                            Formatter.number("distance", Math.round(player.getLocation().distance(center)))
+                                                                    )
+                                            )
+                                            .toList()
+            ));
     }
 }

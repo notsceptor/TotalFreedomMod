@@ -34,7 +34,7 @@ public class Command_ban extends FCommand
 
     private void doBan(CommandSender sender, String name, String reason, boolean silent, boolean noRollback)
     {
-        final Player player = getPlayer(name);
+        final Player player = server().getPlayer(name);
         PlayerData data = BanCommandUtil.getData(plugin(), name, player);
 
         if (data == null)
@@ -77,7 +77,7 @@ public class Command_ban extends FCommand
             plugin().cpb.rollback(name);
         }
 
-        if (!plugin().al.isAdmin(player))
+        if (player == null || !plugin().al.isAdmin(player))
         {
             data.setStrikes(0);
         }

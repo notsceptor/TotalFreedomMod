@@ -2,16 +2,10 @@ package me.totalfreedom.totalfreedommod.cmd;
 
 import java.net.InetAddress;
 import java.util.List;
-import java.util.Objects;
 
 import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.rank.Rank;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
-
-import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 @Permission(level = Rank.SUPER_ADMIN, source = SourceType.ONLY_IN_GAME, permission = "tfm.admin.myadmin")
@@ -25,7 +19,7 @@ public class Command_myadmin extends FCommand
     {
         if (player.getAddress().getAddress().equals(address))
         {
-            msg(player, "You can't remove your current IP address.", NamedTextColor.RED);
+            msg(player, "<red>You can't remove your current IP address.");
             return;
         }
 

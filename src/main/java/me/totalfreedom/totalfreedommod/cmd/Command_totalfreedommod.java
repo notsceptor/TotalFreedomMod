@@ -9,7 +9,6 @@ import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.discord.DiscordBridge;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.rank.Rank;
-import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.command.CommandSender;
 
@@ -45,28 +44,34 @@ public class Command_totalfreedommod extends FCommand
             DiscordBridge.reloading = false;
         }
 
-        final String message = String.format("<gray>%s v%s reloaded.",
-                TotalFreedomMod.pluginName,
-                TotalFreedomMod.pluginVersion);
-
-        msg(sender, message);
+        msg(
+            sender, 
+            "<gray><name> v<version> reloaded.", 
+            Placeholder.unparsed("name", TotalFreedomMod.pluginName), 
+            Placeholder.unparsed("version", TotalFreedomMod.pluginVersion));
     }
 
     @Callback
     public void showPluginInformation(CommandSender sender)
     {
         TotalFreedomMod.BuildProperties build = TotalFreedomMod.build;
-        msg(sender, "<gold>TotalFreedomMod for 'Total Freedom', the original all-op server.", NamedTextColor.GOLD);
-        msg(sender,"<gold>Running on <server>.", Placeholder.unparsed("server", ConfigEntry.SERVER_NAME.getString()));
-        msg(sender,"<gold>Created by Madgeek1450 and Prozza.");
-        msg(sender, "<gold>Version <blue><codename> - <version> Build <number> <gold>(<blue><head><gold>)",
-                Placeholder.unparsed("codename", build.codename),
-                Placeholder.unparsed("version", build.version),
-                Placeholder.unparsed("number", build.number),
-                Placeholder.unparsed("head", build.head));
-        msg(sender, "<gold>Compiled <blue><date> <gold>by <blue><author>",
-                Placeholder.unparsed("date", build.date),
-                Placeholder.unparsed("author", build.author));
-        msg(sender, "<green>Visit <aqua>https://github.com/tfreedomorg/totalfreedommod <green>for more information.");
+        msg(
+            sender,
+            """
+                <gold>TotalFreedomMod for 'Total Freedom', the original all-op server.
+                <gold>Running on <server>.
+                <gold>Created by Madgeek1450 and Prozza.
+                <gold>Version <blue><codename> - <version> Build <number> <gold>(<blue><head><gold>)
+                <gold>Compiled <blue><date> <gold>by <blue><author>
+                <green>Visit <aqua>https://github.com/tfreedomorg/totalfreedommod <green>for more information.        
+            """,
+            Placeholder.unparsed("server", ConfigEntry.SERVER_NAME.getString()),
+            Placeholder.unparsed("codename", build.codename),
+            Placeholder.unparsed("version", build.version),
+            Placeholder.unparsed("number", build.number),
+            Placeholder.unparsed("head", build.head),
+            Placeholder.unparsed("date", build.date),
+            Placeholder.unparsed("author", build.author)
+        );
     }
 }

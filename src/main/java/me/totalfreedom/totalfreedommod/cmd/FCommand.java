@@ -4,7 +4,6 @@ import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
@@ -153,11 +152,6 @@ public abstract class FCommand
         throw new CommandFailException("That player cannot be found!");
     }
 
-    protected void msg(final CommandSender sender, final String message, Object... refs)
-    {
-        MessageUtils.send(sender, String.format(message, refs));
-    }
-
     protected void msg(final CommandSender sender, final String message, TagResolver... refs)
     {
         MessageUtils.send(sender, message, refs);
@@ -166,6 +160,11 @@ public abstract class FCommand
     protected void kickPlayer(final Player player, final String message)
     {
         player.kick(MessageUtils.parse(message));
+    }
+
+    protected void kickPlayer(final Player player, final String message, final TagResolver... refs)
+    {
+        player.kick(MessageUtils.parse(message, refs));
     }
 
     protected void smitePlayer(final Player player)

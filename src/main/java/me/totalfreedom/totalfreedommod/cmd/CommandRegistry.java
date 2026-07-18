@@ -31,6 +31,11 @@ public final class CommandRegistry
               .forEach(alias -> registry.putIfAbsent(alias, command));
     }
 
+    public static FCommand getByName(String commandName)
+    {
+        return registry.get(commandName.toLowerCase(Locale.ROOT));
+    }
+
     public static List<String> listAliases(String commandName)
     {
         FCommand cmd = registry.get(commandName.toLowerCase());
