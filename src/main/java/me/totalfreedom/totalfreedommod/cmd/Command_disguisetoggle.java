@@ -37,7 +37,7 @@ public class Command_disguisetoggle extends FCommand
 
         msg(
             sender, 
-            "Disguises are now <value:enabled:disabled>",
+            "<gray>Disguises are now <value:enabled:disabled>",
             Formatter.booleanChoice("value", plugin().ldb.isDisguisesEnabled())
         );
     }

@@ -23,7 +23,7 @@ public class Command_creative extends FCommand
 	public void changeGamemodeSelf(Player player)
 	{
 		player.setGameMode(GameMode.CREATIVE);
-		msg(player, "Your gamemode has been set to Creative.");
+		msg(player, "<gray>Your gamemode has been set to Creative.");
 	}
 
 	@Callback
@@ -40,7 +40,7 @@ public class Command_creative extends FCommand
 	public void changeGamemodeOther(CommandSender sender, Player target)
 	{
 		target.setGameMode(GameMode.CREATIVE);
-		msg(sender, "Setting <player>'s gamemode to Creative.", Placeholder.unparsed("player", target.getName()));
-		msg(target, "<sender> set your gamemode to Creative.", Placeholder.unparsed("sender", sender.getName()));
+		msg(sender, "<gray>Setting <player>'s gamemode to Creative.", Placeholder.unparsed("player", target.getName()));
+		msg(target, "<gray><sender> set your gamemode to Creative.", Placeholder.unparsed("sender", sender.getName()));
 	}
 }

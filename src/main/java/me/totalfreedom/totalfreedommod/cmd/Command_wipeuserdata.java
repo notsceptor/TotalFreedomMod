@@ -17,7 +17,7 @@ public class Command_wipeuserdata extends FCommand
     {
         if (!server().getPluginManager().isPluginEnabled("Essentials"))
         {
-            msg(sender, "Essentials is not enabled on this server");
+            msg(sender, "<gray>Essentials is not enabled on this server");
             return;
         }
 
@@ -25,6 +25,6 @@ public class Command_wipeuserdata extends FCommand
 
         FUtil.deleteFolder(new File(server().getPluginManager().getPlugin("Essentials").getDataFolder(), "userdata"));
 
-        msg(sender, "All playerdata deleted.");
+        msg(sender, "<gray>All playerdata deleted.");
     }
 }

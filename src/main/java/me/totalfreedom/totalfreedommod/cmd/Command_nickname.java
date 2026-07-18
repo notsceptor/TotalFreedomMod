@@ -185,7 +185,7 @@ public class Command_nickname extends FCommand
                         ct.incrementAndGet();
                     });
 
-        msg(sender, "<count> nickname(s) removed.", Formatter.number("count", ct.get()));
+        msg(sender, "<gray><count> nickname(s) removed.", Formatter.number("count", ct.get()));
     }
 
     @Callback
@@ -221,7 +221,7 @@ public class Command_nickname extends FCommand
             })
             .count();
 
-        msg(sender, "<count> nickname(s) were cleaned.", Formatter.number("count", count));
+        msg(sender, "<gray><count> nickname(s) were cleaned.", Formatter.number("count", count));
     }
 
     private void sendClearedMessage(CommandSender sender, Player player)

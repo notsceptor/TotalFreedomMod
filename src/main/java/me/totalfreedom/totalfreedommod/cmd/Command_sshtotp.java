@@ -28,14 +28,14 @@ public class Command_sshtotp extends FCommand
     {
         if (plugin().sd == null || plugin().sd.getIdentityStore() == null)
         {
-            msg(sender, "SSH daemon is not running.");
+            msg(sender, "<gray>SSH daemon is not running.");
             return;
         }
 
         SshIdentity sshIdentity = plugin().sd.getIdentityStore().get(identity);
         if (sshIdentity == null)
         {
-            msg(sender, "No SSH identity found for: <identity>", Placeholder.unparsed("identity", identity));
+            msg(sender, "<gray>No SSH identity found for: <identity>", Placeholder.unparsed("identity", identity));
             return;
         }
 

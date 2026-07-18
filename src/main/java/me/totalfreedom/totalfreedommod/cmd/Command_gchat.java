@@ -20,7 +20,7 @@ public class Command_gchat extends FCommand
         {
             if (!(CommandRegistry.getByName("gcmd") instanceof Command_gcmd gcmd))
             {
-                msg(sender, "We were going to redirect you to use /gcmd instead, but apparently that isn't registered. Please contact a developer!");
+                msg(sender, "<gray>We were going to redirect you to use /gcmd instead, but apparently that isn't registered. Please contact a developer!");
                 return;
             }
 
@@ -30,7 +30,7 @@ public class Command_gchat extends FCommand
 
         if (isAdmin(player))
         {
-            msg(sender, "This command cannot be used on other admins.");
+            msg(sender, "<gray>This command cannot be used on other admins.");
             return;
         }
 

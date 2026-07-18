@@ -14,13 +14,13 @@ public class Command_undisguiseall extends FCommand
     {
         if (!plugin().ldb.isPluginEnabled())
         {
-            msg(sender, "LibsDisguises is not enabled.");
+            msg(sender, "<gray>LibsDisguises is not enabled.");
             return;
         }
 
         if (!plugin().ldb.isDisguisesEnabled())
         {
-            msg(sender, "Disguises are not enabled.");
+            msg(sender, "<gray>Disguises are not enabled.");
             return;
         }
 

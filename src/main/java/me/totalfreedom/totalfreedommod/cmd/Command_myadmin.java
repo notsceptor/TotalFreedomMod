@@ -26,7 +26,7 @@ public class Command_myadmin extends FCommand
         final Admin entry = plugin().al.getAdmin(player);
         if (!entry.getIps().contains(address.getHostAddress()))
         {
-            msg(player, "That IP address isn't in your entry.");
+            msg(player, "<red>That IP address isn't in your entry.");
             return;
         }
 
@@ -44,7 +44,7 @@ public class Command_myadmin extends FCommand
         ips.clear();
         ips.add(player.getAddress().getAddress().getHostName());
 
-        msg(player, count - 1 + " IP address(es) were removed.");
+        msg(player, String.format("<gray>%d IP address(es) were removed.", count - 1));
     }
 
     @Callback
@@ -76,7 +76,7 @@ public class Command_myadmin extends FCommand
         final Admin entry = plugin().al.getAdmin(player);
 
         entry.setLoginMessage(null); // this needs a .resetLoginMessage() call so that we AVOID nullability. Not my problem right now.
-        msg(player, "Your login message has been removed.");
+        msg(player, "<gray>Your login message has been removed.");
         plugin().al.save();
         plugin().al.updateTables();
     }

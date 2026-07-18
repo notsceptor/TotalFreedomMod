@@ -64,7 +64,7 @@ public class Command_whohas extends FCommand
 
         if (count == 0)
         {
-            msg(sender, "No results were found for your query.");
+            msg(sender, "<gray>No results were found for your query.");
         }
     }
 }

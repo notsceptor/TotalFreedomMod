@@ -15,7 +15,7 @@ public class Command_flatlands extends FCommand
     {
         if (!ConfigEntry.FLATLANDS_GENERATE.getBoolean())
         {
-            msg(player, "Flatlands is currently disabled.");
+            msg(player, "<gray>Flatlands is currently disabled.");
             return;
         }
 

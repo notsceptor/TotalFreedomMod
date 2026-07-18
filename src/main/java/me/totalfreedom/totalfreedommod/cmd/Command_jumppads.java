@@ -27,7 +27,7 @@ public class Command_jumppads extends FCommand
     {
         value = Math.clamp(value, 1F, 10F);
 
-        adminAction(sender, "Setting Jumppads strength to: <value>", Formatter.number("value", value));
+        adminAction(sender, "<aqua>Setting Jumppads strength to: <value>", Formatter.number("value", value));
         plugin().jp.setStrength((value / 10) + 0.1F);
     }
 

@@ -25,7 +25,7 @@ public class Command_lockup extends FCommand
 
         server().getOnlinePlayers().forEach(this::startLockup);
 
-        msg(sender, "Locked up all players.");
+        msg(sender, "<gray>Locked up all players.");
     }
 
     @Callback
@@ -36,7 +36,7 @@ public class Command_lockup extends FCommand
 
         server().getOnlinePlayers().forEach(this::cancelLockup);
 
-        msg(sender, "Unlocked all players.");
+        msg(sender, "<gray>Unlocked all players.");
     }
 
     @Callback
@@ -54,13 +54,13 @@ public class Command_lockup extends FCommand
         {
             adminAction(sender, "<aqua>Locking up <player>", Placeholder.unparsed("player", player.getName()));
             startLockup(player);
-            msg(sender, "Locked up <player>.", Placeholder.unparsed("player", player.getName()));
+            msg(sender, "<gray>Locked up <player>.", Placeholder.unparsed("player", player.getName()));
         }
         else if ("off".equalsIgnoreCase(state))
         {
             adminAction(sender, "<aqua>Unlocking <player>", Placeholder.unparsed("player", player.getName()));
             cancelLockup(player);
-            msg(sender, "Unlocked <player>.", Placeholder.unparsed("player", player.getName()));
+            msg(sender, "<gray>Unlocked <player>.", Placeholder.unparsed("player", player.getName()));
         }
     }
 

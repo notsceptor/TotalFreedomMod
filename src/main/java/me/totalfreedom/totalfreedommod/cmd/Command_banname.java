@@ -23,7 +23,7 @@ public class Command_banname extends FCommand
     {
         if (plugin().bm.getByUsername(name) != null)
         {
-            msg(sender, "<name> is already banned.", Placeholder.unparsed("name", name));
+            msg(sender, "<gray><name> is already banned.", Placeholder.unparsed("name", name));
             return;
         }
         final Ban ban = Ban.forPlayerName(name, sender, null, reason);

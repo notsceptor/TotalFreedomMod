@@ -31,7 +31,7 @@ public class Command_doom extends FCommand
         Admin admin = getAdmin(player);
         if (admin != null)
         {
-            adminAction(sender, "Removing <player> from the superadmin list", name);
+            adminAction(sender, "<red>Removing <player> from the superadmin list", name);
             plugin().al.removeAdmin(admin);
         }
 
@@ -74,7 +74,7 @@ public class Command_doom extends FCommand
 
         sync(() ->
         {
-            adminAction(sender, "Banning <player>, IP: <ip>", name, Placeholder.unparsed("ip", ip));
+            adminAction(sender, "<red>Banning <player>, IP: <ip>", name, Placeholder.unparsed("ip", ip));
             player.getWorld().createExplosion(player.getLocation(), 0F, false);
             kickPlayer(player, "<red>FUCKOFF, and get your shit together!");
         }, 3L * 20L);

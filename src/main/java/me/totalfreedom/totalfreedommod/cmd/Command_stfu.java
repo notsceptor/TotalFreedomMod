@@ -29,7 +29,7 @@ public class Command_stfu extends FCommand
 
         if (players.isEmpty())
         {
-            msg(sender, "No one on the server is currently muted.");
+            msg(sender, "<gray>No one on the server is currently muted.");
             return;
         }
 
@@ -58,7 +58,7 @@ public class Command_stfu extends FCommand
                                               .peek(player -> player.setMuted(false))
                                               .toList();
 
-        msg(sender, "Unmuted <count> players.", Formatter.number("count", players.size()));
+        msg(sender, "<gray>Unmuted <count> players.", Formatter.number("count", players.size()));
     }
 
     @Callback
@@ -74,7 +74,7 @@ public class Command_stfu extends FCommand
                                               .peek(player -> player.setMuted(true))
                                               .toList();
 
-        msg(sender, "Muted <count> players.", Formatter.number("count", players.size()));
+        msg(sender, "<gray>Muted <count> players.", Formatter.number("count", players.size()));
     }
 
     @Callback
@@ -90,7 +90,7 @@ public class Command_stfu extends FCommand
 
         if (isAdmin(player))
         {
-            msg(sender, "This command cannot be used on other admins.");
+            msg(sender, "<gray>This command cannot be used on other admins.");
             return;
         }
 

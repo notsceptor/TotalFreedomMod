@@ -23,12 +23,12 @@ public class Command_trail extends FCommand
         if (value)
         {
             plugin().tr.remove(player);
-            msg(player, "Trail disabled.");
+            msg(player, "<gray>Trail disabled.");
         }
         else
         {
             plugin().tr.add(player);
-            msg(player, "Trail enabled.");
+            msg(player, "<gray>Trail enabled.");
         }
     }
 }

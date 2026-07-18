@@ -39,7 +39,7 @@ public class Command_ban extends FCommand
 
         if (data == null)
         {
-            msg(sender, "Can't find that player. Use /banname to ban an arbitrary name.");
+            msg(sender, "<gray>Can't find that player. Use /banname to ban an arbitrary name.");
             return;
         }
 

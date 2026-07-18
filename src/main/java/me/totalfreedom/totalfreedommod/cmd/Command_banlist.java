@@ -66,6 +66,6 @@ public class Command_banlist extends FCommand
     {
         // Ok so apparently plugin().bm.purge() purges the banlist then returns an int to count how many bans were purged. 
         adminAction(sender, "<red>Purging the ban list");
-        msg(sender, "Purged <count> player bans.", Formatter.number("count", plugin().bm.purge()));
+        msg(sender, "<gray>Purged <count> player bans.", Formatter.number("count", plugin().bm.purge()));
     }
 }

@@ -16,7 +16,7 @@ public class Command_localspawn extends FCommand
         player.teleport(player.getWorld().getSpawnLocation());
         msg(
             player,
-            "Teleported to spawnpoint for world \"<world>\".",
+            "<gray>Teleported to spawnpoint for world \"<world>\".",
             Placeholder.unparsed("world", player.getWorld().getName())
         );
     }

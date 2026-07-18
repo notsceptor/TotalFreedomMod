@@ -18,7 +18,7 @@ public class Command_potionspy extends FCommand
         data.setPotionSpy(!data.isPotionSpy());
         msg(
             player, 
-            "PotionSpy <status:enabled:disabled>.",
+            "<gray>PotionSpy <status:enabled:disabled>.",
             Formatter.booleanChoice("status", data.isPotionSpy())
         );
     }

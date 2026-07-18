@@ -28,17 +28,17 @@ public class Command_adminworld extends FCommand
 
         if (adminWorld == null || player.getWorld().equals(adminWorld))
         {
-            msg(player, "Going to the main world.");
+            msg(player, "<gray>Going to the main world.");
             player.teleport(server().getWorlds().get(0).getSpawnLocation().clone());
         }
         else if (plugin().wm.adminworld.canAccessWorld(player))
         {
-            msg(player, "Going to the AdminWorld.");
+            msg(player, "<gray>Going to the AdminWorld.");
             plugin().wm.adminworld.sendToWorld(player);
         }
         else
         {
-            msg(player, "You don't have permission to access the AdminWorld.");
+            msg(player, "<red>You don't have permission to access the AdminWorld.");
         }
     }
 
@@ -104,7 +104,7 @@ public class Command_adminworld extends FCommand
     public void setTime(CommandSender sender, WorldTime time)
     {
         plugin().wm.adminworld.setTimeOfDay(time);
-        msg(sender, "AdminWorld time set to <time>.",
+        msg(sender, "<gray>AdminWorld time set to <time>.",
                 Placeholder.unparsed("time", time.name()));
     }
 

@@ -30,7 +30,7 @@ public class Command_fuckoff extends FCommand
 
         msg(
             sender, 
-            "Fuckoff <choice:enabled. Radius: \"<radius>\":disabled>.", 
+            "<gray>Fuckoff <choice:enabled. Radius: \"<radius>\":disabled>.", 
             Formatter.booleanChoice("choice", player.isFuckOff()),
             Formatter.number("radius", clamp)
         );

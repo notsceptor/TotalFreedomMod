@@ -129,7 +129,7 @@ public class Command_tag extends FCommand
             }
         }
 
-        msg(sender, "<count> tag(s) removed.", Formatter.number("count", count));
+        msg(sender, "<gray><count> tag(s) removed.", Formatter.number("count", count));
     }
 
     @Callback

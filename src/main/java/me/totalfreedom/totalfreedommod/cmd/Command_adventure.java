@@ -18,7 +18,7 @@ public class Command_adventure extends FCommand
 	public void changeGamemodeSelf(Player player)
 	{
 		player.setGameMode(GameMode.ADVENTURE);
-		msg(player, "Your gamemode has been set to Adventure.");
+		msg(player, "<gray>Your gamemode has been set to Adventure.");
 	}
 
 	@Callback
@@ -35,9 +35,9 @@ public class Command_adventure extends FCommand
 	public void changeGamemodeOther(CommandSender sender, Player target)
 	{
 		target.setGameMode(GameMode.ADVENTURE);
-		msg(sender, "Setting <player>'s gamemode to Adventure.",
+		msg(sender, "<gray>Setting <player>'s gamemode to Adventure.",
 				Placeholder.unparsed("player", target.getName()));
-		msg(target, "<sender> set your gamemode to Adventure.",
+		msg(target, "<gray><sender> set your gamemode to Adventure.",
 				Placeholder.unparsed("sender", sender.getName()));
 	}
 }

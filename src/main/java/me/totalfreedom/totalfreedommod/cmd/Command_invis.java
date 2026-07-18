@@ -33,7 +33,7 @@ public class Command_invis extends FCommand
                                    .peek(player -> player.removePotionEffect(PotionEffectType.INVISIBILITY))
                                    .count();
 
-        msg(sender, "Cleared invisibility effect from <count> players.", MessageUtils.unparsed("count", String.valueOf(count)));
+        msg(sender, "<gray>Cleared invisibility effect from <count> players.", MessageUtils.unparsed("count", String.valueOf(count)));
     }
 
     @Callback
@@ -58,7 +58,7 @@ public class Command_invis extends FCommand
 
         if (players.isEmpty())
         {
-            msg(sender, "There are no invisible players.");
+            msg(sender, "<gray>There are no invisible players.");
             return;
         }
 
