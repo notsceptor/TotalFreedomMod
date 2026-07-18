@@ -28,7 +28,7 @@ public class Command_tossmob extends FCommand
     {
         if (!getConfigEntry("TOSSMOB_ENABLED").getBoolean() || !fplayer(player).mobThrowerEnabled())
         {
-            msg(player, "Tossmob is already disabled.");
+            msg(player, "<gray>Tossmob is already disabled.");
             return;
         }
 
@@ -70,7 +70,7 @@ public class Command_tossmob extends FCommand
     {
         if (!getConfigEntry("TOSSMOB_ENABLED").getBoolean())
         {
-            msg(player, "Tossmob is currently disabled.");
+            msg(player, "<gray>Tossmob is currently disabled.");
             return;
         }
 

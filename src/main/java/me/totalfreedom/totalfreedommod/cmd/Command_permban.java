@@ -36,7 +36,7 @@ public class Command_permban extends FCommand
         msg(sender, "<green>Reloaded permban list.");
         msg(
             sender,
-            "<count> IPs and <names> usernames loaded.",
+            "<gray><count> IPs and <names> usernames loaded.",
             Formatter.number("count", plugin().pm.getPermbannedIps().size()),
             Formatter.number("names", plugin().pm.getPermbannedNames().size())
         );

@@ -23,7 +23,7 @@ public class Command_survival extends FCommand
 	public void changeGamemodeSelf(Player player)
 	{
 		player.setGameMode(GameMode.SURVIVAL);
-		msg(player, "Your gamemode has been set to Survival.");
+		msg(player, "<gray>Your gamemode has been set to Survival.");
 	}
 
 	@Callback
@@ -40,7 +40,7 @@ public class Command_survival extends FCommand
 	public void changeGamemodeOther(CommandSender sender, Player target)
 	{
 		target.setGameMode(GameMode.SURVIVAL);
-		msg(sender, "Setting <player>'s gamemode to Survival.", Placeholder.unparsed("player", target.getName()));
-		msg(target, "<sender> set your gamemode to Survival.", Placeholder.unparsed("sender", sender.getName()));
+		msg(sender, "<gray>Setting <player>'s gamemode to Survival.", Placeholder.unparsed("player", target.getName()));
+		msg(target, "<gray><sender> set your gamemode to Survival.", Placeholder.unparsed("sender", sender.getName()));
 	}
 }

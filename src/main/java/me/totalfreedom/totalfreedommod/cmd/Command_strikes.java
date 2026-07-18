@@ -31,7 +31,7 @@ public class Command_strikes extends FCommand
     {
         if (isAdmin(player))
         {
-            msg(sender, "Strikes may not be modified for admins.");
+            msg(sender, "<gray>Strikes may not be modified for admins.");
             return;
         }
 
@@ -40,14 +40,14 @@ public class Command_strikes extends FCommand
 
         if (newValue < 0 || newValue > PlayerData.MAX_STRIKES)
         {
-            msg(sender, "<player> may only have between 0 and <max> strikes.",
+            msg(sender, "<gray><player> may only have between 0 and <max> strikes.",
                     Placeholder.unparsed("player", player.getName()),
                     Formatter.number("max", PlayerData.MAX_STRIKES));
             return;
         }
 
         data.setStrikes(newValue);
-        msg(sender, "<player> now has <count> strike<plural>.",
+        msg(sender, "<gray><player> now has <count> strike<plural>.",
                 Placeholder.unparsed("player", player.getName()),
                 Formatter.number("count", data.getStrikes()),
                 Placeholder.unparsed("plural", data.getStrikes() != 1 ? "s" : ""));
@@ -59,13 +59,13 @@ public class Command_strikes extends FCommand
     {
         if (isAdmin(player))
         {
-            msg(sender, "Strikes may not be modified for admins.");
+            msg(sender, "<gray>Strikes may not be modified for admins.");
             return;
         }
 
         final PlayerData data = getData(player);
         data.setStrikes(0);
-        msg(sender, "<player> now has no strikes.", Placeholder.unparsed("player", player.getName()));
+        msg(sender, "<gray><player> now has no strikes.", Placeholder.unparsed("player", player.getName()));
     }
 
     @Callback
@@ -78,6 +78,6 @@ public class Command_strikes extends FCommand
                                    .peek(data -> data.setStrikes(0))
                                    .count();
 
-        msg(sender, "Purged strikes for <count> player(s).", Formatter.number("count", count));
+        msg(sender, "<gray>Purged strikes for <count> player(s).", Formatter.number("count", count));
     }
 }

@@ -18,7 +18,7 @@ public class Command_crash extends FCommand
     {
         if (plugin().al.isAdmin(player))
         {
-            msg(sender, "This command cannot be used on other admins.");
+            msg(sender, "<gray>This command cannot be used on other admins.");
             return;
         }
         

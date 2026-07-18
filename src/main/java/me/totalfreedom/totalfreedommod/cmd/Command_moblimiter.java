@@ -44,7 +44,7 @@ public class Command_moblimiter extends FCommand
     {
         if (!plugin().mb.isMobTypeBlocked(type))
         {
-            msg(sender, "<type> is not a blocked mob type.", Placeholder.unparsed("type", type.key().asString()));
+            msg(sender, "<gray><type> is not a blocked mob type.", Placeholder.unparsed("type", type.key().asString()));
             return;
         }
 
@@ -58,7 +58,7 @@ public class Command_moblimiter extends FCommand
     {
         if (plugin().mb.isMobTypeBlocked(type))
         {
-            msg(sender, "<type> is already a blocked mob type.", Placeholder.unparsed("type", type.key().asString()));
+            msg(sender, "<gray><type> is already a blocked mob type.", Placeholder.unparsed("type", type.key().asString()));
             return;
         }
 

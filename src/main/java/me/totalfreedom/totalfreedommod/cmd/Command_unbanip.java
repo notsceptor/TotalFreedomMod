@@ -18,7 +18,7 @@ public class Command_unbanip extends FCommand
     {
         if (!plugin().bm.isIpBanned(ip.getHostAddress()))
         {
-            msg(sender, "That IP address is not banned.");
+            msg(sender, "<gray>That IP address is not banned.");
             return;
         }
 

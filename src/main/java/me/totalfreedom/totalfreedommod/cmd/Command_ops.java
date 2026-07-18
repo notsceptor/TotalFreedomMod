@@ -16,8 +16,8 @@ public class Command_ops extends FCommand
         int totalOps = server().getOperators().size();
         int onlineOps = (int) server().getOnlinePlayers().stream().filter(Player::isOp).count();
 
-        msg(sender, "Online OPs: <count>", Formatter.number("count", onlineOps));
-        msg(sender, "Offline OPs: <count>", Formatter.number("count", totalOps - onlineOps));
-        msg(sender, "Total OPs: <count>", Formatter.number("count", totalOps));
+        msg(sender, "<gray>Online OPs: <count>", Formatter.number("count", onlineOps));
+        msg(sender, "<gray>Offline OPs: <count>", Formatter.number("count", totalOps - onlineOps));
+        msg(sender, "<gray>Total OPs: <count>", Formatter.number("count", totalOps));
     }
 }

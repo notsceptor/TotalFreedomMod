@@ -25,7 +25,7 @@ public class Command_nicknyan extends FCommand
     public void clear(Player player)
     {
         getData(player).setNickname(null);
-        msg(player, "Nickname cleared.");
+        msg(player, "<gray>Nickname cleared.");
     }
 
     @Callback
@@ -38,12 +38,12 @@ public class Command_nicknyan extends FCommand
 
         if (!nickPlain.matches("^[a-zA-Z_0-9]+$"))
         {
-            msg(player, "That nickname contains invalid characters.");
+            msg(player, "<red>That nickname contains invalid characters.");
             return;
         }
         else if (nickPlain.length() < 4 || nickPlain.length() > 30)
         {
-            msg(player, "Your nickname must be between 4 and 30 characters long.");
+            msg(player, "<red>Your nickname must be between 4 and 30 characters long.");
             return;
         }
 
@@ -55,7 +55,7 @@ public class Command_nicknyan extends FCommand
             }
             if (other.getName().equalsIgnoreCase(nickPlain) || AdventureUtil.componentToPlainText(other.displayName()).trim().equalsIgnoreCase(nickPlain))
             {
-                msg(player, "That nickname is already in use.");
+                msg(player, "<red>That nickname is already in use.");
                 return;
             }
         }

@@ -39,7 +39,7 @@ public class Command_realname extends FCommand
 
         if (!foundOne.get())
         {
-            msg(sender, "Could not find a player with such a nickname.");
+            msg(sender, "<gray>Could not find a player with such a nickname.");
         }
     }
 }

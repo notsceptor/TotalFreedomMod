@@ -31,7 +31,7 @@ public class Command_mobpurge extends FCommand
         int removed = purgeMobs();
         msg(
             sender,
-            "<count> <noun> removed.",
+            "<gray><count> <noun> removed.",
             Formatter.number("count", removed),
             Placeholder.unparsed("noun", removed == 1 ? "mob" : "mobs")
         );

@@ -39,7 +39,7 @@ public class Command_ro extends FCommand
     {
         if (blocks.isEmpty())
         {
-            msg(sender, "No blocks could be found matching your query.");
+            msg(sender, "<gray>No blocks could be found matching your query.");
             return;
         }
 
@@ -64,7 +64,7 @@ public class Command_ro extends FCommand
             affected += replaceBlocks(player.getLocation(), materials, Material.AIR, clampedRadius);
         }
 
-        msg(sender, "Remove complete. <count> blocks were removed.", Formatter.number("count", affected));
+        msg(sender, "<gray>Remove complete. <count> blocks were removed.", Formatter.number("count", affected));
     }
 
     public static int replaceBlocks(Location center, Set<Material> fromMaterials, Material toMaterial, int radius)

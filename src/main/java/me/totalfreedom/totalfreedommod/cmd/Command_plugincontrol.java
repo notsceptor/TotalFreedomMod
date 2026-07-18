@@ -59,7 +59,7 @@ public class Command_plugincontrol extends FCommand
 
         if (otherPlugin.isEnabled())
         {
-            msg(sender, "<name> is already enabled.", Placeholder.unparsed("name", otherPlugin.getName()));
+            msg(sender, "<gray><name> is already enabled.", Placeholder.unparsed("name", otherPlugin.getName()));
             return;
         }
 
@@ -87,13 +87,13 @@ public class Command_plugincontrol extends FCommand
 
         if (!otherPlugin.isEnabled())
         {
-            msg(sender, "<name> is already disabled.", Placeholder.unparsed("name", otherPlugin.getName()));
+            msg(sender, "<gray><name> is already disabled.", Placeholder.unparsed("name", otherPlugin.getName()));
             return;
         }
 
         pluginManager().disablePlugin(otherPlugin);
 
-        msg(sender, "<name> has been disabled.", Placeholder.unparsed("name", otherPlugin.getName()));
+        msg(sender, "<gray><name> has been disabled.", Placeholder.unparsed("name", otherPlugin.getName()));
     }
 
     @Callback
@@ -115,6 +115,6 @@ public class Command_plugincontrol extends FCommand
         pluginManager().disablePlugin(otherPlugin);
         pluginManager().enablePlugin(otherPlugin);
 
-        msg(sender, "<name> has been reloaded.", Placeholder.unparsed("name", otherPlugin.getName()));
+        msg(sender, "<gray><name> has been reloaded.", Placeholder.unparsed("name", otherPlugin.getName()));
     }
 }

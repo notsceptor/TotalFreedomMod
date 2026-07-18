@@ -39,7 +39,7 @@ public class Command_wildcard extends FCommand
         server().getOnlinePlayers().forEach(player -> 
             {
                 String processedCommand = command.replaceAll("\\x3f", player.getName());
-                msg(sender, "Running command: <command>", Placeholder.unparsed("command", processedCommand));
+                msg(sender, "<gray>Running command: <command>", Placeholder.unparsed("command", processedCommand));
 
                 if (!server().dispatchCommand(sender, processedCommand))
                     msg(sender, "<red>Failed to execute command. Are you sure you entered it correctly?");

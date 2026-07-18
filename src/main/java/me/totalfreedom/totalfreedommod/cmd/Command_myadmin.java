@@ -6,6 +6,7 @@ import java.util.List;
 import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.rank.Rank;
+import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import org.bukkit.entity.Player;
 
 @Permission(level = Rank.SUPER_ADMIN, source = SourceType.ONLY_IN_GAME, permission = "tfm.admin.myadmin")
@@ -26,7 +27,7 @@ public class Command_myadmin extends FCommand
         final Admin entry = plugin().al.getAdmin(player);
         if (!entry.getIps().contains(address.getHostAddress()))
         {
-            msg(player, "That IP address isn't in your entry.");
+            msg(player, "<red>That IP address isn't in your entry.");
             return;
         }
 
@@ -44,7 +45,7 @@ public class Command_myadmin extends FCommand
         ips.clear();
         ips.add(player.getAddress().getAddress().getHostName());
 
-        msg(player, count - 1 + " IP address(es) were removed.");
+        msg(player, "<gray><count> IP address(es) were removed.", Formatter.number("count", count - 1));
     }
 
     @Callback
@@ -76,7 +77,7 @@ public class Command_myadmin extends FCommand
         final Admin entry = plugin().al.getAdmin(player);
 
         entry.setLoginMessage(null); // this needs a .resetLoginMessage() call so that we AVOID nullability. Not my problem right now.
-        msg(player, "Your login message has been removed.");
+        msg(player, "<gray>Your login message has been removed.");
         plugin().al.save();
         plugin().al.updateTables();
     }

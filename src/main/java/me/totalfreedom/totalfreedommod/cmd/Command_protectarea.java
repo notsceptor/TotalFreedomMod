@@ -36,7 +36,7 @@ public class Command_protectarea extends FCommand
             return;
         }
 
-        msg(sender, "Protected regions (<count>): <regions>",
+        msg(sender, "<gray>Protected regions (<count>): <regions>",
             Formatter.number("count", names.size()),
             Placeholder.unparsed("regions", String.join(", ", names)));
     }
@@ -49,7 +49,7 @@ public class Command_protectarea extends FCommand
 
         adminAction(sender, "<red>Clearing all protected regions");
         plugin().pa.clearProtectedAreas();
-        msg(sender, "All protected regions have been cleared.");
+        msg(sender, "<gray>All protected regions have been cleared.");
     }
 
     @Callback
@@ -107,7 +107,7 @@ public class Command_protectarea extends FCommand
 
         adminAction(sender, "<red>Deleting protected region '<name>'",
             Placeholder.unparsed("name", region.getName()));
-        msg(sender, "Protected region '<name>' has been deleted.",
+        msg(sender, "<gray>Protected region '<name>' has been deleted.",
             Placeholder.unparsed("name", region.getName()));
     }
 

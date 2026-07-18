@@ -35,7 +35,7 @@ public class Command_enchant extends FCommand
 
         if (entries.isEmpty())
         {
-            msg(player, "This item can't be enchanted.");
+            msg(player, "<red>This item can't be enchanted.");
             return;
         }
 
@@ -55,7 +55,7 @@ public class Command_enchant extends FCommand
                 .filter(enchantment -> enchantment.canEnchantItem(item))
                 .forEach(enchantment -> item.addEnchantment(enchantment, enchantment.getMaxLevel()));
 
-        msg(player, "Added all possible enchantments for this item.");
+        msg(player, "<gray>Added all possible enchantments for this item.");
     }
 
     @Callback
@@ -64,7 +64,7 @@ public class Command_enchant extends FCommand
     {
         heldItem(player).removeEnchantments();
 
-        msg(player, "Removed all enchantments from this item.");
+        msg(player, "<gray>Removed all enchantments from this item.");
     }
 
     @Callback
@@ -82,7 +82,7 @@ public class Command_enchant extends FCommand
 
         if (!enchantment.canEnchantItem(item))
         {
-            msg(player, "This enchantment can't be applied to the item you're holding.");
+            msg(player, "<red>This enchantment can't be applied to the item you're holding.");
             return;
         }
 

@@ -34,7 +34,7 @@ public class Command_unban extends FCommand
 
         if (bans.isEmpty())
         {
-            msg(sender, "No ban on record for <player>.", Placeholder.unparsed("player", playerName));
+            msg(sender, "<gray>No ban on record for <player>.", Placeholder.unparsed("player", playerName));
             return;
         }
 

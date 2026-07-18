@@ -93,7 +93,7 @@ public class Command_saconfig extends FCommand
         Admin admin = plugin().al.getEntryByName(target.getName());
         if (admin == null) 
         {
-            msg(sender, "Unknown admin: <player>",
+            msg(sender, "<gray>Unknown admin: <player>",
                     Placeholder.unparsed("player", target.getName()));
             return;
         }
@@ -108,7 +108,7 @@ public class Command_saconfig extends FCommand
         plugin().al.saveAdminAsync(admin);
         plugin().rm.updatePlayerTeam(target);
 
-        msg(sender, "Set <player>'s rank to <rank>.",
+        msg(sender, "<gray>Set <player>'s rank to <rank>.",
                 Placeholder.unparsed("player", admin.getName()),
                 Placeholder.unparsed("rank", displayName));
     }
@@ -121,7 +121,7 @@ public class Command_saconfig extends FCommand
 
         if (admin == null) 
         {
-            msg(sender, "Admin not found: <player>",
+            msg(sender, "<gray>Admin not found: <player>",
                     Placeholder.unparsed("player", target.getName()));
         } 
         else 
@@ -139,7 +139,7 @@ public class Command_saconfig extends FCommand
     {
         if (plugin().al.isAdmin(target)) 
         {
-            msg(sender, "That player is already admin.");
+            msg(sender, "<gray>That player is already admin.");
             return true;
         }
 
@@ -186,7 +186,7 @@ public class Command_saconfig extends FCommand
         if (fPlayer.getFreezeData().isFrozen()) 
         {
             fPlayer.getFreezeData().setFrozen(false);
-            msg(target, "You have been unfrozen.");
+            msg(target, "<green>You have been unfrozen.");
         }
 
         return true;
@@ -201,7 +201,7 @@ public class Command_saconfig extends FCommand
 
         if (admin == null) 
         {
-            msg(sender, "Admin not found: " + username);
+            msg(sender, "<gray>Admin not found: <player>", Placeholder.unparsed("player", username));
             return true;
         }
 
@@ -227,7 +227,7 @@ public class Command_saconfig extends FCommand
         adminAction(sender, "<red>Reloading the admin list");
         plugin().al.load();
         plugin().csr.load();
-        msg(sender, "Admin list reloaded!");
+        msg(sender, "<gray>Admin list reloaded!");
         return true;
     }
 

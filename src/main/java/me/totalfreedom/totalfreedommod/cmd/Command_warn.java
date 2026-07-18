@@ -26,7 +26,7 @@ public class Command_warn extends FCommand
 
         if (isAdmin(player))
         {
-            msg(sender, "This command cannot be used on other admins.");
+            msg(sender, "<gray>This command cannot be used on other admins.");
             return;
         }
 

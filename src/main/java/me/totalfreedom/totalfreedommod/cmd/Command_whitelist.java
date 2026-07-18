@@ -18,7 +18,7 @@ public class Command_whitelist extends FCommand
     @Subcommand("list")
     public void list(CommandSender sender)
     {
-        msg(sender, "Whitelisted players: <players>", Placeholder.unparsed("players", FUtil.playerListToNames(server().getWhitelistedPlayers())));
+        msg(sender, "<gray>Whitelisted players: <players>", Placeholder.unparsed("players", FUtil.playerListToNames(server().getWhitelistedPlayers())));
     }
 
     @Callback
@@ -40,9 +40,9 @@ public class Command_whitelist extends FCommand
             }
         }
 
-        msg(sender, "Online whitelisted players: <count>", Formatter.number("count", onlineWPs));
-        msg(sender, "Offline whitelisted players: <count>", Formatter.number("count", offlineWPs));
-        msg(sender, "Total whitelisted players: <count>", Formatter.number("count", onlineWPs + offlineWPs));
+        msg(sender, "<gray>Online whitelisted players: <count>", Formatter.number("count", onlineWPs));
+        msg(sender, "<gray>Offline whitelisted players: <count>", Formatter.number("count", offlineWPs));
+        msg(sender, "<gray>Total whitelisted players: <count>", Formatter.number("count", onlineWPs + offlineWPs));
     }
 
     @Callback
@@ -83,7 +83,7 @@ public class Command_whitelist extends FCommand
 
         if (!player.isWhitelisted())
         {
-            msg(sender, "That player is not whitelisted");
+            msg(sender, "<gray>That player is not whitelisted");
             return;
         }
 
@@ -108,7 +108,7 @@ public class Command_whitelist extends FCommand
             }
         }
 
-        msg(sender, "Whitelisted <count> players.", Formatter.number("count", counter));
+        msg(sender, "<gray>Whitelisted <count> players.", Formatter.number("count", counter));
     }
 
     @Callback
