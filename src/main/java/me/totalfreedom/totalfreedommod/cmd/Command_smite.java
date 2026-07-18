@@ -62,10 +62,15 @@ public class Command_smite extends FCommand
         // Kill
         player.setHealth(0.0);
 
-        if (reason != null)
-        {
-            player.sendMessage(Component.text("You've been smitten. Reason: ", NamedTextColor.RED)
-                    .append(FUtil.colorizeWithLinks(reason, NamedTextColor.YELLOW)));
-        }
+        if (reason != null) 
+            msg(
+                player, 
+                // We take advantage of the String blocks newline byte here because it's encoded by MiniMessage and preserved in display.
+                """
+                    You have been smitten. 
+                    Reason: <yellow><reason>
+                """,
+                MessageUtils.parsed("reason", reason)
+            );
     }
 }
