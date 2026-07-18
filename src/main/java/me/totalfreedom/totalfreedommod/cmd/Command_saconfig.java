@@ -267,7 +267,7 @@ public class Command_saconfig extends FCommand
                                                 .values()
                                                 .stream()
                                                 .filter(custom -> custom.isAdmin() && !custom.isConsoleOnly())
-                                                .map(CustomRank::getId);
+                                                .map(r -> r.getId());
 
         List<String> candidates = Stream.concat(rankNames, customRankIds).toList();
 
@@ -290,7 +290,7 @@ public class Command_saconfig extends FCommand
     public List<String> completeAddPlayer(CommandSender sender, String partial) 
     {
         List<String> names = server().getOnlinePlayers().stream()
-            .map(Player::getName)
+            .map(p -> p.getName())
             .toList();
         return FuzzyMatch.filter(names, partial);
     }
@@ -298,7 +298,7 @@ public class Command_saconfig extends FCommand
     private List<String> adminNames(String partial) 
     {
         List<String> names = plugin().al.getActiveAdmins().stream()
-            .map(Admin::getName)
+            .map(a -> a.getName())
             .sorted(String.CASE_INSENSITIVE_ORDER)
             .toList();
         return FuzzyMatch.filter(names, partial);
@@ -314,7 +314,7 @@ public class Command_saconfig extends FCommand
         }
 
         Map<Rank, List<Admin>> byRank = activeAdmins.stream().collect(
-            Collectors.groupingBy(Admin::getRank, () -> new EnumMap<>(Rank.class), Collectors.toList())
+            Collectors.groupingBy(a -> a.getRank(), () -> new EnumMap<>(Rank.class), Collectors.toList())
         );
 
         Stream.of(Rank.values())

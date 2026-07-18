@@ -15,6 +15,7 @@ import java.util.stream.Stream;
 import io.papermc.paper.registry.RegistryAccess;
 import io.papermc.paper.registry.RegistryKey;
 import me.totalfreedom.totalfreedommod.FreedomService;
+import me.totalfreedom.totalfreedommod.ProtectArea.ProtectedRegion;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.cmd.internal.*;
 import me.totalfreedom.totalfreedommod.cmd.resolver.*;
@@ -109,6 +110,9 @@ public class CommandLoader extends FreedomService
         ResolverRegistry.register(new FloatArgumentResolver());
         ResolverRegistry.register(new WorldTimeArgumentResolver(), WorldTime.class);
         ResolverRegistry.register(new WeatherArgumentResolver(), WorldWeather.class);
+        // Suggestions are not memoized because regions change at runtime.
+        ResolverRegistry.register(new ProtectedRegionArgumentResolver(plugin), ProtectedRegion.class,
+            () -> plugin.pa.getProtectedAreaNames());
     }
 
     private static Supplier<List<String>> memoize(Supplier<List<String>> source) 
