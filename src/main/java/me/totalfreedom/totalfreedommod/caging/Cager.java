@@ -10,10 +10,11 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerKickEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.event.player.PlayerKickEvent;
 
 public class Cager extends FreedomService
 {
@@ -34,19 +35,18 @@ public class Cager extends FreedomService
     }
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
-    public void onBreakBlock(BlockBreakEvent event)
+    public void onBlockBreak(BlockBreakEvent event)
     {
-        Player player = event.getPlayer();
-        if (player == null
-                || plugin.al.isAdmin(player))
+        if (isCaged(event.getPlayer()))
         {
-            return;
+            event.setCancelled(true);
         }
+    }
 
-        FPlayer fPlayer = plugin.pl.getPlayer(event.getPlayer());
-        CageData cage = fPlayer.getCageData();
-
-        if (cage.isCaged())
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+    public void onBlockPlace(BlockPlaceEvent event)
+    {
+        if (isCaged(event.getPlayer()))
         {
             event.setCancelled(true);
         }
@@ -83,7 +83,7 @@ public class Cager extends FreedomService
 
         if (outOfCage)
         {
-            player.getPlayer().teleport(cageLoc.subtract(0, 0.1, 0));
+            cage.teleportToCenter();
             FUtil.playerMsg(player.getPlayer(), "You may not leave your cage.", NamedTextColor.RED);
             cage.regenerate();
         }
@@ -123,6 +123,16 @@ public class Cager extends FreedomService
         {
             cage.playerJoin();
         }
+    }
+
+    private boolean isCaged(Player player)
+    {
+        if (player == null || plugin.al.isAdmin(player))
+        {
+            return false;
+        }
+
+        return plugin.pl.getPlayer(player).getCageData().isCaged();
     }
 
 }

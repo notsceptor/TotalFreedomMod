@@ -22,6 +22,8 @@ public class Command_cage extends FCommand
         if (stop || cageData.isCaged())
         {
             cageData.setCaged(false);
+            adminAction(sender, "<red>Uncaging <player>...", Placeholder.unparsed("player", player.getName()));
+            return;
         }
 
         cage(sender, player, Material.GLASS, Material.AIR);
