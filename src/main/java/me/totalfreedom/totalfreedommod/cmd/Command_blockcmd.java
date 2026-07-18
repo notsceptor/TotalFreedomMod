@@ -20,7 +20,7 @@ public class Command_blockcmd extends FCommand
     {
         if (isAdmin(player))
         {
-            msg(sender, "<player> is an admin, and cannot have their commands blocked.",
+            msg(sender, "<gray><player> is an admin, and cannot have their commands blocked.",
                     Placeholder.unparsed("player", player.getName()));
             return;
         }
@@ -56,7 +56,7 @@ public class Command_blockcmd extends FCommand
                 })
                 .count();
 
-        msg(sender, "Blocked commands for <count> players.",
+        msg(sender, "<gray>Blocked commands for <count> players.",
                 Formatter.number("count", count));
     }
 
@@ -76,6 +76,6 @@ public class Command_blockcmd extends FCommand
                     counter.incrementAndGet();
                 });
 
-        msg(sender, "Unblocked commands for %i players.", counter.get());
+        msg(sender, "<gray>Unblocked commands for <count> players.", Formatter.number("count", counter.get()));
     }
 }
