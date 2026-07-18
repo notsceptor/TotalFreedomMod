@@ -453,83 +453,78 @@ public class AdminList extends FreedomService
 
     public Admin getAdmin(CommandSender sender)
     {
-        if (sender instanceof Player)
+        if (sender instanceof Player player) // this instead of two separate methods. 
         {
-            return getAdmin((Player) sender);
-        }
-
-        return getEntryByName(sender.getName());
-    }
-
-    public Admin getAdmin(Player player)
-    {
-        if (ConfigEntry.ADMINLIST_USE_UUID_ONLY.getBoolean())
-        {
-            Admin uuidAdmin = uuidTable.get(player.getUniqueId());
-            if (uuidAdmin == null || !uuidAdmin.isActive())
+            if (ConfigEntry.ADMINLIST_USE_UUID_ONLY.getBoolean())
             {
-                return null;
+                Admin uuidAdmin = uuidTable.get(player.getUniqueId());
+                if (uuidAdmin == null || !uuidAdmin.isActive())
+                {
+                    return null;
+                }
+                // Rewrite the stored display name if Mojang has changed it.
+                if (!uuidAdmin.getName().equalsIgnoreCase(player.getName()))
+                {
+                    String oldKey = uuidAdmin.getName().toLowerCase();
+                    uuidAdmin.setName(player.getName());
+                    String newKey = uuidAdmin.getName().toLowerCase();
+                    if (!oldKey.equals(newKey))
+                    {
+                        nameTable.remove(oldKey);
+                        nameTable.put(newKey, uuidAdmin);
+                    }
+                    saveAsync();
+                }
+                return uuidAdmin;
             }
-            // Rewrite the stored display name if Mojang has changed it.
-            if (!uuidAdmin.getName().equalsIgnoreCase(player.getName()))
+    
+            // Find admin
+            String ip = player.getAddress().getAddress().getHostAddress();
+            Admin admin = getEntryByName(player.getName());
+    
+            // Admin by name
+            if (admin != null)
             {
-                String oldKey = uuidAdmin.getName().toLowerCase();
-                uuidAdmin.setName(player.getName());
-                String newKey = uuidAdmin.getName().toLowerCase();
+                // Check if we're in online mode,
+                // Or the players IP is in the admin entry
+                if (Bukkit.getOnlineMode() || admin.getIps().contains(ip))
+                {
+                    if (!admin.getIps().contains(ip))
+                    {
+                        // Add the new IP if we have to
+                        admin.addIp(ip);
+                        ipTable.put(ip, admin);
+                        saveAsync();
+                    }
+                    return admin;
+                }
+    
+                // Impostor
+            }
+    
+            // Admin by ip
+            admin = getEntryByIp(ip);
+            if (admin != null)
+            {
+                // Set the new username
+                String oldKey = admin.getName().toLowerCase();
+                admin.setName(player.getName());
+                String newKey = admin.getName().toLowerCase();
                 if (!oldKey.equals(newKey))
                 {
                     nameTable.remove(oldKey);
-                    nameTable.put(newKey, uuidAdmin);
+                    if (admin.isActive())
+                    {
+                        nameTable.put(newKey, admin);
+                    }
                 }
                 saveAsync();
             }
-            return uuidAdmin;
+    
+            return null;
         }
 
-        // Find admin
-        String ip = player.getAddress().getAddress().getHostAddress();
-        Admin admin = getEntryByName(player.getName());
-
-        // Admin by name
-        if (admin != null)
-        {
-            // Check if we're in online mode,
-            // Or the players IP is in the admin entry
-            if (Bukkit.getOnlineMode() || admin.getIps().contains(ip))
-            {
-                if (!admin.getIps().contains(ip))
-                {
-                    // Add the new IP if we have to
-                    admin.addIp(ip);
-                    ipTable.put(ip, admin);
-                    saveAsync();
-                }
-                return admin;
-            }
-
-            // Impostor
-        }
-
-        // Admin by ip
-        admin = getEntryByIp(ip);
-        if (admin != null)
-        {
-            // Set the new username
-            String oldKey = admin.getName().toLowerCase();
-            admin.setName(player.getName());
-            String newKey = admin.getName().toLowerCase();
-            if (!oldKey.equals(newKey))
-            {
-                nameTable.remove(oldKey);
-                if (admin.isActive())
-                {
-                    nameTable.put(newKey, admin);
-                }
-            }
-            saveAsync();
-        }
-
-        return null;
+        return getEntryByName(sender.getName());
     }
 
     public Admin getEntryByName(String name)

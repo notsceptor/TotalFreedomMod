@@ -50,10 +50,6 @@ import org.bukkit.scoreboard.Team;
 
 public class RankManager extends FreedomService
 {
-    // ========================================================================
-    // Custom Rank System
-    // ========================================================================
-
     public static final String RANKS_FILENAME = "ranks.yml";
 
     /**
@@ -113,10 +109,6 @@ public class RankManager extends FreedomService
         // Clear chat input handlers
         chatInputHandler.clearAll();
     }
-
-    // ========================================================================
-    // Custom Rank Management
-    // ========================================================================
 
     /**
      * Load custom ranks from ranks.yml.
@@ -442,6 +434,11 @@ public class RankManager extends FreedomService
         Team currentTeam = scoreboard.getEntryTeam(player.getName());
         CustomRank rank = getAssignedAdminRank(player);
         final boolean admin = rank != null && rank.isAdmin();
+
+        if (rank == null)
+        {
+            rank = CustomRank.fromLegacyRank(Rank.OP); // potential NPE, averting by setting to OP, should be an optional but that's outside of the scope. Rank system will get it's own dedicated branch scope. 
+        }
 
         final String teamName = admin ? createTeamName(rank) : DEFAULT_TEAM_NAME;
 
@@ -1192,9 +1189,20 @@ public class RankManager extends FreedomService
 
     public Rank getRank(CommandSender sender)
     {
-        if (sender instanceof Player)
+        if (sender instanceof Player player)
         {
-            return getRank((Player) sender);
+            if (plugin.al.isAdminImpostor(player))
+            {
+                return Rank.IMPOSTOR;
+            }
+    
+            final Admin entry = plugin.al.getAdmin(player);
+            if (entry != null)
+            {
+                return entry.getRank();
+            }
+    
+            return player.isOp() ? Rank.OP : Rank.NON_OP;
         }
 
         if (sender instanceof BlockCommandSender || sender instanceof CommandMinecart)
@@ -1256,22 +1264,6 @@ public class RankManager extends FreedomService
             }
         }
         return Rank.NON_OP;
-    }
-
-    public Rank getRank(Player player)
-    {
-        if (plugin.al.isAdminImpostor(player))
-        {
-            return Rank.IMPOSTOR;
-        }
-
-        final Admin entry = plugin.al.getAdmin(player);
-        if (entry != null)
-        {
-            return entry.getRank();
-        }
-
-        return player.isOp() ? Rank.OP : Rank.NON_OP;
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
