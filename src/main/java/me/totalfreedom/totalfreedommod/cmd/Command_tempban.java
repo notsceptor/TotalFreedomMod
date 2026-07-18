@@ -93,7 +93,7 @@ public class Command_tempban extends FCommand
                 {
                     if (!silent)
                     {
-                        smitePlayer(player);
+                        smitePlayer(target);
                     }
                     target.kick(ban.bakeKickMessage());
                 });

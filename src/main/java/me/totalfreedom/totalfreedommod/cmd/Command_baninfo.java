@@ -22,7 +22,7 @@ public class Command_baninfo extends FCommand
     {
         Optional<Ban> ban = Optional.ofNullable(plugin().bm.getByUsername(target));
 
-        if (ban.isEmpty()) ban.map(c -> plugin().bm.getByIp(target));
+        if (ban.isEmpty()) ban = Optional.ofNullable(plugin().bm.getByIp(target));
 
         if (ban.isPresent()) 
         {

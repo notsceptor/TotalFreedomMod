@@ -1,6 +1,8 @@
 package me.totalfreedom.totalfreedommod.cmd.resolver;
 
+import me.totalfreedom.totalfreedommod.cmd.MessageUtils;
 import me.totalfreedom.totalfreedommod.world.WorldTime;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
 public class WorldTimeArgumentResolver implements AbstractArgumentResolver<WorldTime> 
 {
@@ -17,7 +19,7 @@ public class WorldTimeArgumentResolver implements AbstractArgumentResolver<World
 
         if (resolved == null)
         {
-            resolved = WorldTime.NOON;
+            throw new ArgumentResolutionException(MessageUtils.parse("Invalid world time: <type>", Placeholder.unparsed("type", arg)));
         }
 
         return resolved;

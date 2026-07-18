@@ -1,6 +1,8 @@
 package me.totalfreedom.totalfreedommod.cmd.resolver;
 
+import me.totalfreedom.totalfreedommod.cmd.MessageUtils;
 import me.totalfreedom.totalfreedommod.world.WorldWeather;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
 public class WeatherArgumentResolver implements AbstractArgumentResolver<WorldWeather> 
 {
@@ -17,7 +19,7 @@ public class WeatherArgumentResolver implements AbstractArgumentResolver<WorldWe
 
         if (weatherMode == null)
         {
-            weatherMode = WorldWeather.OFF;
+            throw new ArgumentResolutionException(MessageUtils.parse("Invalid weather type: <type>", Placeholder.unparsed("type", arg)));
         }
 
         return weatherMode;
