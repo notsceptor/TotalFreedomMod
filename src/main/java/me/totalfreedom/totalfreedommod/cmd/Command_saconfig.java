@@ -201,7 +201,7 @@ public class Command_saconfig extends FCommand
 
         if (admin == null) 
         {
-            msg(sender, "<gray>Admin not found: " + username);
+            msg(sender, "<gray>Admin not found: <player>", Placeholder.unparsed("player", username));
             return true;
         }
 
