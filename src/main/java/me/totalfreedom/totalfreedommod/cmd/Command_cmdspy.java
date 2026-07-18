@@ -1,11 +1,14 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import java.util.List;
+import java.util.Locale;
+import java.util.stream.Stream;
+
 import org.bukkit.entity.Player;
 
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.player.CommandSpyMode;
 import me.totalfreedom.totalfreedommod.rank.Rank;
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
 @Command(name = "cmdspy", description = "Spy on commands", usage = "/<command> [admins | ops | all]", aliases = {"commandspy", "cspy"})
 @Permission(permission = "tfm.admin.cmdspy", source = SourceType.ONLY_IN_GAME, level = Rank.SUPER_ADMIN)
@@ -23,16 +26,28 @@ public class Command_cmdspy extends FCommand
     public void commandSpy(final Player player, final CommandSpyMode mode) // should auto resolve enums
     {
         final var fp = plugin().pl.getPlayer(player);
-        final var pd = plugin().pl.getData(player); 
-        
+        final var pd = plugin().pl.getData(player);
+
         fp.setCommandSpyMode(mode);
         pd.setCommandSpyMode(mode); // Why is this in two separate locations? This is unnecessary caching.
         plugin().pl.saveAsync();
 
-        msg(
-            player, 
-            "CommandSpy enabled for <mode>.", 
-            Placeholder.unparsed("mode", mode.getName())
-        );
+        switch (mode)
+        {
+            case OFF -> msg(player, "<red>CommandSpy disabled.");
+            case ADMINS -> msg(player, "<gray>CommandSpy set to <green>ADMINS</green> mode. You will only see admins' commands.");
+            case OPS -> msg(player, "<gray>CommandSpy set to <green>OPS</green> mode. You will only see OPs' commands.");
+            case ALL -> msg(player, "<gray>CommandSpy set to <green>ALL</green> mode. You will see both OPs' and admins' commands.");
+        }
+    }
+
+    @Completer(value = "", position = 0)
+    public List<String> completeMode(final Player player, final String partial)
+    {
+        final String lower = partial.toLowerCase(Locale.ROOT);
+
+        return Stream.of("admins", "ops", "all", "off")
+                     .filter(mode -> mode.startsWith(lower))
+                     .toList();
     }
 }
