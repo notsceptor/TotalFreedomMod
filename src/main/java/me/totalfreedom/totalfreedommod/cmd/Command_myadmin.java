@@ -6,6 +6,7 @@ import java.util.List;
 import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.rank.Rank;
+import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import org.bukkit.entity.Player;
 
 @Permission(level = Rank.SUPER_ADMIN, source = SourceType.ONLY_IN_GAME, permission = "tfm.admin.myadmin")
@@ -44,7 +45,7 @@ public class Command_myadmin extends FCommand
         ips.clear();
         ips.add(player.getAddress().getAddress().getHostName());
 
-        msg(player, String.format("<gray>%d IP address(es) were removed.", count - 1));
+        msg(player, "<gray><count> IP address(es) were removed.", Formatter.number("count", count - 1));
     }
 
     @Callback
