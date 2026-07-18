@@ -2,6 +2,7 @@ package me.totalfreedom.totalfreedommod.cmd;
 
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Callback;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Command;
+import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Greedy;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Permission;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.rank.Rank;
@@ -26,7 +27,7 @@ public class Command_smite extends FCommand
     }
 
     @Callback
-    public void smite(CommandSender sender, Player player, String reason)
+    public void smite(CommandSender sender, Player player, @Greedy String reason)
     {
         FUtil.bcastMsg("<red><player> has been a naughty, naughty boy.", Placeholder.unparsed("player", player.getName()));
 

@@ -24,7 +24,8 @@ public class Command_gchat extends FreedomCommand
                 return true;
             }
 
-            return ((Command_gcmd) gcmd).runAsOtherPlayer(ctx, player, message.substring(1));
+            // still needs to be rewritten
+            //return ((Command_gcmd) gcmd).runAsOtherPlayer(ctx, player, message.substring(1));
         }
 
         if (plugin.al.isAdmin(player))

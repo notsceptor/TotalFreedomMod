@@ -9,7 +9,7 @@ import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-@Command(name = "gcmd", description = "Send a command as someone else.", usage = "/<command> <player> <command>")
+@Command(name = "gcmd", description = "Send a command as someone else.", usage = "/gcmd <player> <command>")
 @Permission(permission = "tfm.admin.gcmd", level = Rank.SUPER_ADMIN)
 public class Command_gcmd extends FCommand
 {

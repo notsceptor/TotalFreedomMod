@@ -31,7 +31,7 @@ public class Command_spawnmob extends FCommand
                 Placeholder.unparsed("type", type.name())
         );
 
-        final Location playerLoc = sender.getLocation();
+        final Location playerLoc = sender.getLocation().clone();
 
         for (int i = 0; i < amount; i++)
         {

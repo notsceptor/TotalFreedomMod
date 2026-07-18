@@ -16,7 +16,7 @@ import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
 import static me.totalfreedom.totalfreedommod.config.ConfigEntry.*;
 
-@Command(name = "settings", description = "Modify TotalFreedom Server Settings / Flags", usage = "/settings [toggle | set] <setting> [<radius> | <range> <count>]", aliases = {"toggle", "set", "tfset"}) 
+@Command(name = "settings", description = "Modify TotalFreedom Server Settings / Flags", usage = "/settings [toggle | set] <setting> [<radius> | <range> <count>]", aliases = {"toggle", "set", "tfset"})
 @Permission(permission = "tfm.server.settings", level = Rank.SUPER_ADMIN)
 public class Command_settings extends FCommand
 {
@@ -26,40 +26,34 @@ public class Command_settings extends FCommand
 
     @Callback
     public void queryConfigOption(final CommandSender sender, final Setting setting)
-    {   
-        switch (setting) 
+    {
+        switch (setting)
         {
-            case Setting.EXPLOSIVES -> 
+            case Setting.EXPLOSIVES ->
             {
-                msg(
-                    sender, 
-                    "<displayable> (<flag>) is currently <status:enabled:disabled> with a radius of <radius>", 
-                    Placeholder.unparsed("displayable", setting.getDisplayable()),
-                    Placeholder.unparsed("flag", setting.getFlag()),
-                    Formatter.number("radius", EXPLOSIVE_RADIUS.getDouble()),
-                    Formatter.booleanChoice("status", setting.getValue().getBoolean())
+                msg(sender, "<gray><displayable> (<flag>) is currently <status:enabled:disabled> with a radius of <radius>",
+                        Placeholder.unparsed("displayable", setting.getDisplayable()),
+                        Placeholder.unparsed("flag", setting.getFlag()),
+                        Formatter.number("radius", EXPLOSIVE_RADIUS.getDouble()),
+                        Formatter.booleanChoice("status", setting.getValue().getBoolean())
                 );
             }
-            case Setting.NO_NUKE -> 
+            case Setting.NO_NUKE ->
             {
-                msg(
-                    sender, 
-                    "<displayable> (<flag>) is currently <status:enabled:disabled> with a range of <range> and a break count of <count>", 
-                    Placeholder.unparsed("displayable", setting.getDisplayable()),
-                    Placeholder.unparsed("flag", setting.getFlag()),
-                    Formatter.number("range", NUKE_MONITOR_RANGE.getDouble()),
-                    Formatter.number("count", NUKE_MONITOR_COUNT_BREAK.getDouble()),
-                    Formatter.booleanChoice("status", setting.getValue().getBoolean())
+                msg(sender, "<gray><displayable> (<flag>) is currently <status:enabled:disabled> with a range of <range> and a break count of <count>",
+                        Placeholder.unparsed("displayable", setting.getDisplayable()),
+                        Placeholder.unparsed("flag", setting.getFlag()),
+                        Formatter.number("range", NUKE_MONITOR_RANGE.getDouble()),
+                        Formatter.number("count", NUKE_MONITOR_COUNT_BREAK.getInteger()),
+                        Formatter.booleanChoice("status", setting.getValue().getBoolean())
                 );
             }
-            default ->  
+            default ->
             {
-                msg(
-                    sender, 
-                    "<displayable> (<flag>) is currently <status:enabled:disabled>", 
-                    Placeholder.unparsed("displayable", setting.getDisplayable()),
-                    Placeholder.unparsed("flag", setting.getFlag()),
-                    Formatter.booleanChoice("status", setting.getValue().getBoolean())
+                msg(sender, "<gray><displayable> (<flag>) is currently <status:enabled:disabled>",
+                        Placeholder.unparsed("displayable", setting.getDisplayable()),
+                        Placeholder.unparsed("flag", setting.getFlag()),
+                        Formatter.booleanChoice("status", setting.getValue().getBoolean())
                 );
             }
         }
@@ -73,24 +67,22 @@ public class Command_settings extends FCommand
 
         if (setting.equals(Setting.EXPLOSIVES))
         {
-            setExplosiveRadius(sender, defaultExplosionRadius);
+            setExplosiveRadius(sender, setting.getValue().getBoolean() ? 0 : defaultExplosionRadius);
             return;
         }
 
         if (setting.equals(Setting.NO_NUKE))
         {
-            setMonitorAndCount(sender, defaultMonitorRange, defaultBreakCount);
+            setMonitorAndCount(sender, setting.getValue().getBoolean() ? 0 : defaultMonitorRange, setting.getValue().getBoolean() ? 0 : defaultBreakCount);
             return;
         }
 
         setting.consume();
 
-        msg(
-            sender, 
-            "<displayable> (<flag>) changed to <status:enabled:disabled>", 
-            Placeholder.unparsed("displayable", setting.getDisplayable()),
-            Placeholder.unparsed("flag", setting.getFlag()),
-            Formatter.booleanChoice("status", setting.getValue().setBoolean(!setting.getValue().getBoolean()))
+        msg(sender, "<gray><displayable> (<flag>) changed to <status:enabled:disabled>",
+                Placeholder.unparsed("displayable", setting.getDisplayable()),
+                Placeholder.unparsed("flag", setting.getFlag()),
+                Formatter.booleanChoice("status", setting.getValue().setBoolean(!setting.getValue().getBoolean()))
         );
     }
 
@@ -103,24 +95,22 @@ public class Command_settings extends FCommand
 
         if (setting.equals(Setting.EXPLOSIVES))
         {
-            setExplosiveRadius(sender, defaultExplosionRadius);
+            setExplosiveRadius(sender, value ? defaultExplosionRadius : 0);
             return;
         }
 
         if (setting.equals(Setting.NO_NUKE))
         {
-            setMonitorAndCount(sender, defaultMonitorRange, defaultBreakCount);
+            setMonitorAndCount(sender, value ? defaultMonitorRange : 0, value ? defaultBreakCount : 0);
             return;
         }
 
         setting.consume();
 
-        msg(
-            sender, 
-            "<displayable> (<flag>) changed to <status:enabled:disabled>", 
-            Placeholder.unparsed("displayable", setting.getDisplayable()),
-            Placeholder.unparsed("flag", setting.getFlag()),
-            Formatter.booleanChoice("status", setting.getValue().setBoolean(value))
+        msg(sender, "<gray><displayable> (<flag>) changed to <status:enabled:disabled>",
+                Placeholder.unparsed("displayable", setting.getDisplayable()),
+                Placeholder.unparsed("flag", setting.getFlag()),
+                Formatter.booleanChoice("status", setting.getValue().setBoolean(value))
         );
     }
 
@@ -131,23 +121,25 @@ public class Command_settings extends FCommand
         final Setting setting = Setting.EXPLOSIVES;
         setting.checkSource(sender);
 
-        if (radius != 0)
+        // anything bigger will cause issues
+        final double maxExplosionRadius = 25.0;
+        final double cappedRadius = Math.min(radius, maxExplosionRadius);
+
+        if (cappedRadius != 0)
         {
             setting.getValue().setBoolean(true);
-            EXPLOSIVE_RADIUS.setDouble(radius);
+            EXPLOSIVE_RADIUS.setDouble(cappedRadius);
         }
         else
         {
             setting.getValue().setBoolean(false);
         }
 
-        msg(
-            sender, 
-            "<displayable> (<flag>) changed to <status:enabled:disabled> with a radius of <radius>", 
-            Placeholder.unparsed("displayable", setting.getDisplayable()),
-            Placeholder.unparsed("flag", setting.getFlag()),
-            Formatter.number("radius", radius),
-            Formatter.booleanChoice("status", setting.getValue().getBoolean())
+        msg(sender, "<gray><displayable> (<flag>) changed to <status:enabled:disabled> with a radius of <radius>",
+                Placeholder.unparsed("displayable", setting.getDisplayable()),
+                Placeholder.unparsed("flag", setting.getFlag()),
+                Formatter.number("radius", cappedRadius),
+                Formatter.booleanChoice("status", setting.getValue().getBoolean())
         );
     }
 
@@ -179,12 +171,12 @@ public class Command_settings extends FCommand
             setting.getValue().setBoolean(false);
         }
 
-        msg(
-            sender, 
-            "<displayable> (<flag>) changed to enabled with range <range> and break count <count>", 
-            Placeholder.unparsed("displayable", setting.getDisplayable()),
-            Placeholder.unparsed("flag", setting.getFlag()),
-            Formatter.booleanChoice("status", setting.getValue().getBoolean())
+        msg(sender, "<gray><displayable> (<flag>) changed to enabled with range <range> and break count <count>",
+                Placeholder.unparsed("displayable", setting.getDisplayable()),
+                Placeholder.unparsed("flag", setting.getFlag()),
+                Formatter.number("range", range),
+                Formatter.number("count", count),
+                Formatter.booleanChoice("status", setting.getValue().getBoolean())
         );
     }
 
@@ -194,7 +186,7 @@ public class Command_settings extends FCommand
         FIRE_PLACE("fireplace", "Fire Placement", ALLOW_FIRE_PLACE),
         LAVA_PLACE("lavaplace", "Lava Placement", ALLOW_LAVA_PLACE),
         SIGN_PLACE("signplace", "Sign Placement", ALLOW_SIGN_PLACE),
-        WATER_PLACE("waterplace", "Water Placement", ALLOW_WATER_PLACE),        
+        WATER_PLACE("waterplace", "Water Placement", ALLOW_WATER_PLACE),
         FIRE_SPREAD("firespread", "Fire Spreading", ALLOW_FIRE_SPREAD, c -> PluginProvider.get().gr.setGameRule(GameRules.FIRE_SPREAD_RADIUS_AROUND_PLAYER, c.getBoolean() ? 128 : 0)),
         FLUID_SPREAD("fluidspread", "Fluid Spreading", ALLOW_FLUID_SPREAD),
 
@@ -213,9 +205,6 @@ public class Command_settings extends FCommand
 
         AUTOCLEAR("autoclear", "Clearing Inventories on Join", AUTO_CLEAR),
         AUTOTP("autotp", "Teleportation on Join", AUTO_TP);
-
-
-
 
         final String flag, displayable;
         final ConfigEntry value;
@@ -253,7 +242,7 @@ public class Command_settings extends FCommand
         }
 
         /**
-         * Throws a CommandFailException if the intended source doesn't match. 
+         * Throws a CommandFailException if the intended source doesn't match.
          * This maintains standard functionality that the old toggle command had, for example, lockdown / adminmode could be run by a superadmin but only from console.
          */
         void checkSource(final CommandSender sender)
