@@ -9,7 +9,8 @@ import me.totalfreedom.totalfreedommod.rank.Rank;
 
 @Command(name = "autoclear", description = "Toggle whether or not a player has their inventory automatically cleared when they join.", usage = "/autoclear <player>")
 @Permission(permission = "tfm.admin.autoclear", level = Rank.SUPER_ADMIN)
-public class Command_autoclear extends FCommand {
+public class Command_autoclear extends FCommand
+{
 
     @Callback
     public void autoclear(CommandSender sender, OfflinePlayer target)

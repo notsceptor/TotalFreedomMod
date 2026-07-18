@@ -1,5 +1,6 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Particle;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -7,7 +8,6 @@ import org.bukkit.entity.Player;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 
 @Command(name = "crash", description = "Crashes the specified player", usage = "/crash <player>", aliases = {"fuckup"})
 @Permission(level = Rank.SUPER_ADMIN, permission = "tfm.admin.fuckup")
@@ -40,12 +40,8 @@ public class Command_crash extends FCommand
 
         player.sendMessage(c);
 
-        sender.sendMessage(
-                Component.text("Crashed ", NamedTextColor.GRAY)
-                        .append(Component.text(player.getName(), NamedTextColor.GRAY))
-                        .append(Component.text(".", NamedTextColor.GRAY))
+        msg(sender, "<gray>Crashed <player>.",
+                Placeholder.unparsed("player", player.getName())
         );
-
-        // not fucking with the translatable shit. video can do that.
     }
 }
