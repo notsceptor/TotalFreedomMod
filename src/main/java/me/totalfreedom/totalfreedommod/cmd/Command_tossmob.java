@@ -27,7 +27,7 @@ public class Command_tossmob extends FCommand
     @Subcommand("off")
     public void disableTossmob(final Player player)
     {
-        if (!getConfigEntry("TOSSMOB_ENABLED").getBoolean() || !fp.mobThrowerEnabled())
+        if (!getConfigEntry("TOSSMOB_ENABLED").getBoolean() || !fplayer(player).mobThrowerEnabled())
         {
             msg(player, "Tossmob is already disabled.");
             return;
