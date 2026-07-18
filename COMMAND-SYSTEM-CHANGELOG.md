@@ -23,7 +23,6 @@ messaging) were reworked to match.
 6. [Command consolidations, removals, and additions](#6-command-consolidations-removals-and-additions)
 7. [Notable per-command behavioral changes](#7-notable-per-command-behavioral-changes)
 8. [Supporting changes outside the command system](#8-supporting-changes-outside-the-command-system)
-9. [Known quirks and watch items](#9-known-quirks-and-watch-items)
 
 ---
 
