@@ -4,6 +4,7 @@ import io.papermc.paper.registry.RegistryAccess;
 import io.papermc.paper.registry.RegistryKey;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
 import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
@@ -27,10 +28,9 @@ public class Command_enchant extends FCommand
                 .stream()
                 .filter(enchantment -> enchantment.canEnchantItem(item))
                 .map(enchantment -> MessageUtils.parse(
-                        "<white><click:suggest_command:'/enchant add " + enchantment.key().asString()
-                        + " '><hover:show_text:'<desc><newline><dark_gray>" + enchantment.key().asString()
-                        + "'><desc></hover></click>",
-                        MessageUtils.component("desc", enchantment.description())))
+                        "<white><click:suggest_command:'/enchant add <key>'><hover:show_text:'<desc><newline><dark_gray><key>'><desc></hover></click>",
+                        MessageUtils.component("desc", enchantment.description()),
+                        Placeholder.unparsed("key", enchantment.key().toString())))
                 .toList();
 
         if (entries.isEmpty())
