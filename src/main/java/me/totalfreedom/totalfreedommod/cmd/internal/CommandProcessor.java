@@ -235,17 +235,18 @@ public final class CommandProcessor
                                 (current, segment) -> current.children.computeIfAbsent(segment, SubcommandNode::new), 
                                 (a, b) -> a);
 
-                    node.handlerMethods.stream()
-                            .filter(existing -> conflicts(existing, method))
-                            .forEach(existing -> FLog.warning(String.format(
-                                                                            "Ambiguous handlers for subcommand \"%s\" on /%s:\n %s and %s cannot be told apart at parse time (%d argument(s) with overlapping tokens)", 
-                                                                            pathValue, 
-                                                                            commandName, 
-                                                                            method.getName(), 
-                                                                            existing.getName(), 
-                                                                            argumentCount(method)
-                                                                        )));
-                    
+                    node.handlerMethods
+                        .stream()
+                        .filter(existing -> conflicts(existing, method))
+                        .forEach(existing -> FLog.warning(String.format(
+                                                                        "Ambiguous handlers for subcommand \"%s\" on /%s:\n %s and %s cannot be told apart at parse time (%d argument(s) with overlapping tokens)", 
+                                                                        pathValue, 
+                                                                        commandName, 
+                                                                        method.getName(), 
+                                                                        existing.getName(), 
+                                                                        argumentCount(method)
+                                                                    )));
+                
                     node.handlerMethods.add(method);
                 });
 
