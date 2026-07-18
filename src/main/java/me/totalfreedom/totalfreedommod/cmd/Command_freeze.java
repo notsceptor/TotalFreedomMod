@@ -13,7 +13,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 @Command(name = "freeze", description = "Freeze players. Append \"on\" or \"off\" at the end to set a specific state.",
-        usage = "/<command> <[on | off] | <player> [on | off]>", aliases = {"fr"})
+        usage = "/freeze <[on | off] | <player> [on | off]>", aliases = {"fr"})
 @Permission(permission = "tfm.admin.freeze", level = Rank.SUPER_ADMIN)
 public class Command_freeze extends FCommand
 {
