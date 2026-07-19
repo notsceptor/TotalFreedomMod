@@ -1,7 +1,6 @@
 package me.totalfreedom.totalfreedommod;
 
 import me.totalfreedom.totalfreedommod.cmd.MessageUtils;
-import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
@@ -33,7 +32,17 @@ public class JoinLeaveMessages extends FreedomService
     public void onPlayerJoin(final PlayerJoinEvent event)
     {
         event.joinMessage(null);
-        broadcast(event.getPlayer(), "<gray><player> joined the game.</gray>");
+
+        final Player subject = event.getPlayer();
+        if (isAdminOrDeveloper(subject))
+        {
+            // RankManager.onPlayerJoin already broadcasts a dedicated admin/developer
+            // login announcement to everyone, unfiltered by anyone's toggle - sending
+            // our own generic message on top of that would just be a duplicate.
+            return;
+        }
+
+        broadcast(subject, "<gray><player> joined the game.</gray>");
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -43,25 +52,25 @@ public class JoinLeaveMessages extends FreedomService
         broadcast(event.getPlayer(), "<gray><player> left the game.</gray>");
     }
 
+    private boolean isAdminOrDeveloper(final Player player)
+    {
+        return plugin.al.isAdmin(player) || FUtil.DEVELOPERS.contains(player.getName());
+    }
+
     /**
-     * Sends a join/leave notice to every online player, except {@code subject} itself.
-     * Viewers who have disabled join/leave messages still receive it when {@code subject}
-     * is an admin, so admin presence is never hideable.
+     * Sends a join/leave notice to every online player. The subject always sees their
+     * own message; other viewers who have disabled join/leave messages still receive it
+     * when the subject is an admin, so admin presence is never hideable.
      */
     private void broadcast(final Player subject, final String miniMessage)
     {
-        final boolean subjectIsAdmin = plugin.al.isAdmin(subject);
+        final boolean subjectIsAdmin = isAdminOrDeveloper(subject);
         final Component message = MessageUtils.parse(miniMessage, Placeholder.unparsed("player", subject.getName()));
 
         for (final Player viewer : server.getOnlinePlayers())
         {
-            if (viewer.getUniqueId().equals(subject.getUniqueId()))
-            {
-                continue;
-            }
-
-            final FPlayer viewerData = plugin.pl.getPlayer(viewer);
-            if (subjectIsAdmin || viewerData.joinLeaveMessagesEnabled())
+            final boolean isSubject = viewer.getUniqueId().equals(subject.getUniqueId());
+            if (isSubject || subjectIsAdmin || plugin.pl.getPlayer(viewer).joinLeaveMessagesEnabled())
             {
                 FUtil.playerMsg(viewer, message);
             }
