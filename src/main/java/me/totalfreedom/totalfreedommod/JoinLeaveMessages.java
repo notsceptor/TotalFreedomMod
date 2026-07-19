@@ -31,25 +31,17 @@ public class JoinLeaveMessages extends FreedomService
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPlayerJoin(final PlayerJoinEvent event)
     {
+        final Player player = event.getPlayer();
         event.joinMessage(null);
-
-        final Player subject = event.getPlayer();
-        if (isAdminOrDeveloper(subject))
-        {
-            // RankManager.onPlayerJoin already broadcasts a dedicated admin/developer
-            // login announcement to everyone, unfiltered by anyone's toggle - sending
-            // our own generic message on top of that would just be a duplicate.
-            return;
-        }
-
-        broadcast(subject, "<gray><player> joined the game.</gray>");
+        broadcast(player, "<gray><italic><player> joined the game.</italic></gray>");
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPlayerQuit(final PlayerQuitEvent event)
     {
+        final Player player = event.getPlayer();
         event.quitMessage(null);
-        broadcast(event.getPlayer(), "<gray><player> left the game.</gray>");
+        broadcast(player, "<gray><italic><player> left the game.</italic></gray>");
     }
 
     private boolean isAdminOrDeveloper(final Player player)
