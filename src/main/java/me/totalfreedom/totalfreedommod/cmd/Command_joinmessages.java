@@ -7,7 +7,7 @@ import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 
-@Command(name = "joinmessages", description = "Toggle visibility of other players' join/leave messages.", usage = "/<command>", aliases = {"jlm", "togglejoinmessages"})
+@Command(name = "joinmessages", description = "Toggle visibility of other players' join/leave messages.", usage = "/joinmessages", aliases = {"jlm", "togglejoinmessages"})
 @Permission(permission = "tfm.player.joinmessages", level = Rank.NON_OP, source = SourceType.ONLY_IN_GAME)
 public class Command_joinmessages extends FCommand
 {
