@@ -32,16 +32,16 @@ public class Command_sshtotp extends FCommand
             return;
         }
 
-        SshIdentity sshIdentity = plugin().sd.getIdentityStore().get(identity);
+        final SshIdentity sshIdentity = plugin().sd.getIdentityStore().get(identity);
         if (sshIdentity == null)
         {
             msg(sender, "<gray>No SSH identity found for: <identity>", Placeholder.unparsed("identity", identity));
             return;
         }
 
-        String secret = TotpUtil.generateSecret();
-        String uri = TotpUtil.buildUri("TotalFreedomMod", identity, secret);
-        String token = UUID.randomUUID().toString().replace("-", "");
+        final String secret = TotpUtil.generateSecret();
+        final String uri = TotpUtil.buildUri("TotalFreedomMod", identity, secret);
+        final String token = UUID.randomUUID().toString().replace("-", "");
 
         plugin().sd.getIdentityStore().setTotpSecret(identity, secret);
 

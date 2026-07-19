@@ -28,9 +28,9 @@ public class Command_unban extends FCommand
             player = null;
         }
 
-        PlayerData data = BanCommandUtil.getData(plugin(), playerName, player);
-        String name = BanCommandUtil.getCanonicalName(playerName, player, data);
-        Set<Ban> bans = BanCommandUtil.findLinkedBans(plugin(), playerName, player, data);
+        final PlayerData data = BanCommandUtil.getData(plugin(), playerName, player);
+        final String name = BanCommandUtil.getCanonicalName(playerName, player, data);
+        final Set<Ban> bans = BanCommandUtil.findLinkedBans(plugin(), playerName, player, data);
 
         if (bans.isEmpty())
         {

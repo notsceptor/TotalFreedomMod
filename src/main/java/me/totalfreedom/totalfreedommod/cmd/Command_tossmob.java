@@ -40,7 +40,7 @@ public class Command_tossmob extends FCommand
     @Subcommand("list")
     public void listMobs(final Player player)
     {
-        List<String> values = Stream.of(EntityType.values())
+        final List<String> values = Stream.of(EntityType.values())
                                     .filter(e -> e.isAlive() && e.isSpawnable())
                                     .map(v -> v.name().toLowerCase(Locale.ROOT))
                                     .toList();

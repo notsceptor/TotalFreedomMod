@@ -20,7 +20,7 @@ public class Command_blockredstone extends FCommand
     @Callback
     public void setRedstoneConfig(final CommandSender sender, final boolean block)
     {
-        if (ConfigEntry.ALLOW_REDSTONE.getBoolean() == !block)
+        if (ConfigEntry.ALLOW_REDSTONE.getBoolean() != block)
         {
             msg(
                 sender, 

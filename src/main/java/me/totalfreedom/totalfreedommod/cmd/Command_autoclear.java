@@ -1,6 +1,7 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 
@@ -18,6 +19,7 @@ public class Command_autoclear extends FCommand
         final boolean enabled = plugin().lp.CLEAR_ON_JOIN.removeIf(entry -> entry.equals(target.getUniqueId()));
 
         msg(sender, "<gold><player> <aqua> will <enabled:no longer:now> have their inventory cleared when they join.",
+                Placeholder.unparsed("player", target.getName()),
                 Formatter.booleanChoice("enabled", enabled));
     }
     

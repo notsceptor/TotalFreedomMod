@@ -54,9 +54,9 @@ public class Command_list extends FCommand
             filter = ListFilter.PLAYERS;
         }
 
-        List<Player> admList = new ArrayList<>();
-        List<Player> players = new ArrayList<>();
-        List<Player> filteredPlayers = new ArrayList<>();
+        final List<Player> admList = new ArrayList<>();
+        final List<Player> players = new ArrayList<>();
+        final List<Player> filteredPlayers = new ArrayList<>();
 
         for (Player player : server().getOnlinePlayers())
         {

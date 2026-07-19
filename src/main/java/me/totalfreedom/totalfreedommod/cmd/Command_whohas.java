@@ -22,7 +22,7 @@ public class Command_whohas extends FCommand
     {
         final boolean senderIsConsole = !(sender instanceof Player);
 
-        long count = materials.stream().filter(material ->
+        final long count = materials.stream().filter(material ->
         {
             final List<? extends Player> players = server().getOnlinePlayers()
                                                            .stream()

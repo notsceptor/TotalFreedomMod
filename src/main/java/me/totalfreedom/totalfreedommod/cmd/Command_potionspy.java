@@ -14,7 +14,7 @@ public class Command_potionspy extends FCommand
     @Callback
     public void toggle(Player player)
     {
-        PlayerData data = plugin().pl.getData(player);
+        final PlayerData data = plugin().pl.getData(player);
         data.setPotionSpy(!data.isPotionSpy());
         msg(
             player, 

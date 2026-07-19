@@ -24,7 +24,7 @@ public class Command_plugincontrol extends FCommand
     @Subcommand("list")
     public void listPlugins(CommandSender sender)
     {
-        for (Plugin otherPlugin : pluginManager().getPlugins())
+        for (final Plugin otherPlugin : pluginManager().getPlugins())
         {
             final PluginMeta meta = otherPlugin.getPluginMeta();
             final String template = "<gray>- <status:'<green><name></green>':'<red><name></red>'><gray> v<version>";

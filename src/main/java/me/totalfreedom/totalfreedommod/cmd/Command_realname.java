@@ -9,8 +9,6 @@ import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import net.kyori.adventure.text.Component;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.bukkit.command.CommandSender;
 
 @Command(name = "realname", description = "Finds the real name of a nicknamed player", usage = "/<command> <nickname..>")
@@ -20,24 +18,26 @@ public class Command_realname extends FCommand
     @Callback
     public void realname(CommandSender sender, @Greedy String nickname)
     {
-        AtomicBoolean foundOne = new AtomicBoolean(false);
-        server().getOnlinePlayers().forEach(player -> 
-        {
-            final PlayerData data = plugin().pl.getData(player);
-            final Component playerNickname = data.getNickname();
-            if (playerNickname != null)
-            {
-                final String plainNick = AdventureUtil.componentToPlainText(playerNickname);
-                if (plainNick.contains(nickname))
-                {
-                    msg(sender, "<nickname><gray> is <name>.", MessageUtils.component("nickname", data.getDisplayedNickname()),
-                            MessageUtils.unparsed("name", player.getName()));
-                    foundOne.set(true);
-                }
-            }
-        });
+        final boolean foundOne = server().getOnlinePlayers()
+                .stream()
+                .reduce(false, (found, player) ->
+                    {
+                        final PlayerData data = plugin().pl.getData(player);
+                        final Component playerNickname = data.getNickname();
+                        if (playerNickname != null)
+                        {
+                            final String plainNick = AdventureUtil.componentToPlainText(playerNickname);
+                            if (plainNick.contains(nickname))
+                            {
+                                msg(sender, "<nickname><gray> is <name>.", MessageUtils.component("nickname", data.getDisplayedNickname()),
+                                        MessageUtils.unparsed("name", player.getName()));
+                                return true;
+                            }
+                        }
+                        return found;
+                    }, (a, b) -> a || b);
 
-        if (!foundOne.get())
+        if (!foundOne)
         {
             msg(sender, "<gray>Could not find a player with such a nickname.");
         }

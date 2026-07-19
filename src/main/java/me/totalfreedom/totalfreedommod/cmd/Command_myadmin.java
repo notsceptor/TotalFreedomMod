@@ -40,7 +40,7 @@ public class Command_myadmin extends FCommand
     {
         final Admin entry = plugin().al.getAdmin(player);
         final List<String> ips = entry.getIps();
-        int count = ips.size();
+        final int count = ips.size();
 
         ips.clear();
         ips.add(player.getAddress().getAddress().getHostName());

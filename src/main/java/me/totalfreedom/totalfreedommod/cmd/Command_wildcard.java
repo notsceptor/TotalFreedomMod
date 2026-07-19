@@ -13,7 +13,7 @@ import org.bukkit.command.CommandSender;
 @Command(
         name = "wildcard",
         description = "Run any command on all users, username placeholder = ?.", 
-        usage = "/wildcard [fluff] ? [fluff] ?")
+        usage = "/wildcard <command> (use ? to insert each player's username)")
 public class Command_wildcard extends FCommand
 {
     public static List<String> BLOCKED_COMMANDS = Arrays.asList(

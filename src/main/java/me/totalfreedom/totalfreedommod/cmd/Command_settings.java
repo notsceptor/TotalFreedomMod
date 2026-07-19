@@ -21,9 +21,9 @@ import static me.totalfreedom.totalfreedommod.config.ConfigEntry.*;
 @Permission(permission = "tfm.server.settings", level = Rank.SUPER_ADMIN)
 public class Command_settings extends FCommand
 {
-    private final double defaultExplosionRadius = 4.0;
-    private final double defaultMonitorRange = 10.0;
-    private final int defaultBreakCount = 100;
+    private static final double DEFAULT_EXPLOSION_RADIUS = 4.0;
+    private static final double DEFAULT_MONITOR_RANGE = 10.0;
+    private static final int DEFAULT_BREAK_COUNT = 100;
 
     @Callback
     public void queryConfigOption(final CommandSender sender, final Setting setting)
@@ -68,13 +68,13 @@ public class Command_settings extends FCommand
 
         if (setting.equals(Setting.EXPLOSIVES))
         {
-            setExplosiveRadius(sender, setting.getValue().getBoolean() ? 0 : defaultExplosionRadius);
+            setExplosiveRadius(sender, setting.getValue().getBoolean() ? 0 : DEFAULT_EXPLOSION_RADIUS);
             return;
         }
 
         if (setting.equals(Setting.NO_NUKE))
         {
-            setMonitorAndCount(sender, setting.getValue().getBoolean() ? 0 : defaultMonitorRange, setting.getValue().getBoolean() ? 0 : defaultBreakCount);
+            setMonitorAndCount(sender, setting.getValue().getBoolean() ? 0 : DEFAULT_MONITOR_RANGE, setting.getValue().getBoolean() ? 0 : DEFAULT_BREAK_COUNT);
             return;
         }
 
@@ -98,13 +98,13 @@ public class Command_settings extends FCommand
 
         if (setting.equals(Setting.EXPLOSIVES))
         {
-            setExplosiveRadius(sender, value ? defaultExplosionRadius : 0);
+            setExplosiveRadius(sender, value ? DEFAULT_EXPLOSION_RADIUS : 0);
             return;
         }
 
         if (setting.equals(Setting.NO_NUKE))
         {
-            setMonitorAndCount(sender, value ? defaultMonitorRange : 0, value ? defaultBreakCount : 0);
+            setMonitorAndCount(sender, value ? DEFAULT_MONITOR_RANGE : 0, value ? DEFAULT_BREAK_COUNT : 0);
             return;
         }
 
@@ -125,7 +125,7 @@ public class Command_settings extends FCommand
         switch (setting)
         {
             case EXPLOSIVES -> setExplosiveRadius(sender, range);
-            case NO_NUKE -> setMonitorAndCount(sender, range, defaultBreakCount);
+            case NO_NUKE -> setMonitorAndCount(sender, range, DEFAULT_BREAK_COUNT);
             default -> throw new CommandFailException(setting.getDisplayable() + " (" + setting.getFlag() + ") only accepts true or false.");
         }
     }

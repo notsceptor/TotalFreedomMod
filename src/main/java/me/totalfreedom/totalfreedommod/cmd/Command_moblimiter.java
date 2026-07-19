@@ -18,7 +18,7 @@ public class Command_moblimiter extends FCommand
     @Callback
     public void showStatus(CommandSender sender)
     {
-        boolean enabled = ConfigEntry.MOB_LIMITER_ENABLED.getBoolean();
+        final boolean enabled = ConfigEntry.MOB_LIMITER_ENABLED.getBoolean();
 
         if (enabled)
         {

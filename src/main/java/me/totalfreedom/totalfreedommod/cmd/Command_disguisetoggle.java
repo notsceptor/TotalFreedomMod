@@ -21,7 +21,7 @@ public class Command_disguisetoggle extends FCommand
 
         adminAction(
                     sender, 
-                    "<aqua><value:Enabling:Disabling> Disguises.", 
+                    "<aqua><value:Enabling:Disabling> disguises.",
                     Formatter.booleanChoice("value", !plugin().ldb.isDisguisesEnabled())
                 );
 

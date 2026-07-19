@@ -18,7 +18,7 @@ public class Command_admininfo extends FCommand
     @Callback
     public void info(CommandSender sender)
     {
-        List<String> adminInfo = ConfigEntry.ADMIN_INFO.getStringList();
+        final List<String> adminInfo = ConfigEntry.ADMIN_INFO.getStringList();
         if (adminInfo.isEmpty()) 
         {
             msg(sender, "<red>The admin information section of the config.yml file has not been configured.</red>");

@@ -109,7 +109,7 @@ public class Module_help extends HTTPDModule
         String description = command.getDescription();
 
         FCommand fc = CommandRegistry.getByName(command.getName());
-        me.totalfreedom.totalfreedommod.cmd.internal.annotation.Command meta = fc == null
+        var meta = fc == null
                 ? null
                 : fc.getClass().getAnnotation(me.totalfreedom.totalfreedommod.cmd.internal.annotation.Command.class);
         if (meta != null)

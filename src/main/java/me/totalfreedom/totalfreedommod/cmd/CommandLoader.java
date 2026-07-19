@@ -62,7 +62,7 @@ public class CommandLoader extends FreedomService
         registerResolvers();
 
         int loaded = discoverCommands();
-        FLog.info("Loaded " + loaded + " Commands.");
+        FLog.info("Loaded " + loaded + " commands.");
     }
 
     @Override
