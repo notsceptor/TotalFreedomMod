@@ -168,7 +168,7 @@ public final class CommandProcessor
         this.classPermission = command.getClass().getAnnotation(Permission.class);
     }
 
-    void registerWith(Commands registrar)
+    private void registerWith(Commands registrar)
     {
         try
         {
@@ -283,7 +283,7 @@ public final class CommandProcessor
         final Map<String, SubcommandNode> children = new LinkedHashMap<>();
         final List<Method> handlerMethods = new ArrayList<>();
 
-        SubcommandNode(String literal)
+        private SubcommandNode(String literal)
         {
             this.literal = literal;
         }
