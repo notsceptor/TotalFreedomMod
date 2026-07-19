@@ -1,8 +1,11 @@
 package me.totalfreedom.totalfreedommod.blocking.item;
 
 import io.papermc.paper.datacomponent.DataComponentTypes;
+import io.papermc.paper.datacomponent.item.BannerPatternLayers;
 import io.papermc.paper.datacomponent.item.BundleContents;
 import io.papermc.paper.datacomponent.item.ChargedProjectiles;
+import io.papermc.paper.datacomponent.item.CustomModelData;
+import io.papermc.paper.datacomponent.item.Equippable;
 import io.papermc.paper.datacomponent.item.Fireworks;
 import io.papermc.paper.datacomponent.item.ItemAttributeModifiers;
 import io.papermc.paper.datacomponent.item.ItemContainerContents;
@@ -13,6 +16,7 @@ import io.papermc.paper.datacomponent.item.SuspiciousStewEffects;
 import io.papermc.paper.datacomponent.item.WritableBookContent;
 import io.papermc.paper.datacomponent.item.WrittenBookContent;
 import io.papermc.paper.datacomponent.item.attribute.AttributeModifierDisplay;
+import io.papermc.paper.registry.set.RegistryKeySet;
 import io.papermc.paper.text.Filtered;
 import java.util.List;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
@@ -23,7 +27,9 @@ import org.bukkit.JukeboxSong;
 import org.bukkit.MusicInstrument;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
+import org.bukkit.block.banner.PatternType;
 import org.bukkit.damage.DamageType;
+import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.ItemStack;
 
 final class ItemScanner
@@ -40,6 +46,10 @@ final class ItemScanner
     private static final double MAX_ITEM_SCALE = 4.0;
     private static final int MAX_FIREWORK_EXPLOSIONS = 64;
     private static final int MAX_FIREWORK_COLORS = 256;
+    private static final int MAX_BANNER_PATTERNS = 256;
+    private static final int MAX_EQUIPPABLE_ENTITIES = 256;
+    private static final int MAX_CUSTOM_MODEL_DATA_ENTRIES = 256;
+    private static final int MAX_CUSTOM_MODEL_DATA_STRING_LENGTH = 256;
     private static final int MAX_NBT_NODES = 8192;
     private static final int MAX_NBT_DEPTH = 16;
 
@@ -58,6 +68,9 @@ final class ItemScanner
         OVERSIZED_NBT,
         OVERSIZED_POTION,
         OVERSIZED_FIREWORK,
+        OVERSIZED_BANNER_PATTERNS,
+        OVERSIZED_EQUIPPABLE,
+        OVERSIZED_CUSTOM_MODEL_DATA,
         OVERSIZED_BOOK,
         OVERSIZED_ATTRIBUTE,
         ILLEGAL_STACK_SIZE,
@@ -153,6 +166,24 @@ final class ItemScanner
         if (firework.isCursed())
         {
             return firework;
+        }
+
+        Verdict banner = inspectBannerPatterns(item, depth);
+        if (banner.isCursed())
+        {
+            return banner;
+        }
+
+        Verdict equippable = inspectEquippable(item, depth);
+        if (equippable.isCursed())
+        {
+            return equippable;
+        }
+
+        Verdict customModelData = inspectCustomModelData(item, depth);
+        if (customModelData.isCursed())
+        {
+            return customModelData;
         }
 
         // CUSTOM_NAME / ITEM_NAME — gate the serializer behind a safe-graph check
@@ -401,6 +432,91 @@ final class ItemScanner
         if (colors > MAX_FIREWORK_COLORS || fadeColors > MAX_FIREWORK_COLORS)
         {
             return new Verdict(Reason.OVERSIZED_FIREWORK, Math.max(colors, fadeColors), depth);
+        }
+        return Verdict.CLEAN;
+    }
+
+    private static Verdict inspectBannerPatterns(ItemStack item, int depth)
+    {
+        try
+        {
+            if (item.hasData(DataComponentTypes.PROVIDES_BANNER_PATTERNS))
+            {
+                RegistryKeySet<PatternType> provides = item.getData(DataComponentTypes.PROVIDES_BANNER_PATTERNS);
+                if (provides != null && provides.size() > MAX_BANNER_PATTERNS)
+                {
+                    return new Verdict(Reason.OVERSIZED_BANNER_PATTERNS, provides.size(), depth);
+                }
+            }
+            if (item.hasData(DataComponentTypes.BANNER_PATTERNS))
+            {
+                BannerPatternLayers layers = item.getData(DataComponentTypes.BANNER_PATTERNS);
+                if (layers != null && layers.patterns().size() > MAX_BANNER_PATTERNS)
+                {
+                    return new Verdict(Reason.OVERSIZED_BANNER_PATTERNS, layers.patterns().size(), depth);
+                }
+            }
+        }
+        catch (Throwable t)
+        {
+            return new Verdict(Reason.UNINSPECTABLE_NBT, -1L, depth);
+        }
+        return Verdict.CLEAN;
+    }
+
+    private static Verdict inspectEquippable(ItemStack item, int depth)
+    {
+        try
+        {
+            if (item.hasData(DataComponentTypes.EQUIPPABLE))
+            {
+                Equippable equippable = item.getData(DataComponentTypes.EQUIPPABLE);
+                if (equippable != null)
+                {
+                    RegistryKeySet<EntityType> allowed = equippable.allowedEntities();
+                    if (allowed != null && allowed.size() > MAX_EQUIPPABLE_ENTITIES)
+                    {
+                        return new Verdict(Reason.OVERSIZED_EQUIPPABLE, allowed.size(), depth);
+                    }
+                }
+            }
+        }
+        catch (Throwable t)
+        {
+            return new Verdict(Reason.UNINSPECTABLE_NBT, -1L, depth);
+        }
+        return Verdict.CLEAN;
+    }
+
+    private static Verdict inspectCustomModelData(final ItemStack item, final int depth)
+    {
+        try
+        {
+            if (item.hasData(DataComponentTypes.CUSTOM_MODEL_DATA))
+            {
+                final CustomModelData cmd = item.getData(DataComponentTypes.CUSTOM_MODEL_DATA);
+                if (cmd != null)
+                {
+                    final int widest = Math.max(
+                            Math.max(cmd.colors().size(), cmd.floats().size()),
+                            Math.max(cmd.flags().size(), cmd.strings().size()));
+                    if (widest > MAX_CUSTOM_MODEL_DATA_ENTRIES)
+                    {
+                        return new Verdict(Reason.OVERSIZED_CUSTOM_MODEL_DATA, widest, depth);
+                    }
+                    final boolean oversizedString = cmd.strings()
+                            .stream()
+                            .anyMatch(s -> s != null && s.length() > MAX_CUSTOM_MODEL_DATA_STRING_LENGTH);
+                    if (oversizedString)
+                    {
+                        return new Verdict(Reason.OVERSIZED_CUSTOM_MODEL_DATA, -1L, depth);
+                    }
+                }
+            }
+        }
+        catch (final Throwable t)
+        {
+            return new Verdict(Reason.UNINSPECTABLE_NBT, -1L, depth);
         }
         return Verdict.CLEAN;
     }
