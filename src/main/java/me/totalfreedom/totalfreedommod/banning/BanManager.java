@@ -49,6 +49,7 @@ public class BanManager extends FreedomService
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     protected void onStart()
     {
         // Try to load from SQL database first
@@ -75,7 +76,7 @@ public class BanManager extends FreedomService
         try
         {
             BanRepository repo = plugin.dm.getBanRepository();
-            List<Ban> loadedBans = repo.findAll().join();
+            List<Ban> loadedBans = repo.findAll().block();
 
             synchronized (lock)
             {
@@ -233,10 +234,10 @@ public class BanManager extends FreedomService
         {
             BanRepository repo = plugin.dm.getBanRepository();
             // Clear and re-add all (simple approach for now)
-            repo.deleteAll().join();
+            repo.deleteAll().block();
             for (Ban ban : snapshot)
             {
-                repo.save(ban).join();
+                repo.save(ban).block();
             }
             FLog.debug("Saved " + snapshot.size() + " bans to SQL database");
         }
@@ -455,7 +456,7 @@ public class BanManager extends FreedomService
         {
             try
             {
-                plugin.dm.getBanRepository().save(ban).join();
+                plugin.dm.getBanRepository().save(ban).block();
             }
             catch (Exception ex)
             {
@@ -480,7 +481,7 @@ public class BanManager extends FreedomService
             {
                 if (ban.getUuid() != null)
                 {
-                    plugin.dm.getBanRepository().deleteByUuid(ban.getUuid()).join();
+                    plugin.dm.getBanRepository().deleteByUuid(ban.getUuid()).block();
                 }
                 else if (ban.hasUsername())
                 {

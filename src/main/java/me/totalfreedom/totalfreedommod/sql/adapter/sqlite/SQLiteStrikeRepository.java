@@ -1,16 +1,14 @@
 package me.totalfreedom.totalfreedommod.sql.adapter.sqlite;
 
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.banning.StrikeRecord;
 import me.totalfreedom.totalfreedommod.sql.StatementHandler;
 import me.totalfreedom.totalfreedommod.sql.adapter.StrikeRepository;
-import me.totalfreedom.totalfreedommod.util.FLog;
+import reactor.core.publisher.Mono;
 
 public class SQLiteStrikeRepository implements StrikeRepository
 {
@@ -70,38 +68,26 @@ public class SQLiteStrikeRepository implements StrikeRepository
     }
 
     @Override
-    public CompletableFuture<Map<String, StrikeRecord>> loadAllAsync()
+    public Mono<Map<String, StrikeRecord>> loadAllAsync()
     {
-        return CompletableFuture.supplyAsync(() -> {
-            try { return loadAll(); }
-            catch (SQLException e) { FLog.severe("Failed to load strikes: " + e.getMessage()); throw new RuntimeException(e); }
-        });
+        return statementHandler.supplyMono(this::loadAll);
     }
 
     @Override
-    public CompletableFuture<Void> upsertAsync(StrikeRecord r)
+    public Mono<Void> upsertAsync(StrikeRecord r)
     {
-        return CompletableFuture.runAsync(() -> {
-            try { upsert(r); }
-            catch (SQLException e) { FLog.severe("Failed to upsert strike: " + e.getMessage()); throw new RuntimeException(e); }
-        });
+        return statementHandler.runMono(() -> upsert(r));
     }
 
     @Override
-    public CompletableFuture<Boolean> deleteByIpAsync(String ip)
+    public Mono<Boolean> deleteByIpAsync(String ip)
     {
-        return CompletableFuture.supplyAsync(() -> {
-            try { return deleteByIp(ip); }
-            catch (SQLException e) { FLog.severe("Failed to delete strike: " + e.getMessage()); throw new RuntimeException(e); }
-        });
+        return statementHandler.supplyMono(() -> deleteByIp(ip));
     }
 
     @Override
-    public CompletableFuture<Void> deleteAll()
+    public Mono<Void> deleteAll()
     {
-        return CompletableFuture.runAsync(() -> {
-            try { deleteAllSync(); }
-            catch (SQLException e) { FLog.severe("Failed to clear strikes: " + e.getMessage()); throw new RuntimeException(e); }
-        });
+        return statementHandler.runMono(this::deleteAllSync);
     }
 }

@@ -4,7 +4,6 @@ import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.banning.Ban;
 import me.totalfreedom.totalfreedommod.banning.PermBan;
-import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.sql.adapter.AdminRepository;
 import me.totalfreedom.totalfreedommod.sql.adapter.BanRepository;
 import me.totalfreedom.totalfreedommod.sql.adapter.PermbanRepository;
@@ -16,8 +15,10 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import java.io.File;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 /**
  * Service for migrating data from YAML files to SQL database.
@@ -47,11 +48,11 @@ public class YamlMigrationService
 
     /**
      * Run all migrations if they haven't been completed yet.
-     * @return CompletableFuture that completes when all migrations are done
+     * @return Mono that completes when all migrations are done
      */
-    public CompletableFuture<Void> runMigrations()
+    public Mono<Void> runMigrations()
     {
-        return CompletableFuture.runAsync(() -> {
+        return Mono.<Void>fromRunnable(() -> {
             try
             {
                 FLog.info("Checking for YAML data migrations...");
@@ -73,7 +74,7 @@ public class YamlMigrationService
                 FLog.severe("Error during YAML migrations: " + ex.getMessage());
                 ex.printStackTrace();
             }
-        });
+        }).subscribeOn(Schedulers.boundedElastic());
     }
 
     /**
@@ -93,7 +94,7 @@ public class YamlMigrationService
         // Check if we already have admins in the database
         try
         {
-            List<Admin> existingAdmins = repo.findAll().join();
+            List<Admin> existingAdmins = repo.findAll().block();
             if (!existingAdmins.isEmpty())
             {
                 FLog.info("Database already contains " + existingAdmins.size() + " admins, skipping YAML migration");
@@ -136,7 +137,7 @@ public class YamlMigrationService
                 // Generate UUID if not present (legacy data)
                 UUID uuid = generateUuidForAdmin(admin);
 
-                repo.save(uuid, admin).join();
+                repo.save(uuid, admin).block();
                 migrated.incrementAndGet();
             }
             catch (Exception ex)
@@ -169,7 +170,7 @@ public class YamlMigrationService
         // Check if we already have bans in the database
         try
         {
-            List<Ban> existingBans = repo.findAll().join();
+            List<Ban> existingBans = repo.findAll().block();
             if (!existingBans.isEmpty())
             {
                 FLog.info("Database already contains " + existingBans.size() + " bans, skipping YAML migration");
@@ -209,7 +210,7 @@ public class YamlMigrationService
                     continue;
                 }
 
-                repo.save(ban).join();
+                repo.save(ban).block();
                 migrated.incrementAndGet();
             }
             catch (Exception ex)
@@ -242,7 +243,7 @@ public class YamlMigrationService
         // Check if we already have permbans in the database
         try
         {
-            List<PermBan> existingPermbans = repo.findAll().join();
+            List<PermBan> existingPermbans = repo.findAll().block();
             if (!existingPermbans.isEmpty())
             {
                 FLog.info("Database already contains " + existingPermbans.size() + " permbans, skipping YAML migration");
@@ -274,7 +275,7 @@ public class YamlMigrationService
                 // Generate UUID for name
                 permban.setUuid(FUtil.usernameToUuid(name));
 
-                repo.save(permban).join();
+                repo.save(permban).block();
                 migrated.incrementAndGet();
             }
             catch (Exception ex)
@@ -339,17 +340,17 @@ public class YamlMigrationService
      * Force re-migration of all YAML data.
      * WARNING: This will clear existing database data and re-import from YAML.
      */
-    public CompletableFuture<Void> forceMigration()
+    public Mono<Void> forceMigration()
     {
-        return CompletableFuture.runAsync(() -> {
+        return Mono.<Void>fromRunnable(() -> {
             FLog.warning("Force migration requested - this will overwrite database data!");
 
             // Clear existing data
             try
             {
-                databaseManager.getAdminRepository().deleteAll().join();
-                databaseManager.getBanRepository().deleteAll().join();
-                databaseManager.getPermbanRepository().deleteAll().join();
+                databaseManager.getAdminRepository().deleteAll().block();
+                databaseManager.getBanRepository().deleteAll().block();
+                databaseManager.getPermbanRepository().deleteAll().block();
             }
             catch (Exception ex)
             {
@@ -364,7 +365,7 @@ public class YamlMigrationService
             migrateAdmins();
             migrateBans();
             migratePermbans();
-        });
+        }).subscribeOn(Schedulers.boundedElastic());
     }
 
     /**

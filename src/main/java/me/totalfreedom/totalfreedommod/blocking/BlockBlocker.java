@@ -9,7 +9,6 @@ import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Material;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.FallingBlock;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -142,6 +141,7 @@ public class BlockBlocker extends FreedomService
                 event.setCancelled(true);
                 break;
             }
+            default: break;
         }
     }
 

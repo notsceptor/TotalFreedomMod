@@ -4,13 +4,13 @@ import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.banning.PermBan;
 import me.totalfreedom.totalfreedommod.sql.StatementHandler;
 import me.totalfreedom.totalfreedommod.sql.adapter.PermbanRepository;
-import me.totalfreedom.totalfreedommod.util.FLog;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
+
+import reactor.core.publisher.Mono;
 
 /**
  * MySQL/MariaDB implementation of PermbanRepository.
@@ -348,71 +348,52 @@ public class MySQLPermbanRepository implements PermbanRepository
     // ============================================
 
     @Override
-    public CompletableFuture<List<PermBan>> loadAllAsync()
+    public Mono<List<PermBan>> loadAllAsync()
     {
-        return CompletableFuture.supplyAsync(() -> {
-            try { return loadAll(); }
-            catch (SQLException e) { FLog.severe("Failed to load permbans: " + e.getMessage()); throw new RuntimeException(e); }
-        });
+        return statementHandler.supplyMono(this::loadAll);
     }
 
     @Override
-    public CompletableFuture<Integer> insertAsync(PermBan permban)
+    public Mono<Integer> insertAsync(PermBan permban)
     {
-        return CompletableFuture.supplyAsync(() -> {
-            try { return insert(permban); }
-            catch (SQLException e) { FLog.severe("Failed to insert permban: " + e.getMessage()); throw new RuntimeException(e); }
-        });
+        return statementHandler.supplyMono(() -> insert(permban));
     }
 
     @Override
-    public CompletableFuture<Boolean> updateAsync(PermBan permban)
+    public Mono<Boolean> updateAsync(PermBan permban)
     {
-        return CompletableFuture.supplyAsync(() -> {
-            try { return update(permban); }
-            catch (SQLException e) { FLog.severe("Failed to update permban: " + e.getMessage()); throw new RuntimeException(e); }
-        });
+        return statementHandler.supplyMono(() -> update(permban));
     }
 
     @Override
-    public CompletableFuture<Boolean> deleteAsync(UUID uuid)
+    public Mono<Boolean> deleteAsync(UUID uuid)
     {
-        return CompletableFuture.supplyAsync(() -> {
-            try { return delete(uuid); }
-            catch (SQLException e) { FLog.severe("Failed to delete permban: " + e.getMessage()); throw new RuntimeException(e); }
-        });
+        return statementHandler.supplyMono(() -> delete(uuid));
     }
 
     @Override
-    public CompletableFuture<Integer> save(PermBan permban)
+    public Mono<Integer> save(PermBan permban)
     {
-        return CompletableFuture.supplyAsync(() -> {
-            try
+        return statementHandler.supplyMono(() -> {
+            if (permban.getUuid() != null && getPermbanId(permban.getUuid()) > 0)
             {
-                if (permban.getUuid() != null && getPermbanId(permban.getUuid()) > 0)
-                {
-                    update(permban);
-                    return getPermbanId(permban.getUuid());
-                }
-                return insert(permban);
+                update(permban);
+                return getPermbanId(permban.getUuid());
             }
-            catch (SQLException e) { FLog.severe("Failed to save permban: " + e.getMessage()); throw new RuntimeException(e); }
+            return insert(permban);
         });
     }
 
     @Override
-    public CompletableFuture<List<PermBan>> findAll()
+    public Mono<List<PermBan>> findAll()
     {
         return loadAllAsync();
     }
 
     @Override
-    public CompletableFuture<Void> deleteAll()
+    public Mono<Void> deleteAll()
     {
-        return CompletableFuture.runAsync(() -> {
-            try { deleteAllSync(); }
-            catch (SQLException e) { FLog.severe("Failed to delete all permbans: " + e.getMessage()); throw new RuntimeException(e); }
-        });
+        return statementHandler.runMono(this::deleteAllSync);
     }
 
     // ============================================

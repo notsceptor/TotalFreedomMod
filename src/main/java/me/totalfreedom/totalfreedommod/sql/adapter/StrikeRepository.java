@@ -2,8 +2,8 @@ package me.totalfreedom.totalfreedommod.sql.adapter;
 
 import java.sql.SQLException;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import me.totalfreedom.totalfreedommod.banning.StrikeRecord;
+import reactor.core.publisher.Mono;
 
 public interface StrikeRepository
 {
@@ -15,11 +15,11 @@ public interface StrikeRepository
 
     void deleteAllSync() throws SQLException;
 
-    CompletableFuture<Map<String, StrikeRecord>> loadAllAsync();
+    Mono<Map<String, StrikeRecord>> loadAllAsync();
 
-    CompletableFuture<Void> upsertAsync(StrikeRecord record);
+    Mono<Void> upsertAsync(StrikeRecord record);
 
-    CompletableFuture<Boolean> deleteByIpAsync(String ip);
+    Mono<Boolean> deleteByIpAsync(String ip);
 
-    CompletableFuture<Void> deleteAll();
+    Mono<Void> deleteAll();
 }

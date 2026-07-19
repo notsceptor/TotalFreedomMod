@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import lombok.Getter;
 import me.totalfreedom.totalfreedommod.FreedomService;
@@ -23,6 +22,8 @@ import me.totalfreedom.totalfreedommod.util.FUtil;
 import java.io.File;
 import java.io.IOException;
 import org.bukkit.Bukkit;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -58,7 +59,7 @@ public class AdminList extends FreedomService
     // Flag to track if SQL is available
     private boolean usingSql = false;
     private final Object persistenceLock = new Object();
-    private CompletableFuture<Void> persistenceChain = CompletableFuture.completedFuture(null);
+    private Mono<Void> persistenceChain = Mono.empty();
 
     public AdminList(TotalFreedomMod plugin)
     {
@@ -163,7 +164,7 @@ public class AdminList extends FreedomService
         try
         {
             AdminRepository repo = plugin.dm.getAdminRepository();
-            List<Admin> admins = repo.findAll().join();
+            List<Admin> admins = repo.findAll().block();
             
             allAdmins.clear();
             for (Admin admin : admins)
@@ -331,15 +332,16 @@ public class AdminList extends FreedomService
         synchronized (persistenceLock)
         {
             persistenceChain = persistenceChain
-                    .handle((ignored, throwable) -> null)
-                    .thenCompose(ignored -> plugin.dm.getAdminRepository().save(finalUuid, snapshot).thenAccept(id ->
-                    {
-                    }))
-                    .exceptionally(ex ->
+                    .onErrorResume(ignored -> Mono.empty())
+                    .then(plugin.dm.getAdminRepository().save(finalUuid, snapshot))
+                    .onErrorResume(ex ->
                     {
                         FLog.warning("Failed to save admin " + snapshot.getName() + " to SQL: " + ex.getMessage());
-                        return null;
-                    });
+                        return Mono.empty();
+                    })
+                    .then()
+                    .cache();
+            persistenceChain.subscribe();
         }
     }
 
@@ -385,7 +387,7 @@ public class AdminList extends FreedomService
                     }
                     admin.setUuid(uuid);
                 }
-                repo.save(uuid, admin).join();
+                repo.save(uuid, admin).block();
             }
             FLog.debug("Saved " + allAdmins.size() + " admins to SQL database");
         }
@@ -714,33 +716,27 @@ public class AdminList extends FreedomService
         synchronized (persistenceLock)
         {
             persistenceChain = persistenceChain
-                    .handle((ignored, throwable) -> null)
-                    .thenCompose(ignored ->
-                    {
-                        if (uuid != null)
-                        {
-                            return plugin.dm.getAdminRepository().deleteByUuid(uuid).thenAccept(deleted ->
+                    .onErrorResume(ignored -> Mono.empty())
+                    .then(uuid != null
+                            ? plugin.dm.getAdminRepository().deleteByUuid(uuid).then()
+                            : Mono.<Void>fromRunnable(() ->
                             {
-                            });
-                        }
-
-                        return CompletableFuture.runAsync(() ->
-                        {
-                            try
-                            {
-                                plugin.dm.getAdminRepository().deleteByUsername(name);
-                            }
-                            catch (Exception ex)
-                            {
-                                throw new RuntimeException(ex);
-                            }
-                        });
-                    })
-                    .exceptionally(ex ->
+                                try
+                                {
+                                    plugin.dm.getAdminRepository().deleteByUsername(name);
+                                }
+                                catch (Exception ex)
+                                {
+                                    throw new RuntimeException(ex);
+                                }
+                            }).subscribeOn(Schedulers.boundedElastic()))
+                    .onErrorResume(ex ->
                     {
                         FLog.warning("Failed to remove admin " + name + " from SQL: " + ex.getMessage());
-                        return null;
-                    });
+                        return Mono.empty();
+                    })
+                    .cache();
+            persistenceChain.subscribe();
         }
     }
 

@@ -77,7 +77,7 @@ public class StrikeList extends FreedomService
         try
         {
             StrikeRepository repo = plugin.dm.getStrikeRepository();
-            Map<String, StrikeRecord> loaded = repo.loadAllAsync().join();
+            Map<String, StrikeRecord> loaded = repo.loadAllAsync().block();
             strikes.putAll(loaded);
             usingSql = true;
         }
@@ -135,14 +135,9 @@ public class StrikeList extends FreedomService
                 removed++;
                 if (usingSql && plugin.dm != null && plugin.dm.isInitialized())
                 {
-                    try
-                    {
-                        plugin.dm.getStrikeRepository().deleteByIpAsync(e.getKey());
-                    }
-                    catch (Exception ex)
-                    {
-                        FLog.warning("Failed to prune decayed strike for " + e.getKey() + ": " + ex.getMessage());
-                    }
+                    plugin.dm.getStrikeRepository().deleteByIpAsync(e.getKey())
+                            .subscribe(deleted -> {}, ex ->
+                                    FLog.warning("Failed to prune decayed strike for " + e.getKey() + ": " + ex.getMessage()));
                 }
             }
         }
@@ -213,14 +208,9 @@ public class StrikeList extends FreedomService
         }
         if (usingSql && plugin.dm != null && plugin.dm.isInitialized())
         {
-            try
-            {
-                plugin.dm.getStrikeRepository().deleteByIpAsync(ip);
-            }
-            catch (Exception ex)
-            {
-                FLog.warning("Failed to clear strike from SQL: " + ex.getMessage());
-            }
+            plugin.dm.getStrikeRepository().deleteByIpAsync(ip)
+                    .subscribe(deleted -> {}, ex ->
+                            FLog.warning("Failed to clear strike from SQL: " + ex.getMessage()));
         }
         else
         {
@@ -238,14 +228,9 @@ public class StrikeList extends FreedomService
     {
         if (usingSql && plugin.dm != null && plugin.dm.isInitialized())
         {
-            try
-            {
-                plugin.dm.getStrikeRepository().upsertAsync(r);
-            }
-            catch (Exception ex)
-            {
-                FLog.warning("Failed to persist strike to SQL: " + ex.getMessage());
-            }
+            plugin.dm.getStrikeRepository().upsertAsync(r)
+                    .subscribe(null, ex ->
+                            FLog.warning("Failed to persist strike to SQL: " + ex.getMessage()));
         }
         else
         {

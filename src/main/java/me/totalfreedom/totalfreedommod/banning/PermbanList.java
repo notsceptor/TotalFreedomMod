@@ -65,7 +65,7 @@ public class PermbanList extends FreedomService
         try
         {
             PermbanRepository repo = plugin.dm.getPermbanRepository();
-            List<PermBan> loadedPermbans = repo.findAll().join();
+            List<PermBan> loadedPermbans = repo.findAll().block();
 
             synchronized (lock)
             {
@@ -170,7 +170,7 @@ public class PermbanList extends FreedomService
                 PermbanRepository repo = plugin.dm.getPermbanRepository();
                 for (PermBan permban : snapshot)
                 {
-                    repo.save(permban).join();
+                    repo.save(permban).block();
                 }
                 FLog.debug("Saved " + snapshot.size() + " permbans to SQL database");
             }
@@ -348,7 +348,7 @@ public class PermbanList extends FreedomService
         {
             try
             {
-                plugin.dm.getPermbanRepository().save(permban).join();
+                plugin.dm.getPermbanRepository().save(permban).block();
             }
             catch (Exception ex)
             {

@@ -4,14 +4,14 @@ import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.banning.Ban;
 import me.totalfreedom.totalfreedommod.sql.StatementHandler;
 import me.totalfreedom.totalfreedommod.sql.adapter.BanRepository;
-import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
+
+import reactor.core.publisher.Mono;
 
 /**
  * SQLite implementation of BanRepository.
@@ -422,77 +422,58 @@ public class SQLiteBanRepository implements BanRepository
     // ============================================
 
     @Override
-    public CompletableFuture<List<Ban>> loadAllAsync()
+    public Mono<List<Ban>> loadAllAsync()
     {
-        return CompletableFuture.supplyAsync(() -> {
-            try { return loadAll(); }
-            catch (SQLException e) { FLog.severe("Failed to load bans: " + e.getMessage()); throw new RuntimeException(e); }
-        });
+        return statementHandler.supplyMono(this::loadAll);
     }
 
     @Override
-    public CompletableFuture<Integer> insertAsync(Ban ban)
+    public Mono<Integer> insertAsync(Ban ban)
     {
-        return CompletableFuture.supplyAsync(() -> {
-            try { return insert(ban); }
-            catch (SQLException e) { FLog.severe("Failed to insert ban: " + e.getMessage()); throw new RuntimeException(e); }
-        });
+        return statementHandler.supplyMono(() -> insert(ban));
     }
 
     @Override
-    public CompletableFuture<Boolean> updateAsync(Ban ban)
+    public Mono<Boolean> updateAsync(Ban ban)
     {
-        return CompletableFuture.supplyAsync(() -> {
-            try { return update(ban); }
-            catch (SQLException e) { FLog.severe("Failed to update ban: " + e.getMessage()); throw new RuntimeException(e); }
-        });
+        return statementHandler.supplyMono(() -> update(ban));
     }
 
     @Override
-    public CompletableFuture<Boolean> deleteAsync(UUID uuid)
+    public Mono<Boolean> deleteAsync(UUID uuid)
     {
-        return CompletableFuture.supplyAsync(() -> {
-            try { return delete(uuid); }
-            catch (SQLException e) { FLog.severe("Failed to delete ban: " + e.getMessage()); throw new RuntimeException(e); }
-        });
+        return statementHandler.supplyMono(() -> delete(uuid));
     }
 
     @Override
-    public CompletableFuture<Integer> save(Ban ban)
+    public Mono<Integer> save(Ban ban)
     {
-        return CompletableFuture.supplyAsync(() -> {
-            try
+        return statementHandler.supplyMono(() -> {
+            if (ban.getUuid() != null && getBanId(ban.getUuid()) > 0)
             {
-                if (ban.getUuid() != null && getBanId(ban.getUuid()) > 0)
-                {
-                    update(ban);
-                    return getBanId(ban.getUuid());
-                }
-                return insert(ban);
+                update(ban);
+                return getBanId(ban.getUuid());
             }
-            catch (SQLException e) { FLog.severe("Failed to save ban: " + e.getMessage()); throw new RuntimeException(e); }
+            return insert(ban);
         });
     }
 
     @Override
-    public CompletableFuture<List<Ban>> findAll()
+    public Mono<List<Ban>> findAll()
     {
         return loadAllAsync();
     }
 
     @Override
-    public CompletableFuture<Boolean> deleteByUuid(UUID uuid)
+    public Mono<Boolean> deleteByUuid(UUID uuid)
     {
         return deleteAsync(uuid);
     }
 
     @Override
-    public CompletableFuture<Void> deleteAll()
+    public Mono<Void> deleteAll()
     {
-        return CompletableFuture.runAsync(() -> {
-            try { deleteAllSync(); }
-            catch (SQLException e) { FLog.severe("Failed to delete all bans: " + e.getMessage()); throw new RuntimeException(e); }
-        });
+        return statementHandler.runMono(this::deleteAllSync);
     }
 
     // ============================================

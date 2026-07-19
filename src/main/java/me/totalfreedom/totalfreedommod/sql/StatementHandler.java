@@ -1,12 +1,25 @@
 package me.totalfreedom.totalfreedommod.sql;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collection;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Callable;
 
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
+
+/**
+ * Executes SQL against connections borrowed from {@link ConnectionHandler}'s pool.
+ *
+ * The {@link PreparedStatement}/{@link ResultSet} returned by {@link #prepareStatement}
+ * and {@link #executeQuery} are wrapped so that closing them via try-with-resources
+ * also returns the borrowed pooled {@link Connection}. Callers do not need to change how they consume
+ * these methods, but the underlying connection is no longer held open indefinitely.
+ */
 public class StatementHandler
 {
     private final ConnectionHandler connectionHandler;
@@ -16,29 +29,35 @@ public class StatementHandler
         this.connectionHandler = connectionHandler;
     }
 
-    private Connection getConnection() throws SQLException
-    {
-        try
-        {
-            return connectionHandler.getConnection().join();
-        }
-        catch (Exception e)
-        {
-            throw new SQLException("Failed to obtain connection", e);
-        }
-    }
-
     public PreparedStatement prepareStatement(String sql, Object... params) throws SQLException
     {
-        PreparedStatement statement = getConnection().prepareStatement(sql);
-        setParameters(statement, params);
-        return statement;
+        Connection connection = connectionHandler.borrowConnection();
+        PreparedStatement statement;
+        try
+        {
+            statement = connection.prepareStatement(sql);
+            setParameters(statement, params);
+        }
+        catch (SQLException e)
+        {
+            closeQuietly(connection);
+            throw e;
+        }
+        return closingStatementProxy(statement, connection);
     }
 
     public ResultSet executeQuery(String sql, Object... params) throws SQLException
     {
         PreparedStatement statement = prepareStatement(sql, params);
-        return statement.executeQuery();
+        try
+        {
+            return closingResultSetProxy(statement.executeQuery(), statement);
+        }
+        catch (SQLException e)
+        {
+            closeQuietly(statement);
+            throw e;
+        }
     }
 
     public int executeUpdate(String sql, Object... params) throws SQLException
@@ -49,34 +68,58 @@ public class StatementHandler
         }
     }
 
-    public CompletableFuture<ResultSet> executeQueryAsync(String sql, Object... params)
+    /**
+     * Runs an INSERT and returns the first generated key, or -1 if none was generated.
+     */
+    public long executeUpdateReturnKey(String sql, Object... params) throws SQLException
     {
-        return CompletableFuture.supplyAsync(() ->
+        Connection connection = connectionHandler.borrowConnection();
+        try (PreparedStatement statement = connection.prepareStatement(sql, java.sql.Statement.RETURN_GENERATED_KEYS))
         {
-            try
+            setParameters(statement, params);
+            statement.executeUpdate();
+            try (ResultSet keys = statement.getGeneratedKeys())
             {
-                return executeQuery(sql, params);
+                return keys.next() ? keys.getLong(1) : -1L;
             }
-            catch (SQLException e)
-            {
-                throw new RuntimeException(e);
-            }
-        });
+        }
+        finally
+        {
+            closeQuietly(connection);
+        }
     }
 
-    public CompletableFuture<Integer> executeUpdateAsync(String sql, Object... params)
+    public <T> Mono<T> supplyMono(Callable<T> work)
     {
-        return CompletableFuture.supplyAsync(() ->
-        {
-            try
-            {
-                return executeUpdate(sql, params);
-            }
-            catch (SQLException e)
-            {
-                throw new RuntimeException(e);
-            }
-        });
+        return connectionHandler.getAccessController().guard(
+                Mono.fromCallable(work).subscribeOn(Schedulers.boundedElastic()));
+    }
+
+    public Mono<Void> runMono(SqlRunnable work)
+    {
+        return connectionHandler.getAccessController().guard(
+                Mono.<Void>fromRunnable(() ->
+                {
+                    try
+                    {
+                        work.run();
+                    }
+                    catch (SQLException e)
+                    {
+                        throw new RuntimeException(e);
+                    }
+                }).subscribeOn(Schedulers.boundedElastic()));
+    }
+
+    @FunctionalInterface
+    public interface SqlRunnable
+    {
+        void run() throws SQLException;
+    }
+
+    public void close()
+    {
+        connectionHandler.shutdown();
     }
 
     private void setParameters(PreparedStatement statement, Object... params) throws SQLException
@@ -96,18 +139,18 @@ public class StatementHandler
             return index + 1;
         }
 
-        if (param instanceof String[])
+        if (param instanceof String[] ss)
         {
-            for (String s : (String[]) param)
+            for (String s : (String[]) ss)
             {
                 statement.setString(index++, s);
             }
             return index;
         }
 
-        if (param instanceof Collection<?>)
+        if (param instanceof Collection<?> coll)
         {
-            for (Object item : (Collection<?>) param)
+            for (Object item : coll)
             {
                 if (item instanceof String)
                 {
@@ -121,11 +164,11 @@ public class StatementHandler
             return index;
         }
 
-        if (param instanceof String)
+        if (param instanceof String s)
         {
-            statement.setString(index, (String) param);
+            statement.setString(index, s);
         }
-        else if (param instanceof Integer || param.getClass() == int.class)
+        else if (param instanceof Integer || param.getClass() == int.class) // no instanceof capture available here
         {
             statement.setInt(index, (Integer) param);
         }
@@ -161,8 +204,80 @@ public class StatementHandler
         return index + 1;
     }
 
-    public void close()
+    private static void closeQuietly(AutoCloseable closeable)
     {
-        connectionHandler.shutdown();
+        try
+        {
+            closeable.close();
+        }
+        catch (Exception ignored) {}
+    }
+
+    /**
+     * Wraps a PreparedStatement so that closing it also returns the pooled Connection
+     * that produced it, without changing anything about how callers use the statement.
+     */
+    private static PreparedStatement closingStatementProxy(PreparedStatement target, Connection connection)
+    {
+        return (PreparedStatement) Proxy.newProxyInstance(
+                StatementHandler.class.getClassLoader(),
+                new Class<?>[] { PreparedStatement.class },
+                (proxy, method, args) ->
+                {
+                    if ("close".equals(method.getName()))
+                    {
+                        try
+                        {
+                            target.close();
+                        }
+                        finally
+                        {
+                            connection.close();
+                        }
+                        return null;
+                    }
+                    try
+                    {
+                        return method.invoke(target, args);
+                    }
+                    catch (InvocationTargetException e)
+                    {
+                        throw e.getCause();
+                    }
+                });
+    }
+
+    /**
+     * Wraps a ResultSet so that closing it also closes the proxied PreparedStatement
+     * that produced it, cascading through to the pooled Connection.
+     */
+    private static ResultSet closingResultSetProxy(ResultSet target, PreparedStatement statement)
+    {
+        return (ResultSet) Proxy.newProxyInstance(
+                StatementHandler.class.getClassLoader(),
+                new Class<?>[] { ResultSet.class },
+                (proxy, method, args) ->
+                {
+                    if ("close".equals(method.getName()))
+                    {
+                        try
+                        {
+                            target.close();
+                        }
+                        finally
+                        {
+                            statement.close();
+                        }
+                        return null;
+                    }
+                    try
+                    {
+                        return method.invoke(target, args);
+                    }
+                    catch (InvocationTargetException e)
+                    {
+                        throw e.getCause();
+                    }
+                });
     }
 }

@@ -52,7 +52,7 @@ public abstract class DatabaseAdapter
      */
     public void shutdown()
     {
-        connectionHandler.closeConnection();
+        connectionHandler.shutdown();
     }
 
     // ============================================

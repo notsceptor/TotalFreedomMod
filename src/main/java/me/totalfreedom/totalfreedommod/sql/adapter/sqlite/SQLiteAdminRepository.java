@@ -5,14 +5,14 @@ import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.sql.StatementHandler;
 import me.totalfreedom.totalfreedommod.sql.adapter.AdminRepository;
-import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
+
+import reactor.core.publisher.Mono;
 
 /**
  * SQLite implementation of AdminRepository.
@@ -394,72 +394,51 @@ public class SQLiteAdminRepository implements AdminRepository
     // ============================================
 
     @Override
-    public CompletableFuture<Map<String, Admin>> loadAllAsync()
+    public Mono<Map<String, Admin>> loadAllAsync()
     {
-        return CompletableFuture.supplyAsync(() -> {
-            try { return loadAll(); }
-            catch (SQLException e) { FLog.severe("Failed to load admins: " + e.getMessage()); throw new RuntimeException(e); }
-        });
+        return statementHandler.supplyMono(this::loadAll);
     }
 
     @Override
-    public CompletableFuture<Integer> insertAsync(UUID uuid, Admin admin)
+    public Mono<Integer> insertAsync(UUID uuid, Admin admin)
     {
-        return CompletableFuture.supplyAsync(() -> {
-            try { return insert(uuid, admin); }
-            catch (SQLException e) { FLog.severe("Failed to insert admin: " + e.getMessage()); throw new RuntimeException(e); }
-        });
+        return statementHandler.supplyMono(() -> insert(uuid, admin));
     }
 
     @Override
-    public CompletableFuture<Boolean> updateAsync(UUID uuid, Admin admin)
+    public Mono<Boolean> updateAsync(UUID uuid, Admin admin)
     {
-        return CompletableFuture.supplyAsync(() -> {
-            try { return update(uuid, admin); }
-            catch (SQLException e) { FLog.severe("Failed to update admin: " + e.getMessage()); throw new RuntimeException(e); }
-        });
+        return statementHandler.supplyMono(() -> update(uuid, admin));
     }
 
     @Override
-    public CompletableFuture<Boolean> deleteAsync(UUID uuid)
+    public Mono<Boolean> deleteAsync(UUID uuid)
     {
-        return CompletableFuture.supplyAsync(() -> {
-            try { return delete(uuid); }
-            catch (SQLException e) { FLog.severe("Failed to delete admin: " + e.getMessage()); throw new RuntimeException(e); }
-        });
+        return statementHandler.supplyMono(() -> delete(uuid));
     }
 
     @Override
-    public CompletableFuture<Integer> save(UUID uuid, Admin admin)
+    public Mono<Integer> save(UUID uuid, Admin admin)
     {
-        return CompletableFuture.supplyAsync(() -> {
-            try { return saveOrUpdate(uuid, admin); }
-            catch (SQLException e) { FLog.severe("Failed to save admin: " + e.getMessage()); throw new RuntimeException(e); }
-        });
+        return statementHandler.supplyMono(() -> saveOrUpdate(uuid, admin));
     }
 
     @Override
-    public CompletableFuture<List<Admin>> findAll()
+    public Mono<List<Admin>> findAll()
     {
-        return CompletableFuture.supplyAsync(() -> {
-            try { return new ArrayList<>(loadAll().values()); }
-            catch (SQLException e) { FLog.severe("Failed to find all admins: " + e.getMessage()); throw new RuntimeException(e); }
-        });
+        return statementHandler.supplyMono(() -> new ArrayList<>(loadAll().values()));
     }
 
     @Override
-    public CompletableFuture<Boolean> deleteByUuid(UUID uuid)
+    public Mono<Boolean> deleteByUuid(UUID uuid)
     {
         return deleteAsync(uuid);
     }
 
     @Override
-    public CompletableFuture<Void> deleteAll()
+    public Mono<Void> deleteAll()
     {
-        return CompletableFuture.runAsync(() -> {
-            try { deleteAllSync(); }
-            catch (SQLException e) { FLog.severe("Failed to delete all admins: " + e.getMessage()); throw new RuntimeException(e); }
-        });
+        return statementHandler.runMono(this::deleteAllSync);
     }
 
     // ============================================

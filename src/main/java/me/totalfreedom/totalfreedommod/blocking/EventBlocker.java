@@ -196,6 +196,7 @@ public class EventBlocker extends FreedomService
                     return;
                 }
             }
+            default: break;
         }
 
         if (ConfigEntry.ENABLE_PET_PROTECT.getBoolean())

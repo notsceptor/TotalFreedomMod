@@ -1,38 +1,34 @@
 package me.totalfreedom.totalfreedommod.sql;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.jetbrains.annotations.NotNull;
+
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.sql.SQLProperties.DatabaseType;
-
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
 import me.totalfreedom.totalfreedommod.util.FLog;
 
 /**
- * Handles database connections for all supported database types.
+ * Contains the HikariCP connection pool for the configured database.
  * Supports: SQLite, MySQL, PostgreSQL
  */
 public class ConnectionHandler
 {
+    private static final int DEFAULT_POOL_SIZE = 10;
+    private static final int SQLITE_POOL_SIZE = 1;
+
     private final SQLProperties sqlProperties;
-    private Connection connection = null;
-    private final ExecutorService dbExecutor;
+    private volatile HikariDataSource dataSource;
+    private volatile AccessController accessController;
 
     public ConnectionHandler(@NotNull final TotalFreedomMod plugin)
     {
         this.sqlProperties = new SQLProperties(plugin);
-        // Use a single-thread executor for DB operations to avoid blocking main thread
-        this.dbExecutor = Executors.newSingleThreadExecutor(r -> {
-            Thread t = new Thread(r, "TFM-Database");
-            t.setDaemon(true);
-            return t;
-        });
     }
 
     /**
@@ -45,135 +41,153 @@ public class ConnectionHandler
     }
 
     /**
-     * Get or create a JDBC connection for the configured database.
+     * Build the HikariCP connection pool for the configured database. 
+     * Blocks until Hikari's own initial-connection test succeeds or fails.
+     *
+     * @apiNote SQLite is a single-writer embedded engine, so it is pinned to a single pooled connection regardless of configuration.
      */
-    @NotNull
-    public CompletableFuture<Connection> getConnection()
+    public void connect() throws SQLException
     {
-        return CompletableFuture.supplyAsync(() -> {
-            try
-            {
-                DatabaseType dbType = sqlProperties.getDatabaseType();
+        DatabaseType dbType = sqlProperties.getDatabaseType();
 
-                if (connection == null || connection.isClosed())
+        HikariConfig config = new HikariConfig();
+        config.setJdbcUrl(sqlProperties.getJdbcUrl());
+        config.setPoolName("TFM-" + dbType.getName());
+
+        String driverClass = sqlProperties.getDriverClass();
+        if (driverClass != null && !driverClass.isEmpty())
+        {
+            config.setDriverClassName(driverClass);
+        }
+
+        if (sqlProperties.hasCredentials())
+        {
+            config.setUsername(sqlProperties.getUsername());
+            config.setPassword(sqlProperties.getPassword());
+        }
+
+        if (dbType == DatabaseType.SQLITE)
+        {
+            config.setMaximumPoolSize(SQLITE_POOL_SIZE);
+            config.setConnectionTestQuery("SELECT 1");
+            // SQLite pragmas are set per-connection so we need to make sure it doesn't accidentally get recycled
+            config.setMaxLifetime(0);
+        }
+        else
+        {
+            config.setMaximumPoolSize(DEFAULT_POOL_SIZE);
+            config.setMinimumIdle(1);
+        }
+
+        try
+        {
+            FLog.info(String.format(
+                                    "Connecting to database: %s at %s", 
+                                    dbType.getName(), 
+                                    maskPassword(config.getJdbcUrl())
+                                ));
+            this.dataSource = new HikariDataSource(config);
+            this.accessController = new AccessController(dataSource.getMaximumPoolSize());
+
+            if (dbType == DatabaseType.SQLITE)
+            {
+                try (Connection connection = dataSource.getConnection())
                 {
-                    // Load JDBC driver if specified
-                    String driverClass = sqlProperties.getDriverClass();
-                    if (driverClass != null && !driverClass.isEmpty())
-                    {
-                        try
-                        {
-                            Class.forName(driverClass);
-                        }
-                        catch (ClassNotFoundException e)
-                        {
-                            FLog.warning("JDBC driver not found: " + driverClass + 
-                                ". Attempting to connect anyway...");
-                        }
-                    }
-
-                    String url = sqlProperties.getJdbcUrl();
-                    FLog.info("Connecting to database: " + dbType.getName() + " at " + maskPassword(url));
-                    
-                    connection = DriverManager.getConnection(url, sqlProperties.getConnectionProperties());
-                    
-                    // Apply SQLite-specific pragmas if applicable
-                    if (dbType == DatabaseType.SQLITE)
-                    {
-                        sqlProperties.applySqlitePragmas(connection);
-                    }
-                    
-                    FLog.info("Database connection established (" + dbType.getName() + ")");
+                    sqlProperties.applySqlitePragmas(connection);
                 }
-                return connection;
+                catch (SQLException e)
+                {
+                    throw e; // this should be handled downstream, not here.
+                }
+                catch (Exception e)
+                {
+                    throw new SQLException("Failed to apply SQLite pragmas", e); // this should also be handled downstream.
+                }
             }
-            catch (SQLException e)
-            {
-                throw new RuntimeException("Failed to get database connection", e);
-            }
-            catch (Exception e)
-            {
-                throw new RuntimeException("Failed to initialize database", e);
-            }
-        }, dbExecutor);
+
+            FLog.info(String.format(
+                                    "Database connection pool established (%s, poolSize %d)", 
+                                    dbType.getName(), 
+                                    dataSource.getMaximumPoolSize()
+                                ));
+        }
+        catch (SQLException e)
+        {
+            throw e;
+        }
+        catch (Exception e)
+        {
+            throw new SQLException("Failed to initialize database connection pool", e);
+        }
     }
 
     /**
-     * Get the configured database type.
+     * Borrow a pooled connection. Callers are responsible for closing it, which
+     * returns it to the pool rather than actually closing the physical connection.
      */
+    @NotNull
+    public Connection borrowConnection() throws SQLException
+    {
+        if (dataSource == null)
+        {
+            throw new IllegalStateException("Connection pool not initialized. Call connect() first.");
+        }
+        return dataSource.getConnection();
+    }
+
+    /**
+     * Semaphore holder which limits concurrent async queries to the pool's maximum connection count.
+     */
+    @NotNull
+    public AccessController getAccessController()
+    {
+        if (accessController == null)
+        {
+            throw new IllegalStateException("Connection pool not initialized. Call connect() first.");
+        }
+        return accessController;
+    }
+
     @NotNull
     public DatabaseType getDatabaseType()
     {
         return sqlProperties.getDatabaseType();
     }
 
-    /**
-     * Shutdown the connection handler, closing all connections.
-     */
-    public void shutdown()
+    public boolean isConnected()
     {
-        FLog.info("Shutting down database connection handler...");
-        dbExecutor.shutdown();
-        
-        // Close JDBC connection
-        if (connection != null)
+        return dataSource != null && !dataSource.isClosed();
+    }
+
+    public boolean testConnection()
+    {
+        try (Connection connection = borrowConnection())
         {
-            try
-            {
-                connection.close();
-                FLog.info("Database connection closed.");
-            }
-            catch (SQLException e)
-            {
-                FLog.warning("Failed to close database connection: " + e.getMessage());
-            }
+            return connection.isValid(5);
+        }
+        catch (Exception e)
+        {
+            FLog.severe(String.format(
+                                    "Database connection test failed: %s", 
+                                    ExceptionUtils.getRootCauseMessage(e)
+                                ));
+            return false;
         }
     }
 
-    /**
-     * Test the database connection.
-     */
-    public CompletableFuture<Boolean> testConnection()
+    public void shutdown()
     {
-        return CompletableFuture.supplyAsync(() -> {
-            try
-            {
-                Connection conn = getConnection().join();
-                return conn != null && !conn.isClosed() && conn.isValid(5);
-            }
-            catch (Exception e)
-            {
-                FLog.severe("Database connection test failed: " + e.getMessage());
-                return false;
-            }
-        }, dbExecutor);
+        FLog.info("Shutting down database connection handler...");
+        if (dataSource != null && !dataSource.isClosed())
+        {
+            dataSource.close();
+            FLog.info("Database connection pool closed.");
+        }
     }
 
-    /**
-     * Mask password in connection URL for logging.
-     */
     private String maskPassword(String url)
     {
-        // Mask any password patterns like :password@ or password=xxx
         return url.replaceAll(":[^:@/]+@", ":****@")
                   .replaceAll("password=[^&;]+", "password=****");
-    }
-
-    public CompletableFuture<Void> closeConnection() {
-        return CompletableFuture.runAsync(() -> {
-            if (connection != null)
-            {
-                try
-                {
-                    connection.close();
-                    FLog.info("Database connection closed.");
-                }
-                catch (SQLException e)
-                {
-                    FLog.warning("Failed to close database connection: " + e.getMessage());
-                }
-                connection = null;
-            }
-        }, dbExecutor);
     }
 }

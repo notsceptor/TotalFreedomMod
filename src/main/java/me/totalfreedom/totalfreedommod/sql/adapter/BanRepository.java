@@ -6,7 +6,8 @@ import java.sql.SQLException;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
+
+import reactor.core.publisher.Mono;
 
 /**
  * Repository interface for Ban data.
@@ -162,31 +163,31 @@ public interface BanRepository
     // Async Operations
     // ============================================
 
-    CompletableFuture<List<Ban>> loadAllAsync();
+    Mono<List<Ban>> loadAllAsync();
 
-    CompletableFuture<Integer> insertAsync(Ban ban);
+    Mono<Integer> insertAsync(Ban ban);
 
-    CompletableFuture<Boolean> updateAsync(Ban ban);
+    Mono<Boolean> updateAsync(Ban ban);
 
-    CompletableFuture<Boolean> deleteAsync(UUID uuid);
-    
+    Mono<Boolean> deleteAsync(UUID uuid);
+
     /**
      * Save ban asynchronously (insert or update).
      */
-    CompletableFuture<Integer> save(Ban ban);
-    
+    Mono<Integer> save(Ban ban);
+
     /**
      * Find all bans asynchronously.
      */
-    CompletableFuture<List<Ban>> findAll();
-    
+    Mono<List<Ban>> findAll();
+
     /**
      * Delete ban by UUID asynchronously.
      */
-    CompletableFuture<Boolean> deleteByUuid(UUID uuid);
-    
+    Mono<Boolean> deleteByUuid(UUID uuid);
+
     /**
      * Delete all bans asynchronously.
      */
-    CompletableFuture<Void> deleteAll();
+    Mono<Void> deleteAll();
 }

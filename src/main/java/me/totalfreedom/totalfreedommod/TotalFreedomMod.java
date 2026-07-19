@@ -382,7 +382,7 @@ public class TotalFreedomMod extends JavaPlugin
         try
         {
             YamlMigrationService migrationService = new YamlMigrationService(this, dm);
-            migrationService.runMigrations().join();
+            migrationService.runMigrations().block();
             
             // Reload admin list after migration to pick up SQL data
             if (al != null)

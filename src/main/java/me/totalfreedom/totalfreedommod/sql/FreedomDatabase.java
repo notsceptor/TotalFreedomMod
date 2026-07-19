@@ -74,15 +74,8 @@ public class FreedomDatabase extends FreedomService
         SQLProperties properties = connectionHandler.getSqlProperties();
         DatabaseType dbType = properties.getDatabaseType();
 
-        // Wait for connection
-        try
-        {
-            connectionHandler.getConnection().join();
-        }
-        catch (Exception ex)
-        {
-            throw new SQLException("Failed to establish database connection", ex);
-        }
+        // Build the connection pool
+        connectionHandler.connect();
 
         // Create statement handler
         statementHandler = new StatementHandler(connectionHandler);
