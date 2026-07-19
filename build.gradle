@@ -40,9 +40,9 @@ repositories {
 
 dependencies {
     compileOnly 'io.papermc.paper:paper-api:26.1.2.build.61-stable'
-    compileOnly 'org.projectlombok:lombok:1.18.42'
-    annotationProcessor 'org.projectlombok:lombok:1.18.42'
-    compileOnly 'org.apache.commons:commons-lang3:3.14.0'
+    compileOnly 'org.projectlombok:lombok:1.18.42' // slated for removal
+    annotationProcessor 'org.projectlombok:lombok:1.18.42' // slated for removal
+    // compileOnly 'org.apache.commons:commons-lang3:3.14.0'  this is supplied by paper, we don't need the import.
     compileOnly 'commons-io:commons-io:2.16.1'
     compileOnly 'net.kyori:adventure-text-serializer-ansi:4.17.0'
     compileOnly 'net.milkbowl.vault:VaultUnlockedAPI:2.16'
@@ -50,6 +50,13 @@ dependencies {
     compileOnly('com.sk89q.worldedit:worldedit-core:7.3.10') { transitive = false }
 
     compileOnly 'org.apache.sshd:sshd-core:2.17.1'
+    
+    //sql section
+    compileOnly 'org.postgresql:postgresql:42.7.7'
+    compileOnly 'org.xerial:sqlite-jdbc:3.49.1.0'
+    compileOnly 'com.mysql:mysql-connector-j:9.3.0'
+    compileOnly 'io.projectreactor:reactor-core:3.7.6'
+    compileOnly 'com.zaxxer:HikariCP:6.3.0'
 
     compileOnly 'org.jline:jline:3.28.0'
     compileOnly 'org.apache.logging.log4j:log4j-core:2.24.3'

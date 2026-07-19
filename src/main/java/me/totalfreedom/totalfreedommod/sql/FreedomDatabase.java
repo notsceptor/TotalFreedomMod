@@ -74,13 +74,6 @@ public class FreedomDatabase extends FreedomService
         SQLProperties properties = connectionHandler.getSqlProperties();
         DatabaseType dbType = properties.getDatabaseType();
 
-        if (dbType.isNoSQL())
-        {
-            FLog.warning("NoSQL database type '" + dbType.getName() + "' is not yet fully supported.");
-            FLog.warning("Please use a SQL database (sqlite, mysql, mariadb, postgresql, h2) instead.");
-            return;
-        }
-
         // Wait for connection
         try
         {

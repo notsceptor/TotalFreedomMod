@@ -44,9 +44,6 @@ public class MySQLStrikeRepository implements StrikeRepository
     @Override
     public void upsert(StrikeRecord r) throws SQLException
     {
-        // MySQL/MariaDB dialect. H2 supports ON DUPLICATE KEY UPDATE in MySQL mode,
-        // which is the default when connection URL uses MODE=MySQL; the H2 adapter
-        // does not set that, so use MERGE-compatible form via standard upsert below.
         String sql = """
             INSERT INTO strikes (ip, strike_count, last_strike_unix, last_username)
             VALUES (?, ?, ?, ?)
@@ -55,21 +52,8 @@ public class MySQLStrikeRepository implements StrikeRepository
                 last_strike_unix = VALUES(last_strike_unix),
                 last_username = VALUES(last_username)
             """;
-        try
-        {
-            statementHandler.executeUpdate(sql,
-                    r.getIp(), r.getCount(), r.getLastStrikeUnix(), r.getLastUsername());
-        }
-        catch (SQLException ex)
-        {
-            // H2 in default mode rejects ON DUPLICATE KEY UPDATE; fall back to MERGE.
-            String merge = """
-                MERGE INTO strikes (ip, strike_count, last_strike_unix, last_username)
-                KEY(ip) VALUES (?, ?, ?, ?)
-                """;
-            statementHandler.executeUpdate(merge,
-                    r.getIp(), r.getCount(), r.getLastStrikeUnix(), r.getLastUsername());
-        }
+        statementHandler.executeUpdate(sql,
+                r.getIp(), r.getCount(), r.getLastStrikeUnix(), r.getLastUsername());
     }
 
     @Override

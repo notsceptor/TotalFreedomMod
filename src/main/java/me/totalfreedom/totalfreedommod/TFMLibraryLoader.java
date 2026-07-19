@@ -18,7 +18,12 @@ public class TFMLibraryLoader implements PluginLoader
     private static final String[] LIBRARIES = {
             "net.dv8tion:JDA:5.6.1",
             "org.apache.sshd:sshd-core:2.17.1",
-            "net.i2p.crypto:eddsa:0.3.0"
+            "net.i2p.crypto:eddsa:0.3.0", 
+            "org.postgresql:postgresql:42.7.7",
+            "org.xerial:sqlite-jdbc:3.49.1.0",
+            "com.mysql:mysql-connector-j:9.3.0",
+            "io.projectreactor:reactor-core:3.7.6",
+            "com.zaxxer:HikariCP:6.3.0"
     };
 
     @Override

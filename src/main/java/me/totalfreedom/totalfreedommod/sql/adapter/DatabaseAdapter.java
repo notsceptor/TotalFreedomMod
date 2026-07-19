@@ -91,9 +91,8 @@ public abstract class DatabaseAdapter
     /**
      * Get the auto-increment syntax for primary keys.
      * SQLite: INTEGER PRIMARY KEY AUTOINCREMENT
-     * MySQL/MariaDB: INT AUTO_INCREMENT
+     * MySQL: INT AUTO_INCREMENT
      * PostgreSQL: SERIAL
-     * H2: INT AUTO_INCREMENT
      */
     public abstract String autoIncrementSyntax();
 
@@ -105,7 +104,7 @@ public abstract class DatabaseAdapter
     /**
      * Get the text/string type for this database.
      * SQLite: TEXT
-     * MySQL/MariaDB: TEXT or VARCHAR
+     * MySQL: TEXT or VARCHAR
      * PostgreSQL: TEXT
      */
     public abstract String textType();
@@ -113,7 +112,7 @@ public abstract class DatabaseAdapter
     /**
      * Get the timestamp/datetime type for this database.
      * SQLite: TEXT (stored as ISO string)
-     * MySQL/MariaDB: DATETIME
+     * MySQL: DATETIME
      * PostgreSQL: TIMESTAMP
      */
     public abstract String timestampType();
@@ -121,7 +120,7 @@ public abstract class DatabaseAdapter
     /**
      * Get the boolean type for this database.
      * SQLite: INTEGER (0/1)
-     * MySQL/MariaDB: TINYINT(1)
+     * MySQL: TINYINT(1)
      * PostgreSQL: BOOLEAN
      */
     public abstract String booleanType();
@@ -129,7 +128,7 @@ public abstract class DatabaseAdapter
     /**
      * Get the INSERT IGNORE / INSERT OR IGNORE syntax prefix.
      * SQLite: INSERT OR IGNORE
-     * MySQL/MariaDB: INSERT IGNORE
+     * MySQL: INSERT IGNORE
      * PostgreSQL: INSERT (use ON CONFLICT DO NOTHING suffix)
      */
     public abstract String insertIgnoreSyntax();
@@ -137,7 +136,7 @@ public abstract class DatabaseAdapter
     /**
      * Quote an identifier (table name, column name) for this database.
      * SQLite: No quoting or double quotes
-     * MySQL/MariaDB: `identifier` (backticks)
+     * MySQL: `identifier` (backticks)
      * PostgreSQL: "identifier" (double quotes)
      */
     public abstract String quoteIdentifier(String identifier);
@@ -145,7 +144,7 @@ public abstract class DatabaseAdapter
     /**
      * Get the current timestamp function.
      * SQLite: CURRENT_TIMESTAMP or datetime('now')
-     * MySQL/MariaDB: NOW()
+     * MySQL: NOW()
      * PostgreSQL: CURRENT_TIMESTAMP
      */
     public abstract String currentTimestamp();
