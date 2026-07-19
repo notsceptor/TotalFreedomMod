@@ -27,7 +27,7 @@ public class Command_potion extends FCommand
     @Subcommand("list")
     public void listEffects(CommandSender sender)
     {
-        List<Component> effects = Registry.POTION_EFFECT_TYPE
+        final List<Component> effects = Registry.POTION_EFFECT_TYPE
                                           .stream()
                                           .map(type -> buildEffectEntry(sender, type))
                                           .toList();
@@ -115,8 +115,8 @@ public class Command_potion extends FCommand
             return;
         }
 
-        int clampedDuration = Math.min(duration, 100_000);
-        int clampedAmplifier = Math.min(amplifier, 100_000);
+        final int clampedDuration = Math.min(duration, 100_000);
+        final int clampedAmplifier = Math.min(amplifier, 100_000);
 
         player.addPotionEffect(type.createEffect(clampedDuration, clampedAmplifier));
 

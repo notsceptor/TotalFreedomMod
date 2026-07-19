@@ -47,9 +47,9 @@ public class Command_nicknyan extends FCommand
             return;
         }
 
-        for (Player other : server().getOnlinePlayers())
+        for (final Player other : server().getOnlinePlayers())
         {
-            if (other == player)
+            if (other.getUniqueId().equals(player.getUniqueId()))
             {
                 continue;
             }

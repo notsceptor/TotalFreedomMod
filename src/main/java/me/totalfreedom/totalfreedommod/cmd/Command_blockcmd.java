@@ -1,7 +1,5 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
-import java.util.concurrent.atomic.AtomicInteger;
-
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.command.CommandSender;
@@ -25,7 +23,7 @@ public class Command_blockcmd extends FCommand
             return;
         }
 
-        FPlayer playerdata = plugin().pl.getPlayer(player);
+        final FPlayer playerdata = plugin().pl.getPlayer(player);
 
         adminAction(sender, "<red><blocked:Unb:B>locking all commands for <player>",
                 Formatter.booleanChoice("blocked", playerdata.allCommandsBlocked()),
@@ -47,7 +45,7 @@ public class Command_blockcmd extends FCommand
     {
         adminAction(sender, "<red>Blocking commands for all non-admins");
 
-        long count = server().getOnlinePlayers()
+        final long count = server().getOnlinePlayers()
                 .stream()
                 .filter(p -> !isAdmin(p))
                 .peek(p -> {
@@ -65,17 +63,17 @@ public class Command_blockcmd extends FCommand
     public void purge(final CommandSender sender)
     {
         adminAction(sender, "<red>Unblocking commands for all players");
-        AtomicInteger counter = new AtomicInteger(0);
 
-        server().getOnlinePlayers()
+        final long count = server().getOnlinePlayers()
               .stream()
               .map(plugin().pl::getPlayer)
               .filter(FPlayer::allCommandsBlocked)
-              .forEach(data -> {
-                    data.setCommandsBlocked(false);
-                    counter.incrementAndGet();
-                });
+              .reduce(0L, (total, data) ->
+                    {
+                        data.setCommandsBlocked(false);
+                        return total + 1;
+                    }, Long::sum);
 
-        msg(sender, "<gray>Unblocked commands for <count> players.", Formatter.number("count", counter.get()));
+        msg(sender, "<gray>Unblocked commands for <count> players.", Formatter.number("count", count));
     }
 }

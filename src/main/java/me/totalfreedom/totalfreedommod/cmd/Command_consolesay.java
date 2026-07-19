@@ -15,10 +15,11 @@ public class Command_consolesay extends FCommand
     @Callback
     public void sendMessage(final CommandSender sender, final @Greedy String message)
     {
-        String prefix = RemoteDispatchContext.isActive() ? "" : "<gray>[CONSOLE]</gray>";
+        final String prefix = RemoteDispatchContext.isActive() ? "" : "<gray>[CONSOLE]</gray>";
 
         FUtil.bcastMsg(
-            prefix + "<white><open><red><name><white><close> <message>", // [CONSOLE] <identity> message
+            "<prefix><white><open><red><name><white><close> <message>", // [CONSOLE] <identity> message
+            MessageUtils.parsed("prefix", prefix),
             Placeholder.unparsed("open", "<"),
             Placeholder.unparsed("close", ">"),
             Placeholder.unparsed("name", sender.getName()),

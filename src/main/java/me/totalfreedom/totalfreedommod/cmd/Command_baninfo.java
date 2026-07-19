@@ -20,25 +20,20 @@ public class Command_baninfo extends FCommand
     @Callback
     public void query(CommandSender sender, String target)
     {
-        Optional<Ban> ban = Optional.ofNullable(plugin().bm.getByUsername(target));
+        final Optional<Ban> ban = Optional.ofNullable(plugin().bm.getByUsername(target))
+                .or(() -> Optional.ofNullable(plugin().bm.getByIp(target)));
 
-        if (ban.isEmpty()) ban = Optional.ofNullable(plugin().bm.getByIp(target));
-
-        if (ban.isPresent()) 
+        if (ban.isPresent())
         {
             printBan(sender, ban.get());
             return;
         }
 
-        Optional<PermBan> permban = Optional.ofNullable(plugin().pm.getPermban(target));
-
-        if (permban.isEmpty())
-        {
-            permban = plugin().pm.getPermbannedNames().stream()
-                .map(plugin().pm::getPermban)    
-                .filter(candidate -> candidate != null && candidate.getIps() != null && candidate.getIps().contains(target))
-                .findFirst();
-        }
+        final Optional<PermBan> permban = Optional.ofNullable(plugin().pm.getPermban(target))
+                .or(() -> plugin().pm.getPermbannedNames().stream()
+                        .map(plugin().pm::getPermban)
+                        .filter(candidate -> candidate != null && candidate.getIps() != null && candidate.getIps().contains(target))
+                        .findFirst());
 
         if (permban.isPresent())
         {
@@ -53,14 +48,11 @@ public class Command_baninfo extends FCommand
             plugin().bm.getAllBans()
                 .stream()
                 .filter(candidate -> !candidate.isExpired())
-                .forEach(candidate -> 
-                    {
-                        candidate.getIps()
-                            .stream()
-                            .filter(ip -> FUtil.fuzzyIpMatch(normalized, ip, leading))
-                            .findFirst()
-                            .ifPresent(ip -> printBan(sender, candidate));
-                    });
+                .forEach(candidate -> candidate.getIps()
+                        .stream()
+                        .filter(ip -> FUtil.fuzzyIpMatch(normalized, ip, leading))
+                        .findFirst()
+                        .ifPresent(ip -> printBan(sender, candidate)));
 
             plugin().pm.getPermbannedNames()
                 .forEach(name -> 

@@ -27,11 +27,9 @@ public class FuzzyMatch
             Integer score = score(candidate, query);
             if (score != null) scored.add(new Scored(candidate, score));
         }
-        scored.sort(Comparator.comparingInt(s -> s.score()));
+        scored.sort(Comparator.comparingInt(Scored::score));
 
-        List<String> result = new ArrayList<>(scored.size());
-        for (Scored s : scored) result.add(s.candidate());
-        return result;
+        return scored.stream().map(Scored::candidate).toList();
     }
 
     private static Integer score(String candidate, String query)

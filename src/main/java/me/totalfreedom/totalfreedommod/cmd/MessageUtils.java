@@ -158,7 +158,7 @@ public class MessageUtils
         if (miniMessage == null) 
             throw new IllegalArgumentException("MiniMessage string cannot be null");
         
-        String escaped = escapeUnknownTags(miniMessage);
+        final String escaped = escapeUnknownTags(miniMessage);
         return AdventureUtil.addLinks(MM.deserialize(escaped));
     }
 
@@ -176,7 +176,7 @@ public class MessageUtils
         if (miniMessage == null)
             throw new IllegalArgumentException("MiniMessage string cannot be null");
 
-        String escaped = escapeUnknownTags(miniMessage, resolvers);
+        final String escaped = escapeUnknownTags(miniMessage, resolvers);
         return AdventureUtil.addLinks(MM.deserialize(escaped, resolvers));
     }
 
@@ -393,9 +393,9 @@ public class MessageUtils
      */
     private static boolean isStyleTag(String tag) 
     {
-        return isNamedColor(tag) || 
-               isDecoration(tag) || 
-               "color".equals(tag);
+        return isNamedColor(tag) ||
+               isDecoration(tag) ||
+               tag.equals("color");
     }
 
     /**

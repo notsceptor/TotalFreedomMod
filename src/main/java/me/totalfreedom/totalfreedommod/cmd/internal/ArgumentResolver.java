@@ -46,15 +46,23 @@ public final class ArgumentResolver
 
     public static ArgumentType<?> resolve(Class<?> type)
     {
-        if (type == String.class)                       return StringArgumentType.string();
-        if (type == int.class || type == Integer.class) return IntegerArgumentType.integer();
-        if (type == long.class || type == Long.class)   return LongArgumentType.longArg();
-        if (type == double.class || type == Double.class) return DoubleArgumentType.doubleArg();
-        if (type == float.class || type == Float.class) return FloatArgumentType.floatArg();
-        if (type == boolean.class || type == Boolean.class) return BoolArgumentType.bool();
-        if (type.isEnum())                              return StringArgumentType.word();
+        if (type == String.class)                            return stringType();
+        if (type == int.class || type == Integer.class)      return integerType();
+        if (type == long.class || type == Long.class)        return longType();
+        if (type == double.class || type == Double.class)    return doubleType();
+        if (type == float.class || type == Float.class)      return floatType();
+        if (type == boolean.class || type == Boolean.class)  return booleanType();
+        if (type.isEnum())                                   return wordType();
         throw new IllegalArgumentException(
-            "No built-in Brigadier ArgumentType mapping for: " + type.getName()
+            "[Developer error, not user-facing] No built-in Brigadier ArgumentType mapping for: " + type.getName()
             + ". Register a custom resolver in ResolverRegistry or annotate the parameter with @Resolve.");
     }
+
+    private static ArgumentType<?> stringType()  { return StringArgumentType.string(); }
+    private static ArgumentType<?> wordType()    { return StringArgumentType.word(); }
+    private static ArgumentType<?> integerType() { return IntegerArgumentType.integer(); }
+    private static ArgumentType<?> longType()    { return LongArgumentType.longArg(); }
+    private static ArgumentType<?> doubleType()  { return DoubleArgumentType.doubleArg(); }
+    private static ArgumentType<?> floatType()   { return FloatArgumentType.floatArg(); }
+    private static ArgumentType<?> booleanType() { return BoolArgumentType.bool(); }
 }

@@ -52,23 +52,19 @@ public class Command_cookie extends FCommand
         FUtil.bcastMsg(MessageUtils.parse(randomLyrics));
     }
 
+    private String randomColorize(Stream<String> pieces, String delimiter)
+    {
+        return pieces.map(piece -> "<#" + String.format("%06x", random.nextInt(0xFFFFFF + 1)) + ">" + piece)
+                     .collect(Collectors.joining(delimiter));
+    }
+
     private String randomColorize(String text)
     {
-        return Stream.of(text.split(" "))
-                     .map(word -> {
-                             String hex = String.format("%06x", random.nextInt(0xFFFFFF + 1));
-                             return "<#" + hex + ">" + word;
-                         })
-                     .collect(Collectors.joining(" "));
+        return randomColorize(Stream.of(text.split(" ")), " ");
     }
 
     private String randomColorizeChars(String text)
     {
-        return text.chars()
-                   .mapToObj(c -> {
-                           String hex = String.format("%06x", random.nextInt(0xFFFFFF + 1));
-                           return "<#" + hex + ">" + (char) c;
-                       })
-                   .collect(Collectors.joining());
+        return randomColorize(text.chars().mapToObj(c -> String.valueOf((char) c)), "");
     }
 }

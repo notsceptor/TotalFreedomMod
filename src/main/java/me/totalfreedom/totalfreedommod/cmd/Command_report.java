@@ -19,7 +19,7 @@ public class Command_report extends FCommand
             return;
         }
 
-        boolean sendFeedback = player.isOnline();
+        final boolean sendFeedback = player.isOnline();
 
         if (target.getFirstPlayed() == 0)
         {
@@ -31,7 +31,7 @@ public class Command_report extends FCommand
             return;
         }
 
-        Admin reportedAdmin = plugin().al.getAdminByUuid(target.getUniqueId());
+        final Admin reportedAdmin = plugin().al.getAdminByUuid(target.getUniqueId());
         if (reportedAdmin != null && reportedAdmin.isActive())
         {
             if (sendFeedback)
