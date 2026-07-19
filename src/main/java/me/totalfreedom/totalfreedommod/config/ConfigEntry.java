@@ -2,7 +2,7 @@ package me.totalfreedom.totalfreedommod.config;
 
 import java.util.Collections;
 import java.util.List;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.totalfreedommod.PluginProvider;
 import org.bukkit.configuration.ConfigurationSection;
 
 public enum ConfigEntry
@@ -237,6 +237,7 @@ public enum ConfigEntry
     NOADMIN_IPS(List.class, "noadmin_ips"),
     MASK_IPS(Boolean.class, "mask_ips"),
     RANGE_BAN_IPS(Boolean.class, "range_ban_ips"),
+    LOCKDOWN_MODE(Boolean.class, "lockdown_mode"),
     ADMIN_ONLY_MODE(Boolean.class, "admin_only_mode"),
     ADMIN_INFO(List.class, "admininfo"),
     AUTO_ENTITY_WIPE(Boolean.class, "auto_wipe"),
@@ -377,7 +378,7 @@ public enum ConfigEntry
 
     private MainConfig getConfig()
     {
-        return TotalFreedomMod.plugin().config;
+        return PluginProvider.get().config;
     }
 
     /** Effective max component-graph nodes for cursed-text scanning (default 1024). */

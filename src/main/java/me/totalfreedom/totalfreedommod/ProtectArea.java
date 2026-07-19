@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -803,6 +804,16 @@ public class ProtectArea extends FreedomService
             if (region.getName().equals(name))
                 return region;
         return null;
+    }
+
+    public List<String> getProtectedAreaNames()
+    {
+        return areas
+            .values()
+            .stream()
+            .map(ProtectedRegion::getName)
+            .sorted(String.CASE_INSENSITIVE_ORDER)
+            .toList();
     }
 
     public void removeProtectedArea(final ProtectedRegion region)

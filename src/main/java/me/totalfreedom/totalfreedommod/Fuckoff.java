@@ -9,6 +9,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.util.Vector;
 
 public class Fuckoff extends FreedomService
 {
@@ -88,7 +89,17 @@ public class Fuckoff extends FreedomService
 
             if (distanceSquared < (fuckoffRange * fuckoffRange))
             {
-                event.setTo(foLocation.clone().add(opLocation.subtract(foLocation).toVector().normalize().multiply(fuckoffRange * 1.1)));
+                final Vector away = foLocation.toVector().subtract(opLocation.toVector());
+
+                if (away.lengthSquared() == 0.0)
+                {
+                    continue;
+                }
+
+                final Location destination = opLocation.clone().add(away.normalize().multiply(fuckoffRange * 1.1));
+                destination.setYaw(foLocation.getYaw());
+                destination.setPitch(foLocation.getPitch());
+                event.setTo(destination);
                 break;
             }
         }

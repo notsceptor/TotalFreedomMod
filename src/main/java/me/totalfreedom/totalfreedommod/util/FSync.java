@@ -1,5 +1,6 @@
 package me.totalfreedom.totalfreedommod.util;
 
+import me.totalfreedom.totalfreedommod.PluginProvider;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -11,13 +12,13 @@ public class FSync
 
     public static void playerMsg(final Player player, final String message)
     {
-        final TotalFreedomMod plugin = TotalFreedomMod.plugin();
+        final TotalFreedomMod plugin = PluginProvider.get();
         plugin.getServer().getScheduler().runTask(plugin, () -> FUtil.playerMsg(player, message));
     }
 
     public static void playerKick(final Player player, final Component reason)
     {
-        final TotalFreedomMod plugin = TotalFreedomMod.plugin();
+        final TotalFreedomMod plugin = PluginProvider.get();
         plugin.getServer().getScheduler().runTask(plugin, () -> player.kick(reason));
     }
 
@@ -28,19 +29,19 @@ public class FSync
 
     public static void adminChatMessage(final CommandSender sender, final String message)
     {
-        final TotalFreedomMod plugin = TotalFreedomMod.plugin();
+        final TotalFreedomMod plugin = PluginProvider.get();
         plugin.getServer().getScheduler().runTask(plugin, () -> plugin.cm.adminChat(sender, message));
     }
 
     public static void autoEject(final Player player, final String kickMessage)
     {
-        final TotalFreedomMod plugin = TotalFreedomMod.plugin();
+        final TotalFreedomMod plugin = PluginProvider.get();
         plugin.getServer().getScheduler().runTask(plugin, () -> plugin.ae.autoEject(player, kickMessage));
     }
 
     public static void bcastMsg(final String message, final NamedTextColor color)
     {
-        final TotalFreedomMod plugin = TotalFreedomMod.plugin();
+        final TotalFreedomMod plugin = PluginProvider.get();
         plugin.getServer().getScheduler().runTask(plugin, () -> FUtil.bcastMsg(message, color));
     }
 }

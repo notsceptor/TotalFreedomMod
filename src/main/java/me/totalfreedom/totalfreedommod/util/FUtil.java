@@ -25,10 +25,12 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.totalfreedommod.PluginProvider;
+import me.totalfreedom.totalfreedommod.cmd.MessageUtils;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import net.kyori.adventure.text.serializer.ansi.ANSIComponentSerializer;
 import org.apache.commons.io.FileUtils;
 import org.bukkit.Bukkit;
@@ -42,6 +44,7 @@ public class FUtil
 {
 
     private static final Random RANDOM = new Random();
+    private static final Component separator = Component.text(" - ");
     // See https://github.com/TotalFreedom/License - None of the listed names may be removed.
     public static final List<String> DEVELOPERS = Arrays.asList("Madgeek1450", "Prozza", "Wild1145", "WickedGamingUK", "aggelosQQ", "aokod", "rptt", "ERR_666");
     public static String DATE_STORAGE_FORMAT = "EEE, d MMM yyyy HH:mm:ss Z";
@@ -92,14 +95,21 @@ public class FUtil
         }
     }
 
+    @Deprecated
     public static void bcastMsg(String message, NamedTextColor color)
     {
         bcastMsg(colorizeWithLinks(message, color));
     }
 
+    @Deprecated
     public static void bcastMsg(String message)
     {
         bcastMsg(colorizeWithLinks(message));
+    }
+
+    public static void bcastMsg(String miniMessage, TagResolver... resolvers)
+    {
+        bcastMsg(MessageUtils.parse(miniMessage, resolvers));
     }
 
     public static void playerMsg(CommandSender sender, Component component)
@@ -127,16 +137,25 @@ public class FUtil
         player.setFlying(flying);
     }
 
+    @Deprecated
     public static void adminAction(String adminName, String action, boolean isRed)
     {
         FUtil.bcastMsg(adminName + " - " + action, (isRed ? NamedTextColor.RED : NamedTextColor.AQUA));
     }
 
+    @Deprecated
     public static void adminAction(String adminName, Component action, NamedTextColor color)
     {
         FUtil.bcastMsg(Component.text(adminName, color)
                 .append(Component.text(" - "))
                 .append(action));
+    }
+
+    public static void adminAction(CommandSender sender, Component action)
+    {
+        final Component name = sender.name().color(action.color());
+        
+        FUtil.bcastMsg(name.append(separator.color(action.color()).append(action)));
     }
 
     public static String formatLocation(Location location)
@@ -353,8 +372,8 @@ public class FUtil
         {
             return ip;
         }
-        if (sender != null && TotalFreedomMod.plugin().rm != null
-                && TotalFreedomMod.plugin().rm.hasPermission(sender, "tfm.manage.showips"))
+        if (sender != null && PluginProvider.get().rm != null
+                && PluginProvider.get().rm.hasPermission(sender, "tfm.manage.showips"))
         {
             return ip;
         }

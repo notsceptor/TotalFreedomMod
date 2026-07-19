@@ -78,7 +78,7 @@ public class SavedFlags extends FreedomService
     {
         Map<String, Boolean> flags = new HashMap<>();
 
-        File file = new File(TotalFreedomMod.plugin().getDataFolder(), DATA_FILENAME);
+        File file = new File(PluginProvider.get().getDataFolder(), DATA_FILENAME);
         if (!file.exists())
         {
             return flags;

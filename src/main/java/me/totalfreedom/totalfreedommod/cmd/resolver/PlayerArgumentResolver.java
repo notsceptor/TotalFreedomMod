@@ -1,0 +1,56 @@
+package me.totalfreedom.totalfreedommod.cmd.resolver;
+
+import me.totalfreedom.totalfreedommod.util.AdventureUtil;
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
+
+import me.totalfreedom.totalfreedommod.cmd.FCommand;
+
+import java.util.UUID;
+
+public class PlayerArgumentResolver implements AbstractArgumentResolver<Player>
+{
+    private Player resolveDefault(String arg)
+    {
+        Player player;
+
+        // UUID
+        try
+        {
+            final UUID uuid = UUID.fromString(arg);
+            player = Bukkit.getPlayer(uuid);
+        }
+        // Username
+        catch (IllegalArgumentException ex)
+        {
+            player = Bukkit.getPlayer(arg);
+        }
+
+        // Nickname
+        if (player == null)
+        {
+            player = Bukkit.getOnlinePlayers().stream()
+                    .filter(p -> AdventureUtil.componentToPlainText(p.displayName()).toLowerCase().contains(arg.toLowerCase()))
+                    .findAny()
+                    .orElse(null);
+        }
+
+        if (player == null)
+            throw new ArgumentResolutionException(FCommand.PLAYER_NOT_FOUND);
+
+        return player;
+    }
+
+    @Override
+    public String name()
+    {
+        return "Player";
+    }
+
+    @Override
+    public Player resolve(String arg, String strategy)
+    {
+        return resolveDefault(arg);
+    }
+    
+}

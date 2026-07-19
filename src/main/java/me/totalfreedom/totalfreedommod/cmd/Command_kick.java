@@ -1,0 +1,47 @@
+package me.totalfreedom.totalfreedommod.cmd;
+
+import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
+import me.totalfreedom.totalfreedommod.config.ConfigEntry;
+import me.totalfreedom.totalfreedommod.rank.Rank;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+
+@Permission(level = Rank.SUPER_ADMIN, permission = "tfm.admin.kick")
+@Command(name = "kick", aliases = "k", description = "Kick a player.", usage = "/<command> [-s] <player> [reason]")
+public class Command_kick extends FCommand
+{
+    @Callback
+    public void kickNoReason(CommandSender sender, Player player, @Switch("s") boolean silent)
+    {
+        kick(sender, player, null, silent);
+    }
+
+    @Callback
+    public void kick(CommandSender sender, Player player, @Greedy String reason, @Switch("s") boolean silent)
+    {
+        if (isAdmin(player))
+        {
+            msg(sender, "<red>This command cannot be used on other admins.");
+            return;
+        }
+
+        final String kickMessage = reason != null
+                ? "<red>You have been kicked from the server.\n<red>Kicked by: <gold><sender>\n<red>Reason: <gold><reason>"
+                : "<red>You have been kicked from the server.\n<red>Kicked by: <gold><sender>";
+
+        if (!silent)
+        {
+            adminAction(sender, reason == null ? "<aqua>Kicking <player>" : "<aqua>Kicking <player> - Reason: <reason>",
+                    Placeholder.unparsed("player", player.getName()),
+                    MessageUtils.parsed("reason", reason != null ? reason : ""));
+
+            plugin().db.sendActionMessage(sender.getName(), player.getName(), reason, ConfigEntry.DISCORD_PLAYER_KICK_MESSAGE);
+        }
+
+        kickPlayer(player, kickMessage,
+                Placeholder.unparsed("sender", sender.getName()),
+                MessageUtils.parsed("reason", reason != null ? reason : ""));
+    }
+}

@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
+import me.totalfreedom.totalfreedommod.PluginProvider;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.ConfigInterfaces.ConfigLoadable;
@@ -185,7 +186,7 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
         if (player != null)
             player.displayName(hasCustomNickname() ? getDisplayedNickname() :
                     Component.text(player.getName(), player.isOp() ? NamedTextColor.RED : NamedTextColor.WHITE));
-        final TotalFreedomMod plugin = TotalFreedomMod.plugin();
+        final TotalFreedomMod plugin = PluginProvider.get();
         if (plugin != null && plugin.pl != null)
             plugin.pl.saveData(this);
     }
