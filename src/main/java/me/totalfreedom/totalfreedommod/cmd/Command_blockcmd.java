@@ -54,8 +54,9 @@ public class Command_blockcmd extends FCommand
                 })
                 .count();
 
-        msg(sender, "<gray>Blocked commands for <count> players.",
-                Formatter.number("count", count));
+        msg(sender, "<gray>Blocked commands for <count> player<plural>.",
+                Formatter.number("count", count),
+                Placeholder.unparsed("plural", count == 1 ? "" : "s"));
     }
 
     @Callback
@@ -74,6 +75,8 @@ public class Command_blockcmd extends FCommand
                         return total + 1;
                     }, Long::sum);
 
-        msg(sender, "<gray>Unblocked commands for <count> players.", Formatter.number("count", count));
+        msg(sender, "<gray>Unblocked commands for <count> player<plural>.",
+                Formatter.number("count", count),
+                Placeholder.unparsed("plural", count == 1 ? "" : "s"));
     }
 }
