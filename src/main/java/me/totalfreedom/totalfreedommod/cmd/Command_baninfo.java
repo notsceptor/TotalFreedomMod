@@ -2,6 +2,7 @@ package me.totalfreedom.totalfreedommod.cmd;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -38,13 +39,15 @@ public class Command_baninfo extends FCommand
         if (permban.isPresent())
         {
             printPermban(sender, permban.get());
+            return;
         }
 
         if (isPartialIP(target))
         {
-            String normalized = normalizePartialIP(target);
-            int leading = countLeadingOctets(target);
-            
+            final String normalized = normalizePartialIP(target);
+            final int leading = countLeadingOctets(target);
+            final AtomicBoolean foundAny = new AtomicBoolean(false);
+
             plugin().bm.getAllBans()
                 .stream()
                 .filter(candidate -> !candidate.isExpired())
@@ -52,19 +55,32 @@ public class Command_baninfo extends FCommand
                         .stream()
                         .filter(ip -> FUtil.fuzzyIpMatch(normalized, ip, leading))
                         .findFirst()
-                        .ifPresent(ip -> printBan(sender, candidate)));
+                        .ifPresent(ip ->
+                            {
+                                printBan(sender, candidate);
+                                foundAny.set(true);
+                            }));
 
             plugin().pm.getPermbannedNames()
-                .forEach(name -> 
+                .forEach(name ->
                     {
-                        PermBan candidate = plugin().pm.getPermban(name);
+                        final PermBan candidate = plugin().pm.getPermban(name);
                         if (candidate == null || candidate.getIps() == null) return; // in a lambda, return does NOT return the execution back to the caller. It simply moves to the next element in the set.
                         candidate.getIps()
                             .stream()
                             .filter(ip -> FUtil.fuzzyIpMatch(normalized, ip, leading))
                             .findFirst()
-                            .ifPresent(ip -> printPermban(sender, candidate));
+                            .ifPresent(ip ->
+                                {
+                                    printPermban(sender, candidate);
+                                    foundAny.set(true);
+                                });
                     });
+
+            if (foundAny.get())
+            {
+                return;
+            }
         }
 
         msg(sender, "<gray>No ban or permban found for: <white><target>", MessageUtils.unparsed("target", target));
