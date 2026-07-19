@@ -17,7 +17,7 @@ public class WorldArgumentResolver implements AbstractArgumentResolver<World>
         final World world = Bukkit.getWorld(arg);
         if (world == null)
         {
-            throw new ArgumentResolutionException("World \"" + arg + "\" not found.");
+            throw new ArgumentResolutionException(String.format("World \"%s\" not found.", arg));
         }
         return world;
     }
