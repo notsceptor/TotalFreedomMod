@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.TreeSet;
 
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.command.CommandSender;
 
 import me.totalfreedom.totalfreedommod.banning.Ban;
@@ -19,21 +20,21 @@ public class Command_banlist extends FCommand
     @Callback
     public void showBanList(CommandSender sender)
     {
-        List<String> playerNames = new ArrayList<>();
+        final List<String> playerNames = new ArrayList<>();
         plugin().bm.getUsernameBans()
             .stream()
             .filter(Ban::hasUsername)
             .map(Ban::getUsername)
             .forEach(playerNames::add);
 
-        TreeSet<String> ipOnly = new TreeSet<>();
+        final TreeSet<String> ipOnly = new TreeSet<>();
         plugin().bm.getIpBans()
             .stream()
             .filter(b -> !b.hasUsername())
             .flatMap(b -> b.getIps().stream())
             .forEach(ip -> ipOnly.add(FUtil.sanitizeIp(sender, ip)));
         
-        List<String> permbanNames = new ArrayList<>(plugin().pm.getPermbannedNames());
+        final List<String> permbanNames = new ArrayList<>(plugin().pm.getPermbannedNames());
         permbanNames.sort(String.CASE_INSENSITIVE_ORDER);
 
         if (playerNames.isEmpty() && ipOnly.isEmpty() && permbanNames.isEmpty())
@@ -64,8 +65,11 @@ public class Command_banlist extends FCommand
     @Permission(level = Rank.SENIOR_ADMIN, permission = "tfm.admin.banlist")
     public void purgeBans(CommandSender sender)
     {
-        // Ok so apparently plugin().bm.purge() purges the banlist then returns an int to count how many bans were purged. 
+        // Ok so apparently plugin().bm.purge() purges the banlist then returns an int to count how many bans were purged.
         adminAction(sender, "<red>Purging the ban list");
-        msg(sender, "<gray>Purged <count> player bans.", Formatter.number("count", plugin().bm.purge()));
+        final int purged = plugin().bm.purge();
+        msg(sender, "<gray>Purged <count> player ban<plural>.",
+                Formatter.number("count", purged),
+                Placeholder.unparsed("plural", purged == 1 ? "" : "s"));
     }
 }

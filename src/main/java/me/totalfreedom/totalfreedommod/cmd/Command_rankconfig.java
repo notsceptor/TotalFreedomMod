@@ -20,7 +20,7 @@ import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
     aliases = {"rankconf", "rankcfg"}
 )
 @Permission(permission = "tfm.manage.ranks", level = Rank.SENIOR_ADMIN)
-public class Command_rankconfig extends FCommand // Gonna be honest, this one was the most difficult one by far. I hated every second of this.
+public class Command_rankconfig extends FCommand
 {
     @Callback
     public void menu(CommandSender sender)
@@ -42,14 +42,14 @@ public class Command_rankconfig extends FCommand // Gonna be honest, this one wa
     {
         requireManageRanks(sender);
 
-        String rankId = id.toLowerCase();
+        final String rankId = id.toLowerCase();
         if (plugin().rm.hasCustomRank(rankId))
         {
             msg(sender, "<red>A rank with that ID already exists!");
             return;
         }
 
-        CustomRank rank = new CustomRank(rankId);
+        final CustomRank rank = new CustomRank(rankId);
         plugin().rm.setCustomRank(rank);
 
         adminAction(sender, "<aqua>Created new rank: <rank>", Placeholder.unparsed("rank", rank.getName()));
@@ -62,7 +62,7 @@ public class Command_rankconfig extends FCommand // Gonna be honest, this one wa
     {
         requireManageRanks(sender);
 
-        CustomRank target = plugin().rm.getCustomRank(rank.toLowerCase());
+        final CustomRank target = plugin().rm.getCustomRank(rank.toLowerCase());
         if (target == null)
         {
             msg(sender, "<red>Rank not found: <rank>", Placeholder.unparsed("rank", rank));
@@ -84,8 +84,8 @@ public class Command_rankconfig extends FCommand // Gonna be honest, this one wa
     {
         requireManageRanks(sender);
 
-        String rankId = rank.toLowerCase();
-        CustomRank target = plugin().rm.getCustomRank(rankId);
+        final String rankId = rank.toLowerCase();
+        final CustomRank target = plugin().rm.getCustomRank(rankId);
         if (target == null)
         {
             msg(sender, "<red>Rank not found: <rank>", Placeholder.unparsed("rank", rankId));
@@ -109,8 +109,8 @@ public class Command_rankconfig extends FCommand // Gonna be honest, this one wa
     {
         requireManageRanks(sender);
 
-        String rankId = rank.toLowerCase();
-        CustomRank target = plugin().rm.getCustomRank(rankId);
+        final String rankId = rank.toLowerCase();
+        final CustomRank target = plugin().rm.getCustomRank(rankId);
         if (target == null)
         {
             msg(sender, "<red>Rank not found: <rank>", Placeholder.unparsed("rank", rankId));
@@ -142,7 +142,7 @@ public class Command_rankconfig extends FCommand // Gonna be honest, this one wa
             }
             case INHERIT ->
             {
-                String trimmed = value.trim();
+                final String trimmed = value.trim();
                 if (trimmed.isEmpty() || trimmed.equalsIgnoreCase("none"))
                 {
                     target.setInheritFrom(null);
@@ -185,10 +185,10 @@ public class Command_rankconfig extends FCommand // Gonna be honest, this one wa
     {
         requireManageRanks(sender);
 
-        String rankId = rank.toLowerCase();
+        final String rankId = rank.toLowerCase();
         if (rankId.equals("none") || rankId.equals("clear"))
         {
-            Admin admin = plugin().al.getAdmin(target);
+            final Admin admin = plugin().al.getAdmin(target);
             if (admin == null)
             {
                 msg(sender, "<red>Player is not an admin, no custom rank to clear.");
@@ -201,14 +201,14 @@ public class Command_rankconfig extends FCommand // Gonna be honest, this one wa
             return;
         }
 
-        CustomRank customRank = plugin().rm.getCustomRank(rankId);
+        final CustomRank customRank = plugin().rm.getCustomRank(rankId);
         if (customRank == null)
         {
             msg(sender, "<red>Rank not found: <rank>", Placeholder.unparsed("rank", rankId));
             return;
         }
 
-        Admin admin = plugin().al.getAdmin(target);
+        final Admin admin = plugin().al.getAdmin(target);
         if (admin == null)
         {
             msg(sender, "<red>Player must be an admin to have a custom rank assigned.");
@@ -257,10 +257,10 @@ public class Command_rankconfig extends FCommand // Gonna be honest, this one wa
 
     private List<String> rankIdCandidates(String partial)
     {
-        List<String> ids = plugin().rm
+        final List<String> ids = plugin().rm
                                    .getCustomRanksSorted()
                                    .stream()
-                                   .map(r -> r.getId())
+                                   .map(CustomRank::getId)
                                    .toList();
                                    
         return FuzzyMatch.filter(ids, partial);
@@ -276,7 +276,7 @@ public class Command_rankconfig extends FCommand // Gonna be honest, this one wa
 
     private static boolean isTruthy(String value)
     {
-        String trimmed = value.trim();
+        final String trimmed = value.trim();
         return trimmed.equalsIgnoreCase("true") || trimmed.equalsIgnoreCase("yes") || trimmed.equalsIgnoreCase("y");
     }
 

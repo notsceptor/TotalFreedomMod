@@ -5,7 +5,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 
 import org.bukkit.command.CommandSender;
@@ -65,10 +64,10 @@ public class Command_permban extends FCommand
             online = null;
         }
 
-        PlayerData data = BanCommandUtil.getData(plugin(), name, online);
-        String canonicalName = BanCommandUtil.getCanonicalName(name, online, data);
+        final PlayerData data = BanCommandUtil.getData(plugin(), name, online);
+        final String canonicalName = BanCommandUtil.getCanonicalName(name, online, data);
 
-        Set<String> ips = new LinkedHashSet<>(BanCommandUtil.getIps(online, data));
+        final Set<String> ips = new LinkedHashSet<>(BanCommandUtil.getIps(online, data));
         for (String ip : extraIps.trim().split("\\s+"))
         {
             if (ip.isEmpty())
@@ -88,8 +87,8 @@ public class Command_permban extends FCommand
         UUID uuid = online != null ? online.getUniqueId() : FUtil.usernameToUuid(canonicalName);
 
         PermBan permban = plugin().pm.getPermban(canonicalName);
-        
-        boolean existed = permban != null;
+
+        final boolean existed = permban != null;
 
         if (permban == null) // this caused a semantic issue with nullability. replaced with a proper null check instead of the cached boolean.
         {
@@ -100,9 +99,9 @@ public class Command_permban extends FCommand
             permban.setUuid(uuid);
         }
 
-        int before = permban.getIps().size();
+        final int before = permban.getIps().size();
         permban.addIps(new ArrayList<>(ips));
-        int addedIps = permban.getIps().size() - before;
+        final int addedIps = permban.getIps().size() - before;
 
         plugin().pm.addPermban(permban);
 
@@ -160,7 +159,7 @@ public class Command_permban extends FCommand
 
         if (isValidIpOrRange(target))
         {
-            List<String> removed = plugin().pm.removePermbansByIp(target);
+            final List<String> removed = plugin().pm.removePermbansByIp(target);
             if (removed.isEmpty())
             {
                 msg(sender, "<red>No permbans matched the IP <target>.", Placeholder.unparsed("target", target));
@@ -212,30 +211,27 @@ public class Command_permban extends FCommand
 
     private static boolean isValidIpOrRange(String ip)
     {
-        String[] parts = ip.split("\\.");
+        final String[] parts = ip.split("\\.");
         if (parts.length != 4)
         {
             return false;
         }
 
-        AtomicBoolean bool = new AtomicBoolean(true);
-
-        Stream.of(parts)
+        return Stream.of(parts)
               .filter(part -> !part.equals("*"))
-              .forEach(part -> 
-                {
-                    try
-                    {
-                        int octet = Integer.parseInt(part);
-                        if (octet < 0 || octet > 255)
-                            bool.set(false);
-                    }
-                    catch (NumberFormatException ex)
-                    {
-                        bool.set(false);
-                    }
-                });
+              .allMatch(Command_permban::isValidOctet);
+    }
 
-        return bool.get();
+    private static boolean isValidOctet(String part)
+    {
+        try
+        {
+            final int octet = Integer.parseInt(part);
+            return octet >= 0 && octet <= 255;
+        }
+        catch (NumberFormatException ex)
+        {
+            return false;
+        }
     }
 }

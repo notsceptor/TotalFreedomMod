@@ -465,9 +465,9 @@ public class AdminList extends FreedomService
                 // Rewrite the stored display name if Mojang has changed it.
                 if (!uuidAdmin.getName().equalsIgnoreCase(player.getName()))
                 {
-                    String oldKey = uuidAdmin.getName().toLowerCase();
+                    final String oldKey = uuidAdmin.getName().toLowerCase();
                     uuidAdmin.setName(player.getName());
-                    String newKey = uuidAdmin.getName().toLowerCase();
+                    final String newKey = uuidAdmin.getName().toLowerCase();
                     if (!oldKey.equals(newKey))
                     {
                         nameTable.remove(oldKey);
@@ -479,7 +479,7 @@ public class AdminList extends FreedomService
             }
     
             // Find admin
-            String ip = player.getAddress().getAddress().getHostAddress();
+            final String ip = player.getAddress().getAddress().getHostAddress();
             Admin admin = getEntryByName(player.getName());
     
             // Admin by name
@@ -507,9 +507,9 @@ public class AdminList extends FreedomService
             if (admin != null)
             {
                 // Set the new username
-                String oldKey = admin.getName().toLowerCase();
+                final String oldKey = admin.getName().toLowerCase();
                 admin.setName(player.getName());
-                String newKey = admin.getName().toLowerCase();
+                final String newKey = admin.getName().toLowerCase();
                 if (!oldKey.equals(newKey))
                 {
                     nameTable.remove(oldKey);

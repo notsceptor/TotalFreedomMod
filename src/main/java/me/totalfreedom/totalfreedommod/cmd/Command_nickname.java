@@ -2,7 +2,6 @@ package me.totalfreedom.totalfreedommod.cmd;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -71,20 +70,20 @@ public class Command_nickname extends FCommand
 
     private void applyNickname(CommandSender sender, Player player, String nickname, boolean isAdmin)
     {
-        String strippedInput = nickname.trim().replace('§', '&');
+        final String strippedInput = nickname.trim().replace('§', '&');
         if (!AdventureUtil.hasVisibleText(strippedInput))
         {
             return;
         }
 
-        Component colorizedNickname = FUtil.colorize(strippedInput);
-        String plainNickname = AdventureUtil.componentToPlainText(colorizedNickname).trim();
+        final Component colorizedNickname = FUtil.colorize(strippedInput);
+        final String plainNickname = AdventureUtil.componentToPlainText(colorizedNickname).trim();
         if (!AdventureUtil.hasVisibleText(plainNickname))
         {
             return;
         }
 
-        String rawNickname = plainNickname.toLowerCase();
+        final String rawNickname = plainNickname.toLowerCase();
 
         if (rawNickname.length() > MAX_NICKNAME_LENGTH)
         {
@@ -98,7 +97,7 @@ public class Command_nickname extends FCommand
             return;
         }
 
-        PlayerData data = plugin().pl.getData(player);
+        final PlayerData data = plugin().pl.getData(player);
 
         // Plaintext match to own username with no styling is equivalent to no nickname.
         if (plainNickname.equalsIgnoreCase(player.getName()) && !AdventureUtil.hasVisualStyle(colorizedNickname))
@@ -173,19 +172,17 @@ public class Command_nickname extends FCommand
 
         adminAction(sender, "<red>Removing all nicknames");
 
-        AtomicInteger ct = new AtomicInteger(0);
-
-        server().getOnlinePlayers()
+        final long count = server().getOnlinePlayers()
                 .stream()
                 .map(p -> plugin().pl.getData(p))
                 .filter(d -> d.getNickname() != null)
-                .forEach(d -> 
+                .reduce(0L, (total, d) ->
                     {
                         d.setNickname(null);
-                        ct.incrementAndGet();
-                    });
+                        return total + 1;
+                    }, Long::sum);
 
-        msg(sender, "<gray><count> nickname(s) removed.", Formatter.number("count", ct.get()));
+        msg(sender, "<gray><count> nickname(s) removed.", Formatter.number("count", count));
     }
 
     @Callback
@@ -195,7 +192,7 @@ public class Command_nickname extends FCommand
     {
         adminAction(sender, "<aqua>Cleaning all nicknames");
 
-        long count = server().getOnlinePlayers().stream()
+        final long count = server().getOnlinePlayers().stream()
             .map(p -> plugin().pl.getData(p))
             .filter(data -> data.getNickname() != null && data.hasCustomNickname())
             .filter(data ->
@@ -245,16 +242,13 @@ public class Command_nickname extends FCommand
 
     private Component cleanComponent(Component component)
     {
-        Style style = component.style()
+        final Style rawStyle = component.style()
             .decoration(TextDecoration.OBFUSCATED, TextDecoration.State.FALSE)
             .decoration(TextDecoration.STRIKETHROUGH, TextDecoration.State.FALSE)
             .decoration(TextDecoration.ITALIC, TextDecoration.State.FALSE)
             .decoration(TextDecoration.UNDERLINED, TextDecoration.State.FALSE);
 
-        if (NamedTextColor.BLACK.equals(style.color()))
-        {
-            style = style.color(null);
-        }
+        final Style style = NamedTextColor.BLACK.equals(rawStyle.color()) ? rawStyle.color(null) : rawStyle;
 
         return component.style(style).children(
                     component.children()
@@ -266,7 +260,7 @@ public class Command_nickname extends FCommand
 
     public static boolean containsForbidden(String plainText)
     {
-        List<String> terms = new ArrayList<>(FORBIDDEN_WORDS);
+        final List<String> terms = new ArrayList<>(FORBIDDEN_WORDS);
 
         Stream.of(Rank.values())
               .filter(r -> r.isAdmin())
@@ -281,7 +275,7 @@ public class Command_nickname extends FCommand
                       .filter(r -> !r.getTag().isEmpty())
                       .forEach(r -> terms.add(r.getTag()));
 
-        Pattern forbidden = Pattern.compile(
+        final Pattern forbidden = Pattern.compile(
             terms.stream().map(Pattern::quote).collect(Collectors.joining("|")),
             Pattern.CASE_INSENSITIVE
         );

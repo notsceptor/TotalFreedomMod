@@ -29,6 +29,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.Registry;
+import org.bukkit.World;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.EntityType;
 import org.bukkit.plugin.Plugin;
@@ -110,6 +111,8 @@ public class CommandLoader extends FreedomService
         ResolverRegistry.register(new FloatArgumentResolver());
         ResolverRegistry.register(new WorldTimeArgumentResolver(), WorldTime.class);
         ResolverRegistry.register(new WeatherArgumentResolver(), WorldWeather.class);
+        ResolverRegistry.register(new WorldArgumentResolver(), World.class,
+            () -> Bukkit.getWorlds().stream().map(World::getName).sorted().toList());
         // Suggestions are not memoized because regions change at runtime.
         ResolverRegistry.register(new ProtectedRegionArgumentResolver(plugin), ProtectedRegion.class,
             () -> plugin.pa.getProtectedAreaNames());

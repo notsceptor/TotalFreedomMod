@@ -28,7 +28,7 @@ public class Command_mobpurge extends FCommand
     public void mobpurgeAll(CommandSender sender)
     {
         adminAction(sender, "<red>Purging all mobs");
-        int removed = purgeMobs();
+        final int removed = purgeMobs();
         msg(
             sender,
             "<gray><count> <noun> removed.",
@@ -38,58 +38,44 @@ public class Command_mobpurge extends FCommand
     }
 
     @Callback
-    public void mobpurgeWorld(CommandSender sender, String world)
+    public void mobpurgeWorld(CommandSender sender, World world)
     {
         mobpurgeWorld(sender, world, DEFAULT_BATCH_SIZE);
     }
 
     @Callback
-    public void mobpurgeWorld(CommandSender sender, String world, int batchSize)
+    public void mobpurgeWorld(CommandSender sender, World world, int batchSize)
     {
-        World target = Bukkit.getWorld(world);
-        if (target == null)
-        {
-            msg(sender, "<red>World \"<world>\" not found.", Placeholder.unparsed("world", world));
-            return;
-        }
-
-        int clamped = Math.max(10, Math.min(1000, batchSize));
+        final int clamped = Math.max(10, Math.min(1000, batchSize));
         adminAction(
             sender,
             "<red>Starting mob purge in world <world> (<batch> per tick)",
-            Placeholder.unparsed("world", target.getName()),
+            Placeholder.unparsed("world", world.getName()),
             Formatter.number("batch", clamped)
         );
-        purgeMobsBatched(target, clamped, sender);
+        purgeMobsBatched(world, clamped, sender);
         msg(sender, "<gray>Mob purge started. You will be notified when done.");
     }
 
     @Callback
-    public void mobpurgeChunk(CommandSender sender, String world, int chunkX, int chunkZ)
+    public void mobpurgeChunk(CommandSender sender, World world, int chunkX, int chunkZ)
     {
         mobpurgeChunk(sender, world, chunkX, chunkZ, DEFAULT_BATCH_SIZE);
     }
 
     @Callback
-    public void mobpurgeChunk(CommandSender sender, String world, int chunkX, int chunkZ, int batchSize)
+    public void mobpurgeChunk(CommandSender sender, World world, int chunkX, int chunkZ, int batchSize)
     {
-        World target = Bukkit.getWorld(world);
-        if (target == null)
-        {
-            msg(sender, "<red>World \"<world>\" not found.", Placeholder.unparsed("world", world));
-            return;
-        }
-
-        int clamped = Math.max(10, Math.min(1000, batchSize));
+        final int clamped = Math.max(10, Math.min(1000, batchSize));
         adminAction(
             sender,
             "<red>Starting mob purge in world <world> chunk (<x>,<z>) (<batch> per tick)",
-            Placeholder.unparsed("world", target.getName()),
+            Placeholder.unparsed("world", world.getName()),
             Formatter.number("x", chunkX),
             Formatter.number("z", chunkZ),
             Formatter.number("batch", clamped)
         );
-        purgeMobsBatchedForChunk(target, chunkX, chunkZ, clamped, sender);
+        purgeMobsBatchedForChunk(world, chunkX, chunkZ, clamped, sender);
         msg(
             sender,
             "<gray>Batched mob purge started for chunk (<x>,<z>). You will be notified when done.",
@@ -253,8 +239,8 @@ public class Command_mobpurge extends FCommand
 
     private static void loadSpawnChunks(World w)
     {
-        int cx = w.getSpawnLocation().getBlockX() >> 4;
-        int cz = w.getSpawnLocation().getBlockZ() >> 4;
+        final int cx = w.getSpawnLocation().getBlockX() >> 4;
+        final int cz = w.getSpawnLocation().getBlockZ() >> 4;
         for (int dx = -1; dx <= 1; dx++)
         {
             for (int dz = -1; dz <= 1; dz++)

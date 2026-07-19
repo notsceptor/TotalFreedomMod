@@ -90,8 +90,8 @@ public class Command_saconfig extends FCommand
             return;
         }
 
-        Admin admin = plugin().al.getEntryByName(target.getName());
-        if (admin == null) 
+        final Admin admin = plugin().al.getEntryByName(target.getName());
+        if (admin == null)
         {
             msg(sender, "<gray>Unknown admin: <player>",
                     Placeholder.unparsed("player", target.getName()));
@@ -117,9 +117,9 @@ public class Command_saconfig extends FCommand
     @Subcommand("info")
     public boolean getInfo(CommandSender sender, Player target) 
     {
-        Admin admin = plugin().al.getAdmin(target);
+        final Admin admin = plugin().al.getAdmin(target);
 
-        if (admin == null) 
+        if (admin == null)
         {
             msg(sender, "<gray>Admin not found: <player>",
                     Placeholder.unparsed("player", target.getName()));
@@ -143,7 +143,7 @@ public class Command_saconfig extends FCommand
             return true;
         }
 
-        String name = target.getName();
+        final String name = target.getName();
         Admin admin = null;
         for (Admin loopAdmin : plugin().al.getAllAdmins().values()) 
         {
@@ -197,9 +197,9 @@ public class Command_saconfig extends FCommand
     @Permission(permission = "tfm.manage.saconfig", source = SourceType.ONLY_CONSOLE, level = Rank.SENIOR_ADMIN)
     public boolean removeUser(CommandSender sender, String username) 
     {
-        Admin admin = plugin().al.getEntryByName(username);
+        final Admin admin = plugin().al.getEntryByName(username);
 
-        if (admin == null) 
+        if (admin == null)
         {
             msg(sender, "<gray>Admin not found: <player>", Placeholder.unparsed("player", username));
             return true;
@@ -211,7 +211,7 @@ public class Command_saconfig extends FCommand
         plugin().al.updateTables();
         plugin().al.saveAdminAsync(admin);
 
-        Player player = Bukkit.getPlayer(username);
+        final Player player = Bukkit.getPlayer(username);
         if (player != null && plugin().rm != null) 
         {
             plugin().rm.updatePlayerTeam(player);
@@ -259,17 +259,17 @@ public class Command_saconfig extends FCommand
     @Completer(value = "setrank", position = 1)
     public List<String> completeSetrankRank(CommandSender sender, String partial) 
     {
-        Stream<String> rankNames = Stream.of(Rank.values())
+        final Stream<String> rankNames = Stream.of(Rank.values())
                                          .filter(rank -> rank.isAdmin() && !rank.isConsole())
                                          .map(rank -> rank.name().toLowerCase(Locale.ROOT));
 
-        Stream<String> customRankIds = plugin().rm.getCustomRanks()
+        final Stream<String> customRankIds = plugin().rm.getCustomRanks()
                                                 .values()
                                                 .stream()
                                                 .filter(custom -> custom.isAdmin() && !custom.isConsoleOnly())
-                                                .map(r -> r.getId());
+                                                .map(CustomRank::getId);
 
-        List<String> candidates = Stream.concat(rankNames, customRankIds).toList();
+        final List<String> candidates = Stream.concat(rankNames, customRankIds).toList();
 
         return FuzzyMatch.filter(candidates, partial);
     }
@@ -289,31 +289,31 @@ public class Command_saconfig extends FCommand
     @Completer(value = "add", position = 0)
     public List<String> completeAddPlayer(CommandSender sender, String partial) 
     {
-        List<String> names = server().getOnlinePlayers().stream()
-            .map(p -> p.getName())
+        final List<String> names = server().getOnlinePlayers().stream()
+            .map(Player::getName)
             .toList();
         return FuzzyMatch.filter(names, partial);
     }
 
-    private List<String> adminNames(String partial) 
+    private List<String> adminNames(String partial)
     {
-        List<String> names = plugin().al.getActiveAdmins().stream()
-            .map(a -> a.getName())
+        final List<String> names = plugin().al.getActiveAdmins().stream()
+            .map(Admin::getName)
             .sorted(String.CASE_INSENSITIVE_ORDER)
             .toList();
         return FuzzyMatch.filter(names, partial);
     }
 
-    private void getAdminList(CommandSender sender) 
+    private void getAdminList(CommandSender sender)
     {
-        Set<Admin> activeAdmins = plugin().al.getActiveAdmins();
-        if (activeAdmins.isEmpty()) 
+        final Set<Admin> activeAdmins = plugin().al.getActiveAdmins();
+        if (activeAdmins.isEmpty())
         {
             msg(sender, "<gray>No active admins.");
             return;
         }
 
-        Map<Rank, List<Admin>> byRank = activeAdmins.stream().collect(
+        final Map<Rank, List<Admin>> byRank = activeAdmins.stream().collect(
             Collectors.groupingBy(a -> a.getRank(), () -> new EnumMap<>(Rank.class), Collectors.toList())
         );
 
