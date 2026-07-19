@@ -18,7 +18,7 @@ public class Command_opall extends FCommand
             throw new CommandFailException("<gray>Cannot use both -c and -s at the same time.");
         }
 
-        GameMode gamemode = creative ? GameMode.CREATIVE : survival ? GameMode.SURVIVAL : null;
+        final GameMode gamemode = creative ? GameMode.CREATIVE : survival ? GameMode.SURVIVAL : null;
 
         server().getOnlinePlayers().forEach(player -> 
         {

@@ -28,7 +28,7 @@ public class Command_doom extends FCommand
         final String ip = player.getAddress().getAddress().getHostAddress().trim();
 
         // Remove from superadmin
-        Admin admin = getAdmin(player);
+        final Admin admin = getAdmin(player);
         if (admin != null)
         {
             adminAction(sender, "<red>Removing <player> from the superadmin list", name);
@@ -42,7 +42,7 @@ public class Command_doom extends FCommand
         player.setOp(false);
 
         // Ban player
-        Ban ban = Ban.forPlayer(player, sender);
+        final Ban ban = Ban.forPlayer(player, sender);
         ban.setReason("&cFUCKOFF");
         for (String playerIp : plugin().pl.getData(player).getIps())
         {

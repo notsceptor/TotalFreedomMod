@@ -27,7 +27,7 @@ public class Command_attributelist extends FCommand
                 .map(key -> Component.text(key.toString(), NamedTextColor.YELLOW))
                 .toList();
 
-        msg(sender, "<gold>All possible attributes:");
+        msg(sender, "<gray>All possible attributes:");
         msg(sender, "<gold><attributes>",
                 Placeholder.component("attributes", Component.text().colorIfAbsent(NamedTextColor.GOLD)
                         .append(Component.join(JoinConfiguration.commas(true), attributes))

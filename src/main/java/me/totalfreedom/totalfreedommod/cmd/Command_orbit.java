@@ -19,11 +19,11 @@ public class Command_orbit extends FCommand
     @Callback
     public void setOrbit(CommandSender sender, Player player)
     {
-        FPlayer target = plugin().pl.getPlayer(player);
+        final FPlayer target = plugin().pl.getPlayer(player);
         if (!target.isOrbiting())
         {
             player.setGameMode(GameMode.SURVIVAL);
-            double strength = 10.0;
+            final double strength = 10.0;
             target.startOrbiting(strength);
 
             player.setVelocity(new Vector(0, strength, 0));

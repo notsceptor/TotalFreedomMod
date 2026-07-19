@@ -40,10 +40,10 @@ public class Command_myadmin extends FCommand
     {
         final Admin entry = plugin().al.getAdmin(player);
         final List<String> ips = entry.getIps();
-        int count = ips.size();
+        final int count = ips.size();
 
         ips.clear();
-        ips.add(player.getAddress().getAddress().getHostName());
+        ips.add(player.getAddress().getAddress().getHostAddress());
 
         msg(player, "<gray><count> IP address(es) were removed.", Formatter.number("count", count - 1));
     }

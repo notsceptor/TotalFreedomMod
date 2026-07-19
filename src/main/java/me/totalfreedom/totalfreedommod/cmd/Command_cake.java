@@ -22,11 +22,8 @@ public class Command_cake extends FCommand
     @Callback
     public void cake(CommandSender sender) 
     {
-        String randomCakeLyrics = Stream.of(CAKE_LYRICS.split(" "))
-                                        .map(word -> {
-                                                String hex = String.format("%06x", random.nextInt(0xFFFFFF + 1));
-                                                return "<#" + hex + ">" + word;
-                                            })
+        final String randomCakeLyrics = Stream.of(CAKE_LYRICS.split(" "))
+                                        .map(word -> "<#" + String.format("%06x", random.nextInt(0xFFFFFF + 1)) + ">" + word)
                                         .collect(Collectors.joining(" "));
         
 

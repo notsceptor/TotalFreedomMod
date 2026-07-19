@@ -31,9 +31,6 @@ public class Command_link extends FCommand
         String code = plugin().db.createPendingLink(admin.getUuid());
         int ttlSeconds = plugin().db.getLinkCodeTtlSeconds();
 
-        // OKAY SO i forgot about string blocks; 
-        // the newline byte sent by this IS parsed by MiniMessage (unlike \n).
-        // We should actually use this for multi-lines :)
         msg(
             player,
             """

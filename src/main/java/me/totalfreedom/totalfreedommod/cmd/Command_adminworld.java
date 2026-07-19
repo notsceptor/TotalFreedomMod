@@ -26,7 +26,7 @@ public class Command_adminworld extends FCommand
         }
         catch (Exception ignored) {}
 
-        if (adminWorld == null || player.getWorld().equals(adminWorld))
+        if (adminWorld == null || player.getWorld().getUID().equals(adminWorld.getUID()))
         {
             msg(player, "<gray>Going to the main world.");
             player.teleport(server().getWorlds().get(0).getSpawnLocation().clone());

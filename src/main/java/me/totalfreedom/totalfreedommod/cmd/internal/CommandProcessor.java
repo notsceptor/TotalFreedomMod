@@ -128,21 +128,18 @@ public final class CommandProcessor
         Command meta = command.getClass().getAnnotation(Command.class);
         if (meta == null)
         {
-            FLog.warning(String.format("%s is missing @Command; skipped", command.getClass().getName()));
+            FLog.warning(String.format("%s is missing @Command; skipped", command.getClass().getSimpleName()));
             return;
         }
 
         // Apparently, brigadier is case-sensitive for the primary literal. Usage of toLowerCase() is to enforce lowercasing on them.
-        // Don't know why it's case-sensitive but it's fine I guess. Some retard shit imo.
         commands.put(meta.name().toLowerCase(), new CommandProcessor(command, plugin, meta));
         FLog.debug(String.format("Queued /%s for Brigadier registration", meta.name().toLowerCase()));
 
         if (hooked.compareAndSet(false, true))
         {
             plugin.getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event ->
-            {
-                commands.values().forEach(p -> p.registerWith(event.registrar()));
-            });
+                commands.values().forEach(p -> p.registerWith(event.registrar())));
         }
     }
 
@@ -167,7 +164,7 @@ public final class CommandProcessor
         this.commandName = meta.name().toLowerCase();
         this.description = meta.description();
         this.usage = meta.usage();
-        this.aliases = Arrays.stream(meta.aliases()).map(s -> s.toLowerCase()).toList();
+        this.aliases = Arrays.stream(meta.aliases()).map(String::toLowerCase).toList();
         this.classPermission = command.getClass().getAnnotation(Permission.class);
     }
 
@@ -184,16 +181,30 @@ public final class CommandProcessor
         }
     }
 
+    /**
+     * @return true if {@code method} is already accessible or could be made accessible via
+     * {@link Method#trySetAccessible()}; otherwise logs a warning and returns false.
+     */
+    private boolean ensureAccessible(Method method)
+    {
+        if (method.canAccess(command) || method.trySetAccessible())
+        {
+            return true;
+        }
+        FLog.warning(String.format("%s.%s is not accessible; skipped.", command.getClass().getSimpleName(), method.getName()));
+        return false;
+    }
+
     private LiteralArgumentBuilder<CommandSourceStack> buildNode()
     {
         completers.clear();
 
         Arrays.stream(command.getClass().getDeclaredMethods())
                 .filter(method -> method.isAnnotationPresent(Completer.class))
-                .peek(method -> method.setAccessible(true))
-                .forEach(method -> 
+                .filter(this::ensureAccessible)
+                .forEach(method ->
                 {
-                    if (!isValidCompleterSignature(method)) 
+                    if (!isValidCompleterSignature(method))
                     {
                         FLog.warning(String.format("%s has @Completer but an invalid signature (expected (SenderType, String) -> List<String>); skipped.", method.getName()));
                         return;
@@ -207,8 +218,8 @@ public final class CommandProcessor
 
         Arrays.stream(command.getClass().getDeclaredMethods())
                 .filter(method -> method.isAnnotationPresent(Callback.class))
-                .peek(method -> method.setAccessible(true))
-                .forEach(method -> 
+                .filter(this::ensureAccessible)
+                .forEach(method ->
                 {
                     String pathValue = method.isAnnotationPresent(Subcommand.class)
                             ? method.getAnnotation(Subcommand.class).value().trim()
@@ -219,12 +230,8 @@ public final class CommandProcessor
                         rootHandlers.stream()
                                 .filter(prior -> conflicts(prior, method))
                                 .forEach(prior -> FLog.warning(String.format(
-                                                                            "Ambiguous root handlers on /%s:\n %s and %s cannot be told apart at parse time (%d argument(s) with overlapping tokens)", 
-                                                                            commandName, 
-                                                                            method.getName(), 
-                                                                            prior.getName(), 
-                                                                            argumentCount(method)
-                                                                        )));
+                                        "Ambiguous root handlers on /%s:\n %s and %s cannot be told apart at parse time (%d argument(s) with overlapping tokens)",
+                                        commandName, method.getName(), prior.getName(), argumentCount(method))));
 
                         rootHandlers.add(method);
                         return;
@@ -239,14 +246,9 @@ public final class CommandProcessor
                         .stream()
                         .filter(existing -> conflicts(existing, method))
                         .forEach(existing -> FLog.warning(String.format(
-                                                                        "Ambiguous handlers for subcommand \"%s\" on /%s:\n %s and %s cannot be told apart at parse time (%d argument(s) with overlapping tokens)", 
-                                                                        pathValue, 
-                                                                        commandName, 
-                                                                        method.getName(), 
-                                                                        existing.getName(), 
-                                                                        argumentCount(method)
-                                                                    )));
-                
+                                "Ambiguous handlers for subcommand \"%s\" on /%s:\n %s and %s cannot be told apart at parse time (%d argument(s) with overlapping tokens)",
+                                pathValue, commandName, method.getName(), existing.getName(), argumentCount(method))));
+
                     node.handlerMethods.add(method);
                 });
 

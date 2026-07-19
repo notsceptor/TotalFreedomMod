@@ -120,7 +120,7 @@ public abstract class FCommand
             throw new InvalidParameterException("String cannot be Null-or-Empty");
         }
 
-        Player player = server().getPlayerExact(name);
+        final Player player = server().getPlayerExact(name);
         if (player != null)
         {
             return player;
@@ -135,7 +135,7 @@ public abstract class FCommand
             }
         }
 
-        List<Player> matches = new ArrayList<>();
+        final List<Player> matches = new ArrayList<>();
         for (Player p : server().getOnlinePlayers())
         {
             if (p.getName().toLowerCase().startsWith(name))

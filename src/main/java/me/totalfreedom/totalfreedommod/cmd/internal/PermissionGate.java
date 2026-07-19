@@ -134,15 +134,7 @@ public final class PermissionGate
             String boundRankId = plugin.csr.getRankIdForSender(sender.getName());
             boundCustom = boundRankId != null ? plugin.rm.getCustomRank(boundRankId) : null;
         }
-        boolean result;
-        if (boundCustom != null)
-        {
-            result = boundCustom.isAtLeast(perm.level());
-        }
-        else
-        {
-            result = rank.isAtLeast(perm.level());
-        }
+        final boolean result = boundCustom != null ? boundCustom.isAtLeast(perm.level()) : rank.isAtLeast(perm.level());
         if (!result && sendMsg)
         {
             sender.sendMessage(Component.text(perm.message(), NamedTextColor.RED));

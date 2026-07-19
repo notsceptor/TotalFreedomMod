@@ -1,6 +1,5 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
-import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 
@@ -17,7 +16,7 @@ public class Command_entitywipe extends FCommand
     public void entitywipeAll(CommandSender sender)
     {
         adminAction(sender, "<red>Removing all server entities");
-        int removed = plugin().ew.wipeEntities(true);
+        final int removed = plugin().ew.wipeEntities(true);
         msg(
             sender,
             "<gray><count> <noun> removed.",
@@ -27,23 +26,16 @@ public class Command_entitywipe extends FCommand
     }
 
     @Callback
-    public void entitywipeWorld(CommandSender sender, String world)
+    public void entitywipeWorld(CommandSender sender, World world)
     {
-        World target = Bukkit.getWorld(world);
-        if (target == null)
-        {
-            msg(sender, "<red>World \"<world>\" not found.", Placeholder.unparsed("world", world));
-            return;
-        }
-
-        adminAction(sender, "<red>Removing entities in world <world>", Placeholder.unparsed("world", target.getName()));
-        int removed = plugin().ew.wipeEntities(target, true);
+        adminAction(sender, "<red>Removing entities in world <world>", Placeholder.unparsed("world", world.getName()));
+        final int removed = plugin().ew.wipeEntities(world, true);
         msg(
             sender,
             "<gray><count> <noun> removed from \"<world>\".",
             Formatter.number("count", removed),
             Placeholder.unparsed("noun", removed == 1 ? "entity" : "entities"),
-            Placeholder.unparsed("world", target.getName())
+            Placeholder.unparsed("world", world.getName())
         );
     }
 }

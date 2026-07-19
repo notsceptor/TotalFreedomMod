@@ -14,6 +14,7 @@ import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
+import me.totalfreedom.totalfreedommod.rank.CustomRank;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import net.kyori.adventure.text.Component;
@@ -39,9 +40,9 @@ public class Command_tag extends FCommand
     {
         msg(sender, "<gray>Tags for all online players:");
 
-        for (Player player : server().getOnlinePlayers())
+        for (final Player player : server().getOnlinePlayers())
         {
-            FPlayer playerdata = plugin().pl.getPlayer(player);
+            final FPlayer playerdata = plugin().pl.getPlayer(player);
             if (playerdata.getTag() != null)
             {
                 msg(
@@ -64,8 +65,8 @@ public class Command_tag extends FCommand
             return;
         }
 
-        Component processed = AdventureUtil.format(tag);
-        String rawTag = AdventureUtil.componentToPlainText(processed).toLowerCase().trim();
+        final Component processed = AdventureUtil.format(tag);
+        final String rawTag = AdventureUtil.componentToPlainText(processed).toLowerCase().trim();
 
         if (rawTag.isEmpty())
         {
@@ -85,7 +86,7 @@ public class Command_tag extends FCommand
             return;
         }
 
-        FPlayer player = plugin().pl.getPlayer(playerSender);
+        final FPlayer player = plugin().pl.getPlayer(playerSender);
         player.setTag(tag);
 
         msg(sender, "<gray>Tag set to '<tag>'.", MessageUtils.component("tag", player.getTag()));
@@ -113,13 +114,13 @@ public class Command_tag extends FCommand
 
         adminAction(sender, "<aqua>Removing all tags");
 
-        String clearedTagValue = getClearedTagValue();
+        final String clearedTagValue = getClearedTagValue();
         int count = 0;
 
-        for (Player player : server().getOnlinePlayers())
+        for (final Player player : server().getOnlinePlayers())
         {
-            FPlayer playerdata = plugin().pl.getPlayer(player);
-            PlayerData data = plugin().pl.getData(player);
+            final FPlayer playerdata = plugin().pl.getPlayer(player);
+            final PlayerData data = plugin().pl.getData(player);
 
             if (hasTag(playerdata.getInternalTag()) || hasTag(data.getSavedTag()))
             {
@@ -155,15 +156,15 @@ public class Command_tag extends FCommand
             throw new CommandFailException("You do not have permission to use this command.");
         }
 
-        Player player = getPlayer(playerName);
+        final Player player = getPlayer(playerName);
         clearPlayerTag(player);
         msg(sender, "<gray>Removed <player>'s tag.", Placeholder.unparsed("player", player.getName()));
     }
 
     private String getClearedTagValue()
     {
-        Boolean enforcePrefixConfig = ConfigEntry.VAULT_CHAT_ENFORCE_PREFIX.getBoolean();
-        boolean enforcePrefix = enforcePrefixConfig != null && enforcePrefixConfig;
+        final Boolean enforcePrefixConfig = ConfigEntry.VAULT_CHAT_ENFORCE_PREFIX.getBoolean();
+        final boolean enforcePrefix = enforcePrefixConfig != null && enforcePrefixConfig;
         return !enforcePrefix ? "" : null;
     }
 
@@ -180,10 +181,10 @@ public class Command_tag extends FCommand
 
     public static boolean containsForbidden(String plainText)
     {
-        List<String> terms = new ArrayList<>(FORBIDDEN_WORDS);
+        final List<String> terms = new ArrayList<>(FORBIDDEN_WORDS);
 
         Stream.of(Rank.values())
-              .filter(r -> r.isAdmin())
+              .filter(Rank::isAdmin)
               .filter(r -> !r.getTag().isEmpty())
               .forEach(r -> terms.add(r.getTag()));
 
@@ -191,11 +192,11 @@ public class Command_tag extends FCommand
                       .rm
                       .getCustomRanksSorted()
                       .stream()
-                      .filter(r -> r.isAdmin())
+                      .filter(CustomRank::isAdmin)
                       .filter(r -> !r.getTag().isEmpty())
                       .forEach(r -> terms.add(r.getTag()));
 
-        Pattern forbidden = Pattern.compile(
+        final Pattern forbidden = Pattern.compile(
             terms.stream().map(Pattern::quote).collect(Collectors.joining("|")),
             Pattern.CASE_INSENSITIVE
         );

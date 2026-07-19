@@ -22,10 +22,7 @@ public class Command_landmine extends FCommand
     @Subcommand("list")
     public void list(Player player)
     {
-        for (Landmine landmine : plugin().lm.getLandmines())
-        {
-            msg(player, landmine.toString());
-        }
+        plugin().lm.getLandmines().forEach(landmine -> msg(player, landmine.toString()));
     }
 
     @Callback

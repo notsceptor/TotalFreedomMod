@@ -50,13 +50,13 @@ public class Command_lockup extends FCommand
             return;
         }
 
-        if ("on".equalsIgnoreCase(state))
+        if (state.equalsIgnoreCase("on"))
         {
             adminAction(sender, "<aqua>Locking up <player>", Placeholder.unparsed("player", player.getName()));
             startLockup(player);
             msg(sender, "<gray>Locked up <player>.", Placeholder.unparsed("player", player.getName()));
         }
-        else if ("off".equalsIgnoreCase(state))
+        else if (state.equalsIgnoreCase("off"))
         {
             adminAction(sender, "<aqua>Unlocking <player>", Placeholder.unparsed("player", player.getName()));
             cancelLockup(player);

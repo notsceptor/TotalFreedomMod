@@ -12,13 +12,10 @@ public class Command_cleanchat extends FCommand
     @Callback
     public void execute(final CommandSender sender)
     {
-        server().getOnlinePlayers().forEach(player -> {
-            if (plugin().al.isAdmin(player))
-                return;
-
-            for (int n = 0; n < 100; ++n) 
-                msg(player, "");
-        });
+        server().getOnlinePlayers()
+                .stream()
+                .filter(player -> !plugin().al.isAdmin(player))
+                .forEach(player -> msg(player, "\n".repeat(100)));
 
         adminAction(sender, "<red>Cleared chat.");
     }

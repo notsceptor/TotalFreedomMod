@@ -3,7 +3,7 @@ package me.totalfreedom.totalfreedommod.cmd;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
-import org.bukkit.World;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.AreaEffectCloud;
 import org.bukkit.entity.Entity;
@@ -19,19 +19,18 @@ public class Command_aeclear extends FCommand
     {
         adminAction(sender, "<red>Removing all area-of-effect clouds");
 
-        int removed = 0;
-        for (World world : server().getWorlds())
-        {
-            for (Entity entity : world.getEntities())
-            {
-                if (entity instanceof AreaEffectCloud)
-                {
-                    entity.remove();
-                    removed++;
-                }
-            }
-        }
+        final long removed = server().getWorlds()
+                .stream()
+                .flatMap(world -> world.getEntities().stream())
+                .filter(entity -> entity instanceof AreaEffectCloud)
+                .reduce(0L, (total, entity) ->
+                    {
+                        entity.remove();
+                        return total + 1;
+                    }, Long::sum);
 
-        msg(sender, "<gray><count> area-of-effect clouds removed.", Formatter.number("count", removed));
+        msg(sender, "<gray><count> area-of-effect cloud<plural> removed.",
+                Formatter.number("count", removed),
+                Placeholder.unparsed("plural", removed == 1 ? "" : "s"));
     }
 }

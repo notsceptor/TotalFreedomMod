@@ -32,22 +32,20 @@ public class Command_deafen extends FCommand
         return SOUNDS.get(random.nextInt(SOUNDS.size()));
     }
 
+    private void playNoiseSequence(Player player)
+    {
+        for (double percent = 0.0; percent <= 1.0; percent += (1.0 / STEPS))
+        {
+            final float pitch = (float) (percent * 2.0);
+            sync(() -> player.playSound(randomOffset(player.getLocation(), 5.0), getRandomSound(), 100.0f, pitch),
+                    Math.round(20.0 * percent * 2.0));
+        }
+    }
+
     @Callback
     public void deafenNoArgument(CommandSender sender)
     {
-        server().getOnlinePlayers().forEach(player -> 
-            {
-                for (double percent = 0.0; percent <= 1.0; percent += (1.0 / STEPS))
-                {
-                    final float pitch = (float) (percent * 2.0);
-                    sync(() -> player.playSound(
-                                                    randomOffset(player.getLocation(), 5.0), 
-                                                    getRandomSound(), 100.0f, 
-                                                    pitch
-                                               ), 
-                         Math.round(20.0 * percent * 2.0));
-                }
-            });
+        server().getOnlinePlayers().forEach(this::playNoiseSequence);
     }
 
     // cuz why not make it able to target one player?
@@ -56,16 +54,7 @@ public class Command_deafen extends FCommand
     {
         for (int x = 0; x <= server().getOnlinePlayers().size(); x++) // using player size since that's how the other method functions
         {
-            for (double percent = 0.0; percent <= 1.0; percent += (1.0 / STEPS))
-                {
-                    final float pitch = (float) (percent * 2.0);
-                    sync(() -> player.playSound(
-                                                    randomOffset(player.getLocation(), 5.0), 
-                                                    getRandomSound(), 100.0f, 
-                                                    pitch
-                                                ), 
-                            Math.round(20.0 * percent * 2.0));
-                }
+            playNoiseSequence(player);
         }
     }
 }
