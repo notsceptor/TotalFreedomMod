@@ -94,6 +94,7 @@ public class TotalFreedomMod extends JavaPlugin
     public AntiDrop adr; // AntiDrop - Throttles item drop flooding
     public AntiSpam as; // AntiSpam - Prevents chat spam
     public PlayerList pl; // PlayerList - Manages player data and lists
+    public JoinLeaveMessages jlm; // JoinLeaveMessages - Personal join/leave message filtering
     public Announcer an; // Announcer - Handles server announcements
     public ChatManager cm; // ChatManager - Manages chat formatting and admin chat
     public BanManager bm; // BanManager - Manages player bans
@@ -221,6 +222,7 @@ public class TotalFreedomMod extends JavaPlugin
         as = services.registerService(AntiSpam.class);
 
         pl = services.registerService(PlayerList.class);
+        jlm = services.registerService(JoinLeaveMessages.class);
         an = services.registerService(Announcer.class);
         cm = services.registerService(ChatManager.class);
         bm = services.registerService(BanManager.class);
