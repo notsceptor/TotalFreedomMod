@@ -21,7 +21,7 @@ public class Command_lockup extends FCommand
     @Subcommand("all")
     public void lockAll(CommandSender sender)
     {
-        adminAction(sender, "<aqua>Locking up all players");
+        adminAction(sender, "<red>Locking up all players");
 
         server().getOnlinePlayers().forEach(this::startLockup);
 
@@ -52,7 +52,7 @@ public class Command_lockup extends FCommand
 
         if (state.equalsIgnoreCase("on"))
         {
-            adminAction(sender, "<aqua>Locking up <player>", Placeholder.unparsed("player", player.getName()));
+            adminAction(sender, "<red>Locking up <player>", Placeholder.unparsed("player", player.getName()));
             startLockup(player);
             msg(sender, "<gray>Locked up <player>.", Placeholder.unparsed("player", player.getName()));
         }
