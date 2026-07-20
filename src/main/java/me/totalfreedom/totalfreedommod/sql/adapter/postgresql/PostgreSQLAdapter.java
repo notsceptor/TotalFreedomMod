@@ -3,15 +3,13 @@ package me.totalfreedom.totalfreedommod.sql.adapter.postgresql;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.sql.ConnectionHandler;
 import me.totalfreedom.totalfreedommod.sql.StatementHandler;
-import me.totalfreedom.totalfreedommod.sql.adapter.AdminRepository;
-import me.totalfreedom.totalfreedommod.sql.adapter.BanRepository;
-import me.totalfreedom.totalfreedommod.sql.adapter.DatabaseAdapter;
-import me.totalfreedom.totalfreedommod.sql.adapter.DiscordLinkRepository;
-import me.totalfreedom.totalfreedommod.sql.adapter.PermbanRepository;
-import me.totalfreedom.totalfreedommod.sql.adapter.StrikeRepository;
+import me.totalfreedom.totalfreedommod.sql.adapter.*;
+import me.totalfreedom.totalfreedommod.sql.adapter.generic.*;
 import me.totalfreedom.totalfreedommod.util.FLog;
 
 import java.sql.SQLException;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * PostgreSQL-specific database adapter.
@@ -24,11 +22,15 @@ import java.sql.SQLException;
  */
 public class PostgreSQLAdapter extends DatabaseAdapter
 {
-    private PostgreSQLAdminRepository adminRepository;
-    private PostgreSQLBanRepository banRepository;
-    private PostgreSQLPermbanRepository permbanRepository;
-    private PostgreSQLStrikeRepository strikeRepository;
-    private PostgreSQLDiscordLinkRepository discordLinkRepository;
+    private AdminRepository adminRepository;
+    private BanRepository banRepository;
+    private PermbanRepository permbanRepository;
+    private StrikeRepository strikeRepository;
+    private DiscordLinkRepository discordLinkRepository;
+    private RankRepository rankRepository;
+    private ProtectedAreaRepository protectedAreaRepository;
+    private SavedFlagRepository savedFlagRepository;
+    private PlayerRepository playerRepository;
 
     public PostgreSQLAdapter(TotalFreedomMod plugin, ConnectionHandler connectionHandler, StatementHandler statementHandler)
     {
@@ -70,10 +72,28 @@ public class PostgreSQLAdapter extends DatabaseAdapter
     }
 
     @Override
+    public String jsonType()
+    {
+        return "JSONB";
+    }
+
+    @Override
+    public String jsonParamPlaceholder()
+    {
+        return "?::jsonb";
+    }
+
+    @Override
     public String insertIgnoreSyntax()
     {
         // PostgreSQL uses ON CONFLICT DO NOTHING instead of INSERT IGNORE
         return "INSERT";  // Base INSERT, ON CONFLICT added per-statement
+    }
+
+    @Override
+    public String insertIgnoreSuffix()
+    {
+        return " ON CONFLICT DO NOTHING";
     }
 
     @Override
@@ -89,17 +109,31 @@ public class PostgreSQLAdapter extends DatabaseAdapter
     }
 
     @Override
-    public String caseInsensitiveLike()
+    public String timestampParamPlaceholder()
     {
-        return "ILIKE";
+        // PostgreSQL won't implicitly convert a bound String to timestamp.
+        return "?::timestamp";
     }
 
-    /**
-     * PostgreSQL-specific ON CONFLICT DO NOTHING clause
-     */
-    public String onConflictDoNothing()
+    @Override
+    public String caseInsensitiveEquals(String columnRef, String paramPlaceholder)
     {
-        return "ON CONFLICT DO NOTHING";
+        return String.format("%s ILIKE %s", columnRef, paramPlaceholder);
+    }
+
+    @Override
+    public String compareToNow(String columnRef, String operator)
+    {
+        return String.format("%s %s CURRENT_TIMESTAMP", columnRef, operator);
+    }
+
+    @Override
+    public String upsertClause(String conflictColumn, String... updateColumns)
+    {
+        String assignments = Stream.of(updateColumns)
+                .map(col -> String.format("%s = EXCLUDED.%s", col, col))
+                .collect(Collectors.joining(", "));
+        return String.format("ON CONFLICT(%s) DO UPDATE SET %s", conflictColumn, assignments);
     }
 
     // ============================================
@@ -120,6 +154,12 @@ public class PostgreSQLAdapter extends DatabaseAdapter
         createPermbanIpsTable();
         createStrikesTable();
         createDiscordLinksTable();
+        createRanksTable();
+        createRankPermissionsTable();
+        createProtectedAreasTable();
+        createSavedFlagsTable();
+        createPlayersTable();
+        createPlayerIpsTable();
 
         FLog.info("[PostgreSQL] Database migrations complete.");
     }
@@ -146,10 +186,14 @@ public class PostgreSQLAdapter extends DatabaseAdapter
                 "rank" VARCHAR(32) NOT NULL,
                 "active" BOOLEAN DEFAULT TRUE,
                 "last_login" TIMESTAMP,
-                "login_message" TEXT
+                "login_message" TEXT,
+                "custom_rank" VARCHAR(64)
             )
             """;
         statementHandler.executeUpdate(sql);
+
+        // Migration for tables created before custom_rank existed.
+        statementHandler.executeUpdate("ALTER TABLE \"admins\" ADD COLUMN IF NOT EXISTS \"custom_rank\" VARCHAR(64)");
 
         // Create indexes separately (PostgreSQL style)
         statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_admins_username ON \"admins\"(\"username\")");
@@ -261,6 +305,102 @@ public class PostgreSQLAdapter extends DatabaseAdapter
         statementHandler.executeUpdate(sql);
     }
 
+    private void createRanksTable() throws SQLException
+    {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS "ranks" (
+                "id" VARCHAR(64) PRIMARY KEY,
+                "name" VARCHAR(64) NOT NULL,
+                "determiner" VARCHAR(8) NOT NULL DEFAULT 'a',
+                "abbreviation" VARCHAR(16),
+                "level" INTEGER NOT NULL DEFAULT 0,
+                "color" VARCHAR(32) NOT NULL DEFAULT 'white',
+                "admin" BOOLEAN NOT NULL DEFAULT FALSE,
+                "console_only" BOOLEAN NOT NULL DEFAULT FALSE,
+                "prefix" VARCHAR(64),
+                "inherit_from" VARCHAR(64)
+            )
+            """;
+        statementHandler.executeUpdate(sql);
+        statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_ranks_level ON \"ranks\"(\"level\")");
+    }
+
+    private void createRankPermissionsTable() throws SQLException
+    {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS "rank_permissions" (
+                "id" SERIAL PRIMARY KEY,
+                "rank_id" VARCHAR(64) NOT NULL REFERENCES "ranks"("id") ON DELETE CASCADE,
+                "permission" VARCHAR(128) NOT NULL,
+                UNIQUE ("rank_id", "permission")
+            )
+            """;
+        statementHandler.executeUpdate(sql);
+    }
+
+    private void createProtectedAreasTable() throws SQLException
+    {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS "protected_areas" (
+                "uuid" VARCHAR(36) PRIMARY KEY,
+                "name" VARCHAR(64) NOT NULL,
+                "min_x" INTEGER NOT NULL,
+                "min_y" INTEGER NOT NULL,
+                "min_z" INTEGER NOT NULL,
+                "max_x" INTEGER NOT NULL,
+                "max_y" INTEGER NOT NULL,
+                "max_z" INTEGER NOT NULL,
+                "world_uuid" VARCHAR(36) NOT NULL
+            )
+            """;
+        statementHandler.executeUpdate(sql);
+        statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_protected_areas_name ON \"protected_areas\"(\"name\")");
+    }
+
+    private void createSavedFlagsTable() throws SQLException
+    {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS "saved_flags" (
+                "flag_name" VARCHAR(64) PRIMARY KEY,
+                "enabled" BOOLEAN NOT NULL DEFAULT FALSE
+            )
+            """;
+        statementHandler.executeUpdate(sql);
+    }
+
+    private void createPlayersTable() throws SQLException
+    {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS "players" (
+                "username" VARCHAR(16) PRIMARY KEY,
+                "first_join_unix" BIGINT NOT NULL DEFAULT 0,
+                "last_join_unix" BIGINT NOT NULL DEFAULT 0,
+                "potion_spy" BOOLEAN NOT NULL DEFAULT FALSE,
+                "command_spy_mode" VARCHAR(16) NOT NULL DEFAULT 'off',
+                "muted" BOOLEAN NOT NULL DEFAULT FALSE,
+                "frozen" BOOLEAN NOT NULL DEFAULT FALSE,
+                "commands_blocked" BOOLEAN NOT NULL DEFAULT FALSE,
+                "strikes" INTEGER NOT NULL DEFAULT 0,
+                "saved_tag" TEXT,
+                "nickname" TEXT
+            )
+            """;
+        statementHandler.executeUpdate(sql);
+    }
+
+    private void createPlayerIpsTable() throws SQLException
+    {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS "player_ips" (
+                "id" SERIAL PRIMARY KEY,
+                "username" VARCHAR(16) NOT NULL REFERENCES "players"("username") ON DELETE CASCADE,
+                "ip" VARCHAR(45) NOT NULL,
+                UNIQUE ("username", "ip")
+            )
+            """;
+        statementHandler.executeUpdate(sql);
+    }
+
     // ============================================
     // Repository Getters
     // ============================================
@@ -270,7 +410,7 @@ public class PostgreSQLAdapter extends DatabaseAdapter
     {
         if (adminRepository == null)
         {
-            adminRepository = new PostgreSQLAdminRepository(plugin, statementHandler);
+            adminRepository = new GenericAdminRepository(statementHandler, this);
         }
         return adminRepository;
     }
@@ -280,7 +420,7 @@ public class PostgreSQLAdapter extends DatabaseAdapter
     {
         if (banRepository == null)
         {
-            banRepository = new PostgreSQLBanRepository(plugin, statementHandler);
+            banRepository = new GenericBanRepository(statementHandler, this);
         }
         return banRepository;
     }
@@ -290,7 +430,7 @@ public class PostgreSQLAdapter extends DatabaseAdapter
     {
         if (permbanRepository == null)
         {
-            permbanRepository = new PostgreSQLPermbanRepository(plugin, statementHandler);
+            permbanRepository = new GenericPermbanRepository(statementHandler, this);
         }
         return permbanRepository;
     }
@@ -300,7 +440,7 @@ public class PostgreSQLAdapter extends DatabaseAdapter
     {
         if (strikeRepository == null)
         {
-            strikeRepository = new PostgreSQLStrikeRepository(plugin, statementHandler);
+            strikeRepository = new GenericStrikeRepository(statementHandler, this);
         }
         return strikeRepository;
     }
@@ -310,8 +450,48 @@ public class PostgreSQLAdapter extends DatabaseAdapter
     {
         if (discordLinkRepository == null)
         {
-            discordLinkRepository = new PostgreSQLDiscordLinkRepository(plugin, statementHandler);
+            discordLinkRepository = new GenericDiscordLinkRepository(statementHandler, this);
         }
         return discordLinkRepository;
+    }
+
+    @Override
+    public RankRepository getRankRepository()
+    {
+        if (rankRepository == null)
+        {
+            rankRepository = new GenericRankRepository(statementHandler, this);
+        }
+        return rankRepository;
+    }
+
+    @Override
+    public ProtectedAreaRepository getProtectedAreaRepository()
+    {
+        if (protectedAreaRepository == null)
+        {
+            protectedAreaRepository = new GenericProtectedAreaRepository(statementHandler, this);
+        }
+        return protectedAreaRepository;
+    }
+
+    @Override
+    public SavedFlagRepository getSavedFlagRepository()
+    {
+        if (savedFlagRepository == null)
+        {
+            savedFlagRepository = new GenericSavedFlagRepository(statementHandler, this);
+        }
+        return savedFlagRepository;
+    }
+
+    @Override
+    public PlayerRepository getPlayerRepository()
+    {
+        if (playerRepository == null)
+        {
+            playerRepository = new GenericPlayerRepository(statementHandler, this);
+        }
+        return playerRepository;
     }
 }

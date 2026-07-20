@@ -2,8 +2,6 @@ package me.totalfreedom.totalfreedommod;
 
 import com.google.common.collect.Maps;
 
-import lombok.Getter;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -858,9 +856,7 @@ public class ProtectArea extends FreedomService
 
     public static class ProtectedRegion
     {
-        @Getter
         private UUID uuid;
-        @Getter
         private String name;
         private Vector min;
         private Vector max;
@@ -901,6 +897,43 @@ public class ProtectArea extends FreedomService
             }
             this.min = new Vector(minX, minY, minZ);
             this.max = new Vector(maxX, maxY, maxZ);
+        }
+
+        public UUID getUuid()
+        {
+            return uuid;
+        }
+
+        public String getName()
+        {
+            return name;
+        }
+
+        /**
+         * Raw world reference, usable for persistence without requiring the world to
+         * currently be loaded in Bukkit (unlike {@link #getWorld()}).
+         */
+        public UUID getWorldUUID()
+        {
+            return worldUUID;
+        }
+
+        /**
+         * Raw minimum corner, usable for persistence without requiring the world to
+         * currently be loaded in Bukkit (unlike {@link #getMinimumPoint()}).
+         */
+        public Vector getMinVector()
+        {
+            return min;
+        }
+
+        /**
+         * Raw maximum corner, usable for persistence without requiring the world to
+         * currently be loaded in Bukkit (unlike {@link #getMaximumPoint()}).
+         */
+        public Vector getMaxVector()
+        {
+            return max;
         }
 
         public World getWorld() throws CantFindWorldException

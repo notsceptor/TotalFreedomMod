@@ -3,15 +3,13 @@ package me.totalfreedom.totalfreedommod.sql.adapter.sqlite;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.sql.ConnectionHandler;
 import me.totalfreedom.totalfreedommod.sql.StatementHandler;
-import me.totalfreedom.totalfreedommod.sql.adapter.AdminRepository;
-import me.totalfreedom.totalfreedommod.sql.adapter.BanRepository;
-import me.totalfreedom.totalfreedommod.sql.adapter.DatabaseAdapter;
-import me.totalfreedom.totalfreedommod.sql.adapter.DiscordLinkRepository;
-import me.totalfreedom.totalfreedommod.sql.adapter.PermbanRepository;
-import me.totalfreedom.totalfreedommod.sql.adapter.StrikeRepository;
+import me.totalfreedom.totalfreedommod.sql.adapter.*;
+import me.totalfreedom.totalfreedommod.sql.adapter.generic.*;
 import me.totalfreedom.totalfreedommod.util.FLog;
 
 import java.sql.SQLException;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * SQLite-specific database adapter.
@@ -23,11 +21,15 @@ import java.sql.SQLException;
  */
 public class SQLiteAdapter extends DatabaseAdapter
 {
-    private SQLiteAdminRepository adminRepository;
-    private SQLiteBanRepository banRepository;
-    private SQLitePermbanRepository permbanRepository;
-    private SQLiteStrikeRepository strikeRepository;
-    private SQLiteDiscordLinkRepository discordLinkRepository;
+    private AdminRepository adminRepository;
+    private BanRepository banRepository;
+    private PermbanRepository permbanRepository;
+    private StrikeRepository strikeRepository;
+    private DiscordLinkRepository discordLinkRepository;
+    private RankRepository rankRepository;
+    private ProtectedAreaRepository protectedAreaRepository;
+    private SavedFlagRepository savedFlagRepository;
+    private PlayerRepository playerRepository;
 
     public SQLiteAdapter(TotalFreedomMod plugin, ConnectionHandler connectionHandler, StatementHandler statementHandler)
     {
@@ -69,9 +71,27 @@ public class SQLiteAdapter extends DatabaseAdapter
     }
 
     @Override
+    public String jsonType()
+    {
+        return "TEXT"; // No native JSON type; JSON1 extension functions operate on TEXT
+    }
+
+    @Override
+    public String jsonParamPlaceholder()
+    {
+        return "?";
+    }
+
+    @Override
     public String insertIgnoreSyntax()
     {
         return "INSERT OR IGNORE";
+    }
+
+    @Override
+    public String insertIgnoreSuffix()
+    {
+        return "";
     }
 
     @Override
@@ -87,9 +107,31 @@ public class SQLiteAdapter extends DatabaseAdapter
     }
 
     @Override
-    public String caseInsensitiveLike()
+    public String timestampParamPlaceholder()
     {
-        return "LIKE"; // SQLite LIKE is case-insensitive by default
+        return "?";
+    }
+
+    @Override
+    public String caseInsensitiveEquals(String columnRef, String paramPlaceholder)
+    {
+        return String.format("LOWER(%s) = LOWER(%s)", columnRef, paramPlaceholder);
+    }
+
+    @Override
+    public String compareToNow(String columnRef, String operator)
+    {
+        // expire_at is stored as formatted TEXT; datetime() normalizes both sides for comparison.
+        return String.format("datetime(%s) %s datetime('now')", columnRef, operator);
+    }
+
+    @Override
+    public String upsertClause(String conflictColumn, String... updateColumns)
+    {
+        String assignments = Stream.of(updateColumns)
+                .map(col -> String.format("%s = EXCLUDED.%s", col, col))
+                .collect(Collectors.joining(", "));
+        return String.format("ON CONFLICT(%s) DO UPDATE SET %s", conflictColumn, assignments);
     }
 
     // ============================================
@@ -113,6 +155,12 @@ public class SQLiteAdapter extends DatabaseAdapter
         createPermbanIpsTable();
         createStrikesTable();
         createDiscordLinksTable();
+        createRanksTable();
+        createRankPermissionsTable();
+        createProtectedAreasTable();
+        createSavedFlagsTable();
+        createPlayersTable();
+        createPlayerIpsTable();
 
         FLog.info("[SQLite] Database migrations complete.");
     }
@@ -268,6 +316,104 @@ public class SQLiteAdapter extends DatabaseAdapter
         statementHandler.executeUpdate(sql);
     }
 
+    private void createRanksTable() throws SQLException
+    {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS ranks (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                determiner TEXT NOT NULL DEFAULT 'a',
+                abbreviation TEXT,
+                level INTEGER NOT NULL DEFAULT 0,
+                color TEXT NOT NULL DEFAULT 'white',
+                admin INTEGER NOT NULL DEFAULT 0,
+                console_only INTEGER NOT NULL DEFAULT 0,
+                prefix TEXT,
+                inherit_from TEXT
+            )
+            """;
+        statementHandler.executeUpdate(sql);
+        statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_ranks_level ON ranks(level)");
+    }
+
+    private void createRankPermissionsTable() throws SQLException
+    {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS rank_permissions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                rank_id TEXT NOT NULL,
+                permission TEXT NOT NULL,
+                UNIQUE (rank_id, permission),
+                FOREIGN KEY (rank_id) REFERENCES ranks(id) ON DELETE CASCADE
+            )
+            """;
+        statementHandler.executeUpdate(sql);
+    }
+
+    private void createProtectedAreasTable() throws SQLException
+    {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS protected_areas (
+                uuid TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                min_x INTEGER NOT NULL,
+                min_y INTEGER NOT NULL,
+                min_z INTEGER NOT NULL,
+                max_x INTEGER NOT NULL,
+                max_y INTEGER NOT NULL,
+                max_z INTEGER NOT NULL,
+                world_uuid TEXT NOT NULL
+            )
+            """;
+        statementHandler.executeUpdate(sql);
+        statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_protected_areas_name ON protected_areas(name)");
+    }
+
+    private void createSavedFlagsTable() throws SQLException
+    {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS saved_flags (
+                flag_name TEXT PRIMARY KEY,
+                enabled INTEGER NOT NULL DEFAULT 0
+            )
+            """;
+        statementHandler.executeUpdate(sql);
+    }
+
+    private void createPlayersTable() throws SQLException
+    {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS players (
+                username TEXT PRIMARY KEY,
+                first_join_unix INTEGER NOT NULL DEFAULT 0,
+                last_join_unix INTEGER NOT NULL DEFAULT 0,
+                potion_spy INTEGER NOT NULL DEFAULT 0,
+                command_spy_mode TEXT NOT NULL DEFAULT 'off',
+                muted INTEGER NOT NULL DEFAULT 0,
+                frozen INTEGER NOT NULL DEFAULT 0,
+                commands_blocked INTEGER NOT NULL DEFAULT 0,
+                strikes INTEGER NOT NULL DEFAULT 0,
+                saved_tag TEXT,
+                nickname TEXT
+            )
+            """;
+        statementHandler.executeUpdate(sql);
+    }
+
+    private void createPlayerIpsTable() throws SQLException
+    {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS player_ips (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT NOT NULL,
+                ip TEXT NOT NULL,
+                UNIQUE (username, ip),
+                FOREIGN KEY (username) REFERENCES players(username) ON DELETE CASCADE
+            )
+            """;
+        statementHandler.executeUpdate(sql);
+    }
+
     // ============================================
     // Repository Getters
     // ============================================
@@ -277,7 +423,7 @@ public class SQLiteAdapter extends DatabaseAdapter
     {
         if (adminRepository == null)
         {
-            adminRepository = new SQLiteAdminRepository(plugin, statementHandler);
+            adminRepository = new GenericAdminRepository(statementHandler, this);
         }
         return adminRepository;
     }
@@ -287,7 +433,7 @@ public class SQLiteAdapter extends DatabaseAdapter
     {
         if (banRepository == null)
         {
-            banRepository = new SQLiteBanRepository(plugin, statementHandler);
+            banRepository = new GenericBanRepository(statementHandler, this);
         }
         return banRepository;
     }
@@ -297,7 +443,7 @@ public class SQLiteAdapter extends DatabaseAdapter
     {
         if (permbanRepository == null)
         {
-            permbanRepository = new SQLitePermbanRepository(plugin, statementHandler);
+            permbanRepository = new GenericPermbanRepository(statementHandler, this);
         }
         return permbanRepository;
     }
@@ -307,7 +453,7 @@ public class SQLiteAdapter extends DatabaseAdapter
     {
         if (strikeRepository == null)
         {
-            strikeRepository = new SQLiteStrikeRepository(plugin, statementHandler);
+            strikeRepository = new GenericStrikeRepository(statementHandler, this);
         }
         return strikeRepository;
     }
@@ -317,8 +463,48 @@ public class SQLiteAdapter extends DatabaseAdapter
     {
         if (discordLinkRepository == null)
         {
-            discordLinkRepository = new SQLiteDiscordLinkRepository(plugin, statementHandler);
+            discordLinkRepository = new GenericDiscordLinkRepository(statementHandler, this);
         }
         return discordLinkRepository;
+    }
+
+    @Override
+    public RankRepository getRankRepository()
+    {
+        if (rankRepository == null)
+        {
+            rankRepository = new GenericRankRepository(statementHandler, this);
+        }
+        return rankRepository;
+    }
+
+    @Override
+    public ProtectedAreaRepository getProtectedAreaRepository()
+    {
+        if (protectedAreaRepository == null)
+        {
+            protectedAreaRepository = new GenericProtectedAreaRepository(statementHandler, this);
+        }
+        return protectedAreaRepository;
+    }
+
+    @Override
+    public SavedFlagRepository getSavedFlagRepository()
+    {
+        if (savedFlagRepository == null)
+        {
+            savedFlagRepository = new GenericSavedFlagRepository(statementHandler, this);
+        }
+        return savedFlagRepository;
+    }
+
+    @Override
+    public PlayerRepository getPlayerRepository()
+    {
+        if (playerRepository == null)
+        {
+            playerRepository = new GenericPlayerRepository(statementHandler, this);
+        }
+        return playerRepository;
     }
 }

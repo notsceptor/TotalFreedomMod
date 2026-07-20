@@ -4,8 +4,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import java.util.Collections;
 import java.util.List;
-import lombok.Getter;
-import lombok.Setter;
 import me.totalfreedom.totalfreedommod.PluginProvider;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
@@ -25,34 +23,16 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
     // max number of IP addresses retained per player
     public static final int MAX_IPS = 2;
 
-    @Getter
-    @Setter
     private String username;
-    @Getter
-    @Setter
     private long firstJoinUnix;
-    @Getter
-    @Setter
     private long lastJoinUnix;
-    @Getter
-    @Setter
     private boolean potionSpy;
     private CommandSpyMode commandSpyMode = CommandSpyMode.OFF;
-    @Getter
-    @Setter
     private boolean muted;
-    @Getter
-    @Setter
     private boolean frozen;
-    @Getter
-    @Setter
     private boolean commandsBlocked;
-    @Getter
-    @Setter
     private String savedTag;
-    @Getter
     private Component nickname;
-    @Getter
     private int strikes;
     private final List<String> ips = Lists.newArrayList();
 
@@ -64,6 +44,96 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
     public PlayerData(String username)
     {
         this.username = username;
+    }
+
+    public String getUsername()
+    {
+        return username;
+    }
+
+    public void setUsername(String username)
+    {
+        this.username = username;
+    }
+
+    public long getFirstJoinUnix()
+    {
+        return firstJoinUnix;
+    }
+
+    public void setFirstJoinUnix(long firstJoinUnix)
+    {
+        this.firstJoinUnix = firstJoinUnix;
+    }
+
+    public long getLastJoinUnix()
+    {
+        return lastJoinUnix;
+    }
+
+    public void setLastJoinUnix(long lastJoinUnix)
+    {
+        this.lastJoinUnix = lastJoinUnix;
+    }
+
+    public boolean isPotionSpy()
+    {
+        return potionSpy;
+    }
+
+    public void setPotionSpy(boolean potionSpy)
+    {
+        this.potionSpy = potionSpy;
+    }
+
+    public boolean isMuted()
+    {
+        return muted;
+    }
+
+    public void setMuted(boolean muted)
+    {
+        this.muted = muted;
+    }
+
+    public boolean isFrozen()
+    {
+        return frozen;
+    }
+
+    public void setFrozen(boolean frozen)
+    {
+        this.frozen = frozen;
+    }
+
+    public boolean isCommandsBlocked()
+    {
+        return commandsBlocked;
+    }
+
+    public void setCommandsBlocked(boolean commandsBlocked)
+    {
+        this.commandsBlocked = commandsBlocked;
+    }
+
+    public String getSavedTag()
+    {
+        return savedTag;
+    }
+
+    public void setSavedTag(String savedTag)
+    {
+        this.savedTag = savedTag;
+    }
+
+    public Component getNickname()
+    {
+        return nickname;
+    }
+
+    public int getStrikes()
+    {
+        return strikes;
     }
 
     @Override
@@ -189,6 +259,18 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
         final TotalFreedomMod plugin = PluginProvider.get();
         if (plugin != null && plugin.pl != null)
             plugin.pl.saveData(this);
+    }
+
+    /**
+     * Set the nickname without the display/save side effects {@link #setNickname} has.
+     * Used when hydrating a PlayerData from storage (repository load), where the player
+     * is not necessarily online and a save-after-load would be redundant.
+     */
+    public void setNicknameRaw(Component nickname)
+    {
+        this.nickname = nickname;
+        if (!hasCustomNickname())
+            this.nickname = null;
     }
 
     public Component getDisplayedNickname()

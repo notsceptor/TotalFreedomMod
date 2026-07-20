@@ -84,6 +84,26 @@ public abstract class DatabaseAdapter
      */
     public abstract DiscordLinkRepository getDiscordLinkRepository();
 
+    /**
+     * Get the rank repository for this database type.
+     */
+    public abstract RankRepository getRankRepository();
+
+    /**
+     * Get the protected area repository for this database type.
+     */
+    public abstract ProtectedAreaRepository getProtectedAreaRepository();
+
+    /**
+     * Get the saved flag repository for this database type.
+     */
+    public abstract SavedFlagRepository getSavedFlagRepository();
+
+    /**
+     * Get the per-player data repository for this database type.
+     */
+    public abstract PlayerRepository getPlayerRepository();
+
     // ============================================
     // SQL Dialect Methods (override for differences)
     // ============================================
@@ -126,12 +146,37 @@ public abstract class DatabaseAdapter
     public abstract String booleanType();
 
     /**
+     * Get the JSON column type for this database.
+     * SQLite: TEXT (no native JSON type; validate/query with the JSON1 extension's
+     * json_valid()/json_extract() if needed)
+     * MySQL: JSON
+     * PostgreSQL: JSONB
+     */
+    public abstract String jsonType();
+
+    /**
+     * Get the bind-parameter placeholder for a value being written into a native
+     * JSON column. PostgreSQL requires an explicit cast since it won't implicitly
+     * convert a bound String to jsonb.
+     * SQLite/MySQL: "?"
+     * PostgreSQL: "?::jsonb"
+     */
+    public abstract String jsonParamPlaceholder();
+
+    /**
      * Get the INSERT IGNORE / INSERT OR IGNORE syntax prefix.
      * SQLite: INSERT OR IGNORE
      * MySQL: INSERT IGNORE
-     * PostgreSQL: INSERT (use ON CONFLICT DO NOTHING suffix)
+     * PostgreSQL: INSERT (use insertIgnoreSuffix() for ON CONFLICT DO NOTHING)
      */
     public abstract String insertIgnoreSyntax();
+
+    /**
+     * Get the trailing clause (if any) needed to make an INSERT a no-op on conflict.
+     * SQLite/MySQL: "" (handled entirely by the insertIgnoreSyntax() prefix)
+     * PostgreSQL: " ON CONFLICT DO NOTHING"
+     */
+    public abstract String insertIgnoreSuffix();
 
     /**
      * Quote an identifier (table name, column name) for this database.
@@ -142,18 +187,46 @@ public abstract class DatabaseAdapter
     public abstract String quoteIdentifier(String identifier);
 
     /**
-     * Get the current timestamp function.
-     * SQLite: CURRENT_TIMESTAMP or datetime('now')
+     * Get the current timestamp function, for use as a literal insert value.
+     * SQLite: CURRENT_TIMESTAMP
      * MySQL: NOW()
      * PostgreSQL: CURRENT_TIMESTAMP
      */
     public abstract String currentTimestamp();
 
     /**
-     * Get the case-insensitive LIKE operator.
-     * SQLite: LIKE (case-insensitive by default)
-     * MySQL: LIKE (depends on collation)
-     * PostgreSQL: ILIKE
+     * Get the bind-parameter placeholder for a value being written into a native
+     * timestamp column. PostgreSQL requires an explicit cast since it won't
+     * implicitly convert a bound String to timestamp.
+     * SQLite/MySQL: "?"
+     * PostgreSQL: "?::timestamp"
      */
-    public abstract String caseInsensitiveLike();
+    public abstract String timestampParamPlaceholder();
+
+    /**
+     * Build a case-insensitive equality comparison between a (already-quoted) column
+     * reference and a bind-parameter placeholder.
+     * SQLite/MySQL: LOWER(columnRef) = LOWER(paramPlaceholder)
+     * PostgreSQL: columnRef ILIKE paramPlaceholder
+     */
+    public abstract String caseInsensitiveEquals(String columnRef, String paramPlaceholder);
+
+    /**
+     * Build a boolean expression comparing a stored (already-quoted) timestamp column
+     * against the current time. SQLite stores timestamps as formatted TEXT, so both
+     * sides need datetime() normalization; MySQL/PostgreSQL compare native
+     * DATETIME/TIMESTAMP columns directly.
+     *
+     * @param columnRef the already-quoted column reference
+     * @param operator  e.g. ">", "<="
+     */
+    public abstract String compareToNow(String columnRef, String operator);
+
+    /**
+     * Build the upsert clause appended after an INSERT ... VALUES (...) to update the
+     * given columns from the incoming row on a conflict against conflictColumn.
+     * MySQL: ON DUPLICATE KEY UPDATE col = VALUES(col), ...
+     * SQLite/PostgreSQL: ON CONFLICT(conflictColumn) DO UPDATE SET col = EXCLUDED.col, ...
+     */
+    public abstract String upsertClause(String conflictColumn, String... updateColumns);
 }

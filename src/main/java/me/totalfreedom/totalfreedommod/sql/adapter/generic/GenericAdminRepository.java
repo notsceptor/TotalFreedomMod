@@ -1,10 +1,10 @@
-package me.totalfreedom.totalfreedommod.sql.adapter.postgresql;
+package me.totalfreedom.totalfreedommod.sql.adapter.generic;
 
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.sql.StatementHandler;
 import me.totalfreedom.totalfreedommod.sql.adapter.AdminRepository;
+import me.totalfreedom.totalfreedommod.sql.adapter.DatabaseAdapter;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 
 import java.sql.PreparedStatement;
@@ -15,54 +15,70 @@ import java.util.*;
 import reactor.core.publisher.Mono;
 
 /**
- * PostgreSQL implementation of AdminRepository.
- * Uses PostgreSQL-specific SQL syntax including:
- * - ILIKE for case-insensitive comparisons
- * - ON CONFLICT DO NOTHING for upsert operations
- * - Double quotes for identifier escaping
- * - Native BOOLEAN type
+ * All dialect differences are resolved through the {@link DatabaseAdapter} passed in.
  */
-public class PostgreSQLAdminRepository implements AdminRepository
+public class GenericAdminRepository implements AdminRepository
 {
-    private final TotalFreedomMod plugin;
     private final StatementHandler statementHandler;
+    private final DatabaseAdapter adapter;
 
-    public PostgreSQLAdminRepository(TotalFreedomMod plugin, StatementHandler statementHandler)
+    private final String tblAdmins;
+    private final String tblAdminIps;
+    private final String colId;
+    private final String colUuid;
+    private final String colUsername;
+    private final String colRank;
+    private final String colActive;
+    private final String colLastLogin;
+    private final String colLoginMessage;
+    private final String colCustomRank;
+    private final String colAdminId;
+    private final String colIp;
+    private final String selectColumns;
+
+    public GenericAdminRepository(StatementHandler statementHandler, DatabaseAdapter adapter)
     {
-        this.plugin = plugin;
         this.statementHandler = statementHandler;
-    }
+        this.adapter = adapter;
 
-    // ============================================
-    // CREATE Operations
-    // ============================================
+        this.tblAdmins = adapter.quoteIdentifier("admins");
+        this.tblAdminIps = adapter.quoteIdentifier("admin_ips");
+        this.colId = adapter.quoteIdentifier("id");
+        this.colUuid = adapter.quoteIdentifier("uuid");
+        this.colUsername = adapter.quoteIdentifier("username");
+        this.colRank = adapter.quoteIdentifier("rank");
+        this.colActive = adapter.quoteIdentifier("active");
+        this.colLastLogin = adapter.quoteIdentifier("last_login");
+        this.colLoginMessage = adapter.quoteIdentifier("login_message");
+        this.colCustomRank = adapter.quoteIdentifier("custom_rank");
+        this.colAdminId = adapter.quoteIdentifier("admin_id");
+        this.colIp = adapter.quoteIdentifier("ip");
+        this.selectColumns = String.format("%s, %s, %s, %s, %s, %s, %s, %s",
+                colId, colUuid, colUsername, colRank, colActive, colLastLogin, colLoginMessage, colCustomRank);
+    }
 
     @Override
     public int insert(UUID uuid, Admin admin) throws SQLException
     {
-        String sql = """
-            INSERT INTO "admins" ("uuid", "username", "rank", "active", "last_login", "login_message")
-            VALUES (?, ?, ?, ?, ?::timestamp, ?)
-            RETURNING "id"
-            """;
+        String sql = String.format("INSERT INTO %s (%s, %s, %s, %s, %s, %s, %s) VALUES (?, ?, ?, ?, %s, ?, ?)",
+                tblAdmins, colUuid, colUsername, colRank, colActive, colLastLogin, colLoginMessage, colCustomRank,
+                adapter.timestampParamPlaceholder());
 
-        try (PreparedStatement stmt = statementHandler.prepareStatement(sql,
+        long adminId = statementHandler.executeUpdateReturnKey(sql,
                 uuid.toString(),
                 admin.getName(),
                 admin.getRank().toString(),
                 admin.isActive(),
                 FUtil.dateToString(admin.getLastLogin()),
-                admin.getLoginMessage());
-             ResultSet rs = stmt.executeQuery())
+                admin.getLoginMessage(),
+                admin.getCustomRankId());
+
+        if (adminId < 0)
         {
-            if (rs.next())
-            {
-                int adminId = rs.getInt("id");
-                insertIps(adminId, admin.getIps());
-                return adminId;
-            }
+            return -1;
         }
-        return -1;
+        insertIps((int) adminId, admin.getIps());
+        return (int) adminId;
     }
 
     @Override
@@ -70,8 +86,8 @@ public class PostgreSQLAdminRepository implements AdminRepository
     {
         if (ips == null || ips.isEmpty()) return;
 
-        // PostgreSQL: ON CONFLICT DO NOTHING
-        String sql = "INSERT INTO \"admin_ips\" (\"admin_id\", \"ip\") VALUES (?, ?) ON CONFLICT DO NOTHING";
+        String sql = String.format("%s INTO %s (%s, %s) VALUES (?, ?)%s",
+                adapter.insertIgnoreSyntax(), tblAdminIps, colAdminId, colIp, adapter.insertIgnoreSuffix());
         for (String ip : ips)
         {
             statementHandler.executeUpdate(sql, adminId, ip);
@@ -81,13 +97,10 @@ public class PostgreSQLAdminRepository implements AdminRepository
     @Override
     public void addIp(int adminId, String ip) throws SQLException
     {
-        String sql = "INSERT INTO \"admin_ips\" (\"admin_id\", \"ip\") VALUES (?, ?) ON CONFLICT DO NOTHING";
+        String sql = String.format("%s INTO %s (%s, %s) VALUES (?, ?)%s",
+                adapter.insertIgnoreSyntax(), tblAdminIps, colAdminId, colIp, adapter.insertIgnoreSuffix());
         statementHandler.executeUpdate(sql, adminId, ip);
     }
-
-    // ============================================
-    // READ Operations
-    // ============================================
 
     @Override
     public Map<String, Admin> loadAll() throws SQLException
@@ -95,39 +108,19 @@ public class PostgreSQLAdminRepository implements AdminRepository
         Map<String, Admin> admins = new HashMap<>();
         Map<Integer, Admin> adminById = new HashMap<>();
 
-        String sql = "SELECT \"id\", \"uuid\", \"username\", \"rank\", \"active\", \"last_login\", \"login_message\" FROM \"admins\"";
+        String sql = String.format("SELECT %s FROM %s", selectColumns, tblAdmins);
         try (ResultSet rs = statementHandler.executeQuery(sql))
         {
             while (rs.next())
             {
                 int id = rs.getInt("id");
-                String username = rs.getString("username");
-                String rankStr = rs.getString("rank");
-                boolean active = rs.getBoolean("active");
-                String lastLoginStr = rs.getString("last_login");
-                String loginMessage = rs.getString("login_message");
-
-                String configKey = username.toLowerCase();
-                Admin admin = new Admin(configKey);
-                admin.setName(username);
-                admin.setRank(Rank.findRank(rankStr));
-                admin.setActive(active);
-                admin.setLastLogin(FUtil.stringToDate(lastLoginStr));
-                admin.setLoginMessage(loginMessage);
-
-                UUID dbUuid = FUtil.parseUuid(rs.getString("uuid"));
-                if (dbUuid != null)
-                {
-                    admin.setUuid(dbUuid);
-                }
-
-                admins.put(configKey, admin);
+                Admin admin = loadAdminFromRow(rs);
+                admins.put(admin.getName().toLowerCase(), admin);
                 adminById.put(id, admin);
             }
         }
 
-        // Load IPs
-        String ipSql = "SELECT \"admin_id\", \"ip\" FROM \"admin_ips\"";
+        String ipSql = String.format("SELECT %s, %s FROM %s", colAdminId, colIp, tblAdminIps);
         try (ResultSet rs = statementHandler.executeQuery(ipSql))
         {
             while (rs.next())
@@ -148,7 +141,7 @@ public class PostgreSQLAdminRepository implements AdminRepository
     @Override
     public Admin findByUuid(UUID uuid) throws SQLException
     {
-        String sql = "SELECT \"id\", \"uuid\", \"username\", \"rank\", \"active\", \"last_login\", \"login_message\" FROM \"admins\" WHERE \"uuid\" = ?";
+        String sql = String.format("SELECT %s FROM %s WHERE %s = ?", selectColumns, tblAdmins, colUuid);
         try (PreparedStatement stmt = statementHandler.prepareStatement(sql, uuid.toString());
              ResultSet rs = stmt.executeQuery())
         {
@@ -163,8 +156,8 @@ public class PostgreSQLAdminRepository implements AdminRepository
     @Override
     public Admin findByUsername(String username) throws SQLException
     {
-        // PostgreSQL: ILIKE for case-insensitive comparison
-        String sql = "SELECT \"id\", \"uuid\", \"username\", \"rank\", \"active\", \"last_login\", \"login_message\" FROM \"admins\" WHERE \"username\" ILIKE ?";
+        String sql = String.format("SELECT %s FROM %s WHERE %s",
+                selectColumns, tblAdmins, adapter.caseInsensitiveEquals(colUsername, "?"));
         try (PreparedStatement stmt = statementHandler.prepareStatement(sql, username);
              ResultSet rs = stmt.executeQuery())
         {
@@ -179,12 +172,10 @@ public class PostgreSQLAdminRepository implements AdminRepository
     @Override
     public Admin findByIp(String ip) throws SQLException
     {
-        String sql = """
-            SELECT a."id", a."uuid", a."username", a."rank", a."active", a."last_login", a."login_message"
-            FROM "admins" a
-            INNER JOIN "admin_ips" ai ON a."id" = ai."admin_id"
-            WHERE ai."ip" = ?
-            """;
+        String sql = String.format(
+                "SELECT a.%s, a.%s, a.%s, a.%s, a.%s, a.%s, a.%s, a.%s FROM %s a INNER JOIN %s ai ON a.%s = ai.%s WHERE ai.%s = ?",
+                colId, colUuid, colUsername, colRank, colActive, colLastLogin, colLoginMessage, colCustomRank,
+                tblAdmins, tblAdminIps, colId, colAdminId, colIp);
         try (PreparedStatement stmt = statementHandler.prepareStatement(sql, ip);
              ResultSet rs = stmt.executeQuery())
         {
@@ -199,7 +190,8 @@ public class PostgreSQLAdminRepository implements AdminRepository
     @Override
     public int getAdminId(String username) throws SQLException
     {
-        String sql = "SELECT \"id\" FROM \"admins\" WHERE \"username\" ILIKE ?";
+        String sql = String.format("SELECT %s FROM %s WHERE %s",
+                colId, tblAdmins, adapter.caseInsensitiveEquals(colUsername, "?"));
         try (PreparedStatement stmt = statementHandler.prepareStatement(sql, username);
              ResultSet rs = stmt.executeQuery())
         {
@@ -211,7 +203,7 @@ public class PostgreSQLAdminRepository implements AdminRepository
     @Override
     public int getAdminIdByUuid(UUID uuid) throws SQLException
     {
-        String sql = "SELECT \"id\" FROM \"admins\" WHERE \"uuid\" = ?";
+        String sql = String.format("SELECT %s FROM %s WHERE %s = ?", colId, tblAdmins, colUuid);
         try (PreparedStatement stmt = statementHandler.prepareStatement(sql, uuid.toString());
              ResultSet rs = stmt.executeQuery())
         {
@@ -224,7 +216,7 @@ public class PostgreSQLAdminRepository implements AdminRepository
     public List<String> getIps(int adminId) throws SQLException
     {
         List<String> ips = new ArrayList<>();
-        String sql = "SELECT \"ip\" FROM \"admin_ips\" WHERE \"admin_id\" = ?";
+        String sql = String.format("SELECT %s FROM %s WHERE %s = ?", colIp, tblAdminIps, colAdminId);
         try (PreparedStatement stmt = statementHandler.prepareStatement(sql, adminId);
              ResultSet rs = stmt.executeQuery())
         {
@@ -239,7 +231,8 @@ public class PostgreSQLAdminRepository implements AdminRepository
     @Override
     public boolean exists(String username) throws SQLException
     {
-        String sql = "SELECT COUNT(*) FROM \"admins\" WHERE \"username\" ILIKE ?";
+        String sql = String.format("SELECT COUNT(*) FROM %s WHERE %s",
+                tblAdmins, adapter.caseInsensitiveEquals(colUsername, "?"));
         try (PreparedStatement stmt = statementHandler.prepareStatement(sql, username);
              ResultSet rs = stmt.executeQuery())
         {
@@ -250,7 +243,7 @@ public class PostgreSQLAdminRepository implements AdminRepository
     @Override
     public boolean existsByUuid(UUID uuid) throws SQLException
     {
-        String sql = "SELECT COUNT(*) FROM \"admins\" WHERE \"uuid\" = ?";
+        String sql = String.format("SELECT COUNT(*) FROM %s WHERE %s = ?", tblAdmins, colUuid);
         try (PreparedStatement stmt = statementHandler.prepareStatement(sql, uuid.toString());
              ResultSet rs = stmt.executeQuery())
         {
@@ -261,7 +254,8 @@ public class PostgreSQLAdminRepository implements AdminRepository
     @Override
     public UUID getUuidByUsername(String username) throws SQLException
     {
-        String sql = "SELECT \"uuid\" FROM \"admins\" WHERE \"username\" ILIKE ?";
+        String sql = String.format("SELECT %s FROM %s WHERE %s",
+                colUuid, tblAdmins, adapter.caseInsensitiveEquals(colUsername, "?"));
         try (PreparedStatement stmt = statementHandler.prepareStatement(sql, username);
              ResultSet rs = stmt.executeQuery())
         {
@@ -273,18 +267,12 @@ public class PostgreSQLAdminRepository implements AdminRepository
         return null;
     }
 
-    // ============================================
-    // UPDATE Operations
-    // ============================================
-
     @Override
     public boolean update(UUID uuid, Admin admin) throws SQLException
     {
-        String sql = """
-            UPDATE "admins"
-            SET "username" = ?, "rank" = ?, "active" = ?, "last_login" = ?::timestamp, "login_message" = ?
-            WHERE "uuid" = ?
-            """;
+        String sql = String.format("UPDATE %s SET %s = ?, %s = ?, %s = ?, %s = %s, %s = ?, %s = ? WHERE %s = ?",
+                tblAdmins, colUsername, colRank, colActive, colLastLogin, adapter.timestampParamPlaceholder(),
+                colLoginMessage, colCustomRank, colUuid);
 
         int rows = statementHandler.executeUpdate(sql,
                 admin.getName(),
@@ -292,6 +280,7 @@ public class PostgreSQLAdminRepository implements AdminRepository
                 admin.isActive(),
                 FUtil.dateToString(admin.getLastLogin()),
                 admin.getLoginMessage(),
+                admin.getCustomRankId(),
                 uuid.toString());
 
         return rows > 0;
@@ -300,35 +289,38 @@ public class PostgreSQLAdminRepository implements AdminRepository
     @Override
     public boolean updateRank(String username, String rank) throws SQLException
     {
-        String sql = "UPDATE \"admins\" SET \"rank\" = ? WHERE \"username\" ILIKE ?";
+        String sql = String.format("UPDATE %s SET %s = ? WHERE %s",
+                tblAdmins, colRank, adapter.caseInsensitiveEquals(colUsername, "?"));
         return statementHandler.executeUpdate(sql, rank, username) > 0;
     }
 
     @Override
     public boolean updateActive(String username, boolean active) throws SQLException
     {
-        String sql = "UPDATE \"admins\" SET \"active\" = ? WHERE \"username\" ILIKE ?";
+        String sql = String.format("UPDATE %s SET %s = ? WHERE %s",
+                tblAdmins, colActive, adapter.caseInsensitiveEquals(colUsername, "?"));
         return statementHandler.executeUpdate(sql, active, username) > 0;
     }
 
     @Override
     public boolean updateLastLogin(String username, Date lastLogin) throws SQLException
     {
-        String sql = "UPDATE \"admins\" SET \"last_login\" = ?::timestamp WHERE \"username\" ILIKE ?";
+        String sql = String.format("UPDATE %s SET %s = %s WHERE %s",
+                tblAdmins, colLastLogin, adapter.timestampParamPlaceholder(), adapter.caseInsensitiveEquals(colUsername, "?"));
         return statementHandler.executeUpdate(sql, FUtil.dateToString(lastLogin), username) > 0;
     }
 
     @Override
     public boolean updateUsername(UUID uuid, String newUsername) throws SQLException
     {
-        String sql = "UPDATE \"admins\" SET \"username\" = ? WHERE \"uuid\" = ?";
+        String sql = String.format("UPDATE %s SET %s = ? WHERE %s = ?", tblAdmins, colUsername, colUuid);
         return statementHandler.executeUpdate(sql, newUsername, uuid.toString()) > 0;
     }
 
     @Override
     public void syncIps(int adminId, List<String> ips) throws SQLException
     {
-        statementHandler.executeUpdate("DELETE FROM \"admin_ips\" WHERE \"admin_id\" = ?", adminId);
+        statementHandler.executeUpdate(String.format("DELETE FROM %s WHERE %s = ?", tblAdminIps, colAdminId), adminId);
         insertIps(adminId, ips);
     }
 
@@ -348,48 +340,40 @@ public class PostgreSQLAdminRepository implements AdminRepository
         }
     }
 
-    // ============================================
-    // DELETE Operations
-    // ============================================
-
     @Override
     public boolean delete(UUID uuid) throws SQLException
     {
-        String sql = "DELETE FROM \"admins\" WHERE \"uuid\" = ?";
+        String sql = String.format("DELETE FROM %s WHERE %s = ?", tblAdmins, colUuid);
         return statementHandler.executeUpdate(sql, uuid.toString()) > 0;
     }
 
     @Override
     public boolean deleteByUsername(String username) throws SQLException
     {
-        String sql = "DELETE FROM \"admins\" WHERE \"username\" ILIKE ?";
+        String sql = String.format("DELETE FROM %s WHERE %s", tblAdmins, adapter.caseInsensitiveEquals(colUsername, "?"));
         return statementHandler.executeUpdate(sql, username) > 0;
     }
 
     @Override
     public boolean removeIp(int adminId, String ip) throws SQLException
     {
-        String sql = "DELETE FROM \"admin_ips\" WHERE \"admin_id\" = ? AND \"ip\" = ?";
+        String sql = String.format("DELETE FROM %s WHERE %s = ? AND %s = ?", tblAdminIps, colAdminId, colIp);
         return statementHandler.executeUpdate(sql, adminId, ip) > 0;
     }
 
     @Override
     public boolean clearIps(int adminId) throws SQLException
     {
-        String sql = "DELETE FROM \"admin_ips\" WHERE \"admin_id\" = ?";
+        String sql = String.format("DELETE FROM %s WHERE %s = ?", tblAdminIps, colAdminId);
         return statementHandler.executeUpdate(sql, adminId) > 0;
     }
 
     @Override
     public void deleteAllSync() throws SQLException
     {
-        statementHandler.executeUpdate("DELETE FROM \"admin_ips\"");
-        statementHandler.executeUpdate("DELETE FROM \"admins\"");
+        statementHandler.executeUpdate(String.format("DELETE FROM %s", tblAdminIps));
+        statementHandler.executeUpdate(String.format("DELETE FROM %s", tblAdmins));
     }
-
-    // ============================================
-    // Async Operations
-    // ============================================
 
     @Override
     public Mono<Map<String, Admin>> loadAllAsync()
@@ -439,35 +423,36 @@ public class PostgreSQLAdminRepository implements AdminRepository
         return statementHandler.runMono(this::deleteAllSync);
     }
 
-    // ============================================
-    // Helper Methods
-    // ============================================
-
     private Admin loadAdminFromResultSet(ResultSet rs) throws SQLException
     {
-        int id = rs.getInt("id");
+        Admin admin = loadAdminFromRow(rs);
+        List<String> ips = getIps(rs.getInt("id"));
+        admin.addIps(ips);
+        return admin;
+    }
+
+    private Admin loadAdminFromRow(ResultSet rs) throws SQLException
+    {
         String username = rs.getString("username");
         String rankStr = rs.getString("rank");
         boolean active = rs.getBoolean("active");
         String lastLoginStr = rs.getString("last_login");
         String loginMessage = rs.getString("login_message");
+        String customRankId = rs.getString("custom_rank");
 
-        String configKey = username.toLowerCase();
-        Admin admin = new Admin(configKey);
+        Admin admin = new Admin(username.toLowerCase());
         admin.setName(username);
         admin.setRank(Rank.findRank(rankStr));
         admin.setActive(active);
         admin.setLastLogin(FUtil.stringToDate(lastLoginStr));
         admin.setLoginMessage(loginMessage);
+        admin.setCustomRankId(customRankId);
 
         UUID dbUuid = FUtil.parseUuid(rs.getString("uuid"));
         if (dbUuid != null)
         {
             admin.setUuid(dbUuid);
         }
-
-        List<String> ips = getIps(id);
-        admin.addIps(ips);
 
         return admin;
     }

@@ -1,9 +1,9 @@
-package me.totalfreedom.totalfreedommod.sql.adapter.postgresql;
+package me.totalfreedom.totalfreedommod.sql.adapter.generic;
 
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.banning.Ban;
 import me.totalfreedom.totalfreedommod.sql.StatementHandler;
 import me.totalfreedom.totalfreedommod.sql.adapter.BanRepository;
+import me.totalfreedom.totalfreedommod.sql.adapter.DatabaseAdapter;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 
 import java.sql.PreparedStatement;
@@ -14,50 +14,67 @@ import java.util.*;
 import reactor.core.publisher.Mono;
 
 /**
- * PostgreSQL implementation of BanRepository.
- * Uses PostgreSQL-specific SQL syntax.
+ * All dialect differences are resolved through the {@link DatabaseAdapter} passed in.
  */
-public class PostgreSQLBanRepository implements BanRepository
+public class GenericBanRepository implements BanRepository
 {
-    private final TotalFreedomMod plugin;
     private final StatementHandler statementHandler;
+    private final DatabaseAdapter adapter;
 
-    public PostgreSQLBanRepository(TotalFreedomMod plugin, StatementHandler statementHandler)
+    private final String tblBans;
+    private final String tblBanIps;
+    private final String colId;
+    private final String colUuid;
+    private final String colUsername;
+    private final String colBannedBy;
+    private final String colBannedByUuid;
+    private final String colReason;
+    private final String colExpireAt;
+    private final String colBanId;
+    private final String colIp;
+    private final String selectColumns;
+
+    public GenericBanRepository(StatementHandler statementHandler, DatabaseAdapter adapter)
     {
-        this.plugin = plugin;
         this.statementHandler = statementHandler;
-    }
+        this.adapter = adapter;
 
-    // ============================================
-    // CREATE Operations
-    // ============================================
+        this.tblBans = adapter.quoteIdentifier("bans");
+        this.tblBanIps = adapter.quoteIdentifier("ban_ips");
+        this.colId = adapter.quoteIdentifier("id");
+        this.colUuid = adapter.quoteIdentifier("uuid");
+        this.colUsername = adapter.quoteIdentifier("username");
+        this.colBannedBy = adapter.quoteIdentifier("banned_by");
+        this.colBannedByUuid = adapter.quoteIdentifier("banned_by_uuid");
+        this.colReason = adapter.quoteIdentifier("reason");
+        this.colExpireAt = adapter.quoteIdentifier("expire_at");
+        this.colBanId = adapter.quoteIdentifier("ban_id");
+        this.colIp = adapter.quoteIdentifier("ip");
+        this.selectColumns = String.format("%s, %s, %s, %s, %s, %s, %s",
+                colId, colUuid, colUsername, colBannedBy, colBannedByUuid, colReason, colExpireAt);
+    }
 
     @Override
     public int insert(Ban ban) throws SQLException
     {
-        String sql = """
-            INSERT INTO "bans" ("uuid", "username", "banned_by", "banned_by_uuid", "reason", "expire_at")
-            VALUES (?, ?, ?, ?, ?, ?::timestamp)
-            RETURNING "id"
-            """;
+        String sql = String.format("INSERT INTO %s (%s, %s, %s, %s, %s, %s) VALUES (?, ?, ?, ?, ?, %s)",
+                tblBans, colUuid, colUsername, colBannedBy, colBannedByUuid, colReason, colExpireAt,
+                adapter.timestampParamPlaceholder());
 
-        try (PreparedStatement stmt = statementHandler.prepareStatement(sql,
+        long banId = statementHandler.executeUpdateReturnKey(sql,
                 ban.getUuid() != null ? ban.getUuid().toString() : null,
                 ban.getUsername(),
                 ban.getBannedBy(),
                 ban.getBannedByUuid() != null ? ban.getBannedByUuid().toString() : null,
                 ban.getReason(),
                 ban.getExpireAt() != null ? FUtil.dateToString(ban.getExpireAt()) : null);
-             ResultSet rs = stmt.executeQuery())
+
+        if (banId < 0)
         {
-            if (rs.next())
-            {
-                int banId = rs.getInt("id");
-                insertIps(banId, ban.getIps());
-                return banId;
-            }
+            return -1;
         }
-        return -1;
+        insertIps((int) banId, ban.getIps());
+        return (int) banId;
     }
 
     @Override
@@ -65,7 +82,8 @@ public class PostgreSQLBanRepository implements BanRepository
     {
         if (ips == null || ips.isEmpty()) return;
 
-        String sql = "INSERT INTO \"ban_ips\" (\"ban_id\", \"ip\") VALUES (?, ?) ON CONFLICT DO NOTHING";
+        String sql = String.format("%s INTO %s (%s, %s) VALUES (?, ?)%s",
+                adapter.insertIgnoreSyntax(), tblBanIps, colBanId, colIp, adapter.insertIgnoreSuffix());
         for (String ip : ips)
         {
             statementHandler.executeUpdate(sql, banId, ip);
@@ -75,13 +93,10 @@ public class PostgreSQLBanRepository implements BanRepository
     @Override
     public void addIp(int banId, String ip) throws SQLException
     {
-        String sql = "INSERT INTO \"ban_ips\" (\"ban_id\", \"ip\") VALUES (?, ?) ON CONFLICT DO NOTHING";
+        String sql = String.format("%s INTO %s (%s, %s) VALUES (?, ?)%s",
+                adapter.insertIgnoreSyntax(), tblBanIps, colBanId, colIp, adapter.insertIgnoreSuffix());
         statementHandler.executeUpdate(sql, banId, ip);
     }
-
-    // ============================================
-    // READ Operations
-    // ============================================
 
     @Override
     public List<Ban> loadAll() throws SQLException
@@ -89,34 +104,19 @@ public class PostgreSQLBanRepository implements BanRepository
         List<Ban> bans = new ArrayList<>();
         Map<Integer, Ban> banById = new HashMap<>();
 
-        String sql = "SELECT \"id\", \"uuid\", \"username\", \"banned_by\", \"banned_by_uuid\", \"reason\", \"expire_at\" FROM \"bans\"";
+        String sql = String.format("SELECT %s FROM %s", selectColumns, tblBans);
         try (ResultSet rs = statementHandler.executeQuery(sql))
         {
             while (rs.next())
             {
                 int id = rs.getInt("id");
-                String uuidStr = rs.getString("uuid");
-                String username = rs.getString("username");
-                String bannedBy = rs.getString("banned_by");
-                String bannedByUuidStr = rs.getString("banned_by_uuid");
-                String reason = rs.getString("reason");
-                String expireAtStr = rs.getString("expire_at");
-
-                Ban ban = new Ban();
-                ban.setUuid(uuidStr != null ? UUID.fromString(uuidStr) : null);
-                ban.setUsername(username);
-                ban.setBannedBy(bannedBy);
-                ban.setBannedByUuid(bannedByUuidStr != null ? UUID.fromString(bannedByUuidStr) : null);
-                ban.setReason(reason);
-                ban.setExpireAt(expireAtStr != null ? FUtil.stringToDate(expireAtStr) : null);
-
+                Ban ban = loadBanFromRow(rs);
                 bans.add(ban);
                 banById.put(id, ban);
             }
         }
 
-        // Load IPs
-        String ipSql = "SELECT \"ban_id\", \"ip\" FROM \"ban_ips\"";
+        String ipSql = String.format("SELECT %s, %s FROM %s", colBanId, colIp, tblBanIps);
         try (ResultSet rs = statementHandler.executeQuery(ipSql))
         {
             while (rs.next())
@@ -137,7 +137,7 @@ public class PostgreSQLBanRepository implements BanRepository
     @Override
     public Ban findByUuid(UUID uuid) throws SQLException
     {
-        String sql = "SELECT \"id\", \"uuid\", \"username\", \"banned_by\", \"banned_by_uuid\", \"reason\", \"expire_at\" FROM \"bans\" WHERE \"uuid\" = ?";
+        String sql = String.format("SELECT %s FROM %s WHERE %s = ?", selectColumns, tblBans, colUuid);
         try (PreparedStatement stmt = statementHandler.prepareStatement(sql, uuid.toString());
              ResultSet rs = stmt.executeQuery())
         {
@@ -152,7 +152,8 @@ public class PostgreSQLBanRepository implements BanRepository
     @Override
     public Ban findByUsername(String username) throws SQLException
     {
-        String sql = "SELECT \"id\", \"uuid\", \"username\", \"banned_by\", \"banned_by_uuid\", \"reason\", \"expire_at\" FROM \"bans\" WHERE \"username\" ILIKE ?";
+        String sql = String.format("SELECT %s FROM %s WHERE %s",
+                selectColumns, tblBans, adapter.caseInsensitiveEquals(colUsername, "?"));
         try (PreparedStatement stmt = statementHandler.prepareStatement(sql, username);
              ResultSet rs = stmt.executeQuery())
         {
@@ -167,12 +168,10 @@ public class PostgreSQLBanRepository implements BanRepository
     @Override
     public Ban findByIp(String ip) throws SQLException
     {
-        String sql = """
-            SELECT b."id", b."uuid", b."username", b."banned_by", b."banned_by_uuid", b."reason", b."expire_at"
-            FROM "bans" b
-            INNER JOIN "ban_ips" bi ON b."id" = bi."ban_id"
-            WHERE bi."ip" = ?
-            """;
+        String sql = String.format(
+                "SELECT b.%s, b.%s, b.%s, b.%s, b.%s, b.%s, b.%s FROM %s b INNER JOIN %s bi ON b.%s = bi.%s WHERE bi.%s = ?",
+                colId, colUuid, colUsername, colBannedBy, colBannedByUuid, colReason, colExpireAt,
+                tblBans, tblBanIps, colId, colBanId, colIp);
         try (PreparedStatement stmt = statementHandler.prepareStatement(sql, ip);
              ResultSet rs = stmt.executeQuery())
         {
@@ -187,12 +186,8 @@ public class PostgreSQLBanRepository implements BanRepository
     @Override
     public List<Ban> findActiveBans() throws SQLException
     {
-        // PostgreSQL: CURRENT_TIMESTAMP for current time
-        String sql = """
-            SELECT "id", "uuid", "username", "banned_by", "banned_by_uuid", "reason", "expire_at"
-            FROM "bans"
-            WHERE "expire_at" IS NULL OR "expire_at" > CURRENT_TIMESTAMP
-            """;
+        String sql = String.format("SELECT %s FROM %s WHERE %s IS NULL OR %s",
+                selectColumns, tblBans, colExpireAt, adapter.compareToNow(colExpireAt, ">"));
         List<Ban> bans = new ArrayList<>();
         try (ResultSet rs = statementHandler.executeQuery(sql))
         {
@@ -207,11 +202,8 @@ public class PostgreSQLBanRepository implements BanRepository
     @Override
     public List<Ban> findExpiredBans() throws SQLException
     {
-        String sql = """
-            SELECT "id", "uuid", "username", "banned_by", "banned_by_uuid", "reason", "expire_at"
-            FROM "bans"
-            WHERE "expire_at" IS NOT NULL AND "expire_at" <= CURRENT_TIMESTAMP
-            """;
+        String sql = String.format("SELECT %s FROM %s WHERE %s IS NOT NULL AND %s",
+                selectColumns, tblBans, colExpireAt, adapter.compareToNow(colExpireAt, "<="));
         List<Ban> bans = new ArrayList<>();
         try (ResultSet rs = statementHandler.executeQuery(sql))
         {
@@ -226,7 +218,7 @@ public class PostgreSQLBanRepository implements BanRepository
     @Override
     public int getBanId(UUID uuid) throws SQLException
     {
-        String sql = "SELECT \"id\" FROM \"bans\" WHERE \"uuid\" = ?";
+        String sql = String.format("SELECT %s FROM %s WHERE %s = ?", colId, tblBans, colUuid);
         try (PreparedStatement stmt = statementHandler.prepareStatement(sql, uuid.toString());
              ResultSet rs = stmt.executeQuery())
         {
@@ -238,7 +230,8 @@ public class PostgreSQLBanRepository implements BanRepository
     @Override
     public int getBanIdByUsername(String username) throws SQLException
     {
-        String sql = "SELECT \"id\" FROM \"bans\" WHERE \"username\" ILIKE ?";
+        String sql = String.format("SELECT %s FROM %s WHERE %s",
+                colId, tblBans, adapter.caseInsensitiveEquals(colUsername, "?"));
         try (PreparedStatement stmt = statementHandler.prepareStatement(sql, username);
              ResultSet rs = stmt.executeQuery())
         {
@@ -251,7 +244,7 @@ public class PostgreSQLBanRepository implements BanRepository
     public List<String> getIps(int banId) throws SQLException
     {
         List<String> ips = new ArrayList<>();
-        String sql = "SELECT \"ip\" FROM \"ban_ips\" WHERE \"ban_id\" = ?";
+        String sql = String.format("SELECT %s FROM %s WHERE %s = ?", colIp, tblBanIps, colBanId);
         try (PreparedStatement stmt = statementHandler.prepareStatement(sql, banId);
              ResultSet rs = stmt.executeQuery())
         {
@@ -266,10 +259,8 @@ public class PostgreSQLBanRepository implements BanRepository
     @Override
     public boolean isBanned(UUID uuid) throws SQLException
     {
-        String sql = """
-            SELECT COUNT(*) FROM "bans" 
-            WHERE "uuid" = ? AND ("expire_at" IS NULL OR "expire_at" > CURRENT_TIMESTAMP)
-            """;
+        String sql = String.format("SELECT COUNT(*) FROM %s WHERE %s = ? AND (%s IS NULL OR %s)",
+                tblBans, colUuid, colExpireAt, adapter.compareToNow(colExpireAt, ">"));
         try (PreparedStatement stmt = statementHandler.prepareStatement(sql, uuid.toString());
              ResultSet rs = stmt.executeQuery())
         {
@@ -280,10 +271,8 @@ public class PostgreSQLBanRepository implements BanRepository
     @Override
     public boolean isBannedByUsername(String username) throws SQLException
     {
-        String sql = """
-            SELECT COUNT(*) FROM "bans" 
-            WHERE "username" ILIKE ? AND ("expire_at" IS NULL OR "expire_at" > CURRENT_TIMESTAMP)
-            """;
+        String sql = String.format("SELECT COUNT(*) FROM %s WHERE %s AND (%s IS NULL OR %s)",
+                tblBans, adapter.caseInsensitiveEquals(colUsername, "?"), colExpireAt, adapter.compareToNow(colExpireAt, ">"));
         try (PreparedStatement stmt = statementHandler.prepareStatement(sql, username);
              ResultSet rs = stmt.executeQuery())
         {
@@ -294,11 +283,9 @@ public class PostgreSQLBanRepository implements BanRepository
     @Override
     public boolean isBannedByIp(String ip) throws SQLException
     {
-        String sql = """
-            SELECT COUNT(*) FROM "bans" b
-            INNER JOIN "ban_ips" bi ON b."id" = bi."ban_id"
-            WHERE bi."ip" = ? AND (b."expire_at" IS NULL OR b."expire_at" > CURRENT_TIMESTAMP)
-            """;
+        String sql = String.format(
+                "SELECT COUNT(*) FROM %s b INNER JOIN %s bi ON b.%s = bi.%s WHERE bi.%s = ? AND (b.%s IS NULL OR %s)",
+                tblBans, tblBanIps, colId, colBanId, colIp, colExpireAt, adapter.compareToNow("b." + colExpireAt, ">"));
         try (PreparedStatement stmt = statementHandler.prepareStatement(sql, ip);
              ResultSet rs = stmt.executeQuery())
         {
@@ -306,18 +293,12 @@ public class PostgreSQLBanRepository implements BanRepository
         }
     }
 
-    // ============================================
-    // UPDATE Operations
-    // ============================================
-
     @Override
     public boolean update(Ban ban) throws SQLException
     {
-        String sql = """
-            UPDATE "bans"
-            SET "username" = ?, "banned_by" = ?, "banned_by_uuid" = ?, "reason" = ?, "expire_at" = ?::timestamp
-            WHERE "uuid" = ?
-            """;
+        String sql = String.format("UPDATE %s SET %s = ?, %s = ?, %s = ?, %s = ?, %s = %s WHERE %s = ?",
+                tblBans, colUsername, colBannedBy, colBannedByUuid, colReason, colExpireAt,
+                adapter.timestampParamPlaceholder(), colUuid);
 
         int rows = statementHandler.executeUpdate(sql,
                 ban.getUsername(),
@@ -333,46 +314,43 @@ public class PostgreSQLBanRepository implements BanRepository
     @Override
     public boolean updateReason(UUID uuid, String reason) throws SQLException
     {
-        String sql = "UPDATE \"bans\" SET \"reason\" = ? WHERE \"uuid\" = ?";
+        String sql = String.format("UPDATE %s SET %s = ? WHERE %s = ?", tblBans, colReason, colUuid);
         return statementHandler.executeUpdate(sql, reason, uuid.toString()) > 0;
     }
 
     @Override
     public boolean updateExpiry(UUID uuid, Date expireAt) throws SQLException
     {
-        String sql = "UPDATE \"bans\" SET \"expire_at\" = ?::timestamp WHERE \"uuid\" = ?";
+        String sql = String.format("UPDATE %s SET %s = %s WHERE %s = ?",
+                tblBans, colExpireAt, adapter.timestampParamPlaceholder(), colUuid);
         return statementHandler.executeUpdate(sql, expireAt != null ? FUtil.dateToString(expireAt) : null, uuid.toString()) > 0;
     }
 
     @Override
     public void syncIps(int banId, List<String> ips) throws SQLException
     {
-        statementHandler.executeUpdate("DELETE FROM \"ban_ips\" WHERE \"ban_id\" = ?", banId);
+        statementHandler.executeUpdate(String.format("DELETE FROM %s WHERE %s = ?", tblBanIps, colBanId), banId);
         insertIps(banId, ips);
     }
-
-    // ============================================
-    // DELETE Operations
-    // ============================================
 
     @Override
     public boolean delete(UUID uuid) throws SQLException
     {
-        String sql = "DELETE FROM \"bans\" WHERE \"uuid\" = ?";
+        String sql = String.format("DELETE FROM %s WHERE %s = ?", tblBans, colUuid);
         return statementHandler.executeUpdate(sql, uuid.toString()) > 0;
     }
 
     @Override
     public boolean deleteByUsername(String username) throws SQLException
     {
-        String sql = "DELETE FROM \"bans\" WHERE \"username\" ILIKE ?";
+        String sql = String.format("DELETE FROM %s WHERE %s", tblBans, adapter.caseInsensitiveEquals(colUsername, "?"));
         return statementHandler.executeUpdate(sql, username) > 0;
     }
 
     @Override
     public boolean deleteByIp(String ip) throws SQLException
     {
-        String selectSql = "SELECT \"ban_id\" FROM \"ban_ips\" WHERE \"ip\" = ?";
+        String selectSql = String.format("SELECT %s FROM %s WHERE %s = ?", colBanId, tblBanIps, colIp);
         List<Integer> banIds = new ArrayList<>();
         try (PreparedStatement stmt = statementHandler.prepareStatement(selectSql, ip);
              ResultSet rs = stmt.executeQuery())
@@ -383,9 +361,10 @@ public class PostgreSQLBanRepository implements BanRepository
             }
         }
 
+        String deleteSql = String.format("DELETE FROM %s WHERE %s = ?", tblBans, colId);
         for (int banId : banIds)
         {
-            statementHandler.executeUpdate("DELETE FROM \"bans\" WHERE \"id\" = ?", banId);
+            statementHandler.executeUpdate(deleteSql, banId);
         }
 
         return !banIds.isEmpty();
@@ -394,27 +373,24 @@ public class PostgreSQLBanRepository implements BanRepository
     @Override
     public boolean removeIp(int banId, String ip) throws SQLException
     {
-        String sql = "DELETE FROM \"ban_ips\" WHERE \"ban_id\" = ? AND \"ip\" = ?";
+        String sql = String.format("DELETE FROM %s WHERE %s = ? AND %s = ?", tblBanIps, colBanId, colIp);
         return statementHandler.executeUpdate(sql, banId, ip) > 0;
     }
 
     @Override
     public int deleteExpiredBans() throws SQLException
     {
-        String sql = "DELETE FROM \"bans\" WHERE \"expire_at\" IS NOT NULL AND \"expire_at\" <= CURRENT_TIMESTAMP";
+        String sql = String.format("DELETE FROM %s WHERE %s IS NOT NULL AND %s",
+                tblBans, colExpireAt, adapter.compareToNow(colExpireAt, "<="));
         return statementHandler.executeUpdate(sql);
     }
 
     @Override
     public void deleteAllSync() throws SQLException
     {
-        statementHandler.executeUpdate("DELETE FROM \"ban_ips\"");
-        statementHandler.executeUpdate("DELETE FROM \"bans\"");
+        statementHandler.executeUpdate(String.format("DELETE FROM %s", tblBanIps));
+        statementHandler.executeUpdate(String.format("DELETE FROM %s", tblBans));
     }
-
-    // ============================================
-    // Async Operations
-    // ============================================
 
     @Override
     public Mono<List<Ban>> loadAllAsync()
@@ -471,13 +447,15 @@ public class PostgreSQLBanRepository implements BanRepository
         return statementHandler.runMono(this::deleteAllSync);
     }
 
-    // ============================================
-    // Helper Methods
-    // ============================================
-
     private Ban loadBanFromResultSet(ResultSet rs) throws SQLException
     {
-        int id = rs.getInt("id");
+        Ban ban = loadBanFromRow(rs);
+        ban.setIps(getIps(rs.getInt("id")));
+        return ban;
+    }
+
+    private Ban loadBanFromRow(ResultSet rs) throws SQLException
+    {
         String uuidStr = rs.getString("uuid");
         String username = rs.getString("username");
         String bannedBy = rs.getString("banned_by");
@@ -492,9 +470,6 @@ public class PostgreSQLBanRepository implements BanRepository
         ban.setBannedByUuid(bannedByUuidStr != null ? UUID.fromString(bannedByUuidStr) : null);
         ban.setReason(reason);
         ban.setExpireAt(expireAtStr != null ? FUtil.stringToDate(expireAtStr) : null);
-
-        List<String> ips = getIps(id);
-        ban.setIps(ips);
 
         return ban;
     }
