@@ -127,6 +127,7 @@ public enum ConfigEntry
     WORLDEDIT_THROTTLE_MAX_CANCELLED_OPS(Integer.class, "worldedit.throttle.max_cancelled_operations"),
     WORLDEDIT_MAX_CONTAINERS(Integer.class, "worldedit.max_containers"),
     WORLDEDIT_MAX_SCHEM_SAVE_KB(Integer.class, "worldedit.max_schem_save_kb"),
+    WORLDEDIT_SCHEM_SAVE_COOLDOWN(Integer.class, "worldedit.schem_save_cooldown_seconds"),
     //
     NUKE_MONITOR_ENABLED(Boolean.class, "nukemonitor.enabled"),
     NUKE_MONITOR_COUNT_BREAK(Integer.class, "nukemonitor.count_break"),
@@ -143,10 +144,14 @@ public enum ConfigEntry
     ANTISPAM_ENABLED(Boolean.class, "antispam.enabled"),
     ANTISPAM_LIMIT(Integer.class, "antispam.limit"),
     ANTISPAM_TIME_WINDOW(Integer.class, "antispam.time_window"),
+    ANTISPAM_CHAT_COOLDOWN(Integer.class, "antispam.chat_cooldown"),
+    ANTISPAM_REPEAT_WINDOW(Integer.class, "antispam.repeat_window"),
+    ANTISPAM_REPEAT_HISTORY(Integer.class, "antispam.repeat_history"),
     //
     MOVE_GUARD_ENABLED(Boolean.class, "move_guard.enabled"),
     MOVE_GUARD_SPEED_MAX_HORIZONTAL_DELTA(Integer.class, "move_guard.speed.max_horizontal_delta"),
     MOVE_GUARD_SPEED_MAX_TELEPORTS_PER_SECOND(Integer.class, "move_guard.speed.max_teleports_per_second"),
+    MOVE_GUARD_SPEED_MAX_BLOCKS_PER_SECOND(Integer.class, "move_guard.speed.max_blocks_per_second"),
     //
     CRASH_ITEMS_PREVENT(Boolean.class, "crash_items.prevent"),
     CRASH_ITEMS_PANIC_MODE(Boolean.class, "crash_items.panic_mode"),
@@ -189,6 +194,8 @@ public enum ConfigEntry
     CRASH_ENTITIES_MAX_SLIME_SIZE(Integer.class, "crash_entities.max_slime_size"),
     CRASH_ENTITIES_MAX_PAINTING_BLOCKS(Integer.class, "crash_entities.max_painting_size"),
     CRASH_ENTITIES_SCALE_SWEEP_TICKS(Integer.class, "crash_entities.scale_sweep_ticks"),
+    CRASH_ENTITIES_NEUTRALIZE_WAYPOINTS(Boolean.class, "crash_entities.neutralize_entity_waypoints"),
+    CRASH_ENTITIES_WAYPOINT_SWEEP_TICKS(Integer.class, "crash_entities.waypoint_sweep_ticks"),
     //
     WORLD_BORDER(Integer.class, "world_border"),
     //
@@ -281,7 +288,9 @@ public enum ConfigEntry
     GAMERULES_ENFORCEMENT_DELAY(Integer.class, "gamerules.enforcement_interval"),
     GAMERULES_DEFAULTS(ConfigurationSection.class, "gamerules.defaults"),
     GAMERULES_MALICIOUS(List.class, "gamerules.malicious"),
-    GAMERULES_CAPS(ConfigurationSection.class, "gamerules.caps");
+    GAMERULES_CAPS(ConfigurationSection.class, "gamerules.caps"),
+    GAMERULES_MAX_CHANGES_PER_SECOND(Integer.class, "gamerules.max_changes_per_second"),
+    GAMERULES_KICK_FLOODERS(Boolean.class, "gamerules.kick_flooders");
 
     //
     private final Class<?> type;

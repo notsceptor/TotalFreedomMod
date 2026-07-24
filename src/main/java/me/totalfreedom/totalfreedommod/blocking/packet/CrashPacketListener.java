@@ -14,6 +14,7 @@ import com.github.retrooper.packetevents.protocol.recipe.data.MerchantOffer;
 import com.github.retrooper.packetevents.protocol.world.chunk.Column;
 import com.github.retrooper.packetevents.util.Vector3d;
 import io.netty.buffer.ByteBuf;
+import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientChatMessage;
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientPlayerPosition;
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientPlayerPositionAndRotation;
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientVehicleMove;
@@ -36,6 +37,8 @@ import me.totalfreedom.totalfreedommod.blocking.entity.EntityMetaPacketGuard;
 import me.totalfreedom.totalfreedommod.blocking.item.ContainerPacketGuard;
 import me.totalfreedom.totalfreedommod.blocking.sign.SignPacketGuard;
 import me.totalfreedom.totalfreedommod.blocking.spawner.SpawnerPacketGuard;
+import me.totalfreedom.totalfreedommod.config.ConfigEntry;
+import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.util.FSync;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -93,13 +96,18 @@ final class CrashPacketListener extends PacketListenerAbstract
         try
         {
             final PacketTypeCommon type = event.getPacketType();
-
-            if (spamLimiter == null && movementGuard == null)
+            final UUID id = event.getUser().getUUID();
+            if (id == null)
             {
                 return;
             }
-            final UUID id = event.getUser().getUUID();
-            if (id == null)
+
+            if (type == PacketType.Play.Client.CHAT_MESSAGE && handleEmptyChatPacket(event, id))
+            {
+                return;
+            }
+
+            if (spamLimiter == null && movementGuard == null)
             {
                 return;
             }
@@ -158,6 +166,51 @@ final class CrashPacketListener extends PacketListenerAbstract
         catch (Throwable ignored)
         {
         }
+    }
+
+    private boolean handleEmptyChatPacket(PacketReceiveEvent event, UUID id)
+    {
+        if (!ConfigEntry.ANTISPAM_ENABLED.getBoolean(true))
+        {
+            return false;
+        }
+
+        final String raw;
+        try
+        {
+            raw = new WrapperPlayClientChatMessage(event).getMessage();
+        }
+        catch (Throwable ignored)
+        {
+            return false;
+        }
+
+        if (raw != null && !raw.trim().isEmpty())
+        {
+            return false;
+        }
+
+        event.setCancelled(true);
+
+        final Player player = Bukkit.getPlayer(id);
+        if (player == null)
+        {
+            return true;
+        }
+
+        final FPlayer playerdata = plugin.pl.getPlayerSync(player);
+        final int count = playerdata.incrementAndGetMsgCount();
+        final int limit = ConfigEntry.ANTISPAM_LIMIT.getInteger(8);
+        if (count >= limit)
+        {
+            if (count == limit)
+            {
+                FSync.bcastMsg(player.getName() + " was automatically kicked for spamming chat.", NamedTextColor.RED);
+                FSync.autoEject(player, "Kicked for spamming chat.");
+            }
+        }
+
+        return true;
     }
 
     private static String describeUser(PacketReceiveEvent event)

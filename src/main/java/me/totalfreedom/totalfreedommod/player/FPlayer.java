@@ -65,6 +65,8 @@ public class FPlayer
     private int freecamPlaceCount = 0;
     @Getter
     private final CageData cageData = new CageData(this);
+    @Getter
+    private final ChatSpamData chatSpamData = new ChatSpamData();
     private boolean isOrbiting = false;
     private double orbitStrength = 10.0;
     private boolean mobThrowerEnabled = false;
