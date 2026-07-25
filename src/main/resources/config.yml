@@ -246,6 +246,12 @@ antispam:
   # How many of the player's recent messages to remember for repeat comparison.
   repeat_history: 8
 
+# Text filter for prohibited language in chat and player commands.
+# Regexes are case-insensitive.
+text_filter:
+  enabled: true
+  regex_filters: []
+
 # MovementGuard
 # Used to monitor inbound movement packets (requires packetevents).
 move_guard:

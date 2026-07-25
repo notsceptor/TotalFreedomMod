@@ -223,6 +223,7 @@ public class TotalFreedomMod extends JavaPlugin
         pl = services.registerService(PlayerList.class);
         an = services.registerService(Announcer.class);
         cm = services.registerService(ChatManager.class);
+        services.registerService(TextFilterService.class);
         bm = services.registerService(BanManager.class);
         pm = services.registerService(PermbanList.class);
         sl = services.registerService(StrikeList.class);

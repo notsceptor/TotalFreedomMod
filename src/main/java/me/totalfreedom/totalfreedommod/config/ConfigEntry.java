@@ -148,6 +148,9 @@ public enum ConfigEntry
     ANTISPAM_REPEAT_WINDOW(Integer.class, "antispam.repeat_window"),
     ANTISPAM_REPEAT_HISTORY(Integer.class, "antispam.repeat_history"),
     //
+    TEXT_FILTER_ENABLED(Boolean.class, "text_filter.enabled"),
+    TEXT_FILTER_REGEX_FILTERS(List.class, "text_filter.regex_filters"),
+    //
     MOVE_GUARD_ENABLED(Boolean.class, "move_guard.enabled"),
     MOVE_GUARD_SPEED_MAX_HORIZONTAL_DELTA(Integer.class, "move_guard.speed.max_horizontal_delta"),
     MOVE_GUARD_SPEED_MAX_TELEPORTS_PER_SECOND(Integer.class, "move_guard.speed.max_teleports_per_second"),
