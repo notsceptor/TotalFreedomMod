@@ -7,6 +7,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
+import me.totalfreedom.totalfreedommod.util.FTask;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -70,7 +71,8 @@ public class EntityWiper extends FreedomService
         }
 
         final long rate = wipeRateTicks();
-        wipeTask = plugin.getServer().getScheduler().runTaskTimer(plugin, () -> wipeEntities(false), rate, rate);
+        wipeTask = plugin.getServer().getScheduler().runTaskTimer(plugin,
+                FTask.guard("EntityWiper/autoWipe", () -> wipeEntities(false)), rate, rate);
 
     }
 
@@ -189,7 +191,12 @@ public class EntityWiper extends FreedomService
     {
         final Item entity = event.getEntity();
 
-        plugin.getServer().getScheduler().runTaskLater(plugin, entity::remove, ITEM_DESPAWN_RATE);
-
+        // One task per spawned item, so a burst queues a batch
+        // that all fires on the same tick. Anything that throws here therefore throws in bulk.
+        plugin.getServer().getScheduler().runTaskLater(plugin, FTask.guard("EntityWiper/itemDespawn", () ->
+        {
+            if (entity.isValid())
+                entity.remove();
+        }), ITEM_DESPAWN_RATE);
     }
 }

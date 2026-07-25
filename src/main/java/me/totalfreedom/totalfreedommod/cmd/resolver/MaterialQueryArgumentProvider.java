@@ -16,6 +16,19 @@ public class MaterialQueryArgumentProvider implements AbstractParameterizedArgum
         return "MaterialQuery";
     }
 
+    /**
+     * The argument is a regex matched against material keys, so there is no exact candidate set.
+     * Offering the keys themselves still helps: a bare key is a valid pattern that matches itself.
+     */
+    @Override
+    public List<String> suggestions()
+    {
+        return Registry.MATERIAL.stream()
+                                .map(material -> material.key().value())
+                                .sorted()
+                                .toList();
+    }
+
     @Override
     public List<Material> resolve(String arg, Map<String, Object> parameters)
     {

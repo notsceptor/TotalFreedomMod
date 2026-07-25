@@ -11,6 +11,7 @@ import java.util.function.BooleanSupplier;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.util.FLog;
+import me.totalfreedom.totalfreedommod.util.FTask;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
@@ -128,13 +129,14 @@ public class SweepScheduler extends FreedomService
     {
         if (r.intervalTicks > 0 && r.periodicTaskId == -1)
         {
-            r.periodicTaskId = server.getScheduler().runTaskTimer(plugin, () ->
-            {
-                if (r.enabled.getAsBoolean())
+            r.periodicTaskId = server.getScheduler().runTaskTimer(plugin,
+                FTask.guard("SweepScheduler/periodic#" + r.id, () ->
                 {
-                    enqueueAllLoaded(r, SweepContext.PERIODIC);
-                }
-            }, r.intervalTicks, r.intervalTicks).getTaskId();
+                    if (r.enabled.getAsBoolean())
+                    {
+                        enqueueAllLoaded(r, SweepContext.PERIODIC);
+                    }
+                }), r.intervalTicks, r.intervalTicks).getTaskId();
         }
         if (r.intervalTicks >= 0 && r.enabled.getAsBoolean())
         {
@@ -203,7 +205,8 @@ public class SweepScheduler extends FreedomService
     {
         if (started && drainTaskId == -1)
         {
-            drainTaskId = server.getScheduler().runTaskTimer(plugin, this::drain, 1L, 1L).getTaskId();
+            drainTaskId = server.getScheduler().runTaskTimer(plugin,
+                    FTask.guard("SweepScheduler/drain", this::drain), 1L, 1L).getTaskId();
         }
     }
 

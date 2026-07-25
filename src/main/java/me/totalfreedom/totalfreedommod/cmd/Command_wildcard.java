@@ -6,6 +6,7 @@ import java.util.Objects;
 
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.rank.Rank;
+import me.totalfreedom.totalfreedommod.ssh.AttributedConsoleSender;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.command.CommandSender;
 
@@ -36,12 +37,17 @@ public class Command_wildcard extends FCommand
             return;
         }
 
-        server().getOnlinePlayers().forEach(player -> 
+        // Remote channels (SSH/Discord) hand us an attribution wrapper, and CraftBukkit refuses to
+        // turn anything but its own sender types into a vanilla command listener, so the wrapper has
+        // to be peeled off before the command is re-dispatched through Brigadier.
+        final CommandSender dispatcher = AttributedConsoleSender.unwrap(sender);
+
+        server().getOnlinePlayers().forEach(player ->
             {
                 String processedCommand = command.replaceAll("\\x3f", player.getName());
                 msg(sender, "<gray>Running command: <command>", Placeholder.unparsed("command", processedCommand));
 
-                if (!server().dispatchCommand(sender, processedCommand))
+                if (!server().dispatchCommand(dispatcher, processedCommand))
                     msg(sender, "<red>Failed to execute command. Are you sure you entered it correctly?");
             });
     }

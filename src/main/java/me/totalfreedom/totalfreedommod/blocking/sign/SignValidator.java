@@ -7,6 +7,7 @@ import me.totalfreedom.totalfreedommod.blocking.sweep.TileEntityVisitor;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.ComponentScanner;
 import me.totalfreedom.totalfreedommod.util.FLog;
+import me.totalfreedom.totalfreedommod.util.FTask;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import java.util.HashSet;
 import java.util.Set;
@@ -105,7 +106,8 @@ public class SignValidator extends FreedomService
         {
             return;
         }
-        sweepTask = Bukkit.getScheduler().runTaskTimer(plugin, this::sweepAroundPlayers, ticks, ticks);
+        sweepTask = Bukkit.getScheduler().runTaskTimer(plugin,
+                FTask.guard("SignValidator/sweepAroundPlayers", this::sweepAroundPlayers), ticks, ticks);
     }
 
     private void sweepAroundPlayers()
@@ -217,7 +219,7 @@ public class SignValidator extends FreedomService
                     NamedTextColor.RED);
             FLog.warning("[SignValidator] Removed cursed sign edit by " + event.getPlayer().getName()
                     + " at " + FUtil.formatLocation(block.getLocation()), true);
-            Bukkit.getScheduler().runTask(plugin, () -> removeSign(block));
+            Bukkit.getScheduler().runTask(plugin, FTask.guard("SignValidator/removeSign", () -> removeSign(block)));
         }
     }
 
@@ -267,7 +269,7 @@ public class SignValidator extends FreedomService
             FUtil.playerMsg(event.getPlayer(), "That sign was cursed; it has been removed.", NamedTextColor.RED);
             FLog.warning("[SignValidator] Cursed sign placed by " + event.getPlayer().getName()
                     + " at " + FUtil.formatLocation(placed.getLocation()) + " — placement blocked and removed.", true);
-            Bukkit.getScheduler().runTask(plugin, () -> removeSign(placed));
+            Bukkit.getScheduler().runTask(plugin, FTask.guard("SignValidator/removeSign", () -> removeSign(placed)));
         }
     }
 
@@ -323,7 +325,7 @@ public class SignValidator extends FreedomService
         if (signPlacementBlocked() || scanSign(sign))
         {
             Block block = sign.getBlock();
-            Bukkit.getScheduler().runTask(plugin, () -> removeSign(block));
+            Bukkit.getScheduler().runTask(plugin, FTask.guard("SignValidator/removeSign", () -> removeSign(block)));
             return true;
         }
         return false;

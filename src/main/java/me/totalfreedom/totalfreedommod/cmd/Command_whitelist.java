@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import java.util.List;
+
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
@@ -61,6 +63,22 @@ public class Command_whitelist extends FCommand
     {
         adminAction(sender, "<aqua>Turning the whitelist off.");
         server().setWhitelist(false);
+    }
+
+    @Completer(value = "add", position = 0)
+    public List<String> completeAdd(CommandSender sender, String partial)
+    {
+        return NameCandidates.online(server(), partial);
+    }
+
+    /**
+     * Whitelisted names, not online ones: removal only makes sense for somebody already on the list,
+     * and most of them will be offline.
+     */
+    @Completer(value = "remove", position = 0)
+    public List<String> completeRemove(CommandSender sender, String partial)
+    {
+        return NameCandidates.whitelisted(partial);
     }
 
     @Callback

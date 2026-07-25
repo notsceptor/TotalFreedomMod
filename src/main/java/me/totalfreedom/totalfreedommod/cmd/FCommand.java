@@ -14,6 +14,7 @@ import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.rank.Rank;
+import me.totalfreedom.totalfreedommod.util.FTask;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -203,18 +204,24 @@ public abstract class FCommand
 
     protected BukkitTask sync(final Runnable task, long delayInTicks)
     {
-        if (delayInTicks == 0L)
-            return server().getScheduler().runTask(plugin(), task);
+        // Guarded so a throwing command task is reported against the command name rather than as an
+        // anonymous "Task #<id> generated an exception" line.
+        final Runnable guarded = FTask.guard(getClass().getSimpleName() + "/sync", task);
 
-        return server().getScheduler().runTaskLater(plugin(), task, delayInTicks); // naturally runs in ticks
+        if (delayInTicks == 0L)
+            return server().getScheduler().runTask(plugin(), guarded);
+
+        return server().getScheduler().runTaskLater(plugin(), guarded, delayInTicks); // naturally runs in ticks
     }
 
     protected ScheduledTask async(final Consumer<ScheduledTask> consumer, final long delayInTicks)
     {
+        final Consumer<ScheduledTask> guarded = FTask.guardAsync(getClass().getSimpleName() + "/async", consumer);
+
         if (delayInTicks == 0L)
-            return server().getAsyncScheduler().runNow(plugin(), consumer);
-            
-        return server().getAsyncScheduler().runDelayed(plugin(), consumer, delayInTicks * 50L, TimeUnit.MILLISECONDS); // for some reason does not, and allows time unit selection, so we handle that appropriately to keep the expected usage.
+            return server().getAsyncScheduler().runNow(plugin(), guarded);
+
+        return server().getAsyncScheduler().runDelayed(plugin(), guarded, delayInTicks * 50L, TimeUnit.MILLISECONDS); // for some reason does not, and allows time unit selection, so we handle that appropriately to keep the expected usage.
     }
 
     protected FPlayer fplayer(final Player player)

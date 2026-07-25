@@ -14,7 +14,10 @@ import com.github.retrooper.packetevents.protocol.recipe.data.MerchantOffer;
 import com.github.retrooper.packetevents.protocol.world.chunk.Column;
 import com.github.retrooper.packetevents.util.Vector3d;
 import io.netty.buffer.ByteBuf;
+import com.github.retrooper.packetevents.protocol.component.ComponentTypes;
+import com.github.retrooper.packetevents.protocol.component.builtin.item.ItemAttributeModifiers;
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientChatMessage;
+import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientCreativeInventoryAction;
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientPlayerPosition;
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientPlayerPositionAndRotation;
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientVehicleMove;
@@ -40,6 +43,7 @@ import me.totalfreedom.totalfreedommod.blocking.spawner.SpawnerPacketGuard;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.util.FSync;
+import me.totalfreedom.totalfreedommod.util.FTask;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -47,6 +51,11 @@ import org.bukkit.entity.Player;
 final class CrashPacketListener extends PacketListenerAbstract
 {
 
+    /**
+     * Must stay at or below {@code ItemScanner.MAX_ATTRIBUTE_MODIFIERS}; this is the outer of two
+     * gates on the same bomb, with the scanner catching whatever arrives by another route.
+     */
+    private static final int MAX_CREATIVE_ATTRIBUTE_MODIFIERS = 64;
     private static final int MAX_PACKET_BYTES = 2_097_152;
     private static final int CHUNK_REENCODE_SAFE_BYTES = MAX_PACKET_BYTES - 256_000;
 
@@ -103,6 +112,11 @@ final class CrashPacketListener extends PacketListenerAbstract
             }
 
             if (type == PacketType.Play.Client.CHAT_MESSAGE && handleEmptyChatPacket(event, id))
+            {
+                return;
+            }
+
+            if (type == PacketType.Play.Client.CREATIVE_INVENTORY_ACTION && handleCreativeSlot(event, id))
             {
                 return;
             }
@@ -166,6 +180,51 @@ final class CrashPacketListener extends PacketListenerAbstract
         catch (Throwable ignored)
         {
         }
+    }
+
+    /**
+     * Drops creative set-slot packets carrying an attribute-modifier bomb.
+     * 
+     * @return true if the packet was cancelled
+     */
+    private boolean handleCreativeSlot(PacketReceiveEvent event, UUID id)
+    {
+        final int modifiers;
+        try
+        {
+            final com.github.retrooper.packetevents.protocol.item.ItemStack item =
+                    new WrapperPlayClientCreativeInventoryAction(event).getItemStack();
+            if (item == null)
+            {
+                return false;
+            }
+
+            final ItemAttributeModifiers attributes = item.getComponentOr(
+                    ComponentTypes.ATTRIBUTE_MODIFIERS, null);
+            if (attributes == null)
+            {
+                return false;
+            }
+            modifiers = attributes.getModifiers().size();
+        }
+        catch (Throwable ignored)
+        {
+            return false;
+        }
+
+        if (modifiers <= MAX_CREATIVE_ATTRIBUTE_MODIFIERS)
+        {
+            return false;
+        }
+
+        event.setCancelled(true);
+
+        final Player player = Bukkit.getPlayer(id);
+        final String who = player != null ? player.getName() : String.valueOf(id);
+        FSync.bcastMsg(who + " tried to place an item carrying " + modifiers
+                + " attribute modifiers; the packet was dropped.", NamedTextColor.RED);
+
+        return true;
     }
 
     private boolean handleEmptyChatPacket(PacketReceiveEvent event, UUID id)
@@ -278,14 +337,14 @@ final class CrashPacketListener extends PacketListenerAbstract
 
         FSync.bcastMsg(who + " is moving too quickly across chunks!", NamedTextColor.RED);
 
-        Bukkit.getScheduler().runTask(plugin, () ->
+        Bukkit.getScheduler().runTask(plugin, FTask.guard("CrashPacketListener/ejectFastMover", () ->
         {
             final Player player = Bukkit.getPlayer(id);
             if (player != null)
             {
                 plugin.ae.autoEject(player, "Moving too quickly across chunks is not permitted.");
             }
-        });
+        }));
     }
 
     @Override

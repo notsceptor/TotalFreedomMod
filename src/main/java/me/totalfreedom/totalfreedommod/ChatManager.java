@@ -5,6 +5,7 @@ import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FLog;
+import me.totalfreedom.totalfreedommod.util.FTask;
 import me.totalfreedom.totalfreedommod.util.FSync;
 import me.totalfreedom.totalfreedommod.util.ChatMentionUtil;
 import me.totalfreedom.totalfreedommod.util.FUtil;
@@ -53,9 +54,7 @@ public class ChatManager extends FreedomService
         }
 
         // Try to register the Vault chat provider using a delayed task
-        server.getScheduler().runTask(plugin, () -> {
-            registerVaultChatProvider();
-        });
+        server.getScheduler().runTask(plugin, FTask.guard("ChatManager/registerVaultChatProvider", this::registerVaultChatProvider));
     }
 
     private void registerVaultChatProvider() {
@@ -82,9 +81,7 @@ public class ChatManager extends FreedomService
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPluginEnable(PluginEnableEvent event) {
         if (event.getPlugin().getName().equals("Vault")) {
-            server.getScheduler().runTaskLater(plugin, () -> {
-                registerVaultChatProvider();
-            }, 5L);
+            server.getScheduler().runTaskLater(plugin, FTask.guard("ChatManager/registerVaultChatProvider", this::registerVaultChatProvider), 5L);
         }
     }
 

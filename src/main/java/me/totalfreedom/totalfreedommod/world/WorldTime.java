@@ -33,6 +33,17 @@ public enum WorldTime
         return timeTicks;
     }
 
+    /**
+     * The spellings {@link #getByAlias} accepts for this constant. Empty for {@link #INHERIT},
+     * which by design cannot be named on the command line.
+     *
+     * @see me.totalfreedom.totalfreedommod.cmd.resolver.WorldTimeArgumentResolver
+     */
+    public List<String> getAliases()
+    {
+        return aliases != null ? aliases : List.of();
+    }
+
     public void setWorldToTime(World world)
     {
         long time = world.getTime();

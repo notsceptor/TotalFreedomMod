@@ -1,5 +1,6 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import java.util.List;
 import java.util.Set;
 
 import org.bukkit.command.CommandSender;
@@ -15,6 +16,12 @@ import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 @Permission(permission = "tfm.admin.ban", level = Rank.SUPER_ADMIN)
 public class Command_unban extends FCommand
 {
+    @Completer(value = "", position = 0)
+    public List<String> completeTarget(CommandSender sender, String partial)
+    {
+        return NameCandidates.banned(plugin(), partial);
+    }
+
     @Callback
     public void unban(CommandSender sender, String playerName, @Switch("s") boolean silent, @Switch("r") boolean restore)
     {

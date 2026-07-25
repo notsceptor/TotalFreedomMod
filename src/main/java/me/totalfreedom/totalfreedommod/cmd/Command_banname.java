@@ -5,6 +5,8 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import me.totalfreedom.totalfreedommod.banning.Ban;
+import java.util.List;
+
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 
@@ -12,6 +14,12 @@ import me.totalfreedom.totalfreedommod.rank.Rank;
 @Permission(level = Rank.SUPER_ADMIN, permission = "tfm.admin.ban")
 public class Command_banname extends FCommand
 {
+    @Completer(value = "", position = 0)
+    public List<String> completeTarget(CommandSender sender, String partial)
+    {
+        return NameCandidates.online(server(), partial);
+    }
+
     @Callback
     public void banName(CommandSender sender, String name)
     {
