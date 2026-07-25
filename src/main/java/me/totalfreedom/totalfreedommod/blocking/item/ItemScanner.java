@@ -96,7 +96,8 @@ final class ItemScanner
         {
             return switch (this)
             {
-                case CLEAN, OVERSIZED_NAME, OVERSIZED_LORE, OVERSIZED_BOOK, CURSED_EQUIP_SOUND -> false;
+                case CLEAN, OVERSIZED_NAME, OVERSIZED_LORE, OVERSIZED_BOOK, CURSED_EQUIP_SOUND,
+                     OVERSIZED_ATTRIBUTE_COUNT -> false;
                 default -> true;
             };
         }

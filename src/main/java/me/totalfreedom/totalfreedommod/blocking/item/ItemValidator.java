@@ -17,7 +17,6 @@ import me.totalfreedom.totalfreedommod.util.DetectionReporter;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FTask;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Chunk;
 import org.bukkit.Material;
@@ -26,7 +25,9 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.block.Action;
@@ -130,6 +131,32 @@ public class ItemValidator extends FreedomService
         }
     };
 
+    private final EntityVisitor equipmentEntityVisitor = new EntityVisitor()
+    {
+        @Override
+        public boolean enabled()
+        {
+            return ItemValidator.this.enabled();
+        }
+
+        @Override
+        public long sweepIntervalTicks()
+        {
+            return 0L;
+        }
+
+        @Override
+        public void visit(Entity entity, SweepContext context)
+        {
+            // Players are covered by sweepPlayer, which also handles their carried inventory.
+            if (entity instanceof Player || !(entity instanceof LivingEntity living))
+            {
+                return;
+            }
+            sweepEntityEquipment(living, context.label());
+        }
+    };
+
     private final DetectionReporter reporter = new DetectionReporter(
             LOG_INTERVAL_TICKS, server::getCurrentTick,
             (count, reason, max, sample) -> "[ItemValidator] Blocked " + count
@@ -165,6 +192,7 @@ public class ItemValidator extends FreedomService
         scheduleContainerRadiusSweep();
         plugin.sweepScheduler.register(containerVisitor);
         plugin.sweepScheduler.register(containerEntityVisitor);
+        plugin.sweepScheduler.register(equipmentEntityVisitor);
     }
 
     @Override
@@ -298,6 +326,51 @@ public class ItemValidator extends FreedomService
             sweepPlayer(player);
         }
         sweepGroundItems();
+    }
+
+    private void sweepEntityEquipment(LivingEntity living, String context)
+    {
+        final EntityEquipment equipment = living.getEquipment();
+        if (equipment == null)
+        {
+            return;
+        }
+
+        for (EquipmentSlot slot : EquipmentSlot.values())
+        {
+            final ItemStack item;
+            try
+            {
+                item = equipment.getItem(slot);
+            }
+            catch (Throwable ignored)
+            {
+                continue;
+            }
+
+            if (item == null || item.isEmpty())
+            {
+                continue;
+            }
+
+            final ItemScanner.Verdict verdict = scanWithBudget(item, SWEEP_ITEM_SCAN_BUDGET_NANOS);
+            if (!verdict.isCursed())
+            {
+                continue;
+            }
+
+            try
+            {
+                equipment.setItem(slot, null);
+            }
+            catch (Throwable ignored)
+            {
+                continue;
+            }
+
+            recordDetection(verdict, context + " equipment on " + living.getType() + " @ "
+                    + FUtil.formatLocation(living.getLocation()));
+        }
     }
 
     private void sweepGroundItems()
