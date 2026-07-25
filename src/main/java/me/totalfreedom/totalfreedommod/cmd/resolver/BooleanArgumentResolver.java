@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.cmd.resolver;
 
+import java.util.List;
+
 public class BooleanArgumentResolver implements AbstractArgumentResolver<Boolean>
 {
 
@@ -7,6 +9,16 @@ public class BooleanArgumentResolver implements AbstractArgumentResolver<Boolean
     public String name()
     {
         return "Boolean";
+    }
+
+    /**
+     * Only the canonical spellings; {@link #resolve} accepts the abbreviations too, but suggesting
+     * all ten forms buries the two anyone types.
+     */
+    @Override
+    public List<String> suggestions()
+    {
+        return List.of("true", "false");
     }
 
     @Override

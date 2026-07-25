@@ -1,11 +1,16 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import java.util.List;
+
+import me.totalfreedom.totalfreedommod.cmd.internal.FuzzyMatch;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Callback;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Command;
+import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Completer;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Permission;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Subcommand;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.rank.Rank;
+import me.totalfreedom.totalfreedommod.util.FTask;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
 import org.bukkit.command.CommandSender;
@@ -37,6 +42,18 @@ public class Command_lockup extends FCommand
         server().getOnlinePlayers().forEach(this::cancelLockup);
 
         msg(sender, "<gray>Unlocked all players.");
+    }
+
+    @Completer(value = "", position = 0)
+    public List<String> completeTarget(CommandSender sender, String partial)
+    {
+        return NameCandidates.online(server(), partial);
+    }
+
+    @Completer(value = "", position = 1)
+    public List<String> completeState(CommandSender sender, String partial)
+    {
+        return FuzzyMatch.filter(List.of("on", "off"), partial);
     }
 
     @Callback
@@ -90,14 +107,17 @@ public class Command_lockup extends FCommand
             @Override
             public void run()
             {
-                if (player.isOnline())
+                FTask.run("Command_lockup/lockup", () ->
                 {
-                    player.openInventory(player.getInventory());
-                }
-                else
-                {
-                    cancelLockup(playerdata);
-                }
+                    if (player.isOnline())
+                    {
+                        player.openInventory(player.getInventory());
+                    }
+                    else
+                    {
+                        cancelLockup(playerdata);
+                    }
+                });
             }
         }.runTaskTimer(plugin(), 0L, 5L));
     }

@@ -15,6 +15,7 @@ import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.DetectionReporter;
 import me.totalfreedom.totalfreedommod.util.FLog;
+import me.totalfreedom.totalfreedommod.util.FTask;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -192,7 +193,8 @@ public class ItemValidator extends FreedomService
         {
             return;
         }
-        sweepTaskId = server.getScheduler().runTaskTimer(plugin, this::sweepOnlinePlayers, interval, interval).getTaskId();
+        sweepTaskId = server.getScheduler().runTaskTimer(plugin,
+                FTask.guard("ItemValidator/equipmentSweep", this::sweepOnlinePlayers), interval, interval).getTaskId();
     }
 
     private void scheduleContainerRadiusSweep()
@@ -207,7 +209,7 @@ public class ItemValidator extends FreedomService
             return;
         }
         containerRadiusSweepTaskId = server.getScheduler()
-                .runTaskTimer(plugin, this::sweepContainersAroundPlayers, ticks, ticks)
+                .runTaskTimer(plugin, FTask.guard("ItemValidator/containerSweep", this::sweepContainersAroundPlayers), ticks, ticks)
                 .getTaskId();
     }
 

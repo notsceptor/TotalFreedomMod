@@ -4,12 +4,28 @@ import me.totalfreedom.totalfreedommod.cmd.MessageUtils;
 import me.totalfreedom.totalfreedommod.world.WorldWeather;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
+import java.util.Arrays;
+import java.util.List;
+
 public class WeatherArgumentResolver implements AbstractArgumentResolver<WorldWeather> 
 {
     @Override
     public String name()
     {
         return "WorldWeather";
+    }
+
+    /**
+     * Aliases rather than constant names: {@link WorldWeather#getByAlias} only matches aliases.
+     */
+    @Override
+    public List<String> suggestions()
+    {
+        return Arrays.stream(WorldWeather.values())
+                     .map(WorldWeather::getAliases)
+                     .flatMap(List::stream)
+                     .sorted()
+                     .toList();
     }
 
     @Override

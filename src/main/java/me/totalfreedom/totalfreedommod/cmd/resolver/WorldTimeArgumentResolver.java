@@ -4,12 +4,28 @@ import me.totalfreedom.totalfreedommod.cmd.MessageUtils;
 import me.totalfreedom.totalfreedommod.world.WorldTime;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
+import java.util.Arrays;
+import java.util.List;
+
 public class WorldTimeArgumentResolver implements AbstractArgumentResolver<WorldTime> 
 {
     @Override
     public String name()
     {
         return "WorldTime";
+    }
+
+    /**
+     * Aliases rather than constant names, because {@link WorldTime#getByAlias} only matches aliases.
+     */
+    @Override
+    public List<String> suggestions()
+    {
+        return Arrays.stream(WorldTime.values())
+                     .map(WorldTime::getAliases)
+                     .flatMap(List::stream)
+                     .sorted()
+                     .toList();
     }
 
     @Override

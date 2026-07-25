@@ -18,6 +18,12 @@ import me.totalfreedom.totalfreedommod.util.FUtil;
 @Permission(permission = "tfm.admin.baninfo")
 public class Command_baninfo extends FCommand
 {
+    @Completer(value = "", position = 0)
+    public List<String> completeTarget(CommandSender sender, String partial)
+    {
+        return NameCandidates.banned(plugin(), partial);
+    }
+
     @Callback
     public void query(CommandSender sender, String target)
     {

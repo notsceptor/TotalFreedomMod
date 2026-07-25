@@ -41,6 +41,24 @@ public class Command_permban extends FCommand
         );
     }
 
+    @Completer(value = "add", position = 0)
+    public List<String> completeAdd(CommandSender sender, String partial)
+    {
+        return NameCandidates.online(server(), partial);
+    }
+
+    @Completer(value = "remove", position = 0)
+    public List<String> completeRemove(CommandSender sender, String partial)
+    {
+        return NameCandidates.permbanned(plugin(), partial);
+    }
+
+    @Completer(value = "delete", position = 0)
+    public List<String> completeDelete(CommandSender sender, String partial)
+    {
+        return NameCandidates.permbanned(plugin(), partial);
+    }
+
     @Callback
     @Subcommand("add")
     public void add(CommandSender sender, String name)

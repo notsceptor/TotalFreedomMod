@@ -41,6 +41,7 @@ import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.blocking.sweep.SweepContext;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
+import me.totalfreedom.totalfreedommod.util.FTask;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -202,7 +203,8 @@ public final class WorldEditHook implements Listener
         };
         WorldEdit.getInstance().getEventBus().register(editSessionSubscriber);
 
-        selectionPollTask = Bukkit.getScheduler().runTaskTimer(plugin, this::pollSelections, 1L, 1L);
+        selectionPollTask = Bukkit.getScheduler().runTaskTimer(plugin,
+                FTask.guard("WorldEditHook/pollSelections", this::pollSelections), 1L, 1L);
 
         // Catch up on already-online players (covers /reload and the 20-tick attach delay).
         for (Player online : Bukkit.getOnlinePlayers())
@@ -1822,7 +1824,8 @@ public final class WorldEditHook implements Listener
                 chunks.add(chunkKey(pos.x() >> 4, pos.z() >> 4));
                 if (flushScheduled.compareAndSet(false, true))
                 {
-                    Bukkit.getScheduler().runTaskLater(plugin, this::flush, SWEEP_FLUSH_DELAY_TICKS);
+                    Bukkit.getScheduler().runTaskLater(plugin,
+                            FTask.guard("WorldEditHook/sweepFlush", this::flush), SWEEP_FLUSH_DELAY_TICKS);
                 }
             }
             return placed;

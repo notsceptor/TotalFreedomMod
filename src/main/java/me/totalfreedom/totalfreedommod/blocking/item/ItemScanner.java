@@ -56,6 +56,7 @@ final class ItemScanner
     private static final int MAX_EQUIPPABLE_ENTITIES = 256;
     private static final int MAX_CUSTOM_MODEL_DATA_ENTRIES = 256;
     private static final int MAX_CUSTOM_MODEL_DATA_STRING_LENGTH = 256;
+    private static final int MAX_ATTRIBUTE_MODIFIERS = 64;
     private static final int MAX_DAMAGE_REDUCTIONS = 64;
     private static final int MAX_DAMAGE_TYPE_SET = 256;
     private static final int MAX_NBT_NODES = 8192;
@@ -82,6 +83,7 @@ final class ItemScanner
         OVERSIZED_BLOCKS_ATTACKS,
         OVERSIZED_BOOK,
         OVERSIZED_ATTRIBUTE,
+        OVERSIZED_ATTRIBUTE_COUNT,
         ILLEGAL_STACK_SIZE,
         UNINSPECTABLE_NBT,
         MALFORMED_ENTITY_DATA,
@@ -861,7 +863,14 @@ final class ItemScanner
         {
             return Verdict.CLEAN;
         }
-        for (ItemAttributeModifiers.Entry entry : modifiers.modifiers())
+
+        final List<ItemAttributeModifiers.Entry> entries = modifiers.modifiers();
+        if (entries.size() > MAX_ATTRIBUTE_MODIFIERS)
+        {
+            return new Verdict(Reason.OVERSIZED_ATTRIBUTE_COUNT, entries.size(), depth);
+        }
+
+        for (ItemAttributeModifiers.Entry entry : entries)
         {
             if (entry == null)
             {

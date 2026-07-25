@@ -3,6 +3,7 @@ package me.totalfreedom.totalfreedommod;
 import io.papermc.paper.event.world.WorldGameRuleChangeEvent;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
+import me.totalfreedom.totalfreedommod.util.FTask;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -144,7 +145,7 @@ public class GameRuleHandler extends FreedomService
             }
 
             commitTask = server.getScheduler().runTaskTimer(plugin,
-                    this::enforceGameRuleDefaults,
+                    FTask.guard("GameRuleHandler/enforceDefaults", this::enforceGameRuleDefaults),
                     0L,
                     ConfigEntry.GAMERULES_ENFORCEMENT_DELAY.getInteger());
         }

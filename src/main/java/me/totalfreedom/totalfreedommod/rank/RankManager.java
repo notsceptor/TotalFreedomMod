@@ -21,6 +21,7 @@ import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchSession;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FLog;
+import me.totalfreedom.totalfreedommod.util.FTask;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
@@ -1059,20 +1060,23 @@ public class RankManager extends FreedomService
                     return;
                 }
 
-                for (Player player : server.getOnlinePlayers())
+                FTask.run("RankManager/autoOpMonitor", () ->
                 {
-                    // Skip admins and players who should not be OP
-                    if (plugin.al.isAdmin(player) || plugin.al.isAdminImpostor(player))
+                    for (Player player : server.getOnlinePlayers())
                     {
-                        continue;
-                    }
+                        // Skip admins and players who should not be OP
+                        if (plugin.al.isAdmin(player) || plugin.al.isAdminImpostor(player))
+                        {
+                            continue;
+                        }
 
-                    // Re-OP players who lost OP status
-                    if (!player.isOp())
-                    {
-                        ensureOp(player);
+                        // Re-OP players who lost OP status
+                        if (!player.isOp())
+                        {
+                            ensureOp(player);
+                        }
                     }
-                }
+                });
             }
         };
         persistentMonitorTask.runTaskTimer(plugin, interval, interval);

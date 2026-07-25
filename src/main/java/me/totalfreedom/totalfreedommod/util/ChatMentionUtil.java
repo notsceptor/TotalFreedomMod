@@ -171,7 +171,7 @@ public final class ChatMentionUtil
         }
         else
         {
-            Bukkit.getScheduler().runTask(plugin, pingTask);
+            Bukkit.getScheduler().runTask(plugin, FTask.guard("ChatMentionUtil/ping", pingTask));
         }
     }
 

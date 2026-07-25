@@ -147,6 +147,12 @@ public class Command_tag extends FCommand
         msg(sender, "<gray>Your tag has been removed.");
     }
 
+    @Completer(value = "clear", position = 0)
+    public List<String> completeClearTarget(CommandSender sender, String partial)
+    {
+        return NameCandidates.online(server(), partial);
+    }
+
     @Callback
     @Subcommand("clear")
     public void clearTag(CommandSender sender, String playerName)

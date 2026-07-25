@@ -20,6 +20,12 @@ import me.totalfreedom.totalfreedommod.util.FUtil;
 public class Command_ban extends FCommand
 {
 
+    @Completer(value = "", position = 0)
+    public List<String> completeTarget(CommandSender sender, String partial)
+    {
+        return NameCandidates.online(server(), partial);
+    }
+
     @Callback
     public void ban(CommandSender sender, String name, @Greedy String reason, @Switch("s") boolean silent, @Switch("nrb") boolean noRollback)
     {

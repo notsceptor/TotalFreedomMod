@@ -9,6 +9,7 @@ import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
+import me.totalfreedom.totalfreedommod.util.FTask;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Guild;
@@ -139,7 +140,8 @@ public class DiscordBridge extends FreedomService
         consoleRelay.attachAppender();
 
         // Periodic cleanup of expired pending link codes.
-        plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, this::cleanupPendingLinks,
+        plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin,
+                FTask.guard("DiscordBridge/cleanupPendingLinks", this::cleanupPendingLinks),
                 20L * 60L, 20L * 60L);
 
         plugin.getServer().getScheduler().runTask(plugin, () ->
