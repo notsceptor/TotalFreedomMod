@@ -2,20 +2,16 @@ package me.totalfreedom.totalfreedommod;
 
 import io.papermc.paper.event.player.AsyncChatEvent;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import me.totalfreedom.totalfreedommod.banning.Ban;
+import me.totalfreedom.totalfreedommod.cmd.MessageUtils;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
-import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -25,7 +21,7 @@ import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 public class TextFilterService extends FreedomService
 {
 
-    private static final String BAN_REASON = "Use of prohibited language.";
+    private final String BAN_REASON = "Use of prohibited language.";
 
     private List<Pattern> filters = List.of();
 
@@ -54,7 +50,7 @@ public class TextFilterService extends FreedomService
             return;
         }
 
-        final String message = PlainTextComponentSerializer.plainText().serialize(event.message());
+        final String message = MessageUtils.toPlainText(event.message());
         if (!matchesFilter(message))
         {
             return;
@@ -137,42 +133,24 @@ public class TextFilterService extends FreedomService
         final Ban ban = Ban.forPlayer(player, Bukkit.getConsoleSender(), FUtil.parseDateOffset("1d"), BAN_REASON);
         
         ban.addIp(player.getAddress().getAddress().getHostAddress());
-        getKnownIps(player).forEach(ban::addIp);
+        plugin.pl.getData(player).getIps().forEach(ban::addIp);
 
         plugin.bm.addBan(ban);
 
-        FUtil.bcastMsg("<red><player> has been temporarily banned for prohibited language.",
+        MessageUtils.broadcast("<red><player> has been temporarily banned for prohibited language.",
             Placeholder.unparsed("player", player.getName()));
         FLog.warning("[TextFilter] Temporarily banned " + player.getName() + " for prohibited language.", true);
 
         player.kick(tempbanKickMessage());
     }
 
-    private List<String> getKnownIps(Player player)
-    {
-        final Set<String> ips = new LinkedHashSet<>();
-        final PlayerData data = plugin.pl.getData(player);
-        ips.addAll(data.getIps());
-
-        if (player.getAddress() != null)
-        {
-            ips.add(player.getAddress().getAddress().getHostAddress());
-        }
-
-        if (Boolean.TRUE.equals(ConfigEntry.RANGE_BAN_IPS.getBoolean()))
-        {
-            new ArrayList<>(ips).stream()
-                    .map(FUtil::getFuzzyIp)
-                    .forEach(ips::add);
-        }
-
-        return new ArrayList<>(ips);
-    }
-
     private Component tempbanKickMessage()
     {
-        return Component.text("Your username is temporarily banned from this server.\n"
-                        + "Release procedures are available at\n", NamedTextColor.RED)
-                .append(Component.text(ConfigEntry.SERVER_BAN_URL.getString(), NamedTextColor.GOLD));
+        final String message = """
+            <red>Your username is temporarily banned from this server.
+            Release procedures are available at
+            </red><gold><url></gold>""";
+
+        return MessageUtils.parse(message, MessageUtils.unparsed("url", ConfigEntry.SERVER_BAN_URL.getString()));
     }
 }
