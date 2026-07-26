@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
-import me.totalfreedom.totalfreedommod.banning.PermBan;
+import me.totalfreedom.totalfreedommod.banning.Ban;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.util.FLog;
@@ -61,7 +61,7 @@ public class TextFilterService extends FreedomService
         }
 
         event.setCancelled(true);
-        Bukkit.getScheduler().runTask(plugin, () -> permanentlyBan(event.getPlayer()));
+        Bukkit.getScheduler().runTask(plugin, () -> temporarilyBan(event.getPlayer()));
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
@@ -78,7 +78,7 @@ public class TextFilterService extends FreedomService
         }
 
         event.setCancelled(true);
-        permanentlyBan(event.getPlayer());
+        temporarilyBan(event.getPlayer());
     }
 
     private void reloadFilters()
@@ -121,29 +121,31 @@ public class TextFilterService extends FreedomService
                 .anyMatch(filter -> filter.matcher(text).find());
     }
 
-    private void permanentlyBan(Player player)
+    private void temporarilyBan(Player player)
     {
         if (!player.isOnline())
         {
             return;
         }
 
-        if (plugin.pm.getPermban(player.getName()) != null)
+        if (plugin.bm.getByUsername(player.getName()) != null)
         {
-            player.kick(permbanKickMessage());
+            player.kick(tempbanKickMessage());
             return;
         }
 
-        final PermBan permban = new PermBan(player.getUniqueId(), player.getName(), BAN_REASON);
-        permban.addIps(getKnownIps(player));
+        final Ban ban = Ban.forPlayer(player, Bukkit.getConsoleSender(), FUtil.parseDateOffset("1d"), BAN_REASON);
+        
+        ban.addIp(player.getAddress().getAddress().getHostAddress());
+        getKnownIps(player).forEach(ban::addIp);
 
-        plugin.pm.addPermban(permban);
+        plugin.bm.addBan(ban);
 
-        FUtil.bcastMsg("<red><player> has been permanently banned for prohibited language.",
+        FUtil.bcastMsg("<red><player> has been temporarily banned for prohibited language.",
             Placeholder.unparsed("player", player.getName()));
-        FLog.warning("[TextFilter] Permanently banned " + player.getName() + " for prohibited language.", true);
+        FLog.warning("[TextFilter] Temporarily banned " + player.getName() + " for prohibited language.", true);
 
-        player.kick(permbanKickMessage());
+        player.kick(tempbanKickMessage());
     }
 
     private List<String> getKnownIps(Player player)
@@ -167,10 +169,10 @@ public class TextFilterService extends FreedomService
         return new ArrayList<>(ips);
     }
 
-    private Component permbanKickMessage()
+    private Component tempbanKickMessage()
     {
-        return Component.text("Your username is permanently banned from this server.\n"
+        return Component.text("Your username is temporarily banned from this server.\n"
                         + "Release procedures are available at\n", NamedTextColor.RED)
-                .append(Component.text(ConfigEntry.SERVER_PERMBAN_URL.getString(), NamedTextColor.GOLD));
+                .append(Component.text(ConfigEntry.SERVER_BAN_URL.getString(), NamedTextColor.GOLD));
     }
 }
