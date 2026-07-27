@@ -147,7 +147,7 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
         this.lastJoinUnix = cs.getLong("last_join", 0);
         this.potionSpy = cs.getBoolean("potion_spy", false);
         final boolean legacyCommandSpy = cs.getBoolean("command_spy", false);
-        this.commandSpyMode = CommandSpyMode.fromString(cs.getString("command_spy_mode", legacyCommandSpy ? "all" : "off"));
+        this.commandSpyMode = CommandSpyMode.fromString(cs.getString("command_spy_mode", legacyCommandSpy ? "ops" : "off"));
         this.muted = cs.getBoolean("muted", false);
         this.frozen = cs.getBoolean("frozen", false);
         this.commandsBlocked = cs.getBoolean("commands_blocked", false);

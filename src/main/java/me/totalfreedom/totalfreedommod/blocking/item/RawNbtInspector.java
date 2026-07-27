@@ -32,7 +32,9 @@ final class RawNbtInspector
 
     private static final boolean AVAILABLE;
     private static final Method AS_NMS_COPY;
+    private static final Method AS_BUKKIT_COPY;
     private static final Method ITEMSTACK_GET;
+    private static final Method ITEMSTACK_REMOVE;
     private static final Object CUSTOM_DATA_TYPE;
     private static final Object BLOCK_ENTITY_DATA_TYPE;
     private static final Object ENTITY_DATA_TYPE;
@@ -47,7 +49,9 @@ final class RawNbtInspector
     {
         boolean ok = false;
         Method asNmsCopy = null;
+        Method asBukkitCopy = null;
         Method itemStackGet = null;
+        Method itemStackRemove = null;
         Object customDataType = null;
         Object blockEntityDataType = null;
         Object entityDataType = null;
@@ -67,6 +71,19 @@ final class RawNbtInspector
             Class<?> dataComponentType = Class.forName("net.minecraft.core.component.DataComponentType");
             itemStackGet = nmsItemStack.getMethod("get", dataComponentType);
             itemStackGet.setAccessible(true);
+
+            try
+            {
+                asBukkitCopy = craftItemStack.getMethod("asBukkitCopy", nmsItemStack);
+                asBukkitCopy.setAccessible(true);
+                itemStackRemove = nmsItemStack.getMethod("remove", dataComponentType);
+                itemStackRemove.setAccessible(true);
+            }
+            catch (Throwable ignored)
+            {
+                asBukkitCopy = null;
+                itemStackRemove = null;
+            }
 
             Class<?> dataComponents = Class.forName("net.minecraft.core.component.DataComponents");
             customDataType = dataComponents.getField("CUSTOM_DATA").get(null);
@@ -129,7 +146,9 @@ final class RawNbtInspector
 
         AVAILABLE = ok;
         AS_NMS_COPY = asNmsCopy;
+        AS_BUKKIT_COPY = asBukkitCopy;
         ITEMSTACK_GET = itemStackGet;
+        ITEMSTACK_REMOVE = itemStackRemove;
         CUSTOM_DATA_TYPE = customDataType;
         BLOCK_ENTITY_DATA_TYPE = blockEntityDataType;
         ENTITY_DATA_TYPE = entityDataType;
@@ -167,6 +186,55 @@ final class RawNbtInspector
         catch (Throwable ignored)
         {
             return false;
+        }
+    }
+
+    static boolean hasEntityDataOwner(ItemStack item)
+    {
+        if (!AVAILABLE || item == null || item.isEmpty())
+        {
+            return false;
+        }
+        try
+        {
+            Object nms = AS_NMS_COPY.invoke(null, item);
+            if (nms == null)
+            {
+                return false;
+            }
+            Object typed = ITEMSTACK_GET.invoke(nms, ENTITY_DATA_TYPE);
+            if (typed == null)
+            {
+                return false;
+            }
+            return EntityDataRules.hasOwner(extractTypedEntityTag(typed));
+        }
+        catch (Throwable ignored)
+        {
+            return false;
+        }
+    }
+
+    static ItemStack stripEntityData(ItemStack item)
+    {
+        if (!AVAILABLE || ITEMSTACK_REMOVE == null || AS_BUKKIT_COPY == null || item == null)
+        {
+            return item;
+        }
+        try
+        {
+            Object nms = AS_NMS_COPY.invoke(null, item);
+            if (nms == null)
+            {
+                return item;
+            }
+            ITEMSTACK_REMOVE.invoke(nms, ENTITY_DATA_TYPE);
+            Object bukkit = AS_BUKKIT_COPY.invoke(null, nms);
+            return bukkit instanceof ItemStack stack ? stack : item;
+        }
+        catch (Throwable ignored)
+        {
+            return item;
         }
     }
 

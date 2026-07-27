@@ -70,7 +70,11 @@ public class CommandSpy extends FreedomService
             String prefix = AdventureUtil.componentToPlainText(display.getColoredTag()).trim();
             if (prefix.isEmpty())
             {
-                prefix = display.getTag();
+                // A rank is free to report no tag at all; fall back to the empty string rather than
+                // letting a null escape into the isEmpty() below, which would throw once per command
+                // and bury the console in "Could not pass event PlayerCommandPreprocessEvent" traces.
+                final String tag = display.getTag();
+                prefix = tag != null ? tag : "";
             }
 
             Component message = Component.empty();

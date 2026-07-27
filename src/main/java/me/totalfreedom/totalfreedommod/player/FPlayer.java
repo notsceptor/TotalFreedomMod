@@ -9,6 +9,7 @@ import me.totalfreedom.totalfreedommod.caging.CageData;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.freeze.FreezeData;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
+import me.totalfreedom.totalfreedommod.util.FTask;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -65,6 +66,8 @@ public class FPlayer
     private int freecamPlaceCount = 0;
     @Getter
     private final CageData cageData = new CageData(this);
+    @Getter
+    private final ChatSpamData chatSpamData = new ChatSpamData();
     private boolean isOrbiting = false;
     private double orbitStrength = 10.0;
     private boolean mobThrowerEnabled = false;
@@ -352,11 +355,12 @@ public class FPlayer
             {
                 return;
             }
-            unmuteTask = plugin.getServer().getScheduler().runTaskLater(plugin, () ->
-            {
-                FUtil.adminAction("TotalFreedom", "Unmuting " + getPlayer().getName(), false);
-                setMuted(false);
-            }, AUTO_PURGE_TICKS);
+            unmuteTask = plugin.getServer().getScheduler().runTaskLater(plugin,
+                FTask.guard("FPlayer/autoUnmute", () ->
+                {
+                    FUtil.adminAction("TotalFreedom", "Unmuting " + getPlayer().getName(), false);
+                    setMuted(false);
+                }), AUTO_PURGE_TICKS);
         }
 
         persistMuted(muted);
@@ -495,8 +499,19 @@ public class FPlayer
         @Override
         public void run()
         {
-            Arrow shot = player.launchProjectile(Arrow.class);
-            shot.setVelocity(shot.getVelocity().multiply(2.0));
+            // Runs every tick for as long as the player holds fire, so an unguarded throw here
+            // repeats until the task is cancelled.
+            if (!player.isOnline())
+            {
+                stopArrowShooter();
+                return;
+            }
+
+            FTask.run("FPlayer/arrowShooter", () ->
+            {
+                Arrow shot = player.launchProjectile(Arrow.class);
+                shot.setVelocity(shot.getVelocity().multiply(2.0));
+            });
         }
     }
 }

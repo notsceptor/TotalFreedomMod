@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.blocking.item;
 
+import io.papermc.paper.datacomponent.DataComponentTypes;
+import io.papermc.paper.event.block.BlockPreDispenseEvent;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -13,8 +15,8 @@ import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.DetectionReporter;
 import me.totalfreedom.totalfreedommod.util.FLog;
+import me.totalfreedom.totalfreedommod.util.FTask;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Chunk;
 import org.bukkit.Material;
@@ -23,9 +25,12 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockDispenseEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
@@ -40,10 +45,15 @@ import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.event.inventory.PrepareItemCraftEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
+import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.event.server.ServerCommandEvent;
 import org.bukkit.event.world.LootGenerateEvent;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
@@ -121,12 +131,44 @@ public class ItemValidator extends FreedomService
         }
     };
 
+    private final EntityVisitor equipmentEntityVisitor = new EntityVisitor()
+    {
+        @Override
+        public boolean enabled()
+        {
+            return ItemValidator.this.enabled();
+        }
+
+        @Override
+        public long sweepIntervalTicks()
+        {
+            return 0L;
+        }
+
+        @Override
+        public void visit(Entity entity, SweepContext context)
+        {
+            // Players are covered by sweepPlayer, which also handles their carried inventory.
+            if (entity instanceof Player || !(entity instanceof LivingEntity living))
+            {
+                return;
+            }
+            sweepEntityEquipment(living, context.label());
+        }
+    };
+
     private final DetectionReporter reporter = new DetectionReporter(
             LOG_INTERVAL_TICKS, server::getCurrentTick,
             (count, reason, max, sample) -> "[ItemValidator] Blocked " + count
                     + " cursed item(s). Reason: " + reason
                     + " | max observed size: " + max
                     + " | sample: " + sample,
+            DetectionReporter.warnAndBroadcastAdmins(plugin));
+
+    private final DetectionReporter ownerStripReporter = new DetectionReporter(
+            LOG_INTERVAL_TICKS, server::getCurrentTick,
+            (count, reason, max, sample) -> "[ItemValidator] Stripped spoofed entity_data owner from "
+                    + count + " item(s). Sample: " + sample,
             DetectionReporter.warnAndBroadcastAdmins(plugin));
 
     public ItemValidator(TotalFreedomMod plugin)
@@ -150,6 +192,7 @@ public class ItemValidator extends FreedomService
         scheduleContainerRadiusSweep();
         plugin.sweepScheduler.register(containerVisitor);
         plugin.sweepScheduler.register(containerEntityVisitor);
+        plugin.sweepScheduler.register(equipmentEntityVisitor);
     }
 
     @Override
@@ -178,7 +221,8 @@ public class ItemValidator extends FreedomService
         {
             return;
         }
-        sweepTaskId = server.getScheduler().runTaskTimer(plugin, this::sweepOnlinePlayers, interval, interval).getTaskId();
+        sweepTaskId = server.getScheduler().runTaskTimer(plugin,
+                FTask.guard("ItemValidator/equipmentSweep", this::sweepOnlinePlayers), interval, interval).getTaskId();
     }
 
     private void scheduleContainerRadiusSweep()
@@ -193,7 +237,7 @@ public class ItemValidator extends FreedomService
             return;
         }
         containerRadiusSweepTaskId = server.getScheduler()
-                .runTaskTimer(plugin, this::sweepContainersAroundPlayers, ticks, ticks)
+                .runTaskTimer(plugin, FTask.guard("ItemValidator/containerSweep", this::sweepContainersAroundPlayers), ticks, ticks)
                 .getTaskId();
     }
 
@@ -284,6 +328,51 @@ public class ItemValidator extends FreedomService
         sweepGroundItems();
     }
 
+    private void sweepEntityEquipment(LivingEntity living, String context)
+    {
+        final EntityEquipment equipment = living.getEquipment();
+        if (equipment == null)
+        {
+            return;
+        }
+
+        for (EquipmentSlot slot : EquipmentSlot.values())
+        {
+            final ItemStack item;
+            try
+            {
+                item = equipment.getItem(slot);
+            }
+            catch (Throwable ignored)
+            {
+                continue;
+            }
+
+            if (item == null || item.isEmpty())
+            {
+                continue;
+            }
+
+            final ItemScanner.Verdict verdict = scanWithBudget(item, SWEEP_ITEM_SCAN_BUDGET_NANOS);
+            if (!verdict.isCursed())
+            {
+                continue;
+            }
+
+            try
+            {
+                equipment.setItem(slot, null);
+            }
+            catch (Throwable ignored)
+            {
+                continue;
+            }
+
+            recordDetection(verdict, context + " equipment on " + living.getType() + " @ "
+                    + FUtil.formatLocation(living.getLocation()));
+        }
+    }
+
     private void sweepGroundItems()
     {
         for (World world : server.getWorlds())
@@ -312,12 +401,18 @@ public class ItemValidator extends FreedomService
             {
                 continue;
             }
+            ItemStack stripped = stripOwner(item, "equipment sweep on " + player.getName());
+            if (stripped != null)
+            {
+                item = stripped;
+                contents[i] = stripped;
+                dirty = true;
+            }
             ItemScanner.Verdict v = scanWithBudget(item, SWEEP_ITEM_SCAN_BUDGET_NANOS);
             if (v.isCursed())
             {
-                contents[i] = null;
+                contents[i] = sanitizeCursed(item, v, "equipment sweep on " + player.getName());
                 dirty = true;
-                recordDetection(v, "equipment sweep on " + player.getName());
             }
         }
         if (dirty)
@@ -328,12 +423,18 @@ public class ItemValidator extends FreedomService
         ItemStack cursor = player.getItemOnCursor();
         if (cursor != null && !cursor.getType().isAir())
         {
+            ItemStack strippedCursor = stripOwner(cursor, "cursor sweep on " + player.getName());
+            if (strippedCursor != null)
+            {
+                cursor = strippedCursor;
+                player.setItemOnCursor(strippedCursor);
+                dirty = true;
+            }
             ItemScanner.Verdict v = scanWithBudget(cursor, SWEEP_ITEM_SCAN_BUDGET_NANOS);
             if (v.isCursed())
             {
-                player.setItemOnCursor(null);
+                player.setItemOnCursor(sanitizeCursed(cursor, v, "cursor sweep on " + player.getName()));
                 dirty = true;
-                recordDetection(v, "cursor sweep on " + player.getName());
             }
         }
 
@@ -533,6 +634,13 @@ public class ItemValidator extends FreedomService
             if (item == null)
             {
                 continue;
+            }
+            ItemStack stripped = stripOwner(item, sample);
+            if (stripped != null)
+            {
+                item = stripped;
+                contents[i] = stripped;
+                purged = true;
             }
             long itemDeadline = Math.min(System.nanoTime() + CHUNK_ITEM_SCAN_BUDGET_NANOS, containerDeadline);
             ItemScanner.Verdict v = scanUntil(item, itemDeadline);
@@ -1165,6 +1273,177 @@ public class ItemValidator extends FreedomService
         }
         event.setCancelled(true);
         recordDetection(v, "dispense at " + FUtil.formatLocation(event.getBlock().getLocation()));
+    }
+
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onSpoofedOwnerInteract(PlayerInteractEvent event)
+    {
+        if (!enabled())
+        {
+            return;
+        }
+        Action action = event.getAction();
+        if (action != Action.RIGHT_CLICK_AIR && action != Action.RIGHT_CLICK_BLOCK)
+        {
+            return;
+        }
+        ItemStack item = event.getItem();
+        if (item == null || !RawNbtInspector.hasEntityDataOwner(item))
+        {
+            return;
+        }
+        event.setCancelled(true);
+        stripFromHand(event.getPlayer(), event.getHand(), item, "use by " + event.getPlayer().getName());
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onSpoofedOwnerInteractEntity(PlayerInteractEntityEvent event)
+    {
+        if (!enabled())
+        {
+            return;
+        }
+        Player player = event.getPlayer();
+        EquipmentSlot hand = event.getHand();
+        ItemStack item = hand == EquipmentSlot.OFF_HAND
+                ? player.getInventory().getItemInOffHand()
+                : player.getInventory().getItemInMainHand();
+        if (item == null || !RawNbtInspector.hasEntityDataOwner(item))
+        {
+            return;
+        }
+        event.setCancelled(true);
+        stripFromHand(player, hand, item, "use-on-entity by " + player.getName());
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onSpoofedOwnerDispense(BlockPreDispenseEvent event)
+    {
+        if (!enabled())
+        {
+            return;
+        }
+        ItemStack item = event.getItemStack();
+        if (item == null || !RawNbtInspector.hasEntityDataOwner(item))
+        {
+            return;
+        }
+        event.setCancelled(true);
+        ownerStripReporter.record("SPOOFED_OWNER", 0L,
+                "dispense at " + FUtil.formatLocation(event.getBlock().getLocation()));
+    }
+
+    private void stripFromHand(Player player, EquipmentSlot hand, ItemStack item, String context)
+    {
+        ItemStack cleaned = stripOwner(item, context);
+        if (cleaned == null)
+        {
+            return;
+        }
+        if (hand == EquipmentSlot.OFF_HAND)
+        {
+            player.getInventory().setItemInOffHand(cleaned);
+        }
+        else
+        {
+            player.getInventory().setItemInMainHand(cleaned);
+        }
+        player.updateInventory();
+        FUtil.playerMsg(player, "A spoofed owner tag was stripped from that item.", NamedTextColor.RED);
+    }
+
+    private ItemStack stripOwner(ItemStack item, String context)
+    {
+        if (item == null || !RawNbtInspector.hasEntityDataOwner(item))
+        {
+            return null;
+        }
+        ItemStack cleaned = RawNbtInspector.stripEntityData(item);
+        if (cleaned == null || RawNbtInspector.hasEntityDataOwner(cleaned))
+        {
+            return null;
+        }
+        ownerStripReporter.record("SPOOFED_OWNER", 0L, context);
+        return cleaned;
+    }
+
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onSwapHandItems(PlayerSwapHandItemsEvent event)
+    {
+        if (!enabled())
+        {
+            return;
+        }
+        String who = event.getPlayer().getName();
+        ItemStack toOff = event.getOffHandItem();
+        ItemScanner.Verdict vOff = scanWithBudget(toOff, SWEEP_ITEM_SCAN_BUDGET_NANOS);
+        if (vOff.isCursed())
+        {
+            event.setOffHandItem(sanitizeCursed(toOff, vOff, "off-hand swap by " + who));
+        }
+        ItemStack toMain = event.getMainHandItem();
+        ItemScanner.Verdict vMain = scanWithBudget(toMain, SWEEP_ITEM_SCAN_BUDGET_NANOS);
+        if (vMain.isCursed())
+        {
+            event.setMainHandItem(sanitizeCursed(toMain, vMain, "hand swap by " + who));
+        }
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onItemHeld(PlayerItemHeldEvent event)
+    {
+        if (!enabled())
+        {
+            return;
+        }
+        Player player = event.getPlayer();
+        int slot = event.getNewSlot();
+        ItemStack item = player.getInventory().getItem(slot);
+        if (item == null || !item.hasData(DataComponentTypes.EQUIPPABLE))
+        {
+            return;
+        }
+        ItemScanner.Verdict v = scanWithBudget(item, SWEEP_ITEM_SCAN_BUDGET_NANOS);
+        if (!v.isCursed())
+        {
+            return;
+        }
+        player.getInventory().setItem(slot, sanitizeCursed(item, v, "hotbar select by " + player.getName()));
+        player.updateInventory();
+    }
+
+    private ItemStack sanitizeCursed(ItemStack item, ItemScanner.Verdict v, String context)
+    {
+        recordDetection(v, context);
+        if (v.reason() == ItemScanner.Reason.CURSED_EQUIP_SOUND)
+        {
+            ItemStack neutralized = neutralizeEquipSound(item);
+            if (neutralized != null)
+            {
+                return neutralized;
+            }
+        }
+        return null;
+    }
+
+    private ItemStack neutralizeEquipSound(ItemStack item)
+    {
+        if (item == null || item.isEmpty())
+        {
+            return null;
+        }
+        try
+        {
+            ItemStack cleaned = item.clone();
+            cleaned.resetData(DataComponentTypes.EQUIPPABLE);
+            return scan(cleaned).reason() == ItemScanner.Reason.CURSED_EQUIP_SOUND ? null : cleaned;
+        }
+        catch (Throwable t)
+        {
+            return null;
+        }
     }
 
     @EventHandler(priority = EventPriority.NORMAL)

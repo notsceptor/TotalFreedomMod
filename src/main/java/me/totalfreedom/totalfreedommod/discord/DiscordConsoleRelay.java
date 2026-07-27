@@ -11,6 +11,7 @@ import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchContext;
 import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchSession;
 import me.totalfreedom.totalfreedommod.util.CallbackLogAppender;
 import me.totalfreedom.totalfreedommod.util.FLog;
+import me.totalfreedom.totalfreedommod.util.FTask;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -65,7 +66,8 @@ public class DiscordConsoleRelay extends ListenerAdapter
         logAppender.start();
         ((Logger) LogManager.getRootLogger()).addAppender(logAppender);
 
-        flushTask = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, this::flush, ticks, ticks);
+        flushTask = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin,
+                FTask.guard("DiscordConsoleRelay/flush", this::flush), ticks, ticks);
     }
 
     void detachAppender()

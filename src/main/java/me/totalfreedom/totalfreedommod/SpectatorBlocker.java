@@ -15,6 +15,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
+import me.totalfreedom.totalfreedommod.util.FTask;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.GameMode;
@@ -79,7 +80,7 @@ public class SpectatorBlocker extends FreedomService
             return;
         }
 
-        server.getScheduler().runTaskLater(plugin, () -> attemptRegister(attempt + 1), RETRY_INTERVAL_TICKS);
+        server.getScheduler().runTaskLater(plugin, FTask.guard("SpectatorBlocker/attemptRegister", () -> attemptRegister(attempt + 1)), RETRY_INTERVAL_TICKS);
     }
 
     private void register()
@@ -89,13 +90,14 @@ public class SpectatorBlocker extends FreedomService
             registeredListener = PacketEvents.getAPI().getEventManager()
                     .registerListener(new SpectatorPlayerInfoListener());
 
-            refreshTask = server.getScheduler().runTaskTimer(plugin, () ->
-            {
-                for (Player player : server.getOnlinePlayers())
+            refreshTask = server.getScheduler().runTaskTimer(plugin,
+                FTask.guard("SpectatorBlocker/refreshAll", () ->
                 {
-                    refreshPlayer(player);
-                }
-            }, 1L, 20L);
+                    for (Player player : server.getOnlinePlayers())
+                    {
+                        refreshPlayer(player);
+                    }
+                }), 1L, 20L);
 
             FLog.info("[SpectatorBlocker] PacketEvents spectator menu guard enabled.");
         }
@@ -150,7 +152,7 @@ public class SpectatorBlocker extends FreedomService
     {
         final Player player = event.getPlayer();
 
-        server.getScheduler().runTask(plugin, () -> refreshPlayer(player));
+        server.getScheduler().runTask(plugin, FTask.guard("SpectatorBlocker/refreshOnGameMode", () -> refreshPlayer(player)));
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -158,7 +160,7 @@ public class SpectatorBlocker extends FreedomService
     {
         final Player player = event.getPlayer();
 
-        server.getScheduler().runTaskLater(plugin, () -> refreshPlayer(player), 1L);
+        server.getScheduler().runTaskLater(plugin, FTask.guard("SpectatorBlocker/refreshOnJoin", () -> refreshPlayer(player)), 1L);
     }
 
     @EventHandler

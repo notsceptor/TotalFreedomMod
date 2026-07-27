@@ -107,9 +107,15 @@ import java.util.stream.IntStream;
  * Positions with no explicit completer fall back to, in order:
  * <ol>
  *    <li>Candidates supplied by the type's {@link ResolverRegistry} registration</li>
+ *    <li>{@link AbstractArgumentResolver#suggestions() Candidates from the parameter's resolver},
+ *        which is what covers {@link Resolve @Resolve}-named parameters (they are matched by name,
+ *        so there is no type registration to read a list from)</li>
  *    <li>Fuzzy-matched enum constant names</li>
+ *    <li>Online player names and selectors, for {@code Player} parameters</li>
  *    <li>Brigadier/Paper defaults</li>
  * </ol>
+ * A plain {@code String} parameter has no enumerable value set and therefore completes to nothing
+ * unless the command declares a {@link Completer} for it.
  */             
 @SuppressWarnings({"rawtypes", "unchecked"})
 public final class CommandProcessor
@@ -462,33 +468,87 @@ public final class CommandProcessor
     }
 
     /**
-     * Default suggester for enum-typed arguments with no explicit {@link Completer} which fuzzy-matches
-     * the partial input against the enum's constant names via {@link FuzzyMatch}.
+     * Default suggester for an argument with no explicit {@link Completer}: fuzzy-matches the partial
+     * input against {@code candidates}, falling back to the enum's constant names when the parameter
+     * is enum-typed and no candidates were produced.
+     * <p>
+     * The fallback matters because a type-bound resolver over an enum
+     * (e.g. {@code WorldTime}) makes the parameter custom-resolved, which would otherwise take
+     * priority over the enum names and leave the argument with nothing to suggest. Candidates are
+     * fetched per request so live sources stay current, and the enum names are resolved once here.
+     *
+     * @param candidates   candidate source, or {@code null} when the parameter has no resolver
+     * @param declaredType the parameter's type, consulted only for the enum fallback
      */
-    private SuggestionProvider<CommandSourceStack> buildEnumSuggestionProvider(Class<?> enumType)
+    private SuggestionProvider<CommandSourceStack> buildCandidateSuggestionProvider(
+        Supplier<List<String>> candidates, Class<?> declaredType)
     {
-        List<String> names = Arrays.stream(enumType.getEnumConstants())
-                .map(c -> ((Enum<?>) c).name())
-                .toList();
+        List<String> enumNames = declaredType != null && declaredType.isEnum()
+                ? Arrays.stream(declaredType.getEnumConstants())
+                        .map(constant -> ((Enum<?>) constant).name())
+                        .toList()
+                : List.of();
 
         return (ctx, builder) -> {
-            FuzzyMatch.filter(names, builder.getRemaining())
+            List<String> values = candidates != null ? candidates.get() : List.of();
+            if (values.isEmpty())
+            {
+                values = enumNames;
+            }
+
+            FuzzyMatch.filter(values, builder.getRemaining())
                     .forEach(builder::suggest);
-                    
+
             return builder.buildFuture();
         };
     }
 
     /**
-     * Default suggester for custom-resolved argument types whose {@link ResolverRegistry}
-     * registration supplied a candidate list (e.g. Material registry keys).
+     * Candidate source for a positional parameter with no explicit {@link Completer}, in order:
+     * the type-bound list from its {@link ResolverRegistry} registration, then the
+     * {@link AbstractArgumentResolver#suggestions() resolver's own} candidates. The latter is what
+     * covers {@link Resolve @Resolve}-named parameters, whose resolver is chosen by name and so has
+     * no type registration to read a list from.
+     *
+     * @return a candidate supplier, or {@code null} when the parameter has no custom resolver
      */
-    private SuggestionProvider<CommandSourceStack> buildCandidateSuggestionProvider(Supplier<List<String>> candidates)
+    private static Supplier<List<String>> candidatesFor(Parameter param)
+    {
+        Supplier<List<String>> byType = ResolverRegistry.suggestionsFor(param.getType());
+        if (byType != null)
+        {
+            return byType;
+        }
+
+        if (!isCustomResolved(param))
+        {
+            return null;
+        }
+
+        AbstractArgumentResolver<?> resolver = resolverFor(param);
+        return resolver != null ? resolver::suggestions : null;
+    }
+
+    /**
+     * Fallback suggester for {@code Player} parameters. Paper's player selector supplies its own
+     * suggestions natively, but only when the suggestion context carries a source it recognises,
+     * which is not guaranteed for commands registered through this framework. Serving names and
+     * selectors ourselves makes completion deterministic.
+     */
+    private SuggestionProvider<CommandSourceStack> buildPlayerSuggestionProvider()
     {
         return (ctx, builder) -> {
-            FuzzyMatch.filter(candidates.get(), builder.getRemaining())
+            // Single-target selectors only: these nodes are built with ArgumentTypes.player(), not
+            // players(), so @a is rejected at resolve time and must not be offered.
+            List<String> names = new ArrayList<>(List.of("@p", "@r", "@s"));
+            plugin.getServer().getOnlinePlayers().stream()
+                    .map(Player::getName)
+                    .sorted()
+                    .forEach(names::add);
+
+            FuzzyMatch.filter(names, builder.getRemaining())
                     .forEach(builder::suggest);
-                    
+
             return builder.buildFuture();
         };
     }
@@ -634,13 +694,13 @@ public final class CommandProcessor
                         }
 
                         Method completer = completers.get(new CompleterKey(subPath, position));
-                        Supplier<List<String>> candidates = ResolverRegistry.suggestionsFor(type);
+                        Supplier<List<String>> candidates = candidatesFor(param);
                         if (completer != null) {
                             arg.suggests(buildSuggestionProvider(completer));
-                        } else if (isCustomResolved(param) && candidates != null) {
-                            arg.suggests(buildCandidateSuggestionProvider(candidates));
-                        } else if (type.isEnum()) {
-                            arg.suggests(buildEnumSuggestionProvider(type));
+                        } else if (candidates != null || type.isEnum()) {
+                            arg.suggests(buildCandidateSuggestionProvider(candidates, type));
+                        } else if (ArgumentResolver.isPlayerArgType(type)) {
+                            arg.suggests(buildPlayerSuggestionProvider());
                         }
 
                         if (position == positionalParams.size() - 1) {

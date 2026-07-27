@@ -2,6 +2,7 @@ package me.totalfreedom.totalfreedommod.blocking.item;
 
 import io.papermc.paper.datacomponent.DataComponentTypes;
 import io.papermc.paper.datacomponent.item.BannerPatternLayers;
+import io.papermc.paper.datacomponent.item.BlocksAttacks;
 import io.papermc.paper.datacomponent.item.BundleContents;
 import io.papermc.paper.datacomponent.item.ChargedProjectiles;
 import io.papermc.paper.datacomponent.item.CustomModelData;
@@ -13,14 +14,17 @@ import io.papermc.paper.datacomponent.item.ItemLore;
 import io.papermc.paper.datacomponent.item.JukeboxPlayable;
 import io.papermc.paper.datacomponent.item.PotionContents;
 import io.papermc.paper.datacomponent.item.SuspiciousStewEffects;
+import io.papermc.paper.datacomponent.item.UseRemainder;
 import io.papermc.paper.datacomponent.item.WritableBookContent;
 import io.papermc.paper.datacomponent.item.WrittenBookContent;
 import io.papermc.paper.datacomponent.item.attribute.AttributeModifierDisplay;
+import io.papermc.paper.datacomponent.item.blocksattacks.DamageReduction;
 import io.papermc.paper.registry.set.RegistryKeySet;
 import io.papermc.paper.text.Filtered;
 import java.util.List;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.ComponentScanner;
+import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import org.bukkit.FireworkEffect;
 import org.bukkit.JukeboxSong;
@@ -31,6 +35,7 @@ import org.bukkit.block.banner.PatternType;
 import org.bukkit.damage.DamageType;
 import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.ItemType;
 
 final class ItemScanner
 {
@@ -44,12 +49,16 @@ final class ItemScanner
     private static final int MAX_INSTRUMENT_DESC_LENGTH = 256;
     private static final long MAX_AGGREGATE_TEXT = 262_144L;
     private static final double MAX_ITEM_SCALE = 4.0;
+    private static final double MAX_WAYPOINT_RANGE = 16_384.0;
     private static final int MAX_FIREWORK_EXPLOSIONS = 64;
     private static final int MAX_FIREWORK_COLORS = 256;
     private static final int MAX_BANNER_PATTERNS = 256;
     private static final int MAX_EQUIPPABLE_ENTITIES = 256;
     private static final int MAX_CUSTOM_MODEL_DATA_ENTRIES = 256;
     private static final int MAX_CUSTOM_MODEL_DATA_STRING_LENGTH = 256;
+    private static final int MAX_ATTRIBUTE_MODIFIERS = 64;
+    private static final int MAX_DAMAGE_REDUCTIONS = 64;
+    private static final int MAX_DAMAGE_TYPE_SET = 256;
     private static final int MAX_NBT_NODES = 8192;
     private static final int MAX_NBT_DEPTH = 16;
 
@@ -71,12 +80,15 @@ final class ItemScanner
         OVERSIZED_BANNER_PATTERNS,
         OVERSIZED_EQUIPPABLE,
         OVERSIZED_CUSTOM_MODEL_DATA,
+        OVERSIZED_BLOCKS_ATTACKS,
         OVERSIZED_BOOK,
         OVERSIZED_ATTRIBUTE,
+        OVERSIZED_ATTRIBUTE_COUNT,
         ILLEGAL_STACK_SIZE,
         UNINSPECTABLE_NBT,
         MALFORMED_ENTITY_DATA,
         CURSED_COMPONENT,
+        CURSED_EQUIP_SOUND,
         SCAN_BUDGET_EXCEEDED,
         PANIC_BLANKET_REJECT;
 
@@ -84,7 +96,8 @@ final class ItemScanner
         {
             return switch (this)
             {
-                case CLEAN, OVERSIZED_NAME, OVERSIZED_LORE, OVERSIZED_BOOK -> false;
+                case CLEAN, OVERSIZED_NAME, OVERSIZED_LORE, OVERSIZED_BOOK, CURSED_EQUIP_SOUND,
+                     OVERSIZED_ATTRIBUTE_COUNT -> false;
                 default -> true;
             };
         }
@@ -143,6 +156,7 @@ final class ItemScanner
                     || item.hasData(DataComponentTypes.BUNDLE_CONTENTS)
                     || item.hasData(DataComponentTypes.CONTAINER_LOOT)
                     || item.hasData(DataComponentTypes.CHARGED_PROJECTILES)
+                    || item.hasData(DataComponentTypes.USE_REMAINDER)
                     || RawNbtInspector.hasEntityOrBucketData(item))
             {
                 return new Verdict(Reason.PANIC_BLANKET_REJECT, 0L, depth);
@@ -184,6 +198,12 @@ final class ItemScanner
         if (customModelData.isCursed())
         {
             return customModelData;
+        }
+
+        Verdict blocksAttacks = inspectBlocksAttacks(item, depth);
+        if (blocksAttacks.isCursed())
+        {
+            return blocksAttacks;
         }
 
         // CUSTOM_NAME / ITEM_NAME — gate the serializer behind a safe-graph check
@@ -303,6 +323,19 @@ final class ItemScanner
                     {
                         return v;
                     }
+                }
+            }
+        }
+
+        if (item.hasData(DataComponentTypes.USE_REMAINDER))
+        {
+            UseRemainder remainder = item.getData(DataComponentTypes.USE_REMAINDER);
+            if (remainder != null)
+            {
+                Verdict v = scan(remainder.transformInto(), panicMode, maxPotionEffects, deadlineNanos, depth + 1, agg);
+                if (v.isCursed())
+                {
+                    return v;
                 }
             }
         }
@@ -478,6 +511,10 @@ final class ItemScanner
                     {
                         return new Verdict(Reason.OVERSIZED_EQUIPPABLE, allowed.size(), depth);
                     }
+                    if (!isAllowedEquipSound(item, equippable.equipSound()))
+                    {
+                        return new Verdict(Reason.CURSED_EQUIP_SOUND, -1L, depth);
+                    }
                 }
             }
         }
@@ -486,6 +523,28 @@ final class ItemScanner
             return new Verdict(Reason.UNINSPECTABLE_NBT, -1L, depth);
         }
         return Verdict.CLEAN;
+    }
+
+    private static boolean isAllowedEquipSound(final ItemStack item, final Key sound)
+    {
+        if (sound == null)
+        {
+            return true;
+        }
+        try
+        {
+            final ItemType type = item.getType().asItemType();
+            if (type == null || !type.hasDefaultData(DataComponentTypes.EQUIPPABLE))
+            {
+                return false;
+            }
+            final Equippable defaults = type.getDefaultData(DataComponentTypes.EQUIPPABLE);
+            return defaults != null && sound.equals(defaults.equipSound());
+        }
+        catch (final Throwable t)
+        {
+            return true;
+        }
     }
 
     private static Verdict inspectCustomModelData(final ItemStack item, final int depth)
@@ -510,6 +569,52 @@ final class ItemScanner
                     if (oversizedString)
                     {
                         return new Verdict(Reason.OVERSIZED_CUSTOM_MODEL_DATA, -1L, depth);
+                    }
+                }
+            }
+        }
+        catch (final Throwable t)
+        {
+            return new Verdict(Reason.UNINSPECTABLE_NBT, -1L, depth);
+        }
+        return Verdict.CLEAN;
+    }
+
+    private static Verdict inspectBlocksAttacks(final ItemStack item, final int depth)
+    {
+        try
+        {
+            if (!item.hasData(DataComponentTypes.BLOCKS_ATTACKS))
+            {
+                return Verdict.CLEAN;
+            }
+            final BlocksAttacks blocksAttacks = item.getData(DataComponentTypes.BLOCKS_ATTACKS);
+            if (blocksAttacks == null)
+            {
+                return Verdict.CLEAN;
+            }
+            final RegistryKeySet<DamageType> bypassedBy = blocksAttacks.bypassedBy();
+            if (bypassedBy != null && bypassedBy.size() > MAX_DAMAGE_TYPE_SET)
+            {
+                return new Verdict(Reason.OVERSIZED_BLOCKS_ATTACKS, bypassedBy.size(), depth);
+            }
+            final List<DamageReduction> reductions = blocksAttacks.damageReductions();
+            if (reductions != null)
+            {
+                if (reductions.size() > MAX_DAMAGE_REDUCTIONS)
+                {
+                    return new Verdict(Reason.OVERSIZED_BLOCKS_ATTACKS, reductions.size(), depth);
+                }
+                for (final DamageReduction reduction : reductions)
+                {
+                    if (reduction == null)
+                    {
+                        continue;
+                    }
+                    final RegistryKeySet<DamageType> type = reduction.type();
+                    if (type != null && type.size() > MAX_DAMAGE_TYPE_SET)
+                    {
+                        return new Verdict(Reason.OVERSIZED_BLOCKS_ATTACKS, type.size(), depth);
                     }
                 }
             }
@@ -759,7 +864,14 @@ final class ItemScanner
         {
             return Verdict.CLEAN;
         }
-        for (ItemAttributeModifiers.Entry entry : modifiers.modifiers())
+
+        final List<ItemAttributeModifiers.Entry> entries = modifiers.modifiers();
+        if (entries.size() > MAX_ATTRIBUTE_MODIFIERS)
+        {
+            return new Verdict(Reason.OVERSIZED_ATTRIBUTE_COUNT, entries.size(), depth);
+        }
+
+        for (ItemAttributeModifiers.Entry entry : entries)
         {
             if (entry == null)
             {
@@ -772,7 +884,8 @@ final class ItemScanner
                 return displayVerdict;
             }
 
-            if (entry.attribute() != Attribute.SCALE)
+            double cap = capForAttribute(entry.attribute());
+            if (cap < 0.0)
             {
                 continue;
             }
@@ -787,12 +900,25 @@ final class ItemScanner
                 return new Verdict(Reason.OVERSIZED_ATTRIBUTE, Long.MAX_VALUE, depth);
             }
             double amount = Math.abs(raw);
-            if (amount > MAX_ITEM_SCALE)
+            if (amount > cap)
             {
-                return new Verdict(Reason.OVERSIZED_ATTRIBUTE, (long) (amount * 1000), depth);
+                return new Verdict(Reason.OVERSIZED_ATTRIBUTE, (long) amount, depth);
             }
         }
         return Verdict.CLEAN;
+    }
+
+    private static double capForAttribute(Attribute attribute)
+    {
+        if (attribute == Attribute.SCALE)
+        {
+            return MAX_ITEM_SCALE;
+        }
+        if (attribute == Attribute.WAYPOINT_TRANSMIT_RANGE || attribute == Attribute.WAYPOINT_RECEIVE_RANGE)
+        {
+            return MAX_WAYPOINT_RANGE;
+        }
+        return -1.0;
     }
 
     private static Verdict inspectAttributeDisplay(ItemAttributeModifiers.Entry entry, int depth, long deadlineNanos,

@@ -15,6 +15,7 @@ import java.util.UUID;
 import me.totalfreedom.totalfreedommod.ProtectArea.ProtectedRegion.CantFindWorldException;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
+import me.totalfreedom.totalfreedommod.util.FTask;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -93,7 +94,7 @@ public class ProtectArea extends FreedomService
         loadFromYaml(ymlFile);
 
         itemSweepTask = Bukkit.getScheduler().runTaskTimer(
-            plugin, this::sweepItems, ITEM_SWEEP_RATE, ITEM_SWEEP_RATE);
+            plugin, FTask.guard("ProtectArea/sweepItems", this::sweepItems), ITEM_SWEEP_RATE, ITEM_SWEEP_RATE);
     }
 
     @SuppressWarnings("unchecked")

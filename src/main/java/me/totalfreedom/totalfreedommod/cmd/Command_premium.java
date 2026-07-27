@@ -6,6 +6,8 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 
+import java.util.List;
+
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FLog;
@@ -23,6 +25,12 @@ public class Command_premium extends FCommand
     private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
                                                             .connectTimeout(Duration.ofSeconds(5))
                                                             .build();
+
+    @Completer(value = "", position = 0)
+    public List<String> completeUsername(CommandSender sender, String partial)
+    {
+        return NameCandidates.online(server(), partial);
+    }
 
     @Callback
     public void checkPremium(CommandSender sender, String username)

@@ -18,6 +18,16 @@ public enum WorldWeather
         this.aliases = Arrays.asList(aliases.split(","));
     }
 
+    /**
+     * The spellings {@link #getByAlias} accepts for this constant.
+     *
+     * @see me.totalfreedom.totalfreedommod.cmd.resolver.WeatherArgumentResolver
+     */
+    public List<String> getAliases()
+    {
+        return aliases;
+    }
+
     public void setWorldToWeather(World world)
     {
         world.setStorm(this == RAIN || this == STORM);

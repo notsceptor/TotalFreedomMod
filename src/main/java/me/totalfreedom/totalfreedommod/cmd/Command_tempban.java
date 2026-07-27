@@ -44,6 +44,16 @@ public class Command_tempban extends FCommand
         tempBan(sender, name, duration, reason, silent, rollback);
     }
 
+    /**
+     * The target is a plain {@code String} rather than a {@code Player} so that offline and
+     * previously-known names can be banned, which means it gets no suggestions of its own.
+     */
+    @Completer(value = "", position = 0)
+    public List<String> completeTarget(CommandSender sender, String partial)
+    {
+        return NameCandidates.online(server(), partial);
+    }
+
     private void tempBan(CommandSender sender, String name, Date expiry, String reason, boolean silent, boolean rollback)
     {
         final Player player = server().getPlayer(name);

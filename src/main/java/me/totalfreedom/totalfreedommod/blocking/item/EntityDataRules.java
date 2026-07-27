@@ -172,6 +172,27 @@ final class EntityDataRules
         return null;
     }
 
+    static boolean hasOwner(Object entityDataRoot)
+    {
+        if (!isAvailable() || entityDataRoot == null)
+        {
+            return false;
+        }
+        if (!COMPOUND_TAG.equals(entityDataRoot.getClass().getName()))
+        {
+            return false;
+        }
+        try
+        {
+            return unwrap(COMPOUND_GET.invoke(entityDataRoot, "Owner")) != null
+                    || unwrap(COMPOUND_GET.invoke(entityDataRoot, "owner")) != null;
+        }
+        catch (Throwable ignored)
+        {
+            return false;
+        }
+    }
+
     /**
      * Returns true when any compound in the tree carries a {@code click_event} tag,
      * which can make clients execute commands from item or block NBT text.

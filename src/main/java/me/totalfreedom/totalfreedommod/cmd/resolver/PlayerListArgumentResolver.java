@@ -47,6 +47,19 @@ public class PlayerListArgumentResolver implements AbstractArgumentResolver<List
         return "PlayerList";
     }
 
+    /**
+     * Only whole names: the argument is comma-separated, and Brigadier suggestions replace the
+     * token rather than append to it, so partial-list completion would clobber earlier entries.
+     */
+    @Override
+    public List<String> suggestions()
+    {
+        return Bukkit.getOnlinePlayers().stream()
+                     .map(Player::getName)
+                     .sorted()
+                     .toList();
+    }
+
     @Override
     public List<Player> resolve(String arg, String strategy)
     {

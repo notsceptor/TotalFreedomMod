@@ -10,16 +10,18 @@ final class MovementGuard
 
     private final double maxHorizontalDeltaSq;
     private final int maxOversizedPerWindow;
+    private final double maxBlocksPerSecond;
 
-    MovementGuard(int maxHorizontalDelta, int maxOversizedPerWindow)
+    MovementGuard(int maxHorizontalDelta, int maxOversizedPerWindow, int maxBlocksPerSecond)
     {
         this.maxHorizontalDeltaSq = (double) maxHorizontalDelta * (double) maxHorizontalDelta;
         this.maxOversizedPerWindow = maxOversizedPerWindow;
+        this.maxBlocksPerSecond = maxBlocksPerSecond;
     }
 
     Decision recordAndCheck(UUID id, double x, double z)
     {
-        if (maxOversizedPerWindow <= 0 || id == null)
+        if ((maxOversizedPerWindow <= 0 && maxBlocksPerSecond <= 0.0) || id == null)
         {
             return Decision.ALLOW;
         }
@@ -40,25 +42,42 @@ final class MovementGuard
             state.lastX = x;
             state.lastZ = z;
 
-            if (dx * dx + dz * dz <= maxHorizontalDeltaSq)
-            {
-                return Decision.ALLOW;
-            }
-
             if (state.flagged)
             {
                 return Decision.BLOCK;
             }
+
+            final double distSq = dx * dx + dz * dz;
 
             final long second = System.currentTimeMillis() / 1000L;
             if (state.windowSecond != second)
             {
                 state.windowSecond = second;
                 state.oversizedCount = 0;
+                state.windowDistance = 0.0;
             }
-            state.oversizedCount++;
 
-            if (state.oversizedCount >= maxOversizedPerWindow)
+            if (distSq > maxHorizontalDeltaSq)
+            {
+                if (maxOversizedPerWindow <= 0)
+                {
+                    return Decision.ALLOW;
+                }
+                state.oversizedCount++;
+                if (state.oversizedCount >= maxOversizedPerWindow)
+                {
+                    state.flagged = true;
+                    return Decision.PUNISH;
+                }
+                return Decision.ALLOW;
+            }
+
+            if (maxBlocksPerSecond <= 0.0)
+            {
+                return Decision.ALLOW;
+            }
+            state.windowDistance += Math.sqrt(distSq);
+            if (state.windowDistance > maxBlocksPerSecond)
             {
                 state.flagged = true;
                 return Decision.PUNISH;
@@ -95,6 +114,7 @@ final class MovementGuard
         private double lastZ;
         private long windowSecond;
         private int oversizedCount;
+        private double windowDistance;
         private boolean flagged;
     }
 }

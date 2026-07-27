@@ -241,6 +241,10 @@ antispam:
   limit: 15
   # Milliseconds (ms) after which a player's spam count resets.
   time_window: 1000
+  chat_cooldown: 2000
+  repeat_window: 30000
+  # How many of the player's recent messages to remember for repeat comparison.
+  repeat_history: 8
 
 # MovementGuard
 # Used to monitor inbound movement packets (requires packetevents).
@@ -253,6 +257,9 @@ move_guard:
     max_horizontal_delta: 128
     # Number of teleports (oversized moves) before the player is auto-ejected from the server.
     max_teleports_per_second: 5
+    # Maximum sustained horizontal speed, in blocks per second, summed from normal-sized moves.
+    # 0 disables this check.
+    max_blocks_per_second: 100
 
 # ItemValidator
 # For detecting items with oversized/nested NBT data.
@@ -396,6 +403,12 @@ crash_entities:
   # Periodic sweep over loaded, oversized entities in the worlds, in ticks.
   # 0 disables.  200 ticks (10s) by default.
   scale_sweep_ticks: 200
+  # Reset the waypoint_transmit_range attribute to 0 on non-player entities.
+  neutralize_entity_waypoints: true
+  # Periodic sweep (ticks) that re-checks loaded entities for a re-applied
+  # transmit range (e.g. via /attribute on an existing entity).  Spawn-time is
+  # already covered directly.  0 disables.  200 ticks (10s) by default.
+  waypoint_sweep_ticks: 200
 
 # MovementValidator
 # Keeps players within the scope of the world border at a low level.  This is a global
@@ -563,6 +576,10 @@ worldedit:
   # Maximum size of a schematic file in kilobytes that an operator may save.
   # Set to -1 for no limit.
   max_schem_save_kb: 2048
+
+  # Minimum number of seconds an operator must wait between schematic saves
+  # (//schem save). Rate-limits schematic spam. Set to 0 to disable.
+  schem_save_cooldown_seconds: 900
 
 # Host senders — binds automated services or host-based consoles to an admin rank.
 #
@@ -946,6 +963,9 @@ gamerules:
 
   # Interval in ticks between enforcement periods
   enforcement_interval: 600
+
+  max_changes_per_second: 20
+  kick_flooders: true
 
   # Game rules that should be set by default
   defaults:

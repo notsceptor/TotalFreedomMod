@@ -1,6 +1,7 @@
 package me.totalfreedom.totalfreedommod;
 
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
+import me.totalfreedom.totalfreedommod.util.FTask;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -37,7 +38,7 @@ public class AutoKick extends FreedomService
             @Override
             public void run()
             {
-                autoKickCheck();
+                FTask.run("AutoKick/autoKickCheck", AutoKick.this::autoKickCheck);
             }
         }.runTaskTimer(plugin, AUTOKICK_RATE, AUTOKICK_RATE);
     }

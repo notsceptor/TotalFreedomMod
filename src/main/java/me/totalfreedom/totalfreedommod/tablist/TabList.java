@@ -6,6 +6,7 @@ import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
+import me.totalfreedom.totalfreedommod.util.FTask;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
@@ -46,14 +47,14 @@ public class TabList extends FreedomService
             recolorHeaderFooter();
             long colorInterval = Math.max(1, ConfigEntry.TABLIST_CHANGE_COLORS.getInteger()) * 20L;
             recolorTask = plugin.getServer().getScheduler()
-                    .runTaskTimer(plugin, this::pushRecolor, colorInterval, colorInterval);
+                    .runTaskTimer(plugin, FTask.guard("TabList/pushRecolor", this::pushRecolor), colorInterval, colorInterval);
         }
 
         long interval = ConfigEntry.TABLIST_UPDATE_INTERVAL.getInteger();
         updateTask = plugin.getServer().getScheduler()
-                .runTaskTimer(plugin, this::updateAll, interval, interval);
+                .runTaskTimer(plugin, FTask.guard("TabList/updateAll", this::updateAll), interval, interval);
 
-        server.getScheduler().runTask(plugin, this::updateAll);
+        server.getScheduler().runTask(plugin, FTask.guard("TabList/updateAll", this::updateAll));
     }
 
     @Override
@@ -87,7 +88,8 @@ public class TabList extends FreedomService
         final Player player = event.getPlayer();
         final CycleContext ctx = newCycleContext();
         // Delay 1 tick so all other MONITOR-priority join handlers finish first.
-        plugin.getServer().getScheduler().runTaskLater(plugin, () -> applyToPlayer(player, ctx), 1L);
+        plugin.getServer().getScheduler().runTaskLater(plugin,
+                FTask.guard("TabList/applyOnJoin", () -> applyToPlayer(player, ctx)), 1L);
     }
 
     private void updateAll()

@@ -9,6 +9,7 @@ import me.totalfreedom.totalfreedommod.blocking.sweep.SweepContext;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.DetectionReporter;
 import me.totalfreedom.totalfreedommod.util.FLog;
+import me.totalfreedom.totalfreedommod.util.FTask;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.entity.AbstractWindCharge;
@@ -158,7 +159,8 @@ public class ProjectileGuard extends FreedomService
             return;
         }
         // EntityAddToWorldEvent is not cancellable, so defer the removal one tick.
-        server.getScheduler().runTask(plugin, () -> removeEntity(entity, "addtoworld"));
+        server.getScheduler().runTask(plugin,
+                FTask.guard("ProjectileGuard/removeOnAddToWorld", () -> removeEntity(entity, "addtoworld")));
     }
 
     private boolean isBlockedProjectile(Entity entity)

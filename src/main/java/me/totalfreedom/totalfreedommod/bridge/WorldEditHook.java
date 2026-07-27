@@ -19,6 +19,7 @@ import com.sk89q.worldedit.extent.clipboard.io.ClipboardWriter;
 import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldedit.regions.Region;
 import com.sk89q.worldedit.session.SessionManager;
+import com.sk89q.worldedit.world.block.BlockCategory;
 import com.sk89q.worldedit.world.block.BlockStateHolder;
 import com.sk89q.worldedit.world.block.BlockType;
 import com.sk89q.worldedit.world.registry.BlockMaterial;
@@ -40,6 +41,7 @@ import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.blocking.sweep.SweepContext;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
+import me.totalfreedom.totalfreedommod.util.FTask;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -70,6 +72,9 @@ public final class WorldEditHook implements Listener
     private static final Pattern BLOCK_TOKEN = Pattern.compile("[a-z0-9_]+(?::[a-z0-9_]+)?");
 
     private static final Pattern HASH_TOKEN = Pattern.compile("#[a-z0-9_]+", Pattern.CASE_INSENSITIVE);
+
+    private static final Pattern CATEGORY_TOKEN =
+        Pattern.compile("##\\*?([a-z0-9_.]+(?::[a-z0-9_.]+)?)", Pattern.CASE_INSENSITIVE);
 
     private static final String[] CLIPBOARD_PATTERNS = {"#clipboard", "#copy", "#fullcopy"};
 
@@ -128,6 +133,7 @@ public final class WorldEditHook implements Listener
     private final Map<UUID, Integer> playerLimits = new ConcurrentHashMap<>();
     private final Map<UUID, PermissionAttachment> bypassAttachments = new HashMap<>();
     private final Map<UUID, OpThrottle> opThrottles = new ConcurrentHashMap<>();
+    private final Map<UUID, Long> schemSaveTimestamps = new ConcurrentHashMap<>();
 
     private BukkitTask selectionPollTask;
     private Object editSessionSubscriber;
@@ -197,7 +203,8 @@ public final class WorldEditHook implements Listener
         };
         WorldEdit.getInstance().getEventBus().register(editSessionSubscriber);
 
-        selectionPollTask = Bukkit.getScheduler().runTaskTimer(plugin, this::pollSelections, 1L, 1L);
+        selectionPollTask = Bukkit.getScheduler().runTaskTimer(plugin,
+                FTask.guard("WorldEditHook/pollSelections", this::pollSelections), 1L, 1L);
 
         // Catch up on already-online players (covers /reload and the 20-tick attach delay).
         for (Player online : Bukkit.getOnlinePlayers())
@@ -400,6 +407,11 @@ public final class WorldEditHook implements Listener
         lastSelections.remove(uuid);
         playerLimits.remove(uuid);
         opThrottles.remove(uuid);
+        final Long schemTs = schemSaveTimestamps.get(uuid);
+        if (schemTs == null || System.currentTimeMillis() - schemTs >= getSchemSaveCooldownMs())
+        {
+            schemSaveTimestamps.remove(uuid);
+        }
         final PermissionAttachment att = bypassAttachments.remove(uuid);
         if (att != null)
         {
@@ -542,8 +554,8 @@ public final class WorldEditHook implements Listener
 
     private boolean checkPatternTypes(PlayerCommandPreprocessEvent event)
     {
-        final List<String> blocked = ConfigEntry.WORLDEDIT_BLOCKED_BLOCK_TYPES.getStringList();
-        if (blocked == null || blocked.isEmpty())
+        final List<String> blocked = getBlockedTypesLower();
+        if (blocked.isEmpty())
         {
             return false;
         }
@@ -560,41 +572,88 @@ public final class WorldEditHook implements Listener
             return false;
         }
 
-        final int sp = message.indexOf(' ');
-        if (sp < 0)
+        final List<String> tokens = tokenizeArgs(stripSlashes(message));
+        for (int i = 1; i < tokens.size(); i++)
         {
-            return false;
-        }
-        final String args = message.substring(sp + 1).toLowerCase(Locale.ROOT);
+            final String arg = tokens.get(i).toLowerCase(Locale.ROOT);
 
-        final Matcher m = BLOCK_TOKEN.matcher(args);
-        while (m.find())
-        {
-            String id = m.group();
-            final int colon = id.indexOf(':');
-            if (colon >= 0)
+            final String tagHit = firstBlockedCategoryMember(arg, blocked);
+            if (tagHit != null)
             {
-                id = id.substring(colon + 1);
+                cancelBlockedType(event, player, tagHit, message);
+                return true;
             }
-            for (String entry : blocked)
+
+            final Matcher hash = HASH_TOKEN.matcher(arg);
+            while (hash.find())
             {
-                if (entry == null || entry.isEmpty())
+                final int start = hash.start();
+                if (start + 1 < arg.length() && arg.charAt(start + 1) == '#')
                 {
                     continue;
                 }
-                if (blockedIdMatches(id, entry.toLowerCase(Locale.ROOT)))
+                if (start > 0 && arg.charAt(start - 1) == '#')
                 {
-                    event.setCancelled(true);
-                    player.sendMessage(Component.text(
-                        "The block type '" + id + "' cannot be used in your operation.",
-                        NamedTextColor.RED));
-                    FLog.warning(player.getName() + " tried to use a disallowed W/E block type (" + id
-                        + "): " + message);
+                    continue;
+                }
+                final String special = hash.group();
+                if (isBlockedSpecialPattern(special, blocked))
+                {
+                    cancelBlockedType(event, player, special, message);
                     return true;
+                }
+            }
+
+            final Matcher m = BLOCK_TOKEN.matcher(arg);
+            while (m.find())
+            {
+                String id = m.group();
+                final int colon = id.indexOf(':');
+                if (colon >= 0)
+                {
+                    id = id.substring(colon + 1);
+                }
+                for (String entry : blocked)
+                {
+                    if (!entry.isEmpty() && entry.charAt(0) == '#')
+                    {
+                        continue;
+                    }
+                    if (blockedIdMatches(id, entry))
+                    {
+                        cancelBlockedType(event, player, id, message);
+                        return true;
+                    }
                 }
             }
         }
         return false;
+    }
+
+    private static boolean isBlockedSpecialPattern(String special, List<String> blockedLower)
+    {
+        for (String entry : blockedLower)
+        {
+            if (entry.length() < 2 || entry.charAt(0) != '#' || entry.charAt(1) == '#')
+            {
+                continue;
+            }
+            if (blockedIdMatches(special, entry))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static void cancelBlockedType(PlayerCommandPreprocessEvent event, Player player, String id, String message)
+    {
+        event.setCancelled(true);
+        player.sendMessage(Component.text(
+            "The block type '" + id + "' cannot be used in your operation.",
+            NamedTextColor.RED));
+        FLog.warning(player.getName() + " tried to use a disallowed W/E block type (" + id
+            + "): " + message);
     }
 
     private static boolean blockedIdMatches(String id, String entry)
@@ -710,16 +769,15 @@ public final class WorldEditHook implements Listener
             return false;
         }
 
-        String msg = message.substring(1);
-        if (!msg.isEmpty() && msg.charAt(0) == '/')
+        final List<String> tokens = tokenizeArgs(stripSlashes(message));
+        for (int i = 1; i < tokens.size(); i++)
         {
-            msg = msg.substring(1);
-        }
-        final String[] tokens = msg.trim().split("\\s+");
-        // Skip token 0 (the command label); pattern/mask args follow.
-        for (int i = 1; i < tokens.length; i++)
-        {
-            final int components = countPatternComponents(tokens[i]);
+            final String token = tokens.get(i);
+            if (isFlag(token))
+            {
+                continue;
+            }
+            final int components = countPatternComponents(token);
             if (components > max)
             {
                 event.setCancelled(true);
@@ -782,35 +840,38 @@ public final class WorldEditHook implements Listener
             return false;
         }
 
-        String msg = event.getMessage();
+        final String msg = event.getMessage();
         if (msg.length() < 2 || msg.charAt(0) != '/')
         {
             return false;
         }
-        msg = msg.substring(1);
-        if (msg.charAt(0) == '/')
-        {
-            msg = msg.substring(1);
-        }
-        final String[] tokens = msg.trim().split("\\s+");
-        if (tokens.length == 0 || tokens[0].isEmpty())
+
+        final List<String> tokens = tokenizeArgs(stripSlashes(msg));
+        if (tokens.isEmpty() || tokens.get(0).isEmpty())
         {
             return false;
         }
 
-        final String cmd = tokens[0].toLowerCase();
-        final Integer argIdxObj = RADIUS_COMMANDS.get(cmd);
+        final Integer argIdxObj = RADIUS_COMMANDS.get(normalizeCommandLabel(tokens.get(0)));
         if (argIdxObj == null)
         {
             return false;
         }
-        final int radiusTokenIdx = 1 + argIdxObj;
-        if (tokens.length <= radiusTokenIdx)
+
+        final List<String> positional = new ArrayList<>();
+        for (int i = 1; i < tokens.size(); i++)
+        {
+            if (!isFlag(tokens.get(i)))
+            {
+                positional.add(tokens.get(i));
+            }
+        }
+        if (positional.size() <= argIdxObj)
         {
             return false;
         }
 
-        final int radius = parseRadius(tokens[radiusTokenIdx]);
+        final int radius = parseRadius(positional.get(argIdxObj));
         if (radius < 0 || radius <= max)
         {
             return false;
@@ -846,6 +907,166 @@ public final class WorldEditHook implements Listener
             }
         }
         return max;
+    }
+
+    private static String stripSlashes(String message)
+    {
+        int i = 0;
+        if (i < message.length() && message.charAt(i) == '/')
+        {
+            i++;
+        }
+        if (i < message.length() && message.charAt(i) == '/')
+        {
+            i++;
+        }
+        return message.substring(i);
+    }
+
+    private static List<String> tokenizeArgs(String body)
+    {
+        final List<String> out = new ArrayList<>();
+        final StringBuilder cur = new StringBuilder();
+        boolean inToken = false;
+        char quote = 0;
+        for (int i = 0; i < body.length(); i++)
+        {
+            final char c = body.charAt(i);
+            if (quote != 0)
+            {
+                if (c == quote)
+                {
+                    quote = 0;
+                }
+                else
+                {
+                    cur.append(c);
+                }
+                inToken = true;
+            }
+            else if (c == '"' || c == '\'')
+            {
+                quote = c;
+                inToken = true;
+            }
+            else if (Character.isWhitespace(c))
+            {
+                if (inToken)
+                {
+                    out.add(cur.toString());
+                    cur.setLength(0);
+                    inToken = false;
+                }
+            }
+            else
+            {
+                cur.append(c);
+                inToken = true;
+            }
+        }
+        if (inToken)
+        {
+            out.add(cur.toString());
+        }
+        return out;
+    }
+
+    private static boolean isFlag(String token)
+    {
+        if (token.length() < 2 || token.charAt(0) != '-')
+        {
+            return false;
+        }
+        final char c = token.charAt(1);
+        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+    }
+
+    private static String firstBlockedCategoryMember(String argLower, List<String> blockedLower)
+    {
+        final Matcher m = CATEGORY_TOKEN.matcher(argLower);
+        while (m.find())
+        {
+            final String categoryId = m.group(1).toLowerCase(Locale.ROOT);
+            if (isBlockedCategoryName(categoryId, blockedLower))
+            {
+                return "##" + categoryId;
+            }
+
+            final Set<BlockType> members = resolveCategoryMembers(categoryId);
+            if (members == null)
+            {
+                continue;
+            }
+            for (BlockType type : members)
+            {
+                String id = type.id().toLowerCase(Locale.ROOT);
+                final int colon = id.indexOf(':');
+                if (colon >= 0)
+                {
+                    id = id.substring(colon + 1);
+                }
+                for (String entry : blockedLower)
+                {
+                    if (blockedIdMatches(id, entry))
+                    {
+                        return id;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private static boolean isBlockedCategoryName(String categoryId, List<String> blockedLower)
+    {
+        for (String entry : blockedLower)
+        {
+            if (entry.isEmpty() || entry.charAt(0) != '#')
+            {
+                continue;
+            }
+            String name = entry;
+            while (!name.isEmpty() && name.charAt(0) == '#')
+            {
+                name = name.substring(1);
+            }
+            if (!name.isEmpty() && name.charAt(0) == '*')
+            {
+                name = name.substring(1);
+            }
+            final int colon = name.indexOf(':');
+            if (colon >= 0)
+            {
+                name = name.substring(colon + 1);
+            }
+            if (!name.isEmpty() && blockedIdMatches(categoryId, name))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static Set<BlockType> resolveCategoryMembers(String rawId)
+    {
+        BlockCategory category = safeGetCategory(rawId);
+        if (category == null && rawId.indexOf(':') < 0)
+        {
+            category = safeGetCategory("minecraft:" + rawId);
+        }
+        return (category == null) ? null : category.getAll();
+    }
+
+    private static BlockCategory safeGetCategory(String id)
+    {
+        try
+        {
+            return BlockCategory.REGISTRY.get(id);
+        }
+        catch (Throwable t)
+        {
+            return null;
+        }
     }
 
     /**
@@ -897,6 +1118,32 @@ public final class WorldEditHook implements Listener
             return -1L;
         }
         return raw.longValue() * 1024L;
+    }
+
+    private static long getSchemSaveCooldownMs()
+    {
+        final Integer raw = ConfigEntry.WORLDEDIT_SCHEM_SAVE_COOLDOWN.getInteger();
+        if (raw == null || raw <= 0)
+        {
+            return 0L;
+        }
+        return raw.longValue() * 1000L;
+    }
+
+    private static String formatDuration(long ms)
+    {
+        final long totalSeconds = (ms + 999L) / 1000L;
+        final long minutes = totalSeconds / 60L;
+        final long seconds = totalSeconds % 60L;
+        if (minutes > 0 && seconds > 0)
+        {
+            return minutes + "m " + seconds + "s";
+        }
+        if (minutes > 0)
+        {
+            return minutes + "m";
+        }
+        return seconds + "s";
     }
 
     /**
@@ -1022,42 +1269,56 @@ public final class WorldEditHook implements Listener
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onSchematicSaveCommand(PlayerCommandPreprocessEvent event)
     {
-        final long capBytes = getMaxSchematicSaveBytes();
-        if (capBytes <= 0)
-        {
-            return;
-        }
-
         final String msg = event.getMessage();
         if (msg == null || msg.length() < 2 || msg.charAt(0) != '/')
         {
             return;
         }
-        String body = msg.substring(1);
-        if (!body.isEmpty() && body.charAt(0) == '/')
-        {
-            body = body.substring(1);
-        }
-        final String[] tokens = body.trim().split("\\s+");
-        if (tokens.length < 2)
+        final List<String> tokens = tokenizeArgs(stripSlashes(msg));
+        if (tokens.size() < 2)
         {
             return;
         }
-        if (!SCHEMATIC_COMMAND_LABELS.contains(normalizeCommandLabel(tokens[0])))
+        if (!SCHEMATIC_COMMAND_LABELS.contains(normalizeCommandLabel(tokens.get(0))))
         {
             return;
         }
-        if (!"save".equalsIgnoreCase(tokens[1]))
+        if (!"save".equalsIgnoreCase(tokens.get(1)))
         {
             return;
         }
 
         final Player player = event.getPlayer();
-        if (plugin.al.isAdmin(player))
+        if (plugin.al.isAdmin(player) || worldEditPlugin == null)
         {
             return;
         }
-        if (worldEditPlugin == null)
+
+        final long cooldownMs = getSchemSaveCooldownMs();
+        if (cooldownMs > 0)
+        {
+            final UUID uuid = player.getUniqueId();
+            final long now = System.currentTimeMillis();
+            final Long last = schemSaveTimestamps.get(uuid);
+            if (last != null && now - last < cooldownMs)
+            {
+                event.setCancelled(true);
+                player.sendMessage(Component.text(
+                    "You can only save one schematic every " + formatDuration(cooldownMs)
+                        + ". Please wait " + formatDuration(cooldownMs - (now - last)) + ".",
+                    NamedTextColor.RED));
+                return;
+            }
+            schemSaveTimestamps.put(uuid, now);
+        }
+
+        enforceSchematicSaveSize(event, player, msg);
+    }
+
+    private void enforceSchematicSaveSize(PlayerCommandPreprocessEvent event, Player player, String msg)
+    {
+        final long capBytes = getMaxSchematicSaveBytes();
+        if (capBytes <= 0)
         {
             return;
         }
@@ -1103,7 +1364,7 @@ public final class WorldEditHook implements Listener
         }
         catch (Throwable t)
         {
-            FLog.warning("Failed to check schematic save size for " + event.getPlayer().getName()
+            FLog.warning("Failed to check schematic save size for " + player.getName()
                 + ": " + t.getMessage());
         }
     }
@@ -1563,7 +1824,8 @@ public final class WorldEditHook implements Listener
                 chunks.add(chunkKey(pos.x() >> 4, pos.z() >> 4));
                 if (flushScheduled.compareAndSet(false, true))
                 {
-                    Bukkit.getScheduler().runTaskLater(plugin, this::flush, SWEEP_FLUSH_DELAY_TICKS);
+                    Bukkit.getScheduler().runTaskLater(plugin,
+                            FTask.guard("WorldEditHook/sweepFlush", this::flush), SWEEP_FLUSH_DELAY_TICKS);
                 }
             }
             return placed;

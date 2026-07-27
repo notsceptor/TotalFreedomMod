@@ -3,27 +3,34 @@ package me.totalfreedom.totalfreedommod;
 import io.papermc.paper.event.world.WorldGameRuleChangeEvent;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
+import me.totalfreedom.totalfreedommod.util.FTask;
+import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.key.Key;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.GameRule;
 import org.bukkit.Registry;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class GameRuleHandler extends FreedomService
 {
     private final Map<GameRule<?>, Object> defaultGameRuleValues = new HashMap<>();
     private final List<Key> maliciousGameRules = new ArrayList<>();
     private final Map<GameRule<?>, List<Integer>> gameRuleCaps = new HashMap<>();
+    private final Map<String, RateWindow> changeWindows = new ConcurrentHashMap<>();
     //
     private BukkitTask commitTask = null;
 
@@ -39,6 +46,7 @@ public class GameRuleHandler extends FreedomService
         defaultGameRuleValues.clear();
         maliciousGameRules.clear();
         gameRuleCaps.clear();
+        changeWindows.clear();
 
         // Don't do anything if we're no longer planning on managing gamerules
         if (!ConfigEntry.GAMERULES_ENABLED.getBoolean())
@@ -137,7 +145,7 @@ public class GameRuleHandler extends FreedomService
             }
 
             commitTask = server.getScheduler().runTaskTimer(plugin,
-                    this::enforceGameRuleDefaults,
+                    FTask.guard("GameRuleHandler/enforceDefaults", this::enforceGameRuleDefaults),
                     0L,
                     ConfigEntry.GAMERULES_ENFORCEMENT_DELAY.getInteger());
         }
@@ -146,8 +154,19 @@ public class GameRuleHandler extends FreedomService
     @Override
     protected void onStop()
     {
-        commitTask.cancel();
-        commitTask = null;
+        changeWindows.clear();
+
+        if (commitTask != null)
+        {
+            commitTask.cancel();
+            commitTask = null;
+        }
+    }
+
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event)
+    {
+        changeWindows.remove(event.getPlayer().getName());
     }
 
     @EventHandler(priority = EventPriority.HIGH)
@@ -168,10 +187,31 @@ public class GameRuleHandler extends FreedomService
             // Cancel the event, we don't want players without this permission to be able to mess with this
             event.setCancelled(true);
 
-            // Let's also log it, just in case
+            final int maxPerSecond = ConfigEntry.GAMERULES_MAX_CHANGES_PER_SECOND.getInteger(20);
+            if (maxPerSecond > 0)
+            {
+                final int perSecond = recordChange(source.getName());
+                if (perSecond > maxPerSecond)
+                {
+                    if (perSecond == maxPerSecond + 1)
+                    {
+                        FLog.warning(source.getName() + " is spamming gamerule changes; rate-limiting"
+                                + " and suppressing further warnings.");
+
+                        if (ConfigEntry.GAMERULES_KICK_FLOODERS.getBoolean(true) && source instanceof Player player)
+                        {
+                            FUtil.bcastMsg(player.getName() + " was automatically kicked for spamming"
+                                    + " gamerule changes.", NamedTextColor.RED);
+                            plugin.ae.autoEject(player, "Kicked for spamming gamerule changes.");
+                        }
+                    }
+                    return;
+                }
+            }
+
             FLog.warning(source.getName()
                     + " just tried to change "
-                    + (maliciousGameRules.contains(gameRule.getKey().key()) ? "malicious" : "")
+                    + (maliciousGameRules.contains(gameRule.getKey().key()) ? "malicious " : "")
                     + "gamerule "
                     + gameRule.getKey().asString()
                     + " to value "
@@ -234,5 +274,26 @@ public class GameRuleHandler extends FreedomService
 
         // Commit our changes across all worlds
         enforceGameRuleDefaults();
+    }
+
+    private int recordChange(String key)
+    {
+        final long second = System.currentTimeMillis() / 1000L;
+        final RateWindow window = changeWindows.computeIfAbsent(key, k -> new RateWindow());
+        synchronized (window)
+        {
+            if (window.second != second)
+            {
+                window.second = second;
+                window.count = 0;
+            }
+            return ++window.count;
+        }
+    }
+
+    private static final class RateWindow
+    {
+        private long second;
+        private int count;
     }
 }

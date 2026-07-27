@@ -6,6 +6,7 @@ import org.bukkit.entity.Player;
 
 import me.totalfreedom.totalfreedommod.cmd.FCommand;
 
+import java.util.List;
 import java.util.UUID;
 
 public class PlayerArgumentResolver implements AbstractArgumentResolver<Player>
@@ -45,6 +46,15 @@ public class PlayerArgumentResolver implements AbstractArgumentResolver<Player>
     public String name()
     {
         return "Player";
+    }
+
+    @Override
+    public List<String> suggestions()
+    {
+        return Bukkit.getOnlinePlayers().stream()
+                     .map(Player::getName)
+                     .sorted()
+                     .toList();
     }
 
     @Override

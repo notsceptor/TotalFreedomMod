@@ -3,7 +3,9 @@ package me.totalfreedom.totalfreedommod.cmd.resolver;
 import me.totalfreedom.totalfreedommod.cmd.FCommand;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.entity.Player;
 
+import java.util.List;
 import java.util.UUID;
 
 public class OfflinePlayerArgumentResolver implements AbstractArgumentResolver<OfflinePlayer>
@@ -12,6 +14,19 @@ public class OfflinePlayerArgumentResolver implements AbstractArgumentResolver<O
     public String name()
     {
         return "OfflinePlayer";
+    }
+
+    /**
+     * Online players only. {@link Bukkit#getOfflinePlayers()} walks every profile the server has
+     * ever seen, which on a public server is far too large to serve on each keystroke.
+     */
+    @Override
+    public List<String> suggestions()
+    {
+        return Bukkit.getOnlinePlayers().stream()
+                     .map(Player::getName)
+                     .sorted()
+                     .toList();
     }
 
     @Override

@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.List;
 import lombok.Getter;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
+import me.totalfreedom.totalfreedommod.util.FTask;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
@@ -51,14 +52,17 @@ public class Announcer extends FreedomService
             @Override
             public void run()
             {
-                current++;
-
-                if (current >= announcements.size())
+                FTask.run("Announcer/announce", () ->
                 {
-                    current = 0;
-                }
+                    current++;
 
-                announce(announcements.get(current));
+                    if (current >= announcements.size())
+                    {
+                        current = 0;
+                    }
+
+                    announce(announcements.get(current));
+                });
             }
         }.runTaskTimer(plugin, interval, interval);
     }
