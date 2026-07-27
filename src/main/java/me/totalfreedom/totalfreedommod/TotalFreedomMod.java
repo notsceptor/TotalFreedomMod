@@ -21,6 +21,7 @@ import me.totalfreedom.totalfreedommod.blocking.entity.EntityNameValidator;
 import me.totalfreedom.totalfreedommod.blocking.entity.EntitySizeGuard;
 import me.totalfreedom.totalfreedommod.blocking.entity.TextDisplayGuard;
 import me.totalfreedom.totalfreedommod.blocking.entity.ProjectileGuard;
+import me.totalfreedom.totalfreedommod.blocking.entity.WaypointGuard;
 import me.totalfreedom.totalfreedommod.blocking.item.ConsoleSpamFilter;
 import me.totalfreedom.totalfreedommod.blocking.packet.CrashPacketService;
 import me.totalfreedom.totalfreedommod.blocking.item.ItemValidator;
@@ -213,6 +214,7 @@ public class TotalFreedomMod extends JavaPlugin
         services.registerService(SpawnerValidator.class);
         services.registerService(ProjectileGuard.class);
         services.registerService(TextDisplayGuard.class);
+        services.registerService(WaypointGuard.class);
         ib = services.registerService(InteractBlocker.class);
         pb = services.registerService(PotionBlocker.class);
         lp = services.registerService(LoginProcess.class);

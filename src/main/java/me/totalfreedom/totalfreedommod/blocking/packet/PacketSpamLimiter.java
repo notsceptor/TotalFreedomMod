@@ -10,19 +10,25 @@ final class PacketSpamLimiter
     private final ConcurrentHashMap<UUID, Window> chats = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<UUID, Window> movements = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<UUID, Window> heldSwitches = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<UUID, Window> suggestions = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<UUID, Window> gameModeSwitches = new ConcurrentHashMap<>();
 
     private final int maxInteractionsPerSecond;
     private final int maxChatsPerSecond;
     private final int maxMovementPerSecond;
     private final int maxHeldSwitchesPerSecond;
+    private final int maxSuggestionsPerSecond;
+    private final int maxGameModeSwitchesPerSecond;
 
     PacketSpamLimiter(int maxInteractionsPerSecond, int maxChatsPerSecond, int maxMovementPerSecond,
-            int maxHeldSwitchesPerSecond)
+            int maxHeldSwitchesPerSecond, int maxSuggestionsPerSecond, int maxGameModeSwitchesPerSecond)
     {
         this.maxInteractionsPerSecond = maxInteractionsPerSecond;
         this.maxChatsPerSecond = maxChatsPerSecond;
         this.maxMovementPerSecond = maxMovementPerSecond;
         this.maxHeldSwitchesPerSecond = maxHeldSwitchesPerSecond;
+        this.maxSuggestionsPerSecond = maxSuggestionsPerSecond;
+        this.maxGameModeSwitchesPerSecond = maxGameModeSwitchesPerSecond;
     }
 
     boolean allowInteraction(UUID id)
@@ -43,6 +49,16 @@ final class PacketSpamLimiter
     boolean allowHeldSwitch(UUID id)
     {
         return allow(heldSwitches, id, maxHeldSwitchesPerSecond);
+    }
+
+    boolean allowSuggestion(UUID id)
+    {
+        return allow(suggestions, id, maxSuggestionsPerSecond);
+    }
+
+    boolean allowGameModeSwitch(UUID id)
+    {
+        return allow(gameModeSwitches, id, maxGameModeSwitchesPerSecond);
     }
 
     private static boolean allow(ConcurrentHashMap<UUID, Window> map, UUID id, int limit)
@@ -71,6 +87,8 @@ final class PacketSpamLimiter
         chats.remove(id);
         movements.remove(id);
         heldSwitches.remove(id);
+        suggestions.remove(id);
+        gameModeSwitches.remove(id);
     }
 
     void clear()
@@ -79,6 +97,8 @@ final class PacketSpamLimiter
         chats.clear();
         movements.clear();
         heldSwitches.clear();
+        suggestions.clear();
+        gameModeSwitches.clear();
     }
 
     private static final class Window

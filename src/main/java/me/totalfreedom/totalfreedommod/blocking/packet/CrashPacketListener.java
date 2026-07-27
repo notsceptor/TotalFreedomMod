@@ -16,10 +16,13 @@ import com.github.retrooper.packetevents.util.Vector3d;
 import io.netty.buffer.ByteBuf;
 import com.github.retrooper.packetevents.protocol.component.ComponentTypes;
 import com.github.retrooper.packetevents.protocol.component.builtin.item.ItemAttributeModifiers;
+import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientChatCommand;
+import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientChatCommandUnsigned;
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientChatMessage;
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientCreativeInventoryAction;
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientPlayerPosition;
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientPlayerPositionAndRotation;
+import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientTabComplete;
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientVehicleMove;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerBlockEntityData;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerChunkData;
@@ -35,6 +38,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.blocking.entity.EntityMetaPacketGuard;
 import me.totalfreedom.totalfreedommod.blocking.item.ContainerPacketGuard;
@@ -42,6 +46,7 @@ import me.totalfreedom.totalfreedommod.blocking.sign.SignPacketGuard;
 import me.totalfreedom.totalfreedommod.blocking.spawner.SpawnerPacketGuard;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
+import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FSync;
 import me.totalfreedom.totalfreedommod.util.FTask;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -68,6 +73,10 @@ final class CrashPacketListener extends PacketListenerAbstract
     private final EntityMetaPacketGuard.Limits entityLimits;
     private final PacketSpamLimiter spamLimiter;
     private final MovementGuard movementGuard;
+    private final CommandDepthGuard commandDepthGuard;
+    // Last epoch-second we logged a depth block for a given user, so a flood produces at most one
+    // console line per attacker per second instead of re-creating the log spam we are guarding against.
+    private final ConcurrentHashMap<UUID, Long> lastDepthLogSecond = new ConcurrentHashMap<>();
     private final boolean signBlockEntityGuard;
     private final boolean signChunkGuard;
     private final boolean blockAllSignPackets;
@@ -78,7 +87,8 @@ final class CrashPacketListener extends PacketListenerAbstract
 
     CrashPacketListener(TotalFreedomMod plugin, boolean sanitizeOutbound, boolean entityMetadataGuard,
                              EntityMetaPacketGuard.Limits entityLimits, PacketSpamLimiter spamLimiter,
-                             MovementGuard movementGuard, boolean signBlockEntityGuard,
+                             MovementGuard movementGuard, CommandDepthGuard commandDepthGuard,
+                             boolean signBlockEntityGuard,
                              boolean signChunkGuard, boolean blockAllSignPackets,
                              boolean spawnerBlockEntityGuard, boolean spawnerChunkGuard,
                              boolean containerBlockEntityGuard, boolean containerChunkGuard)
@@ -90,6 +100,7 @@ final class CrashPacketListener extends PacketListenerAbstract
         this.entityLimits = entityLimits;
         this.spamLimiter = spamLimiter;
         this.movementGuard = movementGuard;
+        this.commandDepthGuard = commandDepthGuard;
         this.signBlockEntityGuard = signBlockEntityGuard;
         this.signChunkGuard = signChunkGuard;
         this.blockAllSignPackets = blockAllSignPackets;
@@ -121,6 +132,11 @@ final class CrashPacketListener extends PacketListenerAbstract
                 return;
             }
 
+            if (commandDepthGuard != null && handleCommandDepth(event, type, id))
+            {
+                return;
+            }
+
             if (spamLimiter == null && movementGuard == null)
             {
                 return;
@@ -139,6 +155,13 @@ final class CrashPacketListener extends PacketListenerAbstract
             if (type == PacketType.Play.Client.HELD_ITEM_CHANGE)
             {
                 if (!spamLimiter.allowHeldSwitch(id))
+                {
+                    event.setCancelled(true);
+                }
+            }
+            else if (type == PacketType.Play.Client.CHANGE_GAME_MODE)
+            {
+                if (!spamLimiter.allowGameModeSwitch(id))
                 {
                     event.setCancelled(true);
                 }
@@ -172,6 +195,13 @@ final class CrashPacketListener extends PacketListenerAbstract
                     || type == PacketType.Play.Client.CHAT_MESSAGE)
             {
                 if (!spamLimiter.allowChat(id))
+                {
+                    event.setCancelled(true);
+                }
+            }
+            else if (type == PacketType.Play.Client.TAB_COMPLETE)
+            {
+                if (!spamLimiter.allowSuggestion(id))
                 {
                     event.setCancelled(true);
                 }
@@ -288,6 +318,48 @@ final class CrashPacketListener extends PacketListenerAbstract
         {
             return "unknown";
         }
+    }
+
+    private boolean handleCommandDepth(PacketReceiveEvent event, PacketTypeCommon type, UUID id)
+    {
+        final String text = commandText(event, type);
+        if (text == null || commandDepthGuard.depthOf(text) <= commandDepthGuard.maxDepth())
+        {
+            return false;
+        }
+
+        event.setCancelled(true);
+        logDepthBlock(event, id);
+        return true;
+    }
+
+    private static String commandText(PacketReceiveEvent event, PacketTypeCommon type)
+    {
+        if (type == PacketType.Play.Client.CHAT_COMMAND)
+        {
+            return new WrapperPlayClientChatCommand(event).getCommand();
+        }
+        if (type == PacketType.Play.Client.CHAT_COMMAND_UNSIGNED)
+        {
+            return new WrapperPlayClientChatCommandUnsigned(event).getCommand();
+        }
+        if (type == PacketType.Play.Client.TAB_COMPLETE)
+        {
+            return new WrapperPlayClientTabComplete(event).getText();
+        }
+        return null;
+    }
+
+    private void logDepthBlock(PacketReceiveEvent event, UUID id)
+    {
+        final long second = System.currentTimeMillis() / 1000L;
+        final Long previous = lastDepthLogSecond.put(id, second);
+        if (previous != null && previous == second)
+        {
+            return;
+        }
+        FLog.warning("[CommandDepthGuard] Blocked nested command from "
+                + describeUser(event) + " (>" + commandDepthGuard.maxDepth() + " brackets).");
     }
 
     private boolean handleMovementSpeed(PacketReceiveEvent event, PacketTypeCommon type, UUID id)
