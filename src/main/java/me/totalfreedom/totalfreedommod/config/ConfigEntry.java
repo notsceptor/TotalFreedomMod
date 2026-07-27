@@ -1,5 +1,6 @@
 package me.totalfreedom.totalfreedommod.config;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import me.totalfreedom.totalfreedommod.PluginProvider;
@@ -161,10 +162,14 @@ public enum ConfigEntry
     CRASH_ITEMS_MAX_COMMANDS_PER_SECOND(Integer.class, "crash_items.max_commands_per_second"),
     CRASH_ITEMS_MAX_MOVEMENT_PER_SECOND(Integer.class, "crash_items.max_movement_packets_per_second"),
     CRASH_ITEMS_MAX_HOTBAR_SLOTS_PER_SECOND(Integer.class, "crash_items.max_hotbar_slots_per_second"),
+    CRASH_ITEMS_MAX_COMMAND_SUGGESTIONS_PER_SECOND(Integer.class, "crash_items.max_command_suggestions_per_second"),
+    CRASH_ITEMS_MAX_GAMEMODE_SWITCHES_PER_SECOND(Integer.class, "crash_items.max_gamemode_switches_per_second"),
     CRASH_ITEMS_EQUIPMENT_SWEEP_TICKS(Integer.class, "crash_items.equipment_sweep_ticks"),
     CRASH_ITEMS_BASE_COMMANDS(List.class, "crash_items.base_commands"),
     CRASH_ITEMS_HIDE_CONSOLE_SPAM(Boolean.class, "crash_items.hide_console_spam"),
     CRASH_ITEMS_MAX_POTION_EFFECTS(Integer.class, "crash_items.max_potion_effects"),
+    CRASH_ITEMS_COMMAND_DEPTH_GUARD(Boolean.class, "crash_items.command_depth_guard"),
+    CRASH_ITEMS_MAX_COMMAND_DEPTH(Integer.class, "crash_items.max_command_depth"),
     //
     CRASH_CONTAINERS_SCAN_CHUNK_LOAD(Boolean.class, "crash_containers.scan_chunk_load"),
     CRASH_CONTAINERS_SWEEP_MODE(String.class, "crash_containers.sweep_mode"),
@@ -290,7 +295,11 @@ public enum ConfigEntry
     GAMERULES_MALICIOUS(List.class, "gamerules.malicious"),
     GAMERULES_CAPS(ConfigurationSection.class, "gamerules.caps"),
     GAMERULES_MAX_CHANGES_PER_SECOND(Integer.class, "gamerules.max_changes_per_second"),
-    GAMERULES_KICK_FLOODERS(Boolean.class, "gamerules.kick_flooders");
+    GAMERULES_KICK_FLOODERS(Boolean.class, "gamerules.kick_flooders"),
+    //
+    GAMEMODE_FLOOD_ENABLED(Boolean.class, "gamemode_flood.enabled"),
+    GAMEMODE_FLOOD_MAX_CHANGES_PER_SECOND(Integer.class, "gamemode_flood.max_changes_per_second"),
+    GAMEMODE_FLOOD_KICK_FLOODERS(Boolean.class, "gamemode_flood.kick_flooders");
 
     //
     private final Class<?> type;
@@ -374,10 +383,18 @@ public enum ConfigEntry
         return value != null ? value : Collections.emptyList();
     }
 
-    @SuppressWarnings("unchecked")
     public List<String> getStringList()
     {
-        return (List<String>) getList();
+        final List<?> raw = getList();
+        final List<String> out = new ArrayList<>(raw.size());
+        for (Object element : raw)
+        {
+            if (element != null)
+            {
+                out.add(String.valueOf(element));
+            }
+        }
+        return out;
     }
 
     public ConfigurationSection getSection()

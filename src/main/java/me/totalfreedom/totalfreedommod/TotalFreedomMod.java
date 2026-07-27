@@ -231,6 +231,7 @@ public class TotalFreedomMod extends JavaPlugin
         pa = services.registerService(ProtectArea.class);
         sm = services.registerService(SpawnManager.class);
         gr = services.registerService(GameRuleHandler.class);
+        services.registerService(GameModeGuard.class);
         services.registerService(me.totalfreedom.totalfreedommod.disguise.DisallowedDisguises.class);
 
         // Single admin utils

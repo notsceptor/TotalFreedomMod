@@ -171,9 +171,13 @@ public class CrashPacketService extends FreedomService
                     ConfigEntry.CRASH_ITEMS_MAX_COMMANDS_PER_SECOND.getInteger(),
                     ConfigEntry.CRASH_ITEMS_MAX_MOVEMENT_PER_SECOND.getInteger(),
                     intOr(ConfigEntry.CRASH_ITEMS_MAX_HOTBAR_SLOTS_PER_SECOND.getInteger(), 25),
+                    intOr(ConfigEntry.CRASH_ITEMS_MAX_COMMAND_SUGGESTIONS_PER_SECOND.getInteger(), 10),
+                    intOr(ConfigEntry.CRASH_ITEMS_MAX_GAMEMODE_SWITCHES_PER_SECOND.getInteger(), 8),
                     intOr(ConfigEntry.MOVE_GUARD_SPEED_MAX_HORIZONTAL_DELTA.getInteger(), 128),
                     intOr(ConfigEntry.MOVE_GUARD_SPEED_MAX_TELEPORTS_PER_SECOND.getInteger(), 5),
-                    intOr(ConfigEntry.MOVE_GUARD_SPEED_MAX_BLOCKS_PER_SECOND.getInteger(), 100));
+                    intOr(ConfigEntry.MOVE_GUARD_SPEED_MAX_BLOCKS_PER_SECOND.getInteger(), 100),
+                    Boolean.TRUE.equals(ConfigEntry.CRASH_ITEMS_COMMAND_DEPTH_GUARD.getBoolean()),
+                    intOr(ConfigEntry.CRASH_ITEMS_MAX_COMMAND_DEPTH.getInteger(), 30));
         }
 
         private static int intOr(Integer value, int fallback)
