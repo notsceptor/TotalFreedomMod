@@ -61,6 +61,8 @@ public class GameModeGuard extends FreedomService
             return;
         }
 
+        event.setCancelled(true);
+
         if (perSecond == maxPerSecond + 1)
         {
             FLog.warning(player.getName() + " is spamming game mode changes; rate-limiting"
