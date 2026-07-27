@@ -2,8 +2,6 @@ package me.totalfreedom.totalfreedommod.rank;
 
 import java.util.HashSet;
 import java.util.Set;
-import lombok.Getter;
-import lombok.Setter;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -14,12 +12,10 @@ import org.bukkit.configuration.ConfigurationSection;
  * Represents a configurable rank in the TFM permission system.
  * Unlike the built-in Rank enum, CustomRank instances can be created,
  * modified, and persisted at runtime.
- * 
+ *
  * The permission system is internal and does NOT use Bukkit permission nodes,
  * because all players on TotalFreedom servers have OP status.
  */
-@Getter
-@Setter
 public class CustomRank implements Displayable, Comparable<CustomRank>
 {
     /**
@@ -81,9 +77,11 @@ public class CustomRank implements Displayable, Comparable<CustomRank>
     private String inheritFrom = null;
     
     /**
-     * Flattened permissions including inherited permissions.
+     * Flattened permissions including inherited permissions. Computed at runtime by
+     * RankManager.resolveInheritance(), not raw stored data, so it's excluded from
+     * JSON serialization.
      */
-    private Set<String> resolvedPermissions = new HashSet<>();
+    private transient Set<String> resolvedPermissions = new HashSet<>();
     
     // Cached components for performance
     private transient Component cachedColoredTag;
@@ -144,23 +142,6 @@ public class CustomRank implements Displayable, Comparable<CustomRank>
         }
         
         invalidateCache();
-    }
-    
-    /**
-     * Save rank data to a configuration section.
-     */
-    public void saveTo(ConfigurationSection cs)
-    {
-        cs.set("name", name);
-        cs.set("determiner", determiner);
-        cs.set("abbreviation", abbreviation);
-        cs.set("level", level);
-        cs.set("color", color.toString());
-        cs.set("admin", admin);
-        cs.set("console_only", consoleOnly);
-        cs.set("prefix", prefix);
-        cs.set("inherit", inheritFrom);
-        cs.set("permissions", permissions.isEmpty() ? null : permissions.stream().toList());
     }
     
     /**
@@ -357,32 +338,67 @@ public class CustomRank implements Displayable, Comparable<CustomRank>
     {
         return id;
     }
-    
+
+    public void setName(String name)
+    {
+        this.name = name;
+    }
+
     public String getDeterminer()
     {
         return determiner;
     }
-    
+
+    public void setDeterminer(String determiner)
+    {
+        this.determiner = determiner;
+    }
+
     public String getAbbreviation()
     {
         return abbreviation;
     }
-    
+
+    public void setAbbreviation(String abbreviation)
+    {
+        this.abbreviation = abbreviation;
+    }
+
     public int getLevel()
     {
         return level;
     }
-    
+
+    public void setLevel(int level)
+    {
+        this.level = level;
+    }
+
+    public void setColor(NamedTextColor color)
+    {
+        this.color = color;
+    }
+
     public boolean isAdmin()
     {
         return admin;
     }
-    
+
+    public void setAdmin(boolean admin)
+    {
+        this.admin = admin;
+    }
+
     public boolean isConsoleOnly()
     {
         return consoleOnly;
     }
-    
+
+    public void setConsoleOnly(boolean consoleOnly)
+    {
+        this.consoleOnly = consoleOnly;
+    }
+
     public Set<String> getPermissions()
     {
         return permissions;

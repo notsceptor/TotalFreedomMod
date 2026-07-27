@@ -1,12 +1,17 @@
 package me.totalfreedom.totalfreedommod;
 
 import com.google.common.collect.Maps;
+import com.google.gson.reflect.TypeToken;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,8 +19,10 @@ import java.util.UUID;
 
 import me.totalfreedom.totalfreedommod.ProtectArea.ProtectedRegion.CantFindWorldException;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
+import me.totalfreedom.totalfreedommod.sql.adapter.ProtectedAreaRepository;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FTask;
+import me.totalfreedom.totalfreedommod.util.JsonUtil;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -61,13 +68,17 @@ import org.bukkit.util.Vector;
 public class ProtectArea extends FreedomService
 {
 
-    public static final String DATA_FILENAME = "protectedareas.yml";
+    public static final String DATA_FILENAME = "protectedareas.json";
+    public static final String LEGACY_YAML_FILENAME = "protectedareas.yml";
     public static final String LEGACY_DATA_FILENAME = "protectedareas.dat";
     public static final double MAX_RADIUS = 50.0;
     // How often (in ticks) to sweep loose items out of protected areas.
     private static final long ITEM_SWEEP_RATE = 40L;
+    private static final Type PROTECTED_AREA_LIST_TYPE = new TypeToken<List<ProtectedRegion>>() {}.getType();
     //
     private final Map<UUID, ProtectedRegion> areas = Maps.newHashMap();
+    private File dataFile;
+    private boolean usingSql = false;
     private BukkitTask itemSweepTask;
 
     public ProtectArea(TotalFreedomMod plugin)
@@ -83,30 +94,140 @@ public class ProtectArea extends FreedomService
             return;
         }
 
-        File ymlFile = new File(plugin.getDataFolder(), DATA_FILENAME);
-        File legacyFile = new File(plugin.getDataFolder(), LEGACY_DATA_FILENAME);
+        dataFile = new File(plugin.getDataFolder(), DATA_FILENAME);
 
-        if (legacyFile.exists() && !ymlFile.exists())
+        if (plugin.dm != null && plugin.dm.isInitialized())
         {
-            migrateLegacyData(legacyFile, ymlFile);
+            loadFromSql();
         }
-
-        loadFromYaml(ymlFile);
+        else
+        {
+            loadFromJsonOrLegacy();
+        }
 
         itemSweepTask = Bukkit.getScheduler().runTaskTimer(
             plugin, FTask.guard("ProtectArea/sweepItems", this::sweepItems), ITEM_SWEEP_RATE, ITEM_SWEEP_RATE);
     }
 
-    @SuppressWarnings("unchecked")
-    private void migrateLegacyData(File legacyFile, File ymlFile)
+    private void loadFromSql()
     {
-        FLog.info("Migrating protected areas from legacy .dat format to .yml format...");
+        try
+        {
+            ProtectedAreaRepository repo = plugin.dm.getProtectedAreaRepository();
+            List<ProtectedRegion> loaded = repo.loadAllAsync().block();
+            usingSql = true;
+
+            if (loaded.isEmpty() && !dataFile.exists())
+            {
+                File legacyFile = new File(plugin.getDataFolder(), LEGACY_DATA_FILENAME);
+                if (legacyFile.exists())
+                {
+                    migrateLegacyData(legacyFile);
+                }
+                return;
+            }
+
+            areas.clear();
+            loaded.forEach(region -> areas.put(region.getUuid(), region));
+            FLog.info("Loaded " + areas.size() + " protected area(s) from SQL database.");
+
+            reconcileFromJsonIfNewer(repo);
+        }
+        catch (Exception ex)
+        {
+            FLog.warning("Failed to load protected areas from SQL, falling back to JSON: " + ex.getMessage());
+            usingSql = false;
+            loadFromJsonOrLegacy();
+        }
+    }
+
+    private void loadFromJsonOrLegacy()
+    {
+        if (!dataFile.exists())
+        {
+            File legacyFile = new File(plugin.getDataFolder(), LEGACY_DATA_FILENAME);
+            if (legacyFile.exists())
+            {
+                migrateLegacyData(legacyFile);
+            }
+            return;
+        }
+
+        loadFromJson();
+    }
+
+    private void loadFromJson()
+    {
+        areas.clear();
+        try
+        {
+            readJsonAreas().forEach(region -> areas.put(region.getUuid(), region));
+        }
+        catch (IOException ex)
+        {
+            FLog.severe("Failed to read " + DATA_FILENAME + ": " + ex.getMessage());
+        }
+        FLog.info("Loaded " + areas.size() + " protected area(s).");
+    }
+
+    private List<ProtectedRegion> readJsonAreas() throws IOException
+    {
+        try (FileReader reader = new FileReader(dataFile))
+        {
+            List<ProtectedRegion> loaded = JsonUtil.GSON.fromJson(reader, PROTECTED_AREA_LIST_TYPE);
+            return loaded != null ? loaded : new ArrayList<>();
+        }
+    }
+
+    /**
+     * If protectedareas.json was written more recently than the database's last update, re-import it into SQL.
+     */
+    private void reconcileFromJsonIfNewer(ProtectedAreaRepository repo)
+    {
+        if (!dataFile.exists())
+        {
+            return;
+        }
+
+        try
+        {
+            Long sqlUpdatedAt = repo.getMaxUpdatedAt();
+            if (sqlUpdatedAt != null && dataFile.lastModified() <= sqlUpdatedAt)
+            {
+                return;
+            }
+
+            List<ProtectedRegion> jsonAreas = readJsonAreas();
+            if (jsonAreas.isEmpty())
+            {
+                return;
+            }
+
+            FLog.info(DATA_FILENAME + " is newer than the database; re-importing " + jsonAreas.size() + " protected area(s) from it.");
+            for (ProtectedRegion region : jsonAreas)
+            {
+                repo.saveOrUpdate(region);
+            }
+
+            areas.clear();
+            jsonAreas.forEach(region -> areas.put(region.getUuid(), region));
+        }
+        catch (Exception ex)
+        {
+            FLog.warning("Failed to reconcile " + DATA_FILENAME + " into the database: " + ex.getMessage());
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void migrateLegacyData(File legacyFile)
+    {
+        FLog.info("Migrating protected areas from legacy .dat format...");
         try (FileInputStream fis = new FileInputStream(legacyFile);
              ObjectInputStream ois = new ObjectInputStream(fis))
         {
-            HashMap<String, SerializableProtectedRegion> legacyAreas = 
+            HashMap<String, SerializableProtectedRegion> legacyAreas =
                 (HashMap<String, SerializableProtectedRegion>) ois.readObject();
-            
+
             areas.clear();
             for (Map.Entry<String, SerializableProtectedRegion> entry : legacyAreas.entrySet())
             {
@@ -120,9 +241,9 @@ public class ProtectArea extends FreedomService
                     legacy.worldUUID.toString()
                 ));
             }
-            
+
             save();
-            
+
             File oldFile = new File(legacyFile.getParent(), LEGACY_DATA_FILENAME + ".old");
             if (legacyFile.renameTo(oldFile))
             {
@@ -140,10 +261,14 @@ public class ProtectArea extends FreedomService
         }
     }
 
+    /**
+     * Reads the pre-JSON {@code protectedareas.yml} format. Retained only for the one-time
+     * legacy-install migration path (not called during normal startup).
+     */
     private void loadFromYaml(File file)
     {
         areas.clear();
-        
+
         if (!file.exists())
         {
             return;
@@ -153,7 +278,7 @@ public class ProtectArea extends FreedomService
         {
             YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
             ConfigurationSection areasSection = config.getConfigurationSection("areas");
-            
+
             if (areasSection == null)
             {
                 return;
@@ -207,36 +332,51 @@ public class ProtectArea extends FreedomService
 
     public void save()
     {
+        if (usingSql)
+        {
+            saveToSql();
+        }
+        else
+        {
+            saveToJson();
+        }
+    }
+
+    private void saveToSql()
+    {
+        if (plugin.dm == null || !plugin.dm.isInitialized())
+        {
+            FLog.warning("SQL not available, falling back to JSON save for protected areas");
+            saveToJson();
+            return;
+        }
+
         try
         {
-            YamlConfiguration config = new YamlConfiguration();
-            ConfigurationSection areasSection = config.createSection("areas");
-
-            for (Map.Entry<UUID, ProtectedRegion> entry : areas.entrySet())
+            ProtectedAreaRepository repo = plugin.dm.getProtectedAreaRepository();
+            for (ProtectedRegion region : areas.values())
             {
-                ConfigurationSection areaSection = areasSection.createSection(entry.getKey().toString());
-                ProtectedRegion region = entry.getValue();
-                
-                areaSection.set("name", region.getName());
-                try
-                {
-                    areaSection.set("min_x", region.getMinimumPoint().getBlockX());
-                    areaSection.set("min_y", region.getMinimumPoint().getBlockY());
-                    areaSection.set("min_z", region.getMinimumPoint().getBlockZ());
-                    areaSection.set("max_x", region.getMaximumPoint().getBlockX());
-                    areaSection.set("max_y", region.getMaximumPoint().getBlockY());
-                    areaSection.set("max_z", region.getMaximumPoint().getBlockZ());
-                    areaSection.set("world", region.getWorld().getUID().toString());
-                }
-                catch (CantFindWorldException ex)
-                {
-                    FLog.warning(String.format("Failed to save protected area '%s' (%s) because the UUID of the world it's in was invalid",
-                        region.getName(),
-                        region.getUuid()));
-                }
+                repo.save(region).block();
             }
+        }
+        catch (Exception ex)
+        {
+            FLog.severe("Could not save protected areas to SQL: " + ex.getMessage());
+        }
 
-            config.save(new File(plugin.getDataFolder(), DATA_FILENAME));
+        saveToJson();
+    }
+
+    private void saveToJson()
+    {
+        if (dataFile == null)
+        {
+            dataFile = new File(plugin.getDataFolder(), DATA_FILENAME);
+        }
+
+        try (FileWriter writer = new FileWriter(dataFile))
+        {
+            JsonUtil.GSON.toJson(new ArrayList<>(areas.values()), PROTECTED_AREA_LIST_TYPE, writer);
         }
         catch (IOException ex)
         {
@@ -862,7 +1002,7 @@ public class ProtectArea extends FreedomService
         private Vector min;
         private Vector max;
         private UUID worldUUID;
-        private World world;
+        private transient World world;
 
         public ProtectedRegion(final UUID uuid, final String name, final Location min, final Location max, final World world)
         {

@@ -6,6 +6,9 @@ import me.totalfreedom.totalfreedommod.sql.adapter.DiscordLinkRepository;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -20,6 +23,8 @@ public class GenericDiscordLinkRepository implements DiscordLinkRepository
     private final String selectAdminUuidSql;
     private final String deleteByAdminUuidSql;
     private final String deleteByDiscordUserIdSql;
+    private final String maxUpdatedAtSql;
+    private final String selectAllSql;
 
     public GenericDiscordLinkRepository(StatementHandler statementHandler, DatabaseAdapter adapter)
     {
@@ -29,13 +34,31 @@ public class GenericDiscordLinkRepository implements DiscordLinkRepository
         String colAdminUuid = adapter.quoteIdentifier("admin_uuid");
         String colDiscordUserId = adapter.quoteIdentifier("discord_user_id");
         String colLinkedAt = adapter.quoteIdentifier("linked_at");
+        String colUpdatedAt = adapter.quoteIdentifier("updated_at");
 
-        this.insertSql = String.format("INSERT INTO %s (%s, %s, %s) VALUES (?, ?, %s)",
-                tblDiscordLinks, colAdminUuid, colDiscordUserId, colLinkedAt, adapter.currentTimestamp());
+        this.insertSql = String.format("INSERT INTO %s (%s, %s, %s, %s) VALUES (?, ?, %s, %s)",
+                tblDiscordLinks, colAdminUuid, colDiscordUserId, colLinkedAt, colUpdatedAt,
+                adapter.currentTimestamp(), adapter.currentTimestamp());
         this.selectDiscordIdSql = String.format("SELECT %s FROM %s WHERE %s = ?", colDiscordUserId, tblDiscordLinks, colAdminUuid);
         this.selectAdminUuidSql = String.format("SELECT %s FROM %s WHERE %s = ?", colAdminUuid, tblDiscordLinks, colDiscordUserId);
         this.deleteByAdminUuidSql = String.format("DELETE FROM %s WHERE %s = ?", tblDiscordLinks, colAdminUuid);
         this.deleteByDiscordUserIdSql = String.format("DELETE FROM %s WHERE %s = ?", tblDiscordLinks, colDiscordUserId);
+        this.maxUpdatedAtSql = String.format("SELECT MAX(%s) FROM %s", colUpdatedAt, tblDiscordLinks);
+        this.selectAllSql = String.format("SELECT %s, %s FROM %s", colAdminUuid, colDiscordUserId, tblDiscordLinks);
+    }
+
+    @Override
+    public Map<String, String> loadAll() throws SQLException
+    {
+        Map<String, String> links = new LinkedHashMap<>();
+        try (ResultSet rs = statementHandler.executeQuery(selectAllSql))
+        {
+            while (rs.next())
+            {
+                links.put(rs.getString(1), rs.getString(2));
+            }
+        }
+        return links;
     }
 
     @Override
@@ -77,5 +100,19 @@ public class GenericDiscordLinkRepository implements DiscordLinkRepository
     public boolean deleteByDiscordUserId(String discordUserId) throws SQLException
     {
         return statementHandler.executeUpdate(deleteByDiscordUserIdSql, discordUserId) > 0;
+    }
+
+    @Override
+    public Long getMaxUpdatedAt() throws SQLException
+    {
+        try (ResultSet rs = statementHandler.executeQuery(maxUpdatedAtSql))
+        {
+            if (rs.next())
+            {
+                Timestamp ts = rs.getTimestamp(1);
+                return ts != null ? ts.getTime() : null;
+            }
+        }
+        return null;
     }
 }

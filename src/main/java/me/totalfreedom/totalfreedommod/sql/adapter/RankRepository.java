@@ -41,6 +41,12 @@ public interface RankRepository
 
     void deleteAllSync() throws SQLException;
 
+    /**
+     * Epoch millis of the most recently updated rank row, or null if the table is empty.
+     * Used to compare SQL freshness against the ranks.json snapshot's last-modified time.
+     */
+    Long getMaxUpdatedAt() throws SQLException;
+
     Mono<Map<String, CustomRank>> loadAllAsync();
 
     Mono<Void> save(CustomRank rank);

@@ -1,6 +1,5 @@
 package me.totalfreedom.totalfreedommod.player;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import java.util.Collections;
 import java.util.List;
@@ -8,7 +7,6 @@ import me.totalfreedom.totalfreedommod.PluginProvider;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.ConfigInterfaces.ConfigLoadable;
-import me.totalfreedom.totalfreedommod.util.ConfigInterfaces.ConfigSavable;
 import me.totalfreedom.totalfreedommod.util.ConfigInterfaces.Validatable;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -17,7 +15,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 
-public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
+public class PlayerData implements ConfigLoadable, Validatable
 {
     public static final int MAX_STRIKES = 3;
     // max number of IP addresses retained per player
@@ -163,25 +161,6 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
         {
             this.nickname = null;
         }
-    }
-
-    @Override
-    public void saveTo(ConfigurationSection cs)
-    {
-        Preconditions.checkArgument(isValid(), "Could not save player entry: " + username + ". Entry not valid!");
-        cs.set("username", username);
-        cs.set("ips", ips);
-        cs.set("first_join", firstJoinUnix);
-        cs.set("last_join", lastJoinUnix);
-        cs.set("potion_spy", potionSpy);
-        cs.set("command_spy", isCommandSpy());
-        cs.set("command_spy_mode", commandSpyMode.getName());
-        cs.set("muted", muted);
-        cs.set("frozen", frozen);
-        cs.set("commands_blocked", commandsBlocked);
-        cs.set("strikes", strikes);
-        cs.set("saved_tag", savedTag);
-        cs.set("nickname", nickname != null ? AdventureUtil.componentToLegacy(nickname) : null);
     }
 
     public boolean isCommandSpy()

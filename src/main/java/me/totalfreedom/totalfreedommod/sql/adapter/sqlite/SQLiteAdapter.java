@@ -188,20 +188,15 @@ public class SQLiteAdapter extends DatabaseAdapter
                 active INTEGER DEFAULT 1,
                 last_login TEXT,
                 login_message TEXT,
-                custom_rank TEXT
+                custom_rank TEXT,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
             """;
         statementHandler.executeUpdate(sql);
 
-        // Migration for existing tables
-        try
-        {
-            statementHandler.executeUpdate("ALTER TABLE admins ADD COLUMN custom_rank TEXT");
-        }
-        catch (SQLException ignored)
-        {
-            // Column already exists or table doesn't exist yet (handled by CREATE TABLE IF NOT EXISTS)
-        }
+        // Migration for tables created before custom_rank/updated_at existed.
+        addColumnIfMissing("admins", "custom_rank", "TEXT");
+        addColumnIfMissing("admins", "updated_at", "TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP");
 
         // Create indexes
         statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_admins_username ON admins(username)");
@@ -233,10 +228,12 @@ public class SQLiteAdapter extends DatabaseAdapter
                 banned_by TEXT,
                 banned_by_uuid TEXT,
                 reason TEXT,
-                expire_at TEXT
+                expire_at TEXT,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
             """;
         statementHandler.executeUpdate(sql);
+        addColumnIfMissing("bans", "updated_at", "TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP");
 
         statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_bans_uuid ON bans(uuid)");
         statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_bans_username ON bans(username)");
@@ -265,10 +262,12 @@ public class SQLiteAdapter extends DatabaseAdapter
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 uuid TEXT,
                 username TEXT,
-                reason TEXT
+                reason TEXT,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
             """;
         statementHandler.executeUpdate(sql);
+        addColumnIfMissing("permbans", "updated_at", "TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP");
 
         statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_permbans_uuid ON permbans(uuid)");
         statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_permbans_username ON permbans(username)");
@@ -297,10 +296,12 @@ public class SQLiteAdapter extends DatabaseAdapter
                 strike_count INTEGER NOT NULL DEFAULT 0,
                 last_strike_unix INTEGER NOT NULL DEFAULT 0,
                 last_username TEXT,
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
             """;
         statementHandler.executeUpdate(sql);
+        addColumnIfMissing("strikes", "updated_at", "TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP");
     }
 
     private void createDiscordLinksTable() throws SQLException
@@ -310,10 +311,12 @@ public class SQLiteAdapter extends DatabaseAdapter
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 admin_uuid TEXT NOT NULL UNIQUE,
                 discord_user_id TEXT NOT NULL UNIQUE,
-                linked_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                linked_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
             """;
         statementHandler.executeUpdate(sql);
+        addColumnIfMissing("discord_links", "updated_at", "TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP");
     }
 
     private void createRanksTable() throws SQLException
@@ -329,10 +332,12 @@ public class SQLiteAdapter extends DatabaseAdapter
                 admin INTEGER NOT NULL DEFAULT 0,
                 console_only INTEGER NOT NULL DEFAULT 0,
                 prefix TEXT,
-                inherit_from TEXT
+                inherit_from TEXT,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
             """;
         statementHandler.executeUpdate(sql);
+        addColumnIfMissing("ranks", "updated_at", "TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP");
         statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_ranks_level ON ranks(level)");
     }
 
@@ -362,10 +367,12 @@ public class SQLiteAdapter extends DatabaseAdapter
                 max_x INTEGER NOT NULL,
                 max_y INTEGER NOT NULL,
                 max_z INTEGER NOT NULL,
-                world_uuid TEXT NOT NULL
+                world_uuid TEXT NOT NULL,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
             """;
         statementHandler.executeUpdate(sql);
+        addColumnIfMissing("protected_areas", "updated_at", "TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP");
         statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_protected_areas_name ON protected_areas(name)");
     }
 
@@ -374,10 +381,12 @@ public class SQLiteAdapter extends DatabaseAdapter
         String sql = """
             CREATE TABLE IF NOT EXISTS saved_flags (
                 flag_name TEXT PRIMARY KEY,
-                enabled INTEGER NOT NULL DEFAULT 0
+                enabled INTEGER NOT NULL DEFAULT 0,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
             """;
         statementHandler.executeUpdate(sql);
+        addColumnIfMissing("saved_flags", "updated_at", "TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP");
     }
 
     private void createPlayersTable() throws SQLException
@@ -394,10 +403,12 @@ public class SQLiteAdapter extends DatabaseAdapter
                 commands_blocked INTEGER NOT NULL DEFAULT 0,
                 strikes INTEGER NOT NULL DEFAULT 0,
                 saved_tag TEXT,
-                nickname TEXT
+                nickname TEXT,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
             """;
         statementHandler.executeUpdate(sql);
+        addColumnIfMissing("players", "updated_at", "TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP");
     }
 
     private void createPlayerIpsTable() throws SQLException
@@ -412,6 +423,22 @@ public class SQLiteAdapter extends DatabaseAdapter
             )
             """;
         statementHandler.executeUpdate(sql);
+    }
+
+    /**
+     * Add a column to a table created before that column existed. Ignores the error
+     * when the column is already present (older SQLite has no ADD COLUMN IF NOT EXISTS).
+     */
+    private void addColumnIfMissing(String table, String column, String definition)
+    {
+        try
+        {
+            statementHandler.executeUpdate(String.format("ALTER TABLE %s ADD COLUMN %s %s", table, column, definition));
+        }
+        catch (SQLException ignored)
+        {
+            // Column already exists.
+        }
     }
 
     // ============================================

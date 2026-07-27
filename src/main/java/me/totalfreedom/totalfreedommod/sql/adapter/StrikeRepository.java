@@ -15,6 +15,12 @@ public interface StrikeRepository
 
     void deleteAllSync() throws SQLException;
 
+    /**
+     * Epoch millis of the most recently updated strike row, or null if the table is empty.
+     * Used to compare SQL freshness against the strikes.json snapshot's last-modified time.
+     */
+    Long getMaxUpdatedAt() throws SQLException;
+
     Mono<Map<String, StrikeRecord>> loadAllAsync();
 
     Mono<Void> upsertAsync(StrikeRecord record);

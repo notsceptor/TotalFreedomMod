@@ -1,10 +1,17 @@
 package me.totalfreedom.totalfreedommod.sql.adapter;
 
 import java.sql.SQLException;
+import java.util.Map;
 import java.util.UUID;
 
 public interface DiscordLinkRepository
 {
+    /**
+     * @return all links, keyed by admin UUID string, valued by Discord user id.
+     * Used to write the discord_links.json snapshot.
+     */
+    Map<String, String> loadAll() throws SQLException;
+
     /**
      * Insert a new link. Fails if either side is already linked. Callers
      * should remove any existing link first via {@link #deleteByAdminUuid} or
@@ -31,4 +38,10 @@ public interface DiscordLinkRepository
      * @return true if a row was deleted.
      */
     boolean deleteByDiscordUserId(String discordUserId) throws SQLException;
+
+    /**
+     * Epoch millis of the most recently updated link row, or null if the table is empty.
+     * Used to compare SQL freshness against the discord_links.json snapshot's last-modified time.
+     */
+    Long getMaxUpdatedAt() throws SQLException;
 }

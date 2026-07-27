@@ -1,12 +1,20 @@
 package me.totalfreedom.totalfreedommod.sql;
 
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.totalfreedommod.ProtectArea.ProtectedRegion;
+import me.totalfreedom.totalfreedommod.ProtectArea.ProtectedRegion.CantFindWorldException;
 import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.banning.Ban;
 import me.totalfreedom.totalfreedommod.banning.PermBan;
+import me.totalfreedom.totalfreedommod.player.PlayerData;
+import me.totalfreedom.totalfreedommod.rank.CustomRank;
 import me.totalfreedom.totalfreedommod.sql.adapter.AdminRepository;
 import me.totalfreedom.totalfreedommod.sql.adapter.BanRepository;
 import me.totalfreedom.totalfreedommod.sql.adapter.PermbanRepository;
+import me.totalfreedom.totalfreedommod.sql.adapter.PlayerRepository;
+import me.totalfreedom.totalfreedommod.sql.adapter.ProtectedAreaRepository;
+import me.totalfreedom.totalfreedommod.sql.adapter.RankRepository;
+import me.totalfreedom.totalfreedommod.sql.adapter.SavedFlagRepository;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import org.bukkit.configuration.ConfigurationSection;
@@ -39,6 +47,10 @@ public class YamlMigrationService
     private static final String ADMINS_FILE = "admins.yml";
     private static final String BANS_FILE = "bans.yml";
     private static final String PERMBANS_FILE = "permbans.yml";
+    private static final String RANKS_FILE = "ranks.yml";
+    private static final String PROTECTED_AREAS_FILE = "protectedareas.yml";
+    private static final String SAVED_FLAGS_FILE = "savedflags.yml";
+    private static final String PLAYERS_DIR = "players";
 
     public YamlMigrationService(TotalFreedomMod plugin, FreedomDatabase databaseManager)
     {
@@ -66,6 +78,10 @@ public class YamlMigrationService
                 migrateAdmins();
                 migrateBans();
                 migratePermbans();
+                migrateRanks();
+                migrateProtectedAreas();
+                migrateSavedFlags();
+                migratePlayers();
 
                 FLog.info("YAML data migration check complete");
             }
@@ -289,6 +305,270 @@ public class YamlMigrationService
 
         // Backup the old file
         backupFile(permbansFile);
+    }
+
+    /**
+     * Migrate custom ranks from ranks.yml to database.
+     */
+    private void migrateRanks()
+    {
+        File ranksFile = new File(plugin.getDataFolder(), RANKS_FILE);
+        if (!ranksFile.exists())
+        {
+            FLog.info("No ranks.yml found, skipping rank migration");
+            return;
+        }
+
+        RankRepository repo = databaseManager.getRankRepository();
+
+        try
+        {
+            if (!repo.loadAll().isEmpty())
+            {
+                FLog.info("Database already contains ranks, skipping YAML migration");
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            FLog.warning("Could not check existing ranks: " + ex.getMessage());
+        }
+
+        FLog.info("Migrating ranks from " + RANKS_FILE + "...");
+
+        YamlConfiguration config = YamlConfiguration.loadConfiguration(ranksFile);
+        AtomicInteger migrated = new AtomicInteger(0);
+        AtomicInteger failed = new AtomicInteger(0);
+
+        for (String key : config.getKeys(false))
+        {
+            ConfigurationSection section = config.getConfigurationSection(key);
+            if (section == null)
+            {
+                FLog.warning("Invalid rank entry: " + key);
+                failed.incrementAndGet();
+                continue;
+            }
+
+            try
+            {
+                CustomRank rank = new CustomRank(key);
+                rank.loadFrom(section);
+                repo.saveOrUpdate(rank);
+                migrated.incrementAndGet();
+            }
+            catch (Exception ex)
+            {
+                FLog.warning("Failed to migrate rank " + key + ": " + ex.getMessage());
+                failed.incrementAndGet();
+            }
+        }
+
+        FLog.info("Rank migration complete: " + migrated.get() + " migrated, " + failed.get() + " failed");
+
+        backupFile(ranksFile);
+    }
+
+    /**
+     * Migrate protected areas from protectedareas.yml to database.
+     */
+    private void migrateProtectedAreas()
+    {
+        File areasFile = new File(plugin.getDataFolder(), PROTECTED_AREAS_FILE);
+        if (!areasFile.exists())
+        {
+            FLog.info("No protectedareas.yml found, skipping protected area migration");
+            return;
+        }
+
+        ProtectedAreaRepository repo = databaseManager.getProtectedAreaRepository();
+
+        try
+        {
+            if (!repo.loadAll().isEmpty())
+            {
+                FLog.info("Database already contains protected areas, skipping YAML migration");
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            FLog.warning("Could not check existing protected areas: " + ex.getMessage());
+        }
+
+        FLog.info("Migrating protected areas from " + PROTECTED_AREAS_FILE + "...");
+
+        YamlConfiguration config = YamlConfiguration.loadConfiguration(areasFile);
+        ConfigurationSection areasSection = config.getConfigurationSection("areas");
+        AtomicInteger migrated = new AtomicInteger(0);
+        AtomicInteger failed = new AtomicInteger(0);
+
+        if (areasSection != null)
+        {
+            for (String id : areasSection.getKeys(false))
+            {
+                ConfigurationSection areaSection = areasSection.getConfigurationSection(id);
+                if (areaSection == null)
+                {
+                    FLog.warning("Invalid protected area entry: " + id);
+                    failed.incrementAndGet();
+                    continue;
+                }
+
+                try
+                {
+                    UUID uuid = UUID.fromString(id);
+                    String name = areaSection.getString("name");
+                    int minX = areaSection.getInt("min_x");
+                    int minY = areaSection.getInt("min_y");
+                    int minZ = areaSection.getInt("min_z");
+                    int maxX = areaSection.getInt("max_x");
+                    int maxY = areaSection.getInt("max_y");
+                    int maxZ = areaSection.getInt("max_z");
+                    String worldUUID = areaSection.getString("world");
+
+                    ProtectedRegion region = new ProtectedRegion(uuid, name, minX, minY, minZ, maxX, maxY, maxZ, worldUUID);
+                    repo.saveOrUpdate(region);
+                    migrated.incrementAndGet();
+                }
+                catch (CantFindWorldException | IllegalArgumentException ex)
+                {
+                    FLog.warning("Failed to migrate protected area " + id + ": " + ex.getMessage());
+                    failed.incrementAndGet();
+                }
+                catch (Exception ex)
+                {
+                    FLog.warning("Failed to migrate protected area " + id + ": " + ex.getMessage());
+                    failed.incrementAndGet();
+                }
+            }
+        }
+
+        FLog.info("Protected area migration complete: " + migrated.get() + " migrated, " + failed.get() + " failed");
+
+        backupFile(areasFile);
+    }
+
+    /**
+     * Migrate saved flags from savedflags.yml to database.
+     */
+    private void migrateSavedFlags()
+    {
+        File flagsFile = new File(plugin.getDataFolder(), SAVED_FLAGS_FILE);
+        if (!flagsFile.exists())
+        {
+            FLog.info("No savedflags.yml found, skipping saved flag migration");
+            return;
+        }
+
+        SavedFlagRepository repo = databaseManager.getSavedFlagRepository();
+
+        try
+        {
+            if (!repo.loadAll().isEmpty())
+            {
+                FLog.info("Database already contains saved flags, skipping YAML migration");
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            FLog.warning("Could not check existing saved flags: " + ex.getMessage());
+        }
+
+        FLog.info("Migrating saved flags from " + SAVED_FLAGS_FILE + "...");
+
+        YamlConfiguration config = YamlConfiguration.loadConfiguration(flagsFile);
+        ConfigurationSection flagsSection = config.getConfigurationSection("flags");
+        AtomicInteger migrated = new AtomicInteger(0);
+
+        if (flagsSection != null)
+        {
+            for (String key : flagsSection.getKeys(false))
+            {
+                try
+                {
+                    repo.upsert(key, flagsSection.getBoolean(key));
+                    migrated.incrementAndGet();
+                }
+                catch (Exception ex)
+                {
+                    FLog.warning("Failed to migrate saved flag " + key + ": " + ex.getMessage());
+                }
+            }
+        }
+
+        FLog.info("Saved flag migration complete: " + migrated.get() + " migrated");
+
+        backupFile(flagsFile);
+    }
+
+    /**
+     * Migrate per-player data from players/*.yml to database.
+     */
+    private void migratePlayers()
+    {
+        File playersDir = new File(plugin.getDataFolder(), PLAYERS_DIR);
+        File[] files = playersDir.listFiles((dir, name) -> name.endsWith(".yml"));
+        if (files == null || files.length == 0)
+        {
+            FLog.info("No players/*.yml found, skipping player data migration");
+            return;
+        }
+
+        PlayerRepository repo = databaseManager.getPlayerRepository();
+
+        try
+        {
+            if (!repo.loadAll().isEmpty())
+            {
+                FLog.info("Database already contains player data, skipping YAML migration");
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            FLog.warning("Could not check existing player data: " + ex.getMessage());
+        }
+
+        FLog.info("Migrating player data from players/*.yml...");
+
+        AtomicInteger migrated = new AtomicInteger(0);
+        AtomicInteger failed = new AtomicInteger(0);
+
+        for (File file : files)
+        {
+            String username = file.getName().substring(0, file.getName().length() - ".yml".length());
+
+            try
+            {
+                YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
+                PlayerData data = new PlayerData(username);
+                data.loadFrom(config);
+
+                if (!data.isValid())
+                {
+                    FLog.warning("Invalid player data for: " + username);
+                    failed.incrementAndGet();
+                    continue;
+                }
+
+                repo.saveOrUpdate(data);
+                migrated.incrementAndGet();
+            }
+            catch (Exception ex)
+            {
+                FLog.warning("Failed to migrate player data for " + username + ": " + ex.getMessage());
+                failed.incrementAndGet();
+            }
+        }
+
+        FLog.info("Player data migration complete: " + migrated.get() + " migrated, " + failed.get() + " failed");
+
+        for (File file : files)
+        {
+            backupFile(file);
+        }
     }
 
     /**

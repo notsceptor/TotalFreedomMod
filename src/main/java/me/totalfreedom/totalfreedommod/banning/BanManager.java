@@ -3,6 +3,7 @@ package me.totalfreedom.totalfreedommod.banning;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.google.gson.reflect.TypeToken;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -17,9 +18,12 @@ import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.sql.adapter.BanRepository;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
+import me.totalfreedom.totalfreedommod.util.JsonUtil;
 import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
-import org.bukkit.configuration.file.YamlConfiguration;
+import java.lang.reflect.Type;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -28,6 +32,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 
 public class BanManager extends FreedomService
 {
+    private static final Type BAN_LIST_TYPE = new TypeToken<List<Ban>>() {}.getType();
 
     private final Set<Ban> bans = Sets.newHashSet();
     private final Map<String, Ban> ipBans = Maps.newHashMap();
@@ -45,7 +50,7 @@ public class BanManager extends FreedomService
     public BanManager(TotalFreedomMod plugin)
     {
         super(plugin);
-        this.configFile = new File(plugin.getDataFolder(), "bans.yml");
+        this.configFile = new File(plugin.getDataFolder(), "bans.json");
     }
 
     @Override
@@ -59,15 +64,15 @@ public class BanManager extends FreedomService
         }
         else
         {
-            loadFromYaml();
+            loadFromJson();
         }
-        
+
         // Load unbannable usernames
         unbannableUsernames.clear();
         unbannableUsernames.addAll((Collection<? extends String>) ConfigEntry.FAMOUS_PLAYERS.getList());
         FLog.info("Loaded " + unbannableUsernames.size() + " unbannable usernames.");
     }
-    
+
     /**
      * Load bans from SQL database.
      */
@@ -86,18 +91,76 @@ public class BanManager extends FreedomService
                 updateViews();
                 FLog.info("Loaded " + ipBans.size() + " IP bans and " + nameBans.size() + " username bans from SQL database.");
             }
+
+            reconcileFromJsonIfNewer(repo);
         }
         catch (Exception ex)
         {
-            FLog.warning("Failed to load bans from SQL, falling back to YAML: " + ex.getMessage());
-            loadFromYaml();
+            FLog.warning("Failed to load bans from SQL, falling back to JSON: " + ex.getMessage());
+            loadFromJson();
         }
     }
-    
+
     /**
-     * Load bans from YAML file (fallback).
+     * If bans.json was written more recently than the database's last update, re-import it into SQL.
      */
-    private void loadFromYaml()
+    private void reconcileFromJsonIfNewer(BanRepository repo)
+    {
+        if (!configFile.exists())
+        {
+            return;
+        }
+
+        try
+        {
+            Long sqlUpdatedAt = repo.getMaxUpdatedAt();
+            if (sqlUpdatedAt != null && configFile.lastModified() <= sqlUpdatedAt)
+            {
+                return;
+            }
+
+            List<Ban> jsonBans = readJsonBans();
+            if (jsonBans.isEmpty())
+            {
+                return;
+            }
+
+            FLog.info("bans.json is newer than the database; re-importing " + jsonBans.size() + " ban(s) from it.");
+            for (Ban ban : jsonBans)
+            {
+                if (!ban.isValid())
+                {
+                    continue;
+                }
+                repo.save(ban).block();
+            }
+
+            synchronized (lock)
+            {
+                bans.clear();
+                bans.addAll(jsonBans);
+                updateViews();
+            }
+        }
+        catch (Exception ex)
+        {
+            FLog.warning("Failed to reconcile bans.json into the database: " + ex.getMessage());
+        }
+    }
+
+    private List<Ban> readJsonBans() throws IOException
+    {
+        try (FileReader reader = new FileReader(configFile))
+        {
+            List<Ban> loaded = JsonUtil.GSON.fromJson(reader, BAN_LIST_TYPE);
+            return loaded != null ? loaded : new ArrayList<>();
+        }
+    }
+
+    /**
+     * Load bans from the JSON file (fallback).
+     */
+    private void loadFromJson()
     {
         if (!configFile.exists())
         {
@@ -108,37 +171,33 @@ public class BanManager extends FreedomService
             }
             catch (IOException ex)
             {
-                FLog.severe("Could not create bans.yml");
+                FLog.severe("Could not create bans.json");
             }
         }
-        final YamlConfiguration loaded = YamlConfiguration.loadConfiguration(configFile);
 
         synchronized (lock)
         {
             bans.clear();
-            for (String id : loaded.getKeys(false))
+            try
             {
-                if (!loaded.isConfigurationSection(id))
+                for (Ban ban : readJsonBans())
                 {
-                    FLog.warning("Could not load username ban: " + id + ". Invalid format!");
-                    continue;
+                    if (!ban.isValid())
+                    {
+                        FLog.warning("Not adding username ban: " + ban.getUsername() + ". Missing information.");
+                        continue;
+                    }
+                    bans.add(ban);
                 }
-
-                Ban ban = new Ban();
-                ban.loadFrom(loaded.getConfigurationSection(id));
-
-                if (!ban.isValid())
-                {
-                    FLog.warning("Not adding username ban: " + id + ". Missing information.");
-                    continue;
-                }
-
-                bans.add(ban);
+            }
+            catch (IOException ex)
+            {
+                FLog.severe("Could not read bans.json: " + ex.getMessage());
             }
 
             usingSql = false;
             updateViews();
-            FLog.info("Loaded " + ipBans.size() + " IP bans and " + nameBans.size() + " username bans from YAML.");
+            FLog.info("Loaded " + ipBans.size() + " IP bans and " + nameBans.size() + " username bans from JSON.");
         }
     }
 
@@ -183,7 +242,7 @@ public class BanManager extends FreedomService
             }
             else
             {
-                writeAllToYaml(snapshot);
+                writeAllToJson(snapshot);
             }
         }
     }
@@ -225,8 +284,8 @@ public class BanManager extends FreedomService
     {
         if (plugin.dm == null || !plugin.dm.isInitialized())
         {
-            FLog.warning("SQL not available, falling back to YAML save");
-            writeAllToYaml(snapshot);
+            FLog.warning("SQL not available, falling back to JSON save");
+            writeAllToJson(snapshot);
             return;
         }
 
@@ -240,6 +299,7 @@ public class BanManager extends FreedomService
                 repo.save(ban).block();
             }
             FLog.debug("Saved " + snapshot.size() + " bans to SQL database");
+            writeAllToJson(snapshot);
         }
         catch (Exception ex)
         {
@@ -248,23 +308,18 @@ public class BanManager extends FreedomService
     }
 
     /**
-     * Write the given snapshot of bans to the YAML file. Must be called under persistenceLock.
+     * Write the given snapshot of bans to the JSON file (fallback, and the write-through
+     * snapshot when using SQL). Must be called under persistenceLock.
      */
-    private void writeAllToYaml(List<Ban> snapshot)
+    private void writeAllToJson(List<Ban> snapshot)
     {
-        final YamlConfiguration out = new YamlConfiguration();
-        for (Ban ban : snapshot)
+        try (FileWriter writer = new FileWriter(configFile))
         {
-            ban.saveTo(out.createSection(String.valueOf(ban.hashCode())));
-        }
-
-        try
-        {
-            out.save(configFile);
+            JsonUtil.GSON.toJson(snapshot, BAN_LIST_TYPE, writer);
         }
         catch (IOException ex)
         {
-            FLog.severe("Could not save bans.yml");
+            FLog.severe("Could not save bans.json");
         }
     }
 
@@ -457,6 +512,7 @@ public class BanManager extends FreedomService
             try
             {
                 plugin.dm.getBanRepository().save(ban).block();
+                writeAllToJson(currentBansSnapshot());
             }
             catch (Exception ex)
             {
@@ -487,6 +543,7 @@ public class BanManager extends FreedomService
                 {
                     plugin.dm.getBanRepository().deleteByUsername(ban.getUsername());
                 }
+                writeAllToJson(currentBansSnapshot());
             }
             catch (Exception ex)
             {
@@ -578,6 +635,14 @@ public class BanManager extends FreedomService
 
         unbanUsername(player.getName());
         player.setOp(true);
+    }
+
+    private List<Ban> currentBansSnapshot()
+    {
+        synchronized (lock)
+        {
+            return new ArrayList<>(bans);
+        }
     }
 
     // Must be called while holding 'lock'.

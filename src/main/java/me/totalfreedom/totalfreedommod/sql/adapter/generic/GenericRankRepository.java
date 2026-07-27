@@ -9,6 +9,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.*;
 
 import reactor.core.publisher.Mono;
@@ -35,6 +36,7 @@ public class GenericRankRepository implements RankRepository
     private final String colInheritFrom;
     private final String colRankId;
     private final String colPermission;
+    private final String colUpdatedAt;
     private final String selectColumns;
 
     public GenericRankRepository(StatementHandler statementHandler, DatabaseAdapter adapter)
@@ -56,6 +58,7 @@ public class GenericRankRepository implements RankRepository
         this.colInheritFrom = adapter.quoteIdentifier("inherit_from");
         this.colRankId = adapter.quoteIdentifier("rank_id");
         this.colPermission = adapter.quoteIdentifier("permission");
+        this.colUpdatedAt = adapter.quoteIdentifier("updated_at");
         this.selectColumns = String.format("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s",
                 colId, colName, colDeterminer, colAbbreviation, colLevel, colColor, colAdmin, colConsoleOnly,
                 colPrefix, colInheritFrom);
@@ -64,8 +67,8 @@ public class GenericRankRepository implements RankRepository
     @Override
     public void insert(CustomRank rank) throws SQLException
     {
-        String sql = String.format("INSERT INTO %s (%s) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                tblRanks, selectColumns);
+        String sql = String.format("INSERT INTO %s (%s, %s) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, %s)",
+                tblRanks, selectColumns, colUpdatedAt, adapter.currentTimestamp());
 
         statementHandler.executeUpdate(sql,
                 rank.getId(),
@@ -181,9 +184,9 @@ public class GenericRankRepository implements RankRepository
     @Override
     public boolean update(CustomRank rank) throws SQLException
     {
-        String sql = String.format("UPDATE %s SET %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ? WHERE %s = ?",
+        String sql = String.format("UPDATE %s SET %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = %s WHERE %s = ?",
                 tblRanks, colName, colDeterminer, colAbbreviation, colLevel, colColor, colAdmin, colConsoleOnly,
-                colPrefix, colInheritFrom, colId);
+                colPrefix, colInheritFrom, colUpdatedAt, adapter.currentTimestamp(), colId);
 
         int rows = statementHandler.executeUpdate(sql,
                 rank.getName(),
@@ -240,6 +243,21 @@ public class GenericRankRepository implements RankRepository
     {
         statementHandler.executeUpdate(String.format("DELETE FROM %s", tblRankPermissions));
         statementHandler.executeUpdate(String.format("DELETE FROM %s", tblRanks));
+    }
+
+    @Override
+    public Long getMaxUpdatedAt() throws SQLException
+    {
+        String sql = String.format("SELECT MAX(%s) FROM %s", colUpdatedAt, tblRanks);
+        try (ResultSet rs = statementHandler.executeQuery(sql))
+        {
+            if (rs.next())
+            {
+                Timestamp ts = rs.getTimestamp(1);
+                return ts != null ? ts.getTime() : null;
+            }
+        }
+        return null;
     }
 
     @Override

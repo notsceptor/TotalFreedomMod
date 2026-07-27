@@ -129,6 +129,12 @@ public interface BanRepository
      */
     void deleteAllSync() throws SQLException;
 
+    /**
+     * Epoch millis of the most recently updated ban row, or null if the table is empty.
+     * Used to compare SQL freshness against the bans.json snapshot's last-modified time.
+     */
+    Long getMaxUpdatedAt() throws SQLException;
+
     // ============================================
     // DELETE Operations
     // ============================================

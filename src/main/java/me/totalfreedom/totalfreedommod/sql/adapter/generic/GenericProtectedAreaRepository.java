@@ -10,6 +10,7 @@ import me.totalfreedom.totalfreedommod.util.FLog;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -22,6 +23,7 @@ import reactor.core.publisher.Mono;
 public class GenericProtectedAreaRepository implements ProtectedAreaRepository
 {
     private final StatementHandler statementHandler;
+    private final DatabaseAdapter adapter;
 
     private final String tblProtectedAreas;
     private final String colUuid;
@@ -33,11 +35,13 @@ public class GenericProtectedAreaRepository implements ProtectedAreaRepository
     private final String colMaxY;
     private final String colMaxZ;
     private final String colWorldUuid;
+    private final String colUpdatedAt;
     private final String selectColumns;
 
     public GenericProtectedAreaRepository(StatementHandler statementHandler, DatabaseAdapter adapter)
     {
         this.statementHandler = statementHandler;
+        this.adapter = adapter;
 
         this.tblProtectedAreas = adapter.quoteIdentifier("protected_areas");
         this.colUuid = adapter.quoteIdentifier("uuid");
@@ -49,6 +53,7 @@ public class GenericProtectedAreaRepository implements ProtectedAreaRepository
         this.colMaxY = adapter.quoteIdentifier("max_y");
         this.colMaxZ = adapter.quoteIdentifier("max_z");
         this.colWorldUuid = adapter.quoteIdentifier("world_uuid");
+        this.colUpdatedAt = adapter.quoteIdentifier("updated_at");
         this.selectColumns = String.format("%s, %s, %s, %s, %s, %s, %s, %s, %s",
                 colUuid, colName, colMinX, colMinY, colMinZ, colMaxX, colMaxY, colMaxZ, colWorldUuid);
     }
@@ -56,7 +61,8 @@ public class GenericProtectedAreaRepository implements ProtectedAreaRepository
     @Override
     public void insert(ProtectedRegion region) throws SQLException
     {
-        String sql = String.format("INSERT INTO %s (%s) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", tblProtectedAreas, selectColumns);
+        String sql = String.format("INSERT INTO %s (%s, %s) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, %s)",
+                tblProtectedAreas, selectColumns, colUpdatedAt, adapter.currentTimestamp());
         statementHandler.executeUpdate(sql,
                 region.getUuid().toString(),
                 region.getName(),
@@ -132,8 +138,9 @@ public class GenericProtectedAreaRepository implements ProtectedAreaRepository
     @Override
     public boolean update(ProtectedRegion region) throws SQLException
     {
-        String sql = String.format("UPDATE %s SET %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ? WHERE %s = ?",
-                tblProtectedAreas, colName, colMinX, colMinY, colMinZ, colMaxX, colMaxY, colMaxZ, colWorldUuid, colUuid);
+        String sql = String.format("UPDATE %s SET %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = %s WHERE %s = ?",
+                tblProtectedAreas, colName, colMinX, colMinY, colMinZ, colMaxX, colMaxY, colMaxZ, colWorldUuid,
+                colUpdatedAt, adapter.currentTimestamp(), colUuid);
 
         int rows = statementHandler.executeUpdate(sql,
                 region.getName(),
@@ -173,6 +180,21 @@ public class GenericProtectedAreaRepository implements ProtectedAreaRepository
     public void deleteAllSync() throws SQLException
     {
         statementHandler.executeUpdate(String.format("DELETE FROM %s", tblProtectedAreas));
+    }
+
+    @Override
+    public Long getMaxUpdatedAt() throws SQLException
+    {
+        String sql = String.format("SELECT MAX(%s) FROM %s", colUpdatedAt, tblProtectedAreas);
+        try (ResultSet rs = statementHandler.executeQuery(sql))
+        {
+            if (rs.next())
+            {
+                Timestamp ts = rs.getTimestamp(1);
+                return ts != null ? ts.getTime() : null;
+            }
+        }
+        return null;
     }
 
     @Override

@@ -18,6 +18,12 @@ public interface SavedFlagRepository
 
     void deleteAllSync() throws SQLException;
 
+    /**
+     * Epoch millis of the most recently updated flag row, or null if the table is empty.
+     * Used to compare SQL freshness against the savedflags.json snapshot's last-modified time.
+     */
+    Long getMaxUpdatedAt() throws SQLException;
+
     Mono<Map<String, Boolean>> loadAllAsync();
 
     Mono<Void> upsertAsync(String flagName, boolean enabled);

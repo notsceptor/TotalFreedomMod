@@ -9,6 +9,7 @@ import me.totalfreedom.totalfreedommod.util.FUtil;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.*;
 
 import reactor.core.publisher.Mono;
@@ -32,6 +33,7 @@ public class GenericBanRepository implements BanRepository
     private final String colExpireAt;
     private final String colBanId;
     private final String colIp;
+    private final String colUpdatedAt;
     private final String selectColumns;
 
     public GenericBanRepository(StatementHandler statementHandler, DatabaseAdapter adapter)
@@ -50,6 +52,7 @@ public class GenericBanRepository implements BanRepository
         this.colExpireAt = adapter.quoteIdentifier("expire_at");
         this.colBanId = adapter.quoteIdentifier("ban_id");
         this.colIp = adapter.quoteIdentifier("ip");
+        this.colUpdatedAt = adapter.quoteIdentifier("updated_at");
         this.selectColumns = String.format("%s, %s, %s, %s, %s, %s, %s",
                 colId, colUuid, colUsername, colBannedBy, colBannedByUuid, colReason, colExpireAt);
     }
@@ -57,9 +60,9 @@ public class GenericBanRepository implements BanRepository
     @Override
     public int insert(Ban ban) throws SQLException
     {
-        String sql = String.format("INSERT INTO %s (%s, %s, %s, %s, %s, %s) VALUES (?, ?, ?, ?, ?, %s)",
-                tblBans, colUuid, colUsername, colBannedBy, colBannedByUuid, colReason, colExpireAt,
-                adapter.timestampParamPlaceholder());
+        String sql = String.format("INSERT INTO %s (%s, %s, %s, %s, %s, %s, %s) VALUES (?, ?, ?, ?, ?, %s, %s)",
+                tblBans, colUuid, colUsername, colBannedBy, colBannedByUuid, colReason, colExpireAt, colUpdatedAt,
+                adapter.timestampParamPlaceholder(), adapter.currentTimestamp());
 
         long banId = statementHandler.executeUpdateReturnKey(sql,
                 ban.getUuid() != null ? ban.getUuid().toString() : null,
@@ -296,9 +299,9 @@ public class GenericBanRepository implements BanRepository
     @Override
     public boolean update(Ban ban) throws SQLException
     {
-        String sql = String.format("UPDATE %s SET %s = ?, %s = ?, %s = ?, %s = ?, %s = %s WHERE %s = ?",
+        String sql = String.format("UPDATE %s SET %s = ?, %s = ?, %s = ?, %s = ?, %s = %s, %s = %s WHERE %s = ?",
                 tblBans, colUsername, colBannedBy, colBannedByUuid, colReason, colExpireAt,
-                adapter.timestampParamPlaceholder(), colUuid);
+                adapter.timestampParamPlaceholder(), colUpdatedAt, adapter.currentTimestamp(), colUuid);
 
         int rows = statementHandler.executeUpdate(sql,
                 ban.getUsername(),
@@ -390,6 +393,21 @@ public class GenericBanRepository implements BanRepository
     {
         statementHandler.executeUpdate(String.format("DELETE FROM %s", tblBanIps));
         statementHandler.executeUpdate(String.format("DELETE FROM %s", tblBans));
+    }
+
+    @Override
+    public Long getMaxUpdatedAt() throws SQLException
+    {
+        String sql = String.format("SELECT MAX(%s) FROM %s", colUpdatedAt, tblBans);
+        try (ResultSet rs = statementHandler.executeQuery(sql))
+        {
+            if (rs.next())
+            {
+                Timestamp ts = rs.getTimestamp(1);
+                return ts != null ? ts.getTime() : null;
+            }
+        }
+        return null;
     }
 
     @Override

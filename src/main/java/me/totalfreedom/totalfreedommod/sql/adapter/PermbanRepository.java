@@ -137,6 +137,12 @@ public interface PermbanRepository
      */
     void deleteAllSync() throws SQLException;
 
+    /**
+     * Epoch millis of the most recently updated permban row, or null if the table is empty.
+     * Used to compare SQL freshness against the permbans.json snapshot's last-modified time.
+     */
+    Long getMaxUpdatedAt() throws SQLException;
+
     // ============================================
     // Async Operations
     // ============================================

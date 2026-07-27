@@ -188,21 +188,16 @@ public class MySQLAdapter extends DatabaseAdapter
                 `last_login` DATETIME,
                 `login_message` TEXT,
                 `custom_rank` VARCHAR(64),
+                `updated_at` DATETIME NOT NULL DEFAULT NOW(),
                 INDEX `idx_admins_username` (`username`),
                 INDEX `idx_admins_active` (`active`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """;
         statementHandler.executeUpdate(sql);
 
-        // Migration for tables created before custom_rank existed.
-        try
-        {
-            statementHandler.executeUpdate("ALTER TABLE `admins` ADD COLUMN `custom_rank` VARCHAR(64)");
-        }
-        catch (SQLException ignored)
-        {
-            // Column already exists.
-        }
+        // Migration for tables created before custom_rank/updated_at existed.
+        addColumnIfMissing("admins", "custom_rank", "VARCHAR(64)");
+        addColumnIfMissing("admins", "updated_at", "DATETIME NOT NULL DEFAULT NOW()");
     }
 
     private void createAdminIpsTable() throws SQLException
@@ -231,12 +226,14 @@ public class MySQLAdapter extends DatabaseAdapter
                 `banned_by_uuid` VARCHAR(36),
                 `reason` TEXT,
                 `expire_at` DATETIME,
+                `updated_at` DATETIME NOT NULL DEFAULT NOW(),
                 INDEX `idx_bans_uuid` (`uuid`),
                 INDEX `idx_bans_username` (`username`),
                 INDEX `idx_bans_expire` (`expire_at`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """;
         statementHandler.executeUpdate(sql);
+        addColumnIfMissing("bans", "updated_at", "DATETIME NOT NULL DEFAULT NOW()");
     }
 
     private void createBanIpsTable() throws SQLException
@@ -262,11 +259,13 @@ public class MySQLAdapter extends DatabaseAdapter
                 `uuid` VARCHAR(36),
                 `username` VARCHAR(16),
                 `reason` TEXT,
+                `updated_at` DATETIME NOT NULL DEFAULT NOW(),
                 INDEX `idx_permbans_uuid` (`uuid`),
                 INDEX `idx_permbans_username` (`username`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """;
         statementHandler.executeUpdate(sql);
+        addColumnIfMissing("permbans", "updated_at", "DATETIME NOT NULL DEFAULT NOW()");
     }
 
     private void createPermbanIpsTable() throws SQLException
@@ -292,10 +291,12 @@ public class MySQLAdapter extends DatabaseAdapter
                 `strike_count` INT NOT NULL DEFAULT 0,
                 `last_strike_unix` BIGINT NOT NULL DEFAULT 0,
                 `last_username` VARCHAR(16),
-                `created_at` DATETIME DEFAULT NOW()
+                `created_at` DATETIME DEFAULT NOW(),
+                `updated_at` DATETIME NOT NULL DEFAULT NOW()
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """;
         statementHandler.executeUpdate(sql);
+        addColumnIfMissing("strikes", "updated_at", "DATETIME NOT NULL DEFAULT NOW()");
     }
 
     private void createDiscordLinksTable() throws SQLException
@@ -305,10 +306,12 @@ public class MySQLAdapter extends DatabaseAdapter
                 `id` INT AUTO_INCREMENT PRIMARY KEY,
                 `admin_uuid` VARCHAR(36) NOT NULL UNIQUE,
                 `discord_user_id` VARCHAR(32) NOT NULL UNIQUE,
-                `linked_at` DATETIME NOT NULL DEFAULT NOW()
+                `linked_at` DATETIME NOT NULL DEFAULT NOW(),
+                `updated_at` DATETIME NOT NULL DEFAULT NOW()
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """;
         statementHandler.executeUpdate(sql);
+        addColumnIfMissing("discord_links", "updated_at", "DATETIME NOT NULL DEFAULT NOW()");
     }
 
     private void createRanksTable() throws SQLException
@@ -325,10 +328,12 @@ public class MySQLAdapter extends DatabaseAdapter
                 `console_only` TINYINT(1) NOT NULL DEFAULT 0,
                 `prefix` VARCHAR(64),
                 `inherit_from` VARCHAR(64),
+                `updated_at` DATETIME NOT NULL DEFAULT NOW(),
                 INDEX `idx_ranks_level` (`level`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """;
         statementHandler.executeUpdate(sql);
+        addColumnIfMissing("ranks", "updated_at", "DATETIME NOT NULL DEFAULT NOW()");
     }
 
     private void createRankPermissionsTable() throws SQLException
@@ -358,10 +363,12 @@ public class MySQLAdapter extends DatabaseAdapter
                 `max_y` INT NOT NULL,
                 `max_z` INT NOT NULL,
                 `world_uuid` VARCHAR(36) NOT NULL,
+                `updated_at` DATETIME NOT NULL DEFAULT NOW(),
                 INDEX `idx_protected_areas_name` (`name`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """;
         statementHandler.executeUpdate(sql);
+        addColumnIfMissing("protected_areas", "updated_at", "DATETIME NOT NULL DEFAULT NOW()");
     }
 
     private void createSavedFlagsTable() throws SQLException
@@ -369,10 +376,12 @@ public class MySQLAdapter extends DatabaseAdapter
         String sql = """
             CREATE TABLE IF NOT EXISTS `saved_flags` (
                 `flag_name` VARCHAR(64) PRIMARY KEY,
-                `enabled` TINYINT(1) NOT NULL DEFAULT 0
+                `enabled` TINYINT(1) NOT NULL DEFAULT 0,
+                `updated_at` DATETIME NOT NULL DEFAULT NOW()
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """;
         statementHandler.executeUpdate(sql);
+        addColumnIfMissing("saved_flags", "updated_at", "DATETIME NOT NULL DEFAULT NOW()");
     }
 
     private void createPlayersTable() throws SQLException
@@ -389,10 +398,12 @@ public class MySQLAdapter extends DatabaseAdapter
                 `commands_blocked` TINYINT(1) NOT NULL DEFAULT 0,
                 `strikes` INT NOT NULL DEFAULT 0,
                 `saved_tag` TEXT,
-                `nickname` TEXT
+                `nickname` TEXT,
+                `updated_at` DATETIME NOT NULL DEFAULT NOW()
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """;
         statementHandler.executeUpdate(sql);
+        addColumnIfMissing("players", "updated_at", "DATETIME NOT NULL DEFAULT NOW()");
     }
 
     private void createPlayerIpsTable() throws SQLException
@@ -407,6 +418,23 @@ public class MySQLAdapter extends DatabaseAdapter
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """;
         statementHandler.executeUpdate(sql);
+    }
+
+    /**
+     * Add a column to a table created before that column existed. Ignores the error
+     * when the column is already present (MySQL has no ADD COLUMN IF NOT EXISTS
+     * before 8.0.29, so this stays a try/catch like the rest of this file's migrations).
+     */
+    private void addColumnIfMissing(String table, String column, String definition)
+    {
+        try
+        {
+            statementHandler.executeUpdate(String.format("ALTER TABLE `%s` ADD COLUMN `%s` %s", table, column, definition));
+        }
+        catch (SQLException ignored)
+        {
+            // Column already exists.
+        }
     }
 
     // ============================================

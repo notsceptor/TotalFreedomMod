@@ -6,6 +6,7 @@ import me.totalfreedom.totalfreedommod.sql.adapter.SavedFlagRepository;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -21,8 +22,10 @@ public class GenericSavedFlagRepository implements SavedFlagRepository
     private final String tblSavedFlags;
     private final String colFlagName;
     private final String colEnabled;
+    private final String colUpdatedAt;
     private final String selectSql;
     private final String upsertSql;
+    private final String maxUpdatedAtSql;
 
     public GenericSavedFlagRepository(StatementHandler statementHandler, DatabaseAdapter adapter)
     {
@@ -31,10 +34,13 @@ public class GenericSavedFlagRepository implements SavedFlagRepository
         this.tblSavedFlags = adapter.quoteIdentifier("saved_flags");
         this.colFlagName = adapter.quoteIdentifier("flag_name");
         this.colEnabled = adapter.quoteIdentifier("enabled");
+        this.colUpdatedAt = adapter.quoteIdentifier("updated_at");
 
         this.selectSql = String.format("SELECT %s, %s FROM %s", colFlagName, colEnabled, tblSavedFlags);
-        this.upsertSql = String.format("INSERT INTO %s (%s, %s) VALUES (?, ?) %s",
-                tblSavedFlags, colFlagName, colEnabled, adapter.upsertClause(colFlagName, colEnabled));
+        this.upsertSql = String.format("INSERT INTO %s (%s, %s, %s) VALUES (?, ?, %s) %s",
+                tblSavedFlags, colFlagName, colEnabled, colUpdatedAt, adapter.currentTimestamp(),
+                adapter.upsertClause(colFlagName, colEnabled, colUpdatedAt));
+        this.maxUpdatedAtSql = String.format("SELECT MAX(%s) FROM %s", colUpdatedAt, tblSavedFlags);
     }
 
     @Override
@@ -68,6 +74,20 @@ public class GenericSavedFlagRepository implements SavedFlagRepository
     public void deleteAllSync() throws SQLException
     {
         statementHandler.executeUpdate(String.format("DELETE FROM %s", tblSavedFlags));
+    }
+
+    @Override
+    public Long getMaxUpdatedAt() throws SQLException
+    {
+        try (ResultSet rs = statementHandler.executeQuery(maxUpdatedAtSql))
+        {
+            if (rs.next())
+            {
+                Timestamp ts = rs.getTimestamp(1);
+                return ts != null ? ts.getTime() : null;
+            }
+        }
+        return null;
     }
 
     @Override

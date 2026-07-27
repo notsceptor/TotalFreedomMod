@@ -2,16 +2,21 @@ package me.totalfreedom.totalfreedommod;
 
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
+import com.google.gson.reflect.TypeToken;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.admin.AdminList;
+import me.totalfreedom.totalfreedommod.banning.PermBan;
 import me.totalfreedom.totalfreedommod.banning.PermbanList;
 import me.totalfreedom.totalfreedommod.rank.Rank;
-import me.totalfreedom.totalfreedommod.rank.RankManager;
 import me.totalfreedom.totalfreedommod.util.FLog;
+import me.totalfreedom.totalfreedommod.util.JsonUtil;
 import me.totalfreedom.totalfreedommod.framework.PluginComponent;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -108,7 +113,7 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
      */
     public void convertRanksYaml()
     {
-        File ranksFile = new File(plugin.getDataFolder(), RankManager.RANKS_FILENAME);
+        File ranksFile = new File(plugin.getDataFolder(), "ranks.yml");
         if (!ranksFile.exists())
         {
             return;
@@ -244,15 +249,15 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
             conversions.add(admin);
         }
 
-        File newYamlFile = new File(plugin.getDataFolder(), AdminList.CONFIG_FILENAME);
-        YamlConfiguration newYaml = YamlConfiguration.loadConfiguration(newYamlFile);
+        File newJsonFile = new File(plugin.getDataFolder(), AdminList.CONFIG_FILENAME);
+        Map<String, Admin> converted = new HashMap<>();
         for (Admin admin : conversions)
         {
-            admin.saveTo(newYaml.createSection(admin.getName().toLowerCase()));
+            converted.put(admin.getName().toLowerCase(), admin);
         }
-        try
+        try (FileWriter writer = new FileWriter(newJsonFile))
         {
-            newYaml.save(newYamlFile);
+            JsonUtil.GSON.toJson(converted, new TypeToken<Map<String, Admin>>() {}.getType(), writer);
         }
         catch (IOException ex)
         {
@@ -270,16 +275,26 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
             return;
         }
 
-        try
+        final YamlConfiguration oldYaml = YamlConfiguration.loadConfiguration(oldFile);
+        final Map<String, PermBan> converted = new HashMap<>();
+        for (String name : oldYaml.getKeys(false))
         {
-            Files.copy(oldFile, new File(plugin.getDataFolder(), PermbanList.CONFIG_FILENAME));
-            FLog.info("Converted permban list");
+            final String lowerName = name.toLowerCase().trim();
+            final PermBan permban = new PermBan();
+            permban.setUsername(lowerName);
+            permban.setIps(oldYaml.getStringList(name));
+            converted.put(lowerName, permban);
+        }
+
+        try (FileWriter writer = new FileWriter(new File(plugin.getDataFolder(), PermbanList.CONFIG_FILENAME)))
+        {
+            JsonUtil.GSON.toJson(converted, new TypeToken<Map<String, PermBan>>() {}.getType(), writer);
+            FLog.info("Converted " + converted.size() + " permbans");
         }
         catch (IOException ex)
         {
-            FLog.warning("Could not copy old permban list!");
+            FLog.warning("Could not save converted permban list!");
         }
-
     }
 
 }

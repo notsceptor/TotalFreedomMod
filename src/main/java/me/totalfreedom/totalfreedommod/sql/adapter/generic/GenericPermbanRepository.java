@@ -8,6 +8,7 @@ import me.totalfreedom.totalfreedommod.sql.adapter.PermbanRepository;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.*;
 
 import reactor.core.publisher.Mono;
@@ -28,6 +29,7 @@ public class GenericPermbanRepository implements PermbanRepository
     private final String colReason;
     private final String colPermbanId;
     private final String colIp;
+    private final String colUpdatedAt;
     private final String selectColumns;
 
     public GenericPermbanRepository(StatementHandler statementHandler, DatabaseAdapter adapter)
@@ -43,14 +45,15 @@ public class GenericPermbanRepository implements PermbanRepository
         this.colReason = adapter.quoteIdentifier("reason");
         this.colPermbanId = adapter.quoteIdentifier("permban_id");
         this.colIp = adapter.quoteIdentifier("ip");
+        this.colUpdatedAt = adapter.quoteIdentifier("updated_at");
         this.selectColumns = String.format("%s, %s, %s, %s", colId, colUuid, colUsername, colReason);
     }
 
     @Override
     public int insert(PermBan permban) throws SQLException
     {
-        String sql = String.format("INSERT INTO %s (%s, %s, %s) VALUES (?, ?, ?)",
-                tblPermbans, colUuid, colUsername, colReason);
+        String sql = String.format("INSERT INTO %s (%s, %s, %s, %s) VALUES (?, ?, ?, %s)",
+                tblPermbans, colUuid, colUsername, colReason, colUpdatedAt, adapter.currentTimestamp());
 
         long permbanId = statementHandler.executeUpdateReturnKey(sql,
                 permban.getUuid() != null ? permban.getUuid().toString() : null,
@@ -249,8 +252,8 @@ public class GenericPermbanRepository implements PermbanRepository
     @Override
     public boolean update(PermBan permban) throws SQLException
     {
-        String sql = String.format("UPDATE %s SET %s = ?, %s = ? WHERE %s = ?",
-                tblPermbans, colUsername, colReason, colUuid);
+        String sql = String.format("UPDATE %s SET %s = ?, %s = ?, %s = %s WHERE %s = ?",
+                tblPermbans, colUsername, colReason, colUpdatedAt, adapter.currentTimestamp(), colUuid);
 
         int rows = statementHandler.executeUpdate(sql,
                 permban.getUsername(),
@@ -323,6 +326,21 @@ public class GenericPermbanRepository implements PermbanRepository
     {
         statementHandler.executeUpdate(String.format("DELETE FROM %s", tblPermbanIps));
         statementHandler.executeUpdate(String.format("DELETE FROM %s", tblPermbans));
+    }
+
+    @Override
+    public Long getMaxUpdatedAt() throws SQLException
+    {
+        String sql = String.format("SELECT MAX(%s) FROM %s", colUpdatedAt, tblPermbans);
+        try (ResultSet rs = statementHandler.executeQuery(sql))
+        {
+            if (rs.next())
+            {
+                Timestamp ts = rs.getTimestamp(1);
+                return ts != null ? ts.getTime() : null;
+            }
+        }
+        return null;
     }
 
     @Override

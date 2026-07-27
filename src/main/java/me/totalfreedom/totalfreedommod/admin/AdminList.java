@@ -3,6 +3,7 @@ package me.totalfreedom.totalfreedommod.admin;
 import com.google.common.base.Function;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.google.gson.reflect.TypeToken;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -19,14 +20,16 @@ import java.nio.charset.StandardCharsets;
 import me.totalfreedom.totalfreedommod.sql.adapter.AdminRepository;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
+import me.totalfreedom.totalfreedommod.util.JsonUtil;
 import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.lang.reflect.Type;
 import org.bukkit.Bukkit;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import org.bukkit.command.CommandSender;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -37,7 +40,9 @@ import org.bukkit.plugin.ServicePriority;
 public class AdminList extends FreedomService
 {
 
-    public static final String CONFIG_FILENAME = "admins.yml";
+    public static final String CONFIG_FILENAME = "admins.json";
+
+    private static final Type ADMIN_MAP_TYPE = new TypeToken<Map<String, Admin>>() {}.getType();
 
     private static final long LAST_LOGIN_DEBOUNCE_MS = 5L * 60L * 1000L;
 
@@ -46,7 +51,7 @@ public class AdminList extends FreedomService
     // Only active admins below
     @Getter
     private final Set<Admin> activeAdmins = Sets.newHashSet();
-    
+
     // UUID-based lookup table
     private final Map<UUID, Admin> uuidTable = Maps.newHashMap();
     private final Map<String, Admin> nameTable = Maps.newHashMap();
@@ -54,8 +59,7 @@ public class AdminList extends FreedomService
     private final Set<Player> onlineAdminPlayers = Sets.newHashSet();
     //
     private final File configFile;
-    private YamlConfiguration config;
-    
+
     // Flag to track if SQL is available
     private boolean usingSql = false;
     private final Object persistenceLock = new Object();
@@ -66,7 +70,6 @@ public class AdminList extends FreedomService
         super(plugin);
 
         this.configFile = new File(plugin.getDataFolder(), CONFIG_FILENAME);
-        this.config = YamlConfiguration.loadConfiguration(configFile);
     }
 
     @Override
@@ -101,7 +104,7 @@ public class AdminList extends FreedomService
         }
         else
         {
-            loadFromYaml();
+            loadFromJson();
         }
 
         if (ConfigEntry.ADMINLIST_USE_UUID_ONLY.getBoolean())
@@ -177,11 +180,87 @@ public class AdminList extends FreedomService
             usingSql = true;
             updateTables();
             FLog.info("Loaded " + allAdmins.size() + " admins from SQL database (" + nameTable.size() + " active, " + ipTable.size() + " IPs)");
+
+            reconcileFromJsonIfNewer(repo);
         }
         catch (Exception ex)
         {
-            FLog.warning("Failed to load admins from SQL, falling back to YAML: " + ex.getMessage());
-            loadFromYaml();
+            FLog.warning("Failed to load admins from SQL, falling back to JSON: " + ex.getMessage());
+            loadFromJson();
+        }
+    }
+
+    /**
+     * If admins.json was written more recently than the database's last update (e.g. edited
+     * by hand, or restored from backup while SQL was unavailable), re-import it into SQL.
+     */
+    private void reconcileFromJsonIfNewer(AdminRepository repo)
+    {
+        if (!configFile.exists())
+        {
+            return;
+        }
+
+        try
+        {
+            Long sqlUpdatedAt = repo.getMaxUpdatedAt();
+            if (sqlUpdatedAt != null && configFile.lastModified() <= sqlUpdatedAt)
+            {
+                return;
+            }
+
+            Map<String, Admin> jsonAdmins = readJsonAdmins();
+            if (jsonAdmins.isEmpty())
+            {
+                return;
+            }
+
+            FLog.info("admins.json is newer than the database; re-importing " + jsonAdmins.size() + " admin(s) from it.");
+            for (Admin admin : jsonAdmins.values())
+            {
+                if (!admin.isValid())
+                {
+                    continue;
+                }
+                UUID uuid = resolveUuid(admin);
+                admin.setUuid(uuid);
+                repo.save(uuid, admin).block();
+            }
+
+            allAdmins.clear();
+            allAdmins.putAll(jsonAdmins);
+            updateTables();
+        }
+        catch (Exception ex)
+        {
+            FLog.warning("Failed to reconcile " + CONFIG_FILENAME + " into the database: " + ex.getMessage());
+        }
+    }
+
+    /**
+     * Resolve a UUID for an admin missing one: Mojang lookup by name, falling back to an
+     * offline-derived UUID.
+     */
+    private UUID resolveUuid(Admin admin)
+    {
+        if (admin.getUuid() != null)
+        {
+            return admin.getUuid();
+        }
+        UUID uuid = FUtil.usernameToUuid(admin.getName());
+        if (uuid == null)
+        {
+            uuid = UUID.nameUUIDFromBytes(("OfflinePlayer:" + admin.getName().toLowerCase()).getBytes(StandardCharsets.UTF_8));
+        }
+        return uuid;
+    }
+
+    private Map<String, Admin> readJsonAdmins() throws IOException
+    {
+        try (FileReader reader = new FileReader(configFile))
+        {
+            Map<String, Admin> admins = JsonUtil.GSON.fromJson(reader, ADMIN_MAP_TYPE);
+            return admins != null ? admins : Maps.newHashMap();
         }
     }
     
@@ -209,9 +288,9 @@ public class AdminList extends FreedomService
     }
     
     /**
-     * Load admins from YAML file (fallback).
+     * Load admins from JSON file (fallback).
      */
-    private void loadFromYaml()
+    private void loadFromJson()
     {
         if (!configFile.exists())
         {
@@ -225,33 +304,29 @@ public class AdminList extends FreedomService
                 FLog.severe("Could not create " + CONFIG_FILENAME);
             }
         }
-        config = YamlConfiguration.loadConfiguration(configFile);
 
         allAdmins.clear();
-        for (String key : config.getKeys(false))
+        try
         {
-            ConfigurationSection section = config.getConfigurationSection(key);
-            if (section == null)
+            for (Map.Entry<String, Admin> entry : readJsonAdmins().entrySet())
             {
-                FLog.warning("Invalid admin list format: " + key);
-                continue;
+                Admin admin = entry.getValue();
+                if (admin == null || !admin.isValid())
+                {
+                    FLog.warning("Could not load admin: " + entry.getKey() + ". Missing details!");
+                    continue;
+                }
+                allAdmins.put(entry.getKey(), admin);
             }
-
-            Admin admin = new Admin(key);
-            admin.loadFrom(section);
-
-            if (!admin.isValid())
-            {
-                FLog.warning("Could not load admin: " + key + ". Missing details!");
-                continue;
-            }
-
-            allAdmins.put(key, admin);
+        }
+        catch (IOException ex)
+        {
+            FLog.severe("Could not read " + CONFIG_FILENAME + ": " + ex.getMessage());
         }
 
         usingSql = false;
         updateTables();
-        FLog.info("Loaded " + allAdmins.size() + " admins from YAML (" + nameTable.size() + " active, " + ipTable.size() + " IPs)");
+        FLog.info("Loaded " + allAdmins.size() + " admins from JSON (" + nameTable.size() + " active, " + ipTable.size() + " IPs)");
     }
 
     public synchronized void save()
@@ -262,7 +337,7 @@ public class AdminList extends FreedomService
         }
         else
         {
-            saveToYaml();
+            saveToJson();
         }
     }
 
@@ -282,7 +357,7 @@ public class AdminList extends FreedomService
 
         if (!plugin.isEnabled())
         {
-            saveToYaml();
+            saveToJson();
             return;
         }
 
@@ -290,7 +365,7 @@ public class AdminList extends FreedomService
         {
             synchronized (AdminList.this)
             {
-                saveToYaml();
+                saveToJson();
             }
         });
     }
@@ -339,6 +414,7 @@ public class AdminList extends FreedomService
                         FLog.warning("Failed to save admin " + snapshot.getName() + " to SQL: " + ex.getMessage());
                         return Mono.empty();
                     })
+                    .then(Mono.fromRunnable(this::saveToJson))
                     .then()
                     .cache();
             persistenceChain.subscribe();
@@ -367,7 +443,7 @@ public class AdminList extends FreedomService
         if (plugin.dm == null || !plugin.dm.isInitialized())
         {
             FLog.warning("SQL not available, falling back to YAML save");
-            saveToYaml();
+            saveToJson();
             return;
         }
         
@@ -390,34 +466,23 @@ public class AdminList extends FreedomService
                 repo.save(uuid, admin).block();
             }
             FLog.debug("Saved " + allAdmins.size() + " admins to SQL database");
+            saveToJson();
         }
         catch (Exception ex)
         {
             FLog.warning("Failed to save admins to SQL: " + ex.getMessage());
-            // Don't fall back to YAML here - we don't want to create conflicting data
+            // Don't fall back to JSON here - we don't want to create conflicting data
         }
     }
     
     /**
-     * Save all admins to YAML file (fallback).
+     * Save all admins to the JSON file (fallback, and the write-through snapshot when using SQL).
      */
-    private void saveToYaml()
+    private void saveToJson()
     {
-        // Clear the config
-        for (String key : config.getKeys(false))
+        try (FileWriter writer = new FileWriter(configFile))
         {
-            config.set(key, null);
-        }
-
-        for (Admin admin : allAdmins.values())
-        {
-            ConfigurationSection section = config.createSection(admin.getConfigKey());
-            admin.saveTo(section);
-        }
-
-        try
-        {
-            config.save(configFile);
+            JsonUtil.GSON.toJson(allAdmins, ADMIN_MAP_TYPE, writer);
         }
         catch (IOException ex)
         {
@@ -617,15 +682,7 @@ public class AdminList extends FreedomService
         }
         else
         {
-            admin.saveTo(config.createSection(key));
-            try
-            {
-                config.save(configFile);
-            }
-            catch (IOException ex)
-            {
-                FLog.severe("Could not save " + CONFIG_FILENAME);
-            }
+            saveToJson();
         }
 
         refreshWorldEditBypassForAdmin(admin);
@@ -656,15 +713,7 @@ public class AdminList extends FreedomService
         }
         else
         {
-            config.set(admin.getConfigKey(), null);
-            try
-            {
-                config.save(configFile);
-            }
-            catch (IOException ex)
-            {
-                FLog.severe("Could not save " + CONFIG_FILENAME);
-            }
+            saveToJson();
         }
 
         refreshWorldEditBypassForAdmin(admin);
@@ -735,6 +784,8 @@ public class AdminList extends FreedomService
                         FLog.warning("Failed to remove admin " + name + " from SQL: " + ex.getMessage());
                         return Mono.empty();
                     })
+                    .then(Mono.fromRunnable(this::saveToJson))
+                    .then()
                     .cache();
             persistenceChain.subscribe();
         }

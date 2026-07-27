@@ -187,13 +187,15 @@ public class PostgreSQLAdapter extends DatabaseAdapter
                 "active" BOOLEAN DEFAULT TRUE,
                 "last_login" TIMESTAMP,
                 "login_message" TEXT,
-                "custom_rank" VARCHAR(64)
+                "custom_rank" VARCHAR(64),
+                "updated_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
             """;
         statementHandler.executeUpdate(sql);
 
-        // Migration for tables created before custom_rank existed.
+        // Migration for tables created before custom_rank/updated_at existed.
         statementHandler.executeUpdate("ALTER TABLE \"admins\" ADD COLUMN IF NOT EXISTS \"custom_rank\" VARCHAR(64)");
+        statementHandler.executeUpdate("ALTER TABLE \"admins\" ADD COLUMN IF NOT EXISTS \"updated_at\" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP");
 
         // Create indexes separately (PostgreSQL style)
         statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_admins_username ON \"admins\"(\"username\")");
@@ -224,10 +226,12 @@ public class PostgreSQLAdapter extends DatabaseAdapter
                 "banned_by" VARCHAR(16),
                 "banned_by_uuid" VARCHAR(36),
                 "reason" TEXT,
-                "expire_at" TIMESTAMP
+                "expire_at" TIMESTAMP,
+                "updated_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
             """;
         statementHandler.executeUpdate(sql);
+        statementHandler.executeUpdate("ALTER TABLE \"bans\" ADD COLUMN IF NOT EXISTS \"updated_at\" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP");
 
         statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_bans_uuid ON \"bans\"(\"uuid\")");
         statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_bans_username ON \"bans\"(\"username\")");
@@ -255,10 +259,12 @@ public class PostgreSQLAdapter extends DatabaseAdapter
                 "id" SERIAL PRIMARY KEY,
                 "uuid" VARCHAR(36),
                 "username" VARCHAR(16),
-                "reason" TEXT
+                "reason" TEXT,
+                "updated_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
             """;
         statementHandler.executeUpdate(sql);
+        statementHandler.executeUpdate("ALTER TABLE \"permbans\" ADD COLUMN IF NOT EXISTS \"updated_at\" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP");
 
         statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_permbans_uuid ON \"permbans\"(\"uuid\")");
         statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_permbans_username ON \"permbans\"(\"username\")");
@@ -286,10 +292,12 @@ public class PostgreSQLAdapter extends DatabaseAdapter
                 "strike_count" INTEGER NOT NULL DEFAULT 0,
                 "last_strike_unix" BIGINT NOT NULL DEFAULT 0,
                 "last_username" VARCHAR(16),
-                "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                "updated_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
             """;
         statementHandler.executeUpdate(sql);
+        statementHandler.executeUpdate("ALTER TABLE \"strikes\" ADD COLUMN IF NOT EXISTS \"updated_at\" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP");
     }
 
     private void createDiscordLinksTable() throws SQLException
@@ -299,10 +307,12 @@ public class PostgreSQLAdapter extends DatabaseAdapter
                 "id" SERIAL PRIMARY KEY,
                 "admin_uuid" VARCHAR(36) NOT NULL UNIQUE,
                 "discord_user_id" VARCHAR(32) NOT NULL UNIQUE,
-                "linked_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                "linked_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                "updated_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
             """;
         statementHandler.executeUpdate(sql);
+        statementHandler.executeUpdate("ALTER TABLE \"discord_links\" ADD COLUMN IF NOT EXISTS \"updated_at\" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP");
     }
 
     private void createRanksTable() throws SQLException
@@ -318,10 +328,12 @@ public class PostgreSQLAdapter extends DatabaseAdapter
                 "admin" BOOLEAN NOT NULL DEFAULT FALSE,
                 "console_only" BOOLEAN NOT NULL DEFAULT FALSE,
                 "prefix" VARCHAR(64),
-                "inherit_from" VARCHAR(64)
+                "inherit_from" VARCHAR(64),
+                "updated_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
             """;
         statementHandler.executeUpdate(sql);
+        statementHandler.executeUpdate("ALTER TABLE \"ranks\" ADD COLUMN IF NOT EXISTS \"updated_at\" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP");
         statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_ranks_level ON \"ranks\"(\"level\")");
     }
 
@@ -350,10 +362,12 @@ public class PostgreSQLAdapter extends DatabaseAdapter
                 "max_x" INTEGER NOT NULL,
                 "max_y" INTEGER NOT NULL,
                 "max_z" INTEGER NOT NULL,
-                "world_uuid" VARCHAR(36) NOT NULL
+                "world_uuid" VARCHAR(36) NOT NULL,
+                "updated_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
             """;
         statementHandler.executeUpdate(sql);
+        statementHandler.executeUpdate("ALTER TABLE \"protected_areas\" ADD COLUMN IF NOT EXISTS \"updated_at\" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP");
         statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_protected_areas_name ON \"protected_areas\"(\"name\")");
     }
 
@@ -362,10 +376,12 @@ public class PostgreSQLAdapter extends DatabaseAdapter
         String sql = """
             CREATE TABLE IF NOT EXISTS "saved_flags" (
                 "flag_name" VARCHAR(64) PRIMARY KEY,
-                "enabled" BOOLEAN NOT NULL DEFAULT FALSE
+                "enabled" BOOLEAN NOT NULL DEFAULT FALSE,
+                "updated_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
             """;
         statementHandler.executeUpdate(sql);
+        statementHandler.executeUpdate("ALTER TABLE \"saved_flags\" ADD COLUMN IF NOT EXISTS \"updated_at\" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP");
     }
 
     private void createPlayersTable() throws SQLException
@@ -382,10 +398,12 @@ public class PostgreSQLAdapter extends DatabaseAdapter
                 "commands_blocked" BOOLEAN NOT NULL DEFAULT FALSE,
                 "strikes" INTEGER NOT NULL DEFAULT 0,
                 "saved_tag" TEXT,
-                "nickname" TEXT
+                "nickname" TEXT,
+                "updated_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
             """;
         statementHandler.executeUpdate(sql);
+        statementHandler.executeUpdate("ALTER TABLE \"players\" ADD COLUMN IF NOT EXISTS \"updated_at\" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP");
     }
 
     private void createPlayerIpsTable() throws SQLException

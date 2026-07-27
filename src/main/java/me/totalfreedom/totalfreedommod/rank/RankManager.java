@@ -1,8 +1,12 @@
 package me.totalfreedom.totalfreedommod.rank;
 
 import com.google.common.collect.Maps;
+import com.google.gson.reflect.TypeToken;
 import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -19,10 +23,12 @@ import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchContext;
 import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchSession;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
+import me.totalfreedom.totalfreedommod.sql.adapter.RankRepository;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FTask;
 import me.totalfreedom.totalfreedommod.util.FUtil;
+import me.totalfreedom.totalfreedommod.util.JsonUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
@@ -51,7 +57,9 @@ import org.bukkit.scoreboard.Team;
 
 public class RankManager extends FreedomService
 {
-    public static final String RANKS_FILENAME = "ranks.yml";
+    public static final String RANKS_FILENAME = "ranks.json";
+
+    private static final Type RANK_MAP_TYPE = new TypeToken<Map<String, CustomRank>>() {}.getType();
 
     /**
      * All custom ranks, keyed by ID.
@@ -63,10 +71,7 @@ public class RankManager extends FreedomService
      */
     private File ranksFile;
 
-    /**
-     * YAML configuration for ranks.
-     */
-    private YamlConfiguration ranksConfig;
+    private boolean usingSql = false;
 
     /**
      * Chat input handler for interactive menus.
@@ -112,12 +117,56 @@ public class RankManager extends FreedomService
     }
 
     /**
-     * Load custom ranks from ranks.yml.
+     * Load custom ranks from SQL (falling back to ranks.json).
      */
     public void loadRanks()
     {
         ranksFile = new File(plugin.getDataFolder(), RANKS_FILENAME);
 
+        if (plugin.dm != null && plugin.dm.isInitialized())
+        {
+            loadFromSql();
+        }
+        else
+        {
+            loadFromJsonOrDefaults();
+        }
+    }
+
+    private void loadFromSql()
+    {
+        try
+        {
+            RankRepository repo = plugin.dm.getRankRepository();
+            Map<String, CustomRank> loaded = repo.loadAllAsync().block();
+            usingSql = true;
+
+            if (loaded.isEmpty() && !ranksFile.exists())
+            {
+                createDefaultRanks();
+                migrateConfigRanks();
+                return;
+            }
+
+            customRanks.clear();
+            customRanks.putAll(loaded);
+            validateEssentialRanks();
+            resolveInheritance();
+            updateAllPlayerTeams();
+            FLog.info("Loaded " + customRanks.size() + " custom ranks from SQL database.");
+
+            reconcileFromJsonIfNewer(repo);
+        }
+        catch (Exception ex)
+        {
+            FLog.warning("Failed to load ranks from SQL, falling back to JSON: " + ex.getMessage());
+            usingSql = false;
+            loadFromJsonOrDefaults();
+        }
+    }
+
+    private void loadFromJsonOrDefaults()
+    {
         if (!ranksFile.exists())
         {
             createDefaultRanks();
@@ -125,24 +174,75 @@ public class RankManager extends FreedomService
             return;
         }
 
-        ranksConfig = YamlConfiguration.loadConfiguration(ranksFile);
+        loadFromJson();
+    }
+
+    private void loadFromJson()
+    {
         customRanks.clear();
-
-        for (String key : ranksConfig.getKeys(false))
+        try
         {
-            ConfigurationSection section = ranksConfig.getConfigurationSection(key);
-            if (section == null) continue;
-
-            CustomRank rank = new CustomRank(key);
-            rank.loadFrom(section);
-            customRanks.put(key.toLowerCase(), rank);
+            customRanks.putAll(readJsonRanks());
+        }
+        catch (IOException ex)
+        {
+            FLog.severe("Could not read " + RANKS_FILENAME + ": " + ex.getMessage());
         }
 
         validateEssentialRanks();
         resolveInheritance();
         updateAllPlayerTeams();
         FLog.info("Loaded " + customRanks.size() + " custom ranks.");
+    }
 
+    private Map<String, CustomRank> readJsonRanks() throws IOException
+    {
+        try (FileReader reader = new FileReader(ranksFile))
+        {
+            Map<String, CustomRank> loaded = JsonUtil.GSON.fromJson(reader, RANK_MAP_TYPE);
+            return loaded != null ? loaded : Maps.newLinkedHashMap();
+        }
+    }
+
+    /**
+     * If ranks.json was written more recently than the database's last update, re-import it into SQL.
+     */
+    private void reconcileFromJsonIfNewer(RankRepository repo)
+    {
+        if (!ranksFile.exists())
+        {
+            return;
+        }
+
+        try
+        {
+            Long sqlUpdatedAt = repo.getMaxUpdatedAt();
+            if (sqlUpdatedAt != null && ranksFile.lastModified() <= sqlUpdatedAt)
+            {
+                return;
+            }
+
+            Map<String, CustomRank> jsonRanks = readJsonRanks();
+            if (jsonRanks.isEmpty())
+            {
+                return;
+            }
+
+            FLog.info("ranks.json is newer than the database; re-importing " + jsonRanks.size() + " rank(s) from it.");
+            for (CustomRank rank : jsonRanks.values())
+            {
+                repo.saveOrUpdate(rank);
+            }
+
+            customRanks.clear();
+            customRanks.putAll(jsonRanks);
+            resolveInheritance();
+            updateAllPlayerTeams();
+        }
+        catch (Exception ex)
+        {
+            FLog.warning("Failed to reconcile ranks.json into the database: " + ex.getMessage());
+        }
     }
 
     private static final String[] ESSENTIAL_RANKS = {
@@ -319,32 +419,60 @@ public class RankManager extends FreedomService
     }
 
     /**
-     * Save custom ranks to ranks.yml.
+     * Save custom ranks to SQL (or ranks.json if SQL is unavailable).
      */
     public void saveRanks()
+    {
+        if (usingSql)
+        {
+            saveToSql();
+        }
+        else
+        {
+            saveToJson();
+        }
+    }
+
+    private void saveToSql()
+    {
+        if (plugin.dm == null || !plugin.dm.isInitialized())
+        {
+            FLog.warning("SQL not available, falling back to JSON save for ranks");
+            saveToJson();
+            return;
+        }
+
+        try
+        {
+            RankRepository repo = plugin.dm.getRankRepository();
+            for (CustomRank rank : customRanks.values())
+            {
+                repo.save(rank).block();
+            }
+        }
+        catch (Exception ex)
+        {
+            FLog.severe("Could not save ranks to SQL: " + ex.getMessage());
+        }
+
+        saveToJson();
+    }
+
+    private void saveToJson()
     {
         if (ranksFile == null)
         {
             ranksFile = new File(plugin.getDataFolder(), RANKS_FILENAME);
         }
 
-        ranksConfig = new YamlConfiguration();
-
-        for (CustomRank rank : customRanks.values())
+        try (FileWriter writer = new FileWriter(ranksFile))
         {
-            ConfigurationSection section = ranksConfig.createSection(rank.getId());
-            rank.saveTo(section);
-        }
-
-        try
-        {
-            ranksConfig.save(ranksFile);
+            JsonUtil.GSON.toJson(customRanks, RANK_MAP_TYPE, writer);
         }
         catch (IOException ex)
         {
             FLog.severe("Could not save " + RANKS_FILENAME + ": " + ex.getMessage());
         }
-
     }
 
     private void resolveInheritance()

@@ -161,6 +161,12 @@ public interface AdminRepository
      */
     void deleteAllSync() throws SQLException;
 
+    /**
+     * Epoch millis of the most recently updated admin row, or null if the table is empty.
+     * Used to compare SQL freshness against the admins.json snapshot's last-modified time.
+     */
+    Long getMaxUpdatedAt() throws SQLException;
+
     // ============================================
     // Async Operations
     // ============================================

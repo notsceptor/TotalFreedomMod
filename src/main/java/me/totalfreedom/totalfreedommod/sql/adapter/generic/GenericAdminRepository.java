@@ -10,6 +10,7 @@ import me.totalfreedom.totalfreedommod.util.FUtil;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.*;
 
 import reactor.core.publisher.Mono;
@@ -34,6 +35,7 @@ public class GenericAdminRepository implements AdminRepository
     private final String colCustomRank;
     private final String colAdminId;
     private final String colIp;
+    private final String colUpdatedAt;
     private final String selectColumns;
 
     public GenericAdminRepository(StatementHandler statementHandler, DatabaseAdapter adapter)
@@ -53,6 +55,7 @@ public class GenericAdminRepository implements AdminRepository
         this.colCustomRank = adapter.quoteIdentifier("custom_rank");
         this.colAdminId = adapter.quoteIdentifier("admin_id");
         this.colIp = adapter.quoteIdentifier("ip");
+        this.colUpdatedAt = adapter.quoteIdentifier("updated_at");
         this.selectColumns = String.format("%s, %s, %s, %s, %s, %s, %s, %s",
                 colId, colUuid, colUsername, colRank, colActive, colLastLogin, colLoginMessage, colCustomRank);
     }
@@ -60,9 +63,9 @@ public class GenericAdminRepository implements AdminRepository
     @Override
     public int insert(UUID uuid, Admin admin) throws SQLException
     {
-        String sql = String.format("INSERT INTO %s (%s, %s, %s, %s, %s, %s, %s) VALUES (?, ?, ?, ?, %s, ?, ?)",
+        String sql = String.format("INSERT INTO %s (%s, %s, %s, %s, %s, %s, %s, %s) VALUES (?, ?, ?, ?, %s, ?, ?, %s)",
                 tblAdmins, colUuid, colUsername, colRank, colActive, colLastLogin, colLoginMessage, colCustomRank,
-                adapter.timestampParamPlaceholder());
+                colUpdatedAt, adapter.timestampParamPlaceholder(), adapter.currentTimestamp());
 
         long adminId = statementHandler.executeUpdateReturnKey(sql,
                 uuid.toString(),
@@ -270,9 +273,9 @@ public class GenericAdminRepository implements AdminRepository
     @Override
     public boolean update(UUID uuid, Admin admin) throws SQLException
     {
-        String sql = String.format("UPDATE %s SET %s = ?, %s = ?, %s = ?, %s = %s, %s = ?, %s = ? WHERE %s = ?",
+        String sql = String.format("UPDATE %s SET %s = ?, %s = ?, %s = ?, %s = %s, %s = ?, %s = ?, %s = %s WHERE %s = ?",
                 tblAdmins, colUsername, colRank, colActive, colLastLogin, adapter.timestampParamPlaceholder(),
-                colLoginMessage, colCustomRank, colUuid);
+                colLoginMessage, colCustomRank, colUpdatedAt, adapter.currentTimestamp(), colUuid);
 
         int rows = statementHandler.executeUpdate(sql,
                 admin.getName(),
@@ -373,6 +376,21 @@ public class GenericAdminRepository implements AdminRepository
     {
         statementHandler.executeUpdate(String.format("DELETE FROM %s", tblAdminIps));
         statementHandler.executeUpdate(String.format("DELETE FROM %s", tblAdmins));
+    }
+
+    @Override
+    public Long getMaxUpdatedAt() throws SQLException
+    {
+        String sql = String.format("SELECT MAX(%s) FROM %s", colUpdatedAt, tblAdmins);
+        try (ResultSet rs = statementHandler.executeQuery(sql))
+        {
+            if (rs.next())
+            {
+                Timestamp ts = rs.getTimestamp(1);
+                return ts != null ? ts.getTime() : null;
+            }
+        }
+        return null;
     }
 
     @Override

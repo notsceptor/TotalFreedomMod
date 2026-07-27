@@ -1,19 +1,17 @@
 package me.totalfreedom.totalfreedommod.admin;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.ConfigInterfaces.ConfigLoadable;
-import me.totalfreedom.totalfreedommod.util.ConfigInterfaces.ConfigSavable;
 import me.totalfreedom.totalfreedommod.util.ConfigInterfaces.Validatable;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 
-public class Admin implements ConfigLoadable, ConfigSavable, Validatable
+public class Admin implements ConfigLoadable, Validatable
 {
 
     private UUID uuid;
@@ -75,19 +73,6 @@ public class Admin implements ConfigLoadable, ConfigSavable, Validatable
         lastLogin = FUtil.stringToDate(cs.getString("last_login"));
         loginMessage = cs.getString("login_message", null);
         customRankId = cs.getString("custom_rank", null);
-    }
-
-    @Override
-    public void saveTo(ConfigurationSection cs)
-    {
-        Preconditions.checkArgument(isValid(), "Could not save admin entry: " + name + ". Entry not valid!");
-        cs.set("username", name);
-        cs.set("active", active);
-        cs.set("rank", rank.toString());
-        cs.set("ips", Lists.newArrayList(ips));
-        cs.set("last_login", FUtil.dateToString(lastLogin));
-        cs.set("login_message", loginMessage);
-        cs.set("custom_rank", customRankId);
     }
 
     public boolean isAtLeast(Rank pRank)

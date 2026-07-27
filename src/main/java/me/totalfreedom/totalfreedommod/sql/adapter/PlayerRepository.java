@@ -43,6 +43,13 @@ public interface PlayerRepository
 
     void deleteAllSync() throws SQLException;
 
+    /**
+     * Epoch millis of this player's row's last update, or null if no such row exists.
+     * Used to compare SQL freshness against that player's {@code players/<username>.json}
+     * snapshot file's last-modified time.
+     */
+    Long getUpdatedAt(String username) throws SQLException;
+
     Mono<Map<String, PlayerData>> loadAllAsync();
 
     Mono<Void> save(PlayerData data);

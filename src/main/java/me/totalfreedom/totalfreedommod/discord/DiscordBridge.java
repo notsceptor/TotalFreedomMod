@@ -69,6 +69,11 @@ public class DiscordBridge extends FreedomService
             return;
         }
 
+        if (plugin.dm != null && plugin.dm.isInitialized())
+        {
+            DiscordLinkJsonSync.reconcileFromJsonIfNewer(plugin, plugin.dm.getDiscordLinkRepository());
+        }
+
         String token = ConfigEntry.DISCORD_TOKEN.getString();
         if (token == null || token.isBlank())
         {

@@ -2,6 +2,7 @@ package me.totalfreedom.totalfreedommod.banning;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.google.gson.reflect.TypeToken;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -13,11 +14,14 @@ import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.sql.adapter.PermbanRepository;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
+import me.totalfreedom.totalfreedommod.util.JsonUtil;
 import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.lang.reflect.Type;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
@@ -25,13 +29,16 @@ import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
 public class PermbanList extends FreedomService
 {
 
-    public static final String CONFIG_FILENAME = "permbans.yml";
+    public static final String CONFIG_FILENAME = "permbans.json";
+
+    private static final Type PERMBAN_MAP_TYPE = new TypeToken<Map<String, PermBan>>() {}.getType();
 
     private final Set<String> permbannedNames = Sets.newHashSet();
     private final Set<String> permbannedIps = Sets.newHashSet();
-    
+
     // Store full PermBan objects for SQL operations
     private final Map<String, PermBan> permbansByName = Maps.newHashMap();
+    private final File configFile;
     private final Object lock = new Object();
     private final Object persistenceLock = new Object();
 
@@ -41,6 +48,7 @@ public class PermbanList extends FreedomService
     public PermbanList(TotalFreedomMod plugin)
     {
         super(plugin);
+        this.configFile = new File(plugin.getDataFolder(), CONFIG_FILENAME);
     }
 
     @Override
@@ -53,10 +61,10 @@ public class PermbanList extends FreedomService
         }
         else
         {
-            loadFromYaml();
+            loadFromJson();
         }
     }
-    
+
     /**
      * Load permbans from SQL database.
      */
@@ -84,20 +92,80 @@ public class PermbanList extends FreedomService
                 usingSql = true;
                 FLog.info("Loaded " + permbannedIps.size() + " perm IP bans and " + permbannedNames.size() + " perm username bans from SQL database.");
             }
+
+            reconcileFromJsonIfNewer(repo);
         }
         catch (Exception ex)
         {
-            FLog.warning("Failed to load permbans from SQL, falling back to YAML: " + ex.getMessage());
-            loadFromYaml();
+            FLog.warning("Failed to load permbans from SQL, falling back to JSON: " + ex.getMessage());
+            loadFromJson();
         }
     }
-    
+
     /**
-     * Load permbans from YAML file (fallback).
+     * If permbans.json was written more recently than the database's last update, re-import it into SQL.
      */
-    private void loadFromYaml()
+    private void reconcileFromJsonIfNewer(PermbanRepository repo)
     {
-        final File configFile = new File(plugin.getDataFolder(), CONFIG_FILENAME);
+        if (!configFile.exists())
+        {
+            return;
+        }
+
+        try
+        {
+            Long sqlUpdatedAt = repo.getMaxUpdatedAt();
+            if (sqlUpdatedAt != null && configFile.lastModified() <= sqlUpdatedAt)
+            {
+                return;
+            }
+
+            Map<String, PermBan> jsonPermbans = readJsonPermbans();
+            if (jsonPermbans.isEmpty())
+            {
+                return;
+            }
+
+            FLog.info("permbans.json is newer than the database; re-importing " + jsonPermbans.size() + " permban(s) from it.");
+            for (PermBan permban : jsonPermbans.values())
+            {
+                repo.save(permban).block();
+            }
+
+            synchronized (lock)
+            {
+                permbannedNames.clear();
+                permbannedIps.clear();
+                permbansByName.clear();
+                for (PermBan permban : jsonPermbans.values())
+                {
+                    String name = permban.getUsername().toLowerCase().trim();
+                    permbannedNames.add(name);
+                    permbannedIps.addAll(permban.getIps());
+                    permbansByName.put(name, permban);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            FLog.warning("Failed to reconcile permbans.json into the database: " + ex.getMessage());
+        }
+    }
+
+    private Map<String, PermBan> readJsonPermbans() throws IOException
+    {
+        try (FileReader reader = new FileReader(configFile))
+        {
+            Map<String, PermBan> loaded = JsonUtil.GSON.fromJson(reader, PERMBAN_MAP_TYPE);
+            return loaded != null ? loaded : Maps.newHashMap();
+        }
+    }
+
+    /**
+     * Load permbans from the JSON file (fallback).
+     */
+    private void loadFromJson()
+    {
         if (!configFile.exists())
         {
             try
@@ -110,7 +178,6 @@ public class PermbanList extends FreedomService
                 FLog.severe("Could not create " + CONFIG_FILENAME);
             }
         }
-        final YamlConfiguration config = YamlConfiguration.loadConfiguration(configFile);
 
         synchronized (lock)
         {
@@ -118,35 +185,57 @@ public class PermbanList extends FreedomService
             permbannedIps.clear();
             permbansByName.clear();
 
-            for (String name : config.getKeys(false))
+            try
             {
-                String lowerName = name.toLowerCase().trim();
-                permbannedNames.add(lowerName);
-                List<String> ips = config.getStringList(name);
-                permbannedIps.addAll(ips);
-
-                // Create PermBan object
-                PermBan permban = new PermBan();
-                permban.setUsername(lowerName);
-                permban.setIps(ips);
-                permbansByName.put(lowerName, permban);
+                for (Map.Entry<String, PermBan> entry : readJsonPermbans().entrySet())
+                {
+                    PermBan permban = entry.getValue();
+                    permbannedNames.add(entry.getKey());
+                    permbannedIps.addAll(permban.getIps());
+                    permbansByName.put(entry.getKey(), permban);
+                }
+            }
+            catch (IOException ex)
+            {
+                FLog.severe("Could not read " + CONFIG_FILENAME + ": " + ex.getMessage());
             }
 
             usingSql = false;
-            FLog.info("Loaded " + permbannedIps.size() + " perm IP bans and " + permbannedNames.size() + " perm username bans from YAML.");
+            FLog.info("Loaded " + permbannedIps.size() + " perm IP bans and " + permbannedNames.size() + " perm username bans from JSON.");
+        }
+    }
+
+    private void saveToJson()
+    {
+        final Map<String, PermBan> snapshot;
+        synchronized (lock)
+        {
+            snapshot = Maps.newHashMap(permbansByName);
+        }
+
+        try (FileWriter writer = new FileWriter(configFile))
+        {
+            JsonUtil.GSON.toJson(snapshot, PERMBAN_MAP_TYPE, writer);
+        }
+        catch (IOException ex)
+        {
+            FLog.severe("Could not save " + CONFIG_FILENAME);
         }
     }
 
     @Override
     protected void onStop()
     {
-        // Save if using SQL
         if (usingSql)
         {
             saveAllToSql();
         }
+        else
+        {
+            saveToJson();
+        }
     }
-    
+
     /**
      * Save all permbans to SQL database.
      */
@@ -173,6 +262,7 @@ public class PermbanList extends FreedomService
                     repo.save(permban).block();
                 }
                 FLog.debug("Saved " + snapshot.size() + " permbans to SQL database");
+                saveToJson();
             }
             catch (Exception ex)
             {
@@ -206,6 +296,10 @@ public class PermbanList extends FreedomService
         {
             savePermbanToSqlAsync(permban);
         }
+        else
+        {
+            saveToJson();
+        }
     }
 
     /**
@@ -233,6 +327,10 @@ public class PermbanList extends FreedomService
         if (sql)
         {
             removePermbanFromSqlAsync(name);
+        }
+        else
+        {
+            saveToJson();
         }
 
         return true;
@@ -286,6 +384,10 @@ public class PermbanList extends FreedomService
             {
                 removePermbanFromSqlAsync(name.toLowerCase().trim());
             }
+        }
+        else if (!removedNames.isEmpty())
+        {
+            saveToJson();
         }
 
         return removedNames;
@@ -349,6 +451,7 @@ public class PermbanList extends FreedomService
             try
             {
                 plugin.dm.getPermbanRepository().save(permban).block();
+                saveToJson();
             }
             catch (Exception ex)
             {
@@ -382,6 +485,7 @@ public class PermbanList extends FreedomService
             try
             {
                 plugin.dm.getPermbanRepository().deleteByUsername(name);
+                saveToJson();
             }
             catch (Exception ex)
             {

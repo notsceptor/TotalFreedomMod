@@ -10,6 +10,7 @@ import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.*;
 
 import reactor.core.publisher.Mono;
@@ -38,6 +39,7 @@ public class GenericPlayerRepository implements PlayerRepository
     private final String colId;
     private final String colPlayerUsername;
     private final String colIp;
+    private final String colUpdatedAt;
     private final String selectColumns;
 
     public GenericPlayerRepository(StatementHandler statementHandler, DatabaseAdapter adapter)
@@ -61,6 +63,7 @@ public class GenericPlayerRepository implements PlayerRepository
         this.colId = adapter.quoteIdentifier("id");
         this.colPlayerUsername = adapter.quoteIdentifier("username");
         this.colIp = adapter.quoteIdentifier("ip");
+        this.colUpdatedAt = adapter.quoteIdentifier("updated_at");
         this.selectColumns = String.format("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s",
                 colUsername, colFirstJoin, colLastJoin, colPotionSpy, colCommandSpyMode, colMuted, colFrozen,
                 colCommandsBlocked, colStrikes, colSavedTag)
@@ -70,7 +73,8 @@ public class GenericPlayerRepository implements PlayerRepository
     @Override
     public void insert(PlayerData data) throws SQLException
     {
-        String sql = String.format("INSERT INTO %s (%s) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", tblPlayers, selectColumns);
+        String sql = String.format("INSERT INTO %s (%s, %s) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, %s)",
+                tblPlayers, selectColumns, colUpdatedAt, adapter.currentTimestamp());
 
         statementHandler.executeUpdate(sql,
                 data.getUsername(),
@@ -187,9 +191,9 @@ public class GenericPlayerRepository implements PlayerRepository
     @Override
     public boolean update(PlayerData data) throws SQLException
     {
-        String sql = String.format("UPDATE %s SET %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ? WHERE %s = ?",
+        String sql = String.format("UPDATE %s SET %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = %s WHERE %s = ?",
                 tblPlayers, colFirstJoin, colLastJoin, colPotionSpy, colCommandSpyMode, colMuted, colFrozen,
-                colCommandsBlocked, colStrikes, colSavedTag, colUsername);
+                colCommandsBlocked, colStrikes, colSavedTag, colUpdatedAt, adapter.currentTimestamp(), colUsername);
 
         int rows = statementHandler.executeUpdate(sql,
                 data.getFirstJoinUnix(),
@@ -243,6 +247,22 @@ public class GenericPlayerRepository implements PlayerRepository
     {
         statementHandler.executeUpdate(String.format("DELETE FROM %s", tblPlayerIps));
         statementHandler.executeUpdate(String.format("DELETE FROM %s", tblPlayers));
+    }
+
+    @Override
+    public Long getUpdatedAt(String username) throws SQLException
+    {
+        String sql = String.format("SELECT %s FROM %s WHERE %s = ?", colUpdatedAt, tblPlayers, colUsername);
+        try (PreparedStatement stmt = statementHandler.prepareStatement(sql, username);
+             ResultSet rs = stmt.executeQuery())
+        {
+            if (rs.next())
+            {
+                Timestamp ts = rs.getTimestamp(1);
+                return ts != null ? ts.getTime() : null;
+            }
+        }
+        return null;
     }
 
     @Override

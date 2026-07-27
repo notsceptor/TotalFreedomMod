@@ -92,6 +92,8 @@ public class DiscordCommands extends ListenerAdapter
             return;
         }
 
+        DiscordLinkJsonSync.writeSnapshot(plugin, repo);
+
         event.reply("Linked as **" + admin.getName() + "** (" + admin.getRank().getName() + ").")
                 .setEphemeral(true).queue();
         FLog.info("[Discord] Linked admin " + admin.getName() + " ↔ Discord user " + event.getUser().getId() + ".");
@@ -115,6 +117,7 @@ public class DiscordCommands extends ListenerAdapter
         }
         if (removed)
         {
+            DiscordLinkJsonSync.writeSnapshot(plugin, repo);
             event.reply("Link removed.").setEphemeral(true).queue();
             FLog.info("[Discord] Unlinked Discord user " + discordUserId + ".");
         }

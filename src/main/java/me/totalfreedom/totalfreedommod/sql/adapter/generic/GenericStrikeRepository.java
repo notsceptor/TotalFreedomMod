@@ -7,6 +7,7 @@ import me.totalfreedom.totalfreedommod.sql.adapter.StrikeRepository;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -24,6 +25,7 @@ public class GenericStrikeRepository implements StrikeRepository
     private final String colStrikeCount;
     private final String colLastStrikeUnix;
     private final String colLastUsername;
+    private final String colUpdatedAt;
     private final String upsertSql;
     private final String selectSql;
 
@@ -36,12 +38,14 @@ public class GenericStrikeRepository implements StrikeRepository
         this.colStrikeCount = adapter.quoteIdentifier("strike_count");
         this.colLastStrikeUnix = adapter.quoteIdentifier("last_strike_unix");
         this.colLastUsername = adapter.quoteIdentifier("last_username");
+        this.colUpdatedAt = adapter.quoteIdentifier("updated_at");
 
         this.selectSql = String.format("SELECT %s, %s, %s, %s FROM %s",
                 colIp, colStrikeCount, colLastStrikeUnix, colLastUsername, tblStrikes);
-        this.upsertSql = String.format("INSERT INTO %s (%s, %s, %s, %s) VALUES (?, ?, ?, ?) %s",
-                tblStrikes, colIp, colStrikeCount, colLastStrikeUnix, colLastUsername,
-                adapter.upsertClause(colIp, colStrikeCount, colLastStrikeUnix, colLastUsername));
+        this.upsertSql = String.format("INSERT INTO %s (%s, %s, %s, %s, %s) VALUES (?, ?, ?, ?, %s) %s",
+                tblStrikes, colIp, colStrikeCount, colLastStrikeUnix, colLastUsername, colUpdatedAt,
+                adapter.currentTimestamp(),
+                adapter.upsertClause(colIp, colStrikeCount, colLastStrikeUnix, colLastUsername, colUpdatedAt));
     }
 
     @Override
@@ -79,6 +83,21 @@ public class GenericStrikeRepository implements StrikeRepository
     public void deleteAllSync() throws SQLException
     {
         statementHandler.executeUpdate(String.format("DELETE FROM %s", tblStrikes));
+    }
+
+    @Override
+    public Long getMaxUpdatedAt() throws SQLException
+    {
+        String sql = String.format("SELECT MAX(%s) FROM %s", colUpdatedAt, tblStrikes);
+        try (ResultSet rs = statementHandler.executeQuery(sql))
+        {
+            if (rs.next())
+            {
+                Timestamp ts = rs.getTimestamp(1);
+                return ts != null ? ts.getTime() : null;
+            }
+        }
+        return null;
     }
 
     @Override

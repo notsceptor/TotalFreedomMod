@@ -1,20 +1,32 @@
 package me.totalfreedom.totalfreedommod;
 
+import com.google.gson.reflect.TypeToken;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.lang.reflect.Type;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
+import me.totalfreedom.totalfreedommod.sql.adapter.SavedFlagRepository;
 import me.totalfreedom.totalfreedommod.util.FLog;
+import me.totalfreedom.totalfreedommod.util.JsonUtil;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 public class SavedFlags extends FreedomService
 {
 
-    public static final String DATA_FILENAME = "savedflags.yml";
+    public static final String DATA_FILENAME = "savedflags.json";
+    public static final String LEGACY_YAML_FILENAME = "savedflags.yml";
     public static final String LEGACY_DATA_FILENAME = "savedflags.dat";
+
+    private static final Type FLAGS_MAP_TYPE = new TypeToken<Map<String, Boolean>>() {}.getType();
+
+    private boolean usingSql = false;
 
     public SavedFlags(TotalFreedomMod plugin)
     {
@@ -24,12 +36,19 @@ public class SavedFlags extends FreedomService
     @Override
     protected void onStart()
     {
-        File ymlFile = new File(plugin.getDataFolder(), DATA_FILENAME);
+        usingSql = plugin.dm != null && plugin.dm.isInitialized();
+
+        File dataFile = new File(plugin.getDataFolder(), DATA_FILENAME);
         File legacyFile = new File(plugin.getDataFolder(), LEGACY_DATA_FILENAME);
 
-        if (legacyFile.exists() && !ymlFile.exists())
+        if (legacyFile.exists() && !dataFile.exists())
         {
-            migrateLegacyData(legacyFile, ymlFile);
+            migrateLegacyData(legacyFile, dataFile);
+        }
+
+        if (usingSql)
+        {
+            reconcileFromJsonIfNewer();
         }
     }
 
@@ -39,23 +58,30 @@ public class SavedFlags extends FreedomService
     }
 
     @SuppressWarnings("unchecked")
-    private void migrateLegacyData(File legacyFile, File ymlFile)
+    private void migrateLegacyData(File legacyFile, File dataFile)
     {
-        FLog.info("Migrating saved flags from legacy .dat format to .yml format...");
+        FLog.info("Migrating saved flags from legacy .dat format...");
         try (FileInputStream fis = new FileInputStream(legacyFile);
              ObjectInputStream ois = new ObjectInputStream(fis))
         {
             HashMap<String, Boolean> legacyFlags = (HashMap<String, Boolean>) ois.readObject();
 
-            YamlConfiguration config = new YamlConfiguration();
-            ConfigurationSection flagsSection = config.createSection("flags");
-
-            for (Map.Entry<String, Boolean> entry : legacyFlags.entrySet())
+            if (usingSql)
             {
-                flagsSection.set(entry.getKey(), entry.getValue());
+                try
+                {
+                    SavedFlagRepository repo = plugin.dm.getSavedFlagRepository();
+                    for (Map.Entry<String, Boolean> entry : legacyFlags.entrySet())
+                    {
+                        repo.upsert(entry.getKey(), entry.getValue());
+                    }
+                }
+                catch (SQLException ex)
+                {
+                    FLog.severe("Could not save migrated flags to SQL: " + ex.getMessage());
+                }
             }
-
-            config.save(ymlFile);
+            saveToJson(legacyFlags);
 
             File oldFile = new File(legacyFile.getParent(), LEGACY_DATA_FILENAME + ".old");
             if (legacyFile.renameTo(oldFile))
@@ -74,11 +100,13 @@ public class SavedFlags extends FreedomService
         }
     }
 
-    public Map<String, Boolean> getSavedFlags()
+    /**
+     * Reads the pre-JSON {@code savedflags.yml} format. Retained only for the one-time
+     * legacy-install migration path (not called during normal startup).
+     */
+    private Map<String, Boolean> loadLegacyYaml(File file)
     {
         Map<String, Boolean> flags = new HashMap<>();
-
-        File file = new File(PluginProvider.get().getDataFolder(), DATA_FILENAME);
         if (!file.exists())
         {
             return flags;
@@ -99,11 +127,105 @@ public class SavedFlags extends FreedomService
         }
         catch (Exception ex)
         {
+            FLog.severe("Failed to load legacy saved flags: " + ex.getMessage());
+            FLog.severe(ex);
+        }
+
+        return flags;
+    }
+
+    /**
+     * If savedflags.json was written more recently than the database's last update, re-import it into SQL.
+     */
+    private void reconcileFromJsonIfNewer()
+    {
+        File dataFile = new File(plugin.getDataFolder(), DATA_FILENAME);
+        if (!dataFile.exists())
+        {
+            return;
+        }
+
+        try
+        {
+            SavedFlagRepository repo = plugin.dm.getSavedFlagRepository();
+            Long sqlUpdatedAt = repo.getMaxUpdatedAt();
+            if (sqlUpdatedAt != null && dataFile.lastModified() <= sqlUpdatedAt)
+            {
+                return;
+            }
+
+            Map<String, Boolean> jsonFlags = readJsonFlags(dataFile);
+            if (jsonFlags.isEmpty())
+            {
+                return;
+            }
+
+            FLog.info(DATA_FILENAME + " is newer than the database; re-importing " + jsonFlags.size() + " flag(s) from it.");
+            for (Map.Entry<String, Boolean> entry : jsonFlags.entrySet())
+            {
+                repo.upsert(entry.getKey(), entry.getValue());
+            }
+        }
+        catch (Exception ex)
+        {
+            FLog.warning("Failed to reconcile " + DATA_FILENAME + " into the database: " + ex.getMessage());
+        }
+    }
+
+    private Map<String, Boolean> readJsonFlags(File file)
+    {
+        Map<String, Boolean> flags = new HashMap<>();
+        if (!file.exists())
+        {
+            return flags;
+        }
+
+        try (FileReader reader = new FileReader(file))
+        {
+            Map<String, Boolean> loaded = JsonUtil.GSON.fromJson(reader, FLAGS_MAP_TYPE);
+            if (loaded != null)
+            {
+                flags.putAll(loaded);
+            }
+        }
+        catch (Exception ex)
+        {
             FLog.severe("Failed to load saved flags: " + ex.getMessage());
             FLog.severe(ex);
         }
 
         return flags;
+    }
+
+    private void saveToJson(Map<String, Boolean> flags)
+    {
+        File file = new File(plugin.getDataFolder(), DATA_FILENAME);
+        try (FileWriter writer = new FileWriter(file))
+        {
+            JsonUtil.GSON.toJson(flags, FLAGS_MAP_TYPE, writer);
+        }
+        catch (IOException ex)
+        {
+            FLog.severe("Failed to save saved flags: " + ex.getMessage());
+            FLog.severe(ex);
+        }
+    }
+
+    public Map<String, Boolean> getSavedFlags()
+    {
+        if (usingSql && plugin.dm != null && plugin.dm.isInitialized())
+        {
+            try
+            {
+                return plugin.dm.getSavedFlagRepository().loadAll();
+            }
+            catch (SQLException ex)
+            {
+                FLog.severe("Failed to load saved flags from SQL: " + ex.getMessage());
+            }
+        }
+
+        return readJsonFlags(new File(PluginProvider.get().getDataFolder(), DATA_FILENAME));
     }
 
     public boolean getSavedFlag(String flag) throws Exception
@@ -132,32 +254,25 @@ public class SavedFlags extends FreedomService
 
     public void setSavedFlag(String flag, boolean value)
     {
-        Map<String, Boolean> flags = getSavedFlags();
+        if (usingSql && plugin.dm != null && plugin.dm.isInitialized())
+        {
+            try
+            {
+                plugin.dm.getSavedFlagRepository().upsert(flag, value);
+            }
+            catch (SQLException ex)
+            {
+                FLog.severe("Could not save flag '" + flag + "' to SQL: " + ex.getMessage());
+            }
+        }
 
+        Map<String, Boolean> flags = getSavedFlags();
         if (flags == null)
         {
             flags = new HashMap<>();
         }
-
         flags.put(flag, value);
-
-        try
-        {
-            YamlConfiguration config = new YamlConfiguration();
-            ConfigurationSection flagsSection = config.createSection("flags");
-
-            for (Map.Entry<String, Boolean> entry : flags.entrySet())
-            {
-                flagsSection.set(entry.getKey(), entry.getValue());
-            }
-
-            config.save(new File(plugin.getDataFolder(), DATA_FILENAME));
-        }
-        catch (IOException ex)
-        {
-            FLog.severe("Failed to save saved flags: " + ex.getMessage());
-            FLog.severe(ex);
-        }
+        saveToJson(flags);
     }
 
 }

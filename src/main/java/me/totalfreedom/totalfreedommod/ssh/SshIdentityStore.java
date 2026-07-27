@@ -1,10 +1,10 @@
 package me.totalfreedom.totalfreedommod.ssh;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import me.totalfreedom.totalfreedommod.util.FLog;
+import me.totalfreedom.totalfreedommod.util.JsonUtil;
 
 import java.io.File;
 import java.io.FileReader;
@@ -21,7 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class SshIdentityStore
 {
     private static final DateTimeFormatter LOGIN_FMT = DateTimeFormatter.ofPattern("dd-MM-yy HH:mm");
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static final Gson GSON = JsonUtil.GSON;
 
     private final File directory;
     private final Map<String, SshIdentity> identities = new ConcurrentHashMap<>();

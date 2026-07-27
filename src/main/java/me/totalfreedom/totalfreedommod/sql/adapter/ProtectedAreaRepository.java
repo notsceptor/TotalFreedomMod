@@ -37,6 +37,12 @@ public interface ProtectedAreaRepository
 
     void deleteAllSync() throws SQLException;
 
+    /**
+     * Epoch millis of the most recently updated region row, or null if the table is empty.
+     * Used to compare SQL freshness against the protectedareas.json snapshot's last-modified time.
+     */
+    Long getMaxUpdatedAt() throws SQLException;
+
     Mono<List<ProtectedRegion>> loadAllAsync();
 
     Mono<Void> save(ProtectedRegion region);
