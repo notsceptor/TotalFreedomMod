@@ -47,8 +47,6 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
     @Getter
     @Setter
     private boolean commandsBlocked;
-    @Getter
-    @Setter
     private boolean joinLeaveMessagesEnabled = true;
     @Getter
     @Setter
@@ -137,6 +135,16 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
     public void setCommandSpyMode(CommandSpyMode commandSpyMode)
     {
         this.commandSpyMode = commandSpyMode == null ? CommandSpyMode.OFF : commandSpyMode;
+    }
+
+    public boolean isJoinLeaveMessagesEnabled()
+    {
+        return joinLeaveMessagesEnabled;
+    }
+
+    public void setJoinLeaveMessagesEnabled(boolean joinLeaveMessagesEnabled)
+    {
+        this.joinLeaveMessagesEnabled = joinLeaveMessagesEnabled;
     }
 
     public List<String> getIps()
