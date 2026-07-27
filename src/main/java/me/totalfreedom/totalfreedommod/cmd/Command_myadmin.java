@@ -32,6 +32,10 @@ public class Command_myadmin extends FCommand
         }
 
         entry.removeIp(address.getHostAddress());
+        plugin().al.refreshIps(entry);
+        plugin().al.saveAdminAsync(entry);
+
+        msg(player, "<gray>Removed <ip> from your admin entry.", MessageUtils.unparsed("ip", address.getHostAddress()));
     }
 
     @Callback
@@ -44,6 +48,9 @@ public class Command_myadmin extends FCommand
 
         ips.clear();
         ips.add(player.getAddress().getAddress().getHostAddress());
+
+        plugin().al.refreshIps(entry);
+        plugin().al.saveAdminAsync(entry);
 
         msg(player, "<gray><count> IP address(es) were removed.", Formatter.number("count", count - 1));
     }
@@ -58,16 +65,15 @@ public class Command_myadmin extends FCommand
         entry.setLoginMessage(message);
 
         msg(
-            player,
+            player, // removing the tabs in the string block because they are also processed by MessageUtils. 
             """ 
-                Your login message is now:
-                > <login>
+            Your login message is now:
+            > <login>\
             """,
             MessageUtils.component("login", plugin().rm.formatLoginMessage(player))
         );
-        
-        plugin().al.save();
-        plugin().al.updateTables();
+
+        plugin().al.saveAdminAsync(entry);
     }
 
     @Callback
@@ -78,7 +84,6 @@ public class Command_myadmin extends FCommand
 
         entry.setLoginMessage(null); // this needs a .resetLoginMessage() call so that we AVOID nullability. Not my problem right now.
         msg(player, "<gray>Your login message has been removed.");
-        plugin().al.save();
-        plugin().al.updateTables();
+        plugin().al.saveAdminAsync(entry);
     }
 }
