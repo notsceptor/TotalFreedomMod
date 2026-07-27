@@ -20,9 +20,6 @@ import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 
 public class TextFilterService extends FreedomService
 {
-
-    private final String BAN_REASON = "Use of prohibited language.";
-
     private List<Pattern> filters = List.of();
 
     public TextFilterService(TotalFreedomMod plugin)
@@ -130,7 +127,7 @@ public class TextFilterService extends FreedomService
             return;
         }
 
-        final Ban ban = Ban.forPlayer(player, Bukkit.getConsoleSender(), FUtil.parseDateOffset("1d"), BAN_REASON);
+        final Ban ban = Ban.forPlayer(player, Bukkit.getConsoleSender(), FUtil.parseDateOffset("1d"), "Use of prohibited language");
         
         ban.addIp(player.getAddress().getAddress().getHostAddress());
         plugin.pl.getData(player).getIps().forEach(ban::addIp);
