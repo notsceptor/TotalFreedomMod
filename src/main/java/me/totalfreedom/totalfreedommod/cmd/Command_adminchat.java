@@ -16,7 +16,7 @@ public class Command_adminchat extends FCommand
 {
 
     @Callback
-    @Permission(permission = "tfm.admin.adminchat", source = SourceType.ONLY_IN_GAME)
+    @Permission(level = Rank.SUPER_ADMIN, permission = "tfm.admin.adminchat", source = SourceType.ONLY_IN_GAME)
     public void toggle(Player sender)
     {
         final FPlayer fplayer = plugin().pl.getPlayer(sender);
