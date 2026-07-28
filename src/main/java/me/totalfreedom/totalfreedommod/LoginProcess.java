@@ -234,21 +234,19 @@ public class LoginProcess extends FreedomService
                 player.teleportAsync(location).thenAccept(success ->
                 {
                     if (success) {
-                        player.sendMessage(Component.text(
-                                "You have been teleported to a random location automatically.",
-                                NamedTextColor.AQUA));
+                        player.sendMessage(MessageUtils.parse("<aqua>You have been teleported to a random location automatically."));
                     }
                 });
             });
-
-            return;
         }
 
         if (CLEAR_ON_JOIN.stream().anyMatch(name -> name.equals(player.getUniqueId()))
-                || ConfigEntry.AUTO_CLEAR.getBoolean()) 
+                || ConfigEntry.AUTO_CLEAR.getBoolean())
         {
             player.getInventory().clear();
             player.updateInventory();
+
+            player.sendMessage(MessageUtils.parse("<aqua>Your inventory has been cleared automatically."));
         }
 
 
