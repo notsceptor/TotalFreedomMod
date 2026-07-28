@@ -153,7 +153,16 @@ public final class PermissionGate
             String boundRankId = plugin.csr.getRankIdForSender(sender.getName());
             boundCustom = boundRankId != null ? plugin.rm.getCustomRank(boundRankId) : null;
         }
-        final boolean result = boundCustom != null ? boundCustom.isAtLeast(perm.level()) : rank.isAtLeast(perm.level());
+
+        // A CustomRank's level is an operator-defined scale that need not line up with
+        // Rank.ordinal(): the shipped ranks.json runs -1..4 against the enum's 0..5, so testing a
+        // bound rank straight against perm.level() is off by a tier and denies every console
+        // sender its own rank. Resolve the requirement through the same registry the bound rank
+        // came from, so both sides are read off one scale whatever the operator numbered them.
+        final CustomRank required = plugin.rm.getCustomRankForLegacy(perm.level());
+        final boolean result = boundCustom != null && required != null
+            ? boundCustom.isAtLeast(required)
+            : rank.isAtLeast(perm.level());
         if (!result && sendMsg)
         {
             sender.sendMessage(Component.text(perm.message(), NamedTextColor.RED));

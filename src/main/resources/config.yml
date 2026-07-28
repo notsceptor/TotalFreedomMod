@@ -601,9 +601,14 @@ worldedit:
 # The `super_admin:ssh` entry dictates that password-authenticated SSH sessions will receive Super
 # Admin.
 #
+# Console-class channels (rcon, remotebukkit, console, discord) sit at senior_admin: console access
+# is itself the privilege, so a channel that has it is trusted at the top tier. Anything that must
+# be reachable from the panel therefore needs to be senior-gated, not super-gated. Password-only
+# SSH stays at super_admin because the shared secret binds no identity.
+#
 host_senders:
-  - 'super_admin:rcon'
-  - 'super_admin:remotebukkit'
+  - 'senior_admin:rcon'
+  - 'senior_admin:remotebukkit'
   - 'super_admin:ssh'
   - 'senior_admin:console'
   - 'senior_admin:discord'
