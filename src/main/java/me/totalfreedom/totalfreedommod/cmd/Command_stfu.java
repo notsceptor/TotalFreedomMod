@@ -49,7 +49,7 @@ public class Command_stfu extends FCommand
     @Subcommand("purge")
     public void purge(CommandSender sender)
     {
-        adminAction(sender, "<aqua>Unmuting all players");
+        adminAction(sender, "<red>Unmuting all players");
 
         final List<FPlayer> players = server().getOnlinePlayers()
                                               .stream()
@@ -96,7 +96,7 @@ public class Command_stfu extends FCommand
 
         if (fplayer.isMuted())
         {
-            adminAction(sender, "<aqua>Unmuting <player>", Placeholder.unparsed("player", player.getName()));
+            adminAction(sender, "<red>Unmuting <player>", Placeholder.unparsed("player", player.getName()));
             fplayer.setMuted(false);
             msg(player, "<green>You have been unmuted.");
         }
