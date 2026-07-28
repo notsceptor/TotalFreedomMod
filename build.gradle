@@ -4,7 +4,7 @@ plugins {
 }
 
 group = 'me.totalfreedom'
-version = '26.7.1'
+version = '26.7'
 
 java {
     toolchain {
@@ -136,8 +136,8 @@ processResources {
         }
         
         expand(
-            buildAuthor: project.findProperty('buildAuthor') ?: 'aokod',
-            buildCodeName: project.findProperty('buildCodeName') ?: 'Elektra',
+            buildAuthor: project.findProperty('buildAuthor') ?: 'Ivanomoly',
+            buildCodeName: project.findProperty('buildCodeName') ?: 'Polaris',
             buildNumber: buildNumber,
             buildVersion: project.version
         )
