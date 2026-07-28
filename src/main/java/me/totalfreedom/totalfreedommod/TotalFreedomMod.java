@@ -194,7 +194,9 @@ public class TotalFreedomMod extends JavaPlugin
 
         rm = services.registerService(RankManager.class);
 
-        // Console sender whitelist — loaded after RankManager so custom rank ids resolve.
+        // Console sender whitelist. This first read only resolves bindings that name a legacy
+        // rank, since registerService constructs RankManager without starting it and no custom
+        // ranks are in memory yet. RankManager#onStart re-reads it once they are.
         csr = new ConsoleSenderRegistry(this);
         csr.load();
         // cl = services.registerService(CommandLoader.class);

@@ -601,10 +601,15 @@ worldedit:
 # The `super_admin:ssh` entry dictates that password-authenticated SSH sessions will receive Super
 # Admin.
 #
-# Console-class channels (rcon, remotebukkit, console, discord) sit at senior_admin: console access
-# is itself the privilege, so a channel that has it is trusted at the top tier. Anything that must
-# be reachable from the panel therefore needs to be senior-gated, not super-gated. Password-only
-# SSH stays at super_admin because the shared secret binds no identity.
+# Host channels (rcon, remotebukkit, console) carry no user identity, so they are pinned to
+# senior_admin in code: console access is itself the privilege. Entries here may raise a host
+# channel but not lower it. A lower binding is logged and ignored, since it silently locks the
+# panel out of senior-gated commands.
+#
+# SSH and Discord are different. They prove who is acting, by SSH public key or by a linked
+# Discord account, and so run at that admin's own rank, custom rank included. Their entries
+# below apply only when the session proved no identity, which in practice means password-only
+# SSH. Discord commands are rejected outright unless the author is linked to an active admin.
 #
 host_senders:
   - 'senior_admin:rcon'
@@ -831,17 +836,24 @@ ssh:
 
   # When true, SSH commands are sent under a cosmetic wrapper with the admin's username
   # instead of the `CONSOLE` sender.
+  #
+  # This is display only and does not affect permissions: the session always carries the
+  # authenticated identity, whether or not that identity is shown.
   show_user: false
 
   # Prefix prepended to the cosmetic name of the sender (e.g. ssh@Prozza).
   user_prefix: "SSH@"
 
-  # When true, commands dispatched via SSH will run at the permission level of the user's
-  # admin rank rather than the host_senders whitelist (see above).
+  # When true, commands dispatched via SSH run at the permission level of the user's own admin
+  # rank (including a custom rank pinned to their profile) rather than the host_senders
+  # whitelist (see above).
   #
-  # The session must be authenticated via public key (see ssh.auth.key).
-  # This is required because the password does not bind a username to an identity.
-  inherit_rank: false
+  # The session must be authenticated via public key (see ssh.auth.key). This is required
+  # because the password does not bind a username to an identity; password-only sessions
+  # always fall back to the `super_admin:ssh` binding regardless of this setting.
+  #
+  # Set to false only to force every SSH session to that flat tier.
+  inherit_rank: true
 
   # Port used by the one-time QR code setup page served by /sshtotp.
   qr_port: 8765
