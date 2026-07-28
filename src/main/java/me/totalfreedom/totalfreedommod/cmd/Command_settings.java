@@ -82,10 +82,17 @@ public class Command_settings extends FCommand
         setting.getValue().setBoolean(enabled);
         setting.consume();
 
-        msg(sender, "<gray><displayable> (<flag>) changed to <status:enabled:disabled>",
-                Placeholder.unparsed("displayable", setting.getDisplayable()),
-                Placeholder.unparsed("flag", setting.getFlag()),
-                Formatter.booleanChoice("status", enabled)
+        adminAction(sender, 
+                    "<red>Setting <displayable> to <status:enabled:disabled>",
+                    Placeholder.unparsed("displayable", setting.getDisplayable()),
+                    Formatter.booleanChoice("status", enabled)
+                );
+
+        msg(sender, 
+            "<gray><displayable> (<flag>) changed to <status:enabled:disabled>",
+            Placeholder.unparsed("displayable", setting.getDisplayable()),
+            Placeholder.unparsed("flag", setting.getFlag()),
+            Formatter.booleanChoice("status", enabled)
         );
     }
 
@@ -110,6 +117,12 @@ public class Command_settings extends FCommand
 
         setting.getValue().setBoolean(value);
         setting.consume();
+
+        adminAction(sender, 
+            "<red>Setting <displayable> to <status:enabled:disabled>",
+            Placeholder.unparsed("displayable", setting.getDisplayable()),
+            Formatter.booleanChoice("status", value)
+        );
 
         msg(sender, "<gray><displayable> (<flag>) changed to <status:enabled:disabled>",
                 Placeholder.unparsed("displayable", setting.getDisplayable()),
@@ -161,6 +174,13 @@ public class Command_settings extends FCommand
             setting.getValue().setBoolean(false);
         }
 
+        adminAction(sender, 
+                    "<red>Setting <displayable> to <status:enabled:disabled> with a radius of <radius>",
+                    Placeholder.unparsed("displayable", setting.getDisplayable()),
+                    Formatter.number("radius", cappedRadius),
+                    Formatter.booleanChoice("status", setting.getValue().getBoolean())
+        );
+
         msg(sender, "<gray><displayable> (<flag>) changed to <status:enabled:disabled> with a radius of <radius>",
                 Placeholder.unparsed("displayable", setting.getDisplayable()),
                 Placeholder.unparsed("flag", setting.getFlag()),
@@ -186,6 +206,14 @@ public class Command_settings extends FCommand
             setting.getValue().setBoolean(false);
         }
 
+        adminAction(sender, 
+            "<red>Setting <displayable> to <status:enabled:disabled> with a range of <range> and a count of <count>.",
+            Placeholder.unparsed("displayable", setting.getDisplayable()),
+            Formatter.number("range", range),
+            Formatter.number("count", count),
+            Formatter.booleanChoice("status", setting.getValue().getBoolean())
+        );
+
         msg(sender, "<gray><displayable> (<flag>) changed to <status:'enabled with range <range> and break count <count>':disabled>",
                 Placeholder.unparsed("displayable", setting.getDisplayable()),
                 Placeholder.unparsed("flag", setting.getFlag()),
@@ -209,6 +237,8 @@ public class Command_settings extends FCommand
 
         FALLING_BLOCKS("fallingblocks", "Falling Blocks", ALLOW_FALLING_BLOCKS),
         FALLING_SIGNS("fallingsigns", "Falling Signs", ALLOW_FALLING_SIGNS),
+
+        REDSTONE("redstone", "Redstone", ALLOW_REDSTONE),
 
         ADMIN_MODE("adminmode", "Admin-Only Mode", ADMIN_ONLY_MODE, SourceType.ONLY_CONSOLE),
         LOCKDOWN("lockdown", "Lockdown", LOCKDOWN_MODE, SourceType.ONLY_CONSOLE),

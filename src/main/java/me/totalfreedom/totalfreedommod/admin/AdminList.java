@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import lombok.Getter;
+import java.util.concurrent.TimeoutException;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
@@ -46,10 +46,10 @@ public class AdminList extends FreedomService
 
     private static final long LAST_LOGIN_DEBOUNCE_MS = 5L * 60L * 1000L;
 
-    @Getter
+    private static final long SHUTDOWN_FLUSH_TIMEOUT_MS = 10L * 1000L;
+
     private final Map<String, Admin> allAdmins = Maps.newHashMap(); // Includes disabled admins
     // Only active admins below
-    @Getter
     private final Set<Admin> activeAdmins = Sets.newHashSet();
 
     // UUID-based lookup table
@@ -92,6 +92,9 @@ public class AdminList extends FreedomService
     @Override
     protected void onStop()
     {
+        // Let the queue drain first, then flush everything. Ordering matters:
+        // a queued write landing after the flush would restore a stale snapshot.
+        awaitPendingWrites(SHUTDOWN_FLUSH_TIMEOUT_MS);
         save();
     }
 
@@ -121,6 +124,7 @@ public class AdminList extends FreedomService
         int resolved = 0;
         int offlineDerived = 0;
         boolean mojangLookup = ConfigEntry.ADMINLIST_MOJANG_UUID_LOOKUP.getBoolean();
+        final List<Admin> backfilled = new ArrayList<>();
 
         for (Admin admin : allAdmins.values())
         {
@@ -140,9 +144,10 @@ public class AdminList extends FreedomService
                 offlineDerived++;
             }
             admin.setUuid(uuid);
+            backfilled.add(admin);
         }
 
-        if (resolved + offlineDerived == 0)
+        if (backfilled.isEmpty())
         {
             return;
         }
@@ -156,7 +161,17 @@ public class AdminList extends FreedomService
         }
 
         updateTables();
-        saveAsync();
+
+        // SQL can persist just the rows we touched; YAML is a whole-file format
+        // so one bulk write beats N rewrites of the same file.
+        if (usingSql)
+        {
+            backfilled.forEach(this::saveAdminAsync);
+        }
+        else
+        {
+            saveAsync();
+        }
     }
     
     /**
@@ -329,6 +344,15 @@ public class AdminList extends FreedomService
         FLog.info("Loaded " + allAdmins.size() + " admins from JSON (" + nameTable.size() + " active, " + ipTable.size() + " IPs)");
     }
 
+    /**
+     * Blocking write of every admin record. This is the shutdown flush - it is
+     * called from {@link #onStop()} so nothing is lost when the server stops.
+     * <p>
+     * Do <b>not</b> call this from a command or event handler: under SQL it is a
+     * serial round-trip per admin on the calling thread, which stalls the main
+     * thread for as long as the whole list takes to write. Single-entry changes
+     * belong on {@link #saveAdminAsync(Admin)}.
+     */
     public synchronized void save()
     {
         if (usingSql)
@@ -342,7 +366,44 @@ public class AdminList extends FreedomService
     }
 
     /**
-     * Persist admin records on a worker thread. Use this on the hot login path
+     * Wait for queued {@link #saveAdminAsync(Admin)} writes to land, up to
+     * {@code timeoutMs}. Without this a shutdown flush can race the queue and
+     * let an older queued snapshot overwrite the state we just wrote.
+     */
+    public void awaitPendingWrites(long timeoutMs)
+    {
+        final CompletableFuture<Void> pending;
+        synchronized (persistenceLock)
+        {
+            pending = persistenceChain;
+        }
+
+        try
+        {
+            pending.get(timeoutMs, TimeUnit.MILLISECONDS);
+        }
+        catch (TimeoutException ex)
+        {
+            FLog.warning("Timed out after " + timeoutMs + "ms waiting for pending admin writes; flushing anyway");
+        }
+        catch (InterruptedException ex)
+        {
+            Thread.currentThread().interrupt();
+        }
+        catch (Exception ex)
+        {
+            FLog.warning("A queued admin write failed before shutdown: " + ex.getMessage());
+        }
+    }
+
+    /**
+     * Persist <i>every</i> admin record on a worker thread. Under SQL this is a
+     * fan-out: one queued write per admin, whether or not it changed.
+     * <p>
+     * Only call this when the whole list is genuinely dirty, or when running on
+     * YAML (a whole-file format that cannot be written piecemeal). If a single
+     * entry changed - a login, an IP edit, a rank change - call
+     * {@link #saveAdminAsync(Admin)} instead, which queues just that row.
      */
     public void saveAsync()
     {
@@ -354,6 +415,11 @@ public class AdminList extends FreedomService
             }
             return;
         }
+
+        // Render on this thread while we still own the maps, then hand the
+        // finished text to the worker. Serialising inside the async task would
+        // read allAdmins off-thread while the main thread is free to mutate it.
+        final String data = serialiseAdmins();
 
         if (!plugin.isEnabled())
         {
@@ -389,21 +455,8 @@ public class AdminList extends FreedomService
             return;
         }
 
-        Admin snapshot = copyAdmin(admin);
-        UUID uuid = snapshot.getUuid();
+        final Admin snapshot = copyAdmin(admin);
 
-        if (uuid == null)
-        {
-            uuid = FUtil.usernameToUuid(snapshot.getName());
-            if (uuid == null)
-            {
-                uuid = UUID.nameUUIDFromBytes(("OfflinePlayer:" + snapshot.getName().toLowerCase()).getBytes(StandardCharsets.UTF_8));
-            }
-            snapshot.setUuid(uuid);
-            admin.setUuid(uuid);
-        }
-
-        UUID finalUuid = uuid;
         synchronized (persistenceLock)
         {
             persistenceChain = persistenceChain
@@ -419,6 +472,54 @@ public class AdminList extends FreedomService
                     .cache();
             persistenceChain.subscribe();
         }
+    }
+
+    /**
+     * Resolve the UUID for a queued write. Runs on the persistence chain rather
+     * than the caller, because {@link FUtil#usernameToUuid} can make a blocking
+     * Mojang request with a 5s connect and 5s read timeout - that must never
+     * land on the main thread during play. The resolved value is handed back to
+     * the live entry on the main thread, which owns the lookup tables.
+     */
+    private CompletableFuture<UUID> resolveUuid(Admin live, Admin snapshot)
+    {
+        if (snapshot.getUuid() != null)
+        {
+            return CompletableFuture.completedFuture(snapshot.getUuid());
+        }
+
+        UUID resolved = FUtil.usernameToUuid(snapshot.getName());
+        if (resolved == null)
+        {
+            resolved = UUID.nameUUIDFromBytes(("OfflinePlayer:" + snapshot.getName().toLowerCase()).getBytes(StandardCharsets.UTF_8));
+        }
+
+        snapshot.setUuid(resolved);
+
+        final UUID finalResolved = resolved;
+        try
+        {
+            if (plugin.isEnabled())
+            {
+                plugin.getServer().getScheduler().runTask(plugin, () ->
+                {
+                    if (live.getUuid() == null)
+                    {
+                        live.setUuid(finalResolved);
+                        uuidTable.put(finalResolved, live);
+                    }
+                });
+            }
+        }
+        catch (RuntimeException ex)
+        {
+            // Plugin disabled between the check and the schedule; Bukkit answers
+            // that with IllegalPluginAccessException. The snapshot already holds
+            // the UUID, so let the write below proceed regardless.
+            FLog.debug("Could not sync resolved UUID back to " + snapshot.getName() + "; server is stopping");
+        }
+
+        return CompletableFuture.completedFuture(finalResolved);
     }
 
     private Admin copyAdmin(Admin admin)
@@ -447,19 +548,25 @@ public class AdminList extends FreedomService
             return;
         }
         
-        try
+        final AdminRepository repo = plugin.dm.getAdminRepository();
+        int saved = 0;
+        int failed = 0;
+
+        // Isolate per admin: this is the shutdown flush, so one unwritable row
+        // must not take the rest of the list down with it.
+        for (Admin admin : allAdmins.values())
         {
-            AdminRepository repo = plugin.dm.getAdminRepository();
-            for (Admin admin : allAdmins.values())
+            try
             {
                 UUID uuid = admin.getUuid();
                 if (uuid == null)
                 {
-                    // Generate UUID if not present
+                    // Generate UUID if not present. Blocking Mojang lookup is
+                    // acceptable here - this only runs at startup/shutdown.
                     uuid = FUtil.usernameToUuid(admin.getName());
                     if (uuid == null)
                     {
-                        uuid = UUID.nameUUIDFromBytes(("OfflinePlayer:" + admin.getName().toLowerCase()).getBytes());
+                        uuid = UUID.nameUUIDFromBytes(("OfflinePlayer:" + admin.getName().toLowerCase()).getBytes(StandardCharsets.UTF_8));
                     }
                     admin.setUuid(uuid);
                 }
@@ -468,7 +575,9 @@ public class AdminList extends FreedomService
             FLog.debug("Saved " + allAdmins.size() + " admins to SQL database");
             saveToJson();
         }
-        catch (Exception ex)
+
+        // Don't fall back to YAML on failure - we don't want conflicting data.
+        if (failed > 0)
         {
             FLog.warning("Failed to save admins to SQL: " + ex.getMessage());
             // Don't fall back to JSON here - we don't want to create conflicting data
@@ -488,6 +597,14 @@ public class AdminList extends FreedomService
         {
             FLog.severe("Could not save " + CONFIG_FILENAME);
         }
+    }
+
+    /**
+     * Save all admins to YAML file (fallback). Blocking - startup/shutdown only.
+     */
+    private void saveToYaml()
+    {
+        writeYaml(serialiseAdmins());
     }
 
     public synchronized boolean isAdminSync(CommandSender sender)
@@ -540,7 +657,7 @@ public class AdminList extends FreedomService
                         nameTable.remove(oldKey);
                         nameTable.put(newKey, uuidAdmin);
                     }
-                    saveAsync();
+                    saveAdminAsync(uuidAdmin);
                 }
                 return uuidAdmin;
             }
@@ -561,7 +678,7 @@ public class AdminList extends FreedomService
                         // Add the new IP if we have to
                         admin.addIp(ip);
                         ipTable.put(ip, admin);
-                        saveAsync();
+                        saveAdminAsync(admin);
                     }
                     return admin;
                 }
@@ -585,7 +702,7 @@ public class AdminList extends FreedomService
                         nameTable.put(newKey, admin);
                     }
                 }
-                saveAsync();
+                saveAdminAsync(admin);
             }
     
             return null;
@@ -641,7 +758,7 @@ public class AdminList extends FreedomService
 
         if (!debounce)
         {
-            saveAsync();
+            saveAdminAsync(admin);
         }
     }
 
@@ -791,6 +908,27 @@ public class AdminList extends FreedomService
         }
     }
 
+    /**
+     * Refresh the IP lookup table for a single admin. Use this instead of
+     * {@link #updateTables()} when only one entry's IP list has changed.
+     */
+    public void refreshIps(Admin admin)
+    {
+        if (admin == null)
+        {
+            return;
+        }
+
+        ipTable.values().removeIf(entry -> entry == admin);
+
+        if (!admin.isActive())
+        {
+            return;
+        }
+
+        admin.getIps().forEach(ip -> ipTable.put(ip, admin));
+    }
+
     public void updateTables()
     {
         activeAdmins.clear();
@@ -835,6 +973,16 @@ public class AdminList extends FreedomService
 
     }
     
+    public Map<String, Admin> getAllAdmins()
+    {
+        return allAdmins;
+    }
+
+    public Set<Admin> getActiveAdmins()
+    {
+        return activeAdmins;
+    }
+
     /**
      * Get admin by UUID.
      */

@@ -187,99 +187,72 @@ public class FUtil
         }
     }
 
-    private static final Pattern TIME_PATTERN = Pattern.compile(
-            "(?:([0-9]+)\\s*y[a-z]*[,\\s]*)?"
-            + "(?:([0-9]+)\\s*mo[a-z]*[,\\s]*)?"
-            + "(?:([0-9]+)\\s*w[a-z]*[,\\s]*)?"
-            + "(?:([0-9]+)\\s*d[a-z]*[,\\s]*)?"
-            + "(?:([0-9]+)\\s*h[a-z]*[,\\s]*)?"
-            + "(?:([0-9]+)\\s*m[a-z]*[,\\s]*)?"
-            + "(?:([0-9]+)\\s*(?:s[a-z]*)?)?", Pattern.CASE_INSENSITIVE);
+    /**
+     * A single {@code <number><unit>} part of a duration. {@code mo} is listed before the
+     * single-letter units so months win over minutes on the shared {@code m}.
+     */
+    private static final Pattern DURATION_PART = Pattern.compile("([0-9]+)(mo|[smhdwy])", Pattern.CASE_INSENSITIVE);
 
+    /**
+     * Parse a duration written in {@code <number><unit>} notation into an absolute future date.
+     * <p>
+     * Units are {@code s}econds, {@code m}inutes, {@code h}ours, {@code d}ays, {@code w}eeks,
+     * {@code mo}nths and {@code y}ears. Parts may be chained in any order and are summed, so
+     * {@code 5m}, {@code 1h30m} and {@code 2d7h45m31s} are all valid. Units are case-insensitive.
+     * <p>
+     * The offset must be a single unbroken token. {@code "1h 30m"} is not accepted, and could
+     * not reach here anyway: custom-resolved arguments are Brigadier {@code word()} nodes, which
+     * end at the first space.
+     * <p>
+     * Strict by design: the entire string must be number/unit pairs and the total must be
+     * non-zero. Anything else returns {@code null} rather than a silently wrong date.
+     *
+     * @param time the offset to parse, e.g. {@code "30s"}, {@code "2h"}, {@code "1h30m"}
+     * @return the resulting date, or {@code null} if {@code time} is not a valid offset
+     */
     public static Date parseDateOffset(String time)
     {
-        Matcher m = TIME_PATTERN.matcher(time);
-        int years = 0;
-        int months = 0;
-        int weeks = 0;
-        int days = 0;
-        int hours = 0;
-        int minutes = 0;
-        int seconds = 0;
-        boolean found = false;
-        while (m.find())
-        {
-            if (m.group() == null || m.group().isEmpty())
-            {
-                continue;
-            }
-            for (int i = 0; i < m.groupCount(); i++)
-            {
-                if (m.group(i) != null && !m.group(i).isEmpty())
-                {
-                    found = true;
-                    break;
-                }
-            }
-            if (found)
-            {
-                years = parseGroup(m, 1);
-                months = parseGroup(m, 2);
-                weeks = parseGroup(m, 3);
-                days = parseGroup(m, 4);
-                hours = parseGroup(m, 5);
-                minutes = parseGroup(m, 6);
-                seconds = parseGroup(m, 7);
-                break;
-            }
-        }
-        if (!found)
+        if (time == null || time.isEmpty())
         {
             return null;
         }
 
-        Calendar c = new GregorianCalendar();
+        final Matcher m = DURATION_PART.matcher(time);
+        final Calendar c = new GregorianCalendar();
+        int consumed = 0;
+        long total = 0;
 
-        if (years > 0)
+        while (m.find())
         {
-            c.add(Calendar.YEAR, years);
+            // Every part must butt up against the last, so stray text cannot be skipped over.
+            if (m.start() != consumed)
+            {
+                return null;
+            }
+            consumed = m.end();
+
+            final int value = Integer.parseInt(m.group(1));
+            total += value;
+
+            switch (m.group(2).toLowerCase(Locale.ENGLISH))
+            {
+                case "y" -> c.add(Calendar.YEAR, value);
+                case "mo" -> c.add(Calendar.MONTH, value);
+                case "w" -> c.add(Calendar.WEEK_OF_YEAR, value);
+                case "d" -> c.add(Calendar.DAY_OF_MONTH, value);
+                case "h" -> c.add(Calendar.HOUR_OF_DAY, value);
+                case "m" -> c.add(Calendar.MINUTE, value);
+                default -> c.add(Calendar.SECOND, value);
+            }
         }
-        if (months > 0)
+
+        // Reject trailing junk ("1h30") and offsets that do not move ("0m").
+        if (consumed != time.length() || total == 0)
         {
-            c.add(Calendar.MONTH, months);
-        }
-        if (weeks > 0)
-        {
-            c.add(Calendar.WEEK_OF_YEAR, weeks);
-        }
-        if (days > 0)
-        {
-            c.add(Calendar.DAY_OF_MONTH, days);
-        }
-        if (hours > 0)
-        {
-            c.add(Calendar.HOUR_OF_DAY, hours);
-        }
-        if (minutes > 0)
-        {
-            c.add(Calendar.MINUTE, minutes);
-        }
-        if (seconds > 0)
-        {
-            c.add(Calendar.SECOND, seconds);
+            return null;
         }
 
         return c.getTime();
-    }
-
-    private static int parseGroup(Matcher m, int group)
-    {
-        String value = m.group(group);
-        if (value != null && !value.isEmpty())
-        {
-            return Integer.parseInt(value);
-        }
-        return 0;
     }
 
     public static String playerListToNames(Set<OfflinePlayer> players)

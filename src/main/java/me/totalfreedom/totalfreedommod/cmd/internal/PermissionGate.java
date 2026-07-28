@@ -44,6 +44,25 @@ public final class PermissionGate
      */
     public static boolean test(TotalFreedomMod plugin, CommandSender sender, Permission perm, boolean sendMsg)
     {
+        return test(plugin, sender, perm, null, sendMsg);
+    }
+
+    /**
+     * Tests whether {@code sender} may execute a subcommand handler guarded by {@code perm},
+     * declared inside a command whose class-level guard is {@code parent}.
+     * <p>
+     * When a handler repeats its parent's permission node, that node cannot tell the two apart:
+     * anyone who passed the parent gate holds it already, so checking it again always succeeds
+     * and a stricter {@code level()} on the handler is silently ignored. In that case the node is
+     * skipped and {@link Permission#level()} decides, which is the only field that still
+     * discriminates. The node itself is not lost - the parent's own gate already enforced it
+     * before the sender could reach this handler.
+     *
+     * @param parent the class-level guard, or {@code null} when {@code perm} is itself the
+     *               class-level guard and there is no outer scope to compare against
+     */
+    public static boolean test(TotalFreedomMod plugin, CommandSender sender, Permission perm, Permission parent, boolean sendMsg)
+    {
         if (perm == null)
         {
             return true;
@@ -107,7 +126,7 @@ public final class PermissionGate
         }
 
         String tfmPermission = perm.permission();
-        if (tfmPermission != null && !tfmPermission.isEmpty())
+        if (tfmPermission != null && !tfmPermission.isEmpty() && !repeatsParentNode(perm, parent))
         {
             boolean result = plugin.rm.hasPermission(sender, tfmPermission);
             if (!result && sendMsg)
@@ -140,5 +159,19 @@ public final class PermissionGate
             sender.sendMessage(Component.text(perm.message(), NamedTextColor.RED));
         }
         return result;
+    }
+
+    /**
+     * Whether {@code perm} is a handler-level guard that declares the same node as its parent.
+     * <p>
+     * The identity check matters: a handler with no {@code @Permission} of its own is handed the
+     * class-level annotation itself, and that is not a repeat - there is no distinct handler
+     * level to defer to, so the node check must stand.
+     */
+    private static boolean repeatsParentNode(Permission perm, Permission parent)
+    {
+        return parent != null
+            && parent != perm
+            && perm.permission().equals(parent.permission());
     }
 }

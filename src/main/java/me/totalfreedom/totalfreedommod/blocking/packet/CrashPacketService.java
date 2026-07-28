@@ -87,7 +87,7 @@ public class CrashPacketService extends FreedomService
         if (snapshot.rateLimit)
         {
             spamLimiter = new PacketSpamLimiter(snapshot.maxInteractions, snapshot.maxCommands, snapshot.maxMovement,
-                    snapshot.maxHeldSwitches);
+                    snapshot.maxHeldSwitches, snapshot.maxSuggestions, snapshot.maxGameModeSwitches);
         }
 
         if (snapshot.movementGuardEnabled)
@@ -96,9 +96,13 @@ public class CrashPacketService extends FreedomService
                     snapshot.maxBlocksPerSecond);
         }
 
+        CommandDepthGuard commandDepthGuard = snapshot.commandDepthGuard
+                ? new CommandDepthGuard(snapshot.maxCommandDepth)
+                : null;
+
         registeredListener = PacketEvents.getAPI().getEventManager()
                 .registerListener(new CrashPacketListener(plugin, snapshot.itemGuard, snapshot.entityMetadataGuard,
-                        snapshot.entityLimits, spamLimiter, movementGuard,
+                        snapshot.entityLimits, spamLimiter, movementGuard, commandDepthGuard,
                         snapshot.signGuard, snapshot.signChunkGuard, snapshot.blockAllSignPackets,
                         snapshot.spawnerGuard, snapshot.spawnerChunkGuard,
                         snapshot.containerGuard, snapshot.containerChunkGuard));
@@ -116,6 +120,7 @@ public class CrashPacketService extends FreedomService
                 + (snapshot.spawnerChunkGuard ? " [spawnerChunkGuard]" : "")
                 + (snapshot.containerGuard ? " [containerGuard]" : "")
                 + (snapshot.containerChunkGuard ? " [containerChunkGuard]" : "")
+                + (snapshot.commandDepthGuard ? " [commandDepthGuard]" : "")
                 + ".");
     }
 
@@ -137,9 +142,13 @@ public class CrashPacketService extends FreedomService
             int maxCommands,
             int maxMovement,
             int maxHeldSwitches,
+            int maxSuggestions,
+            int maxGameModeSwitches,
             int maxHorizontalDelta,
             int maxOversizedMovesPerSecond,
-            int maxBlocksPerSecond)
+            int maxBlocksPerSecond,
+            boolean commandDepthGuard,
+            int maxCommandDepth)
     {
         private static Snapshot read()
         {
@@ -184,7 +193,8 @@ public class CrashPacketService extends FreedomService
         {
             return itemGuard || entityMetadataGuard || rateLimit || movementGuardEnabled || emptyChatGuard
                     || signGuard || signChunkGuard
-                    || blockAllSignPackets || spawnerGuard || spawnerChunkGuard || containerGuard || containerChunkGuard;
+                    || blockAllSignPackets || spawnerGuard || spawnerChunkGuard || containerGuard || containerChunkGuard
+                    || commandDepthGuard;
         }
     }
 
