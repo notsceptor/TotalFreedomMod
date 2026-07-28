@@ -166,6 +166,7 @@ public class PlayerList extends FreedomService
         final PlayerData data = getData(player);
         tPlayer.setCommandSpyMode(data.getCommandSpyMode());
         tPlayer.setCommandsBlocked(data.isCommandsBlocked());
+        tPlayer.setJoinLeaveMessagesEnabled(data.isJoinLeaveMessagesEnabled());
         playerMap.put(player.getName().toLowerCase(), tPlayer);
 
         return tPlayer;

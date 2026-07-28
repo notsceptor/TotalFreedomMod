@@ -47,6 +47,7 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
     @Getter
     @Setter
     private boolean commandsBlocked;
+    private boolean joinLeaveMessagesEnabled = true;
     @Getter
     @Setter
     private String savedTag;
@@ -81,6 +82,7 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
         this.muted = cs.getBoolean("muted", false);
         this.frozen = cs.getBoolean("frozen", false);
         this.commandsBlocked = cs.getBoolean("commands_blocked", false);
+        this.joinLeaveMessagesEnabled = cs.getBoolean("join_leave_messages", true);
         this.strikes = cs.getInt("strikes", 0);
         this.savedTag = cs.getString("saved_tag");
         if (this.savedTag != null && this.savedTag.isEmpty())
@@ -109,6 +111,7 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
         cs.set("muted", muted);
         cs.set("frozen", frozen);
         cs.set("commands_blocked", commandsBlocked);
+        cs.set("join_leave_messages", joinLeaveMessagesEnabled);
         cs.set("strikes", strikes);
         cs.set("saved_tag", savedTag);
         cs.set("nickname", nickname != null ? AdventureUtil.componentToLegacy(nickname) : null);
@@ -132,6 +135,16 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
     public void setCommandSpyMode(CommandSpyMode commandSpyMode)
     {
         this.commandSpyMode = commandSpyMode == null ? CommandSpyMode.OFF : commandSpyMode;
+    }
+
+    public boolean isJoinLeaveMessagesEnabled()
+    {
+        return joinLeaveMessagesEnabled;
+    }
+
+    public void setJoinLeaveMessagesEnabled(boolean joinLeaveMessagesEnabled)
+    {
+        this.joinLeaveMessagesEnabled = joinLeaveMessagesEnabled;
     }
 
     public List<String> getIps()
