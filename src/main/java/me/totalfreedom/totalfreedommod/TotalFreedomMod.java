@@ -95,6 +95,7 @@ public class TotalFreedomMod extends JavaPlugin
     public AntiDrop adr; // AntiDrop - Throttles item drop flooding
     public AntiSpam as; // AntiSpam - Prevents chat spam
     public PlayerList pl; // PlayerList - Manages player data and lists
+    public JoinLeaveMessages jlm; // JoinLeaveMessages - Personal join/leave message filtering
     public Announcer an; // Announcer - Handles server announcements
     public ChatManager cm; // ChatManager - Manages chat formatting and admin chat
     public BanManager bm; // BanManager - Manages player bans
@@ -194,7 +195,9 @@ public class TotalFreedomMod extends JavaPlugin
 
         rm = services.registerService(RankManager.class);
 
-        // Console sender whitelist — loaded after RankManager so custom rank ids resolve.
+        // Console sender whitelist. This first read only resolves bindings that name a legacy
+        // rank, since registerService constructs RankManager without starting it and no custom
+        // ranks are in memory yet. RankManager#onStart re-reads it once they are.
         csr = new ConsoleSenderRegistry(this);
         csr.load();
         // cl = services.registerService(CommandLoader.class);
@@ -223,14 +226,17 @@ public class TotalFreedomMod extends JavaPlugin
         as = services.registerService(AntiSpam.class);
 
         pl = services.registerService(PlayerList.class);
+        jlm = services.registerService(JoinLeaveMessages.class);
         an = services.registerService(Announcer.class);
         cm = services.registerService(ChatManager.class);
+        services.registerService(TextFilterService.class);
         bm = services.registerService(BanManager.class);
         pm = services.registerService(PermbanList.class);
         sl = services.registerService(StrikeList.class);
         pa = services.registerService(ProtectArea.class);
         sm = services.registerService(SpawnManager.class);
         gr = services.registerService(GameRuleHandler.class);
+        services.registerService(GameModeGuard.class);
         services.registerService(me.totalfreedom.totalfreedommod.disguise.DisallowedDisguises.class);
 
         // Single admin utils

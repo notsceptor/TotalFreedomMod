@@ -1,5 +1,6 @@
 package me.totalfreedom.totalfreedommod.config;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import me.totalfreedom.totalfreedommod.PluginProvider;
@@ -120,12 +121,14 @@ public enum ConfigEntry
     WORLDEDIT_RADIUS_MAX(Integer.class, "worldedit.radius_max"),
     WORLDEDIT_MAX_PATTERN_BLOCKS(Integer.class, "worldedit.max_pattern_blocks"),
     WORLDEDIT_BLOCKED_BLOCK_TYPES(List.class, "worldedit.blocked_types"),
+    WORLDEDIT_BLOCK_CATEGORY_TAGS(Boolean.class, "worldedit.block_category_tags"),
     WORLDEDIT_BLOCK_CLIPBOARD_PATTERN(Boolean.class, "worldedit.block_clipboard_pattern"),
     WORLDEDIT_THROTTLE_ENABLED(Boolean.class, "worldedit.throttle.enabled"),
     WORLDEDIT_THROTTLE_MAX_OPS(Integer.class, "worldedit.throttle.max_operations"),
     WORLDEDIT_THROTTLE_TIME_WINDOW(Integer.class, "worldedit.throttle.time_window"),
     WORLDEDIT_THROTTLE_MAX_CANCELLED_OPS(Integer.class, "worldedit.throttle.max_cancelled_operations"),
     WORLDEDIT_MAX_CONTAINERS(Integer.class, "worldedit.max_containers"),
+    WORLDEDIT_MAX_BLOCK_ENTITIES_PER_OP(Integer.class, "worldedit.max_block_entities_per_op"),
     WORLDEDIT_MAX_SCHEM_SAVE_KB(Integer.class, "worldedit.max_schem_save_kb"),
     WORLDEDIT_SCHEM_SAVE_COOLDOWN(Integer.class, "worldedit.schem_save_cooldown_seconds"),
     //
@@ -148,6 +151,9 @@ public enum ConfigEntry
     ANTISPAM_REPEAT_WINDOW(Integer.class, "antispam.repeat_window"),
     ANTISPAM_REPEAT_HISTORY(Integer.class, "antispam.repeat_history"),
     //
+    TEXT_FILTER_ENABLED(Boolean.class, "text_filter.enabled"),
+    TEXT_FILTER_REGEX_FILTERS(List.class, "text_filter.regex_filters"),
+    //
     MOVE_GUARD_ENABLED(Boolean.class, "move_guard.enabled"),
     MOVE_GUARD_SPEED_MAX_HORIZONTAL_DELTA(Integer.class, "move_guard.speed.max_horizontal_delta"),
     MOVE_GUARD_SPEED_MAX_TELEPORTS_PER_SECOND(Integer.class, "move_guard.speed.max_teleports_per_second"),
@@ -161,10 +167,14 @@ public enum ConfigEntry
     CRASH_ITEMS_MAX_COMMANDS_PER_SECOND(Integer.class, "crash_items.max_commands_per_second"),
     CRASH_ITEMS_MAX_MOVEMENT_PER_SECOND(Integer.class, "crash_items.max_movement_packets_per_second"),
     CRASH_ITEMS_MAX_HOTBAR_SLOTS_PER_SECOND(Integer.class, "crash_items.max_hotbar_slots_per_second"),
+    CRASH_ITEMS_MAX_COMMAND_SUGGESTIONS_PER_SECOND(Integer.class, "crash_items.max_command_suggestions_per_second"),
+    CRASH_ITEMS_MAX_GAMEMODE_SWITCHES_PER_SECOND(Integer.class, "crash_items.max_gamemode_switches_per_second"),
     CRASH_ITEMS_EQUIPMENT_SWEEP_TICKS(Integer.class, "crash_items.equipment_sweep_ticks"),
     CRASH_ITEMS_BASE_COMMANDS(List.class, "crash_items.base_commands"),
     CRASH_ITEMS_HIDE_CONSOLE_SPAM(Boolean.class, "crash_items.hide_console_spam"),
     CRASH_ITEMS_MAX_POTION_EFFECTS(Integer.class, "crash_items.max_potion_effects"),
+    CRASH_ITEMS_COMMAND_DEPTH_GUARD(Boolean.class, "crash_items.command_depth_guard"),
+    CRASH_ITEMS_MAX_COMMAND_DEPTH(Integer.class, "crash_items.max_command_depth"),
     //
     CRASH_CONTAINERS_SCAN_CHUNK_LOAD(Boolean.class, "crash_containers.scan_chunk_load"),
     CRASH_CONTAINERS_SWEEP_MODE(String.class, "crash_containers.sweep_mode"),
@@ -290,7 +300,11 @@ public enum ConfigEntry
     GAMERULES_MALICIOUS(List.class, "gamerules.malicious"),
     GAMERULES_CAPS(ConfigurationSection.class, "gamerules.caps"),
     GAMERULES_MAX_CHANGES_PER_SECOND(Integer.class, "gamerules.max_changes_per_second"),
-    GAMERULES_KICK_FLOODERS(Boolean.class, "gamerules.kick_flooders");
+    GAMERULES_KICK_FLOODERS(Boolean.class, "gamerules.kick_flooders"),
+    //
+    GAMEMODE_FLOOD_ENABLED(Boolean.class, "gamemode_flood.enabled"),
+    GAMEMODE_FLOOD_MAX_CHANGES_PER_SECOND(Integer.class, "gamemode_flood.max_changes_per_second"),
+    GAMEMODE_FLOOD_KICK_FLOODERS(Boolean.class, "gamemode_flood.kick_flooders");
 
     //
     private final Class<?> type;
@@ -374,10 +388,18 @@ public enum ConfigEntry
         return value != null ? value : Collections.emptyList();
     }
 
-    @SuppressWarnings("unchecked")
     public List<String> getStringList()
     {
-        return (List<String>) getList();
+        final List<?> raw = getList();
+        final List<String> out = new ArrayList<>(raw.size());
+        for (Object element : raw)
+        {
+            if (element != null)
+            {
+                out.add(String.valueOf(element));
+            }
+        }
+        return out;
     }
 
     public ConfigurationSection getSection()

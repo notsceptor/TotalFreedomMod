@@ -1,6 +1,6 @@
 # TotalFreedomMod r03
 ![Release](https://img.shields.io/github/v/release/tfreedomorg/TotalFreedomMod?include_prereleases&style=plastic)
-![Version](https://img.shields.io/badge/version-26.1.2-green?style=plastic)
+![Version](https://img.shields.io/badge/version-26.7-green?style=plastic)
 ![License](https://img.shields.io/badge/license-TFGL%20v2.0-orange?style=plastic)
 ![Code size](https://img.shields.io/github/languages/code-size/tfreedomorg/TotalFreedomMod?style=plastic)
 
@@ -24,9 +24,7 @@ The following plugins hook into TotalFreedomMod and are only necessary for speci
 5. [packetevents](https://github.com/retrooper/packetevents) 2.12.x (for item/block entity client anti-crash guards and inbound packet rate limiting)
 
 ### Download
-Section 2.1 of the [TotalFreedom General License](https://github.com/tfreedomorg/TotalFreedomMod/blob/devel/LICENSE.md) states that "Redistructions of This Software must solely occur in Source form. Redistribution in Object form is prohibited without prior written permission from the Licensor."
-
-As such, the TotalFreedom Organization is prohibited from distributing compiled binaries of TotalFreedomMod.  In order to add the plugin to your own server, you may compile TotalFreedomMod for yourself.  For more information, read [Compiling](https://github.com/tfreedomorg/TotalFreedomMod/wiki/Compiling).
+To download TotalFreedomMod, please visit our [Releases](https://github.com/tfreedomorg/TotalFreedomMod/releases).
 
 ### Contributing
 Please read [Contributing](https://github.com/tfreedomorg/TotalFreedomMod/wiki/Contributing) if you are interested in further developing TotalFreedomMod.

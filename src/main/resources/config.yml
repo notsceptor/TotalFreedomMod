@@ -246,6 +246,12 @@ antispam:
   # How many of the player's recent messages to remember for repeat comparison.
   repeat_history: 8
 
+# Text filter for prohibited language in chat and player commands.
+# Regexes are case-insensitive.
+text_filter:
+  enabled: true
+  regex_filters: []
+
 # MovementGuard
 # Used to monitor inbound movement packets (requires packetevents).
 move_guard:
@@ -260,6 +266,11 @@ move_guard:
     # Maximum sustained horizontal speed, in blocks per second, summed from normal-sized moves.
     # 0 disables this check.
     max_blocks_per_second: 100
+
+gamemode_flood:
+  enabled: true
+  max_changes_per_second: 8
+  kick_flooders: true
 
 # ItemValidator
 # For detecting items with oversized/nested NBT data.
@@ -283,6 +294,8 @@ crash_items:
   max_commands_per_second: 20
   max_movement_packets_per_second: 120
   max_hotbar_slots_per_second: 25
+  max_command_suggestions_per_second: 10
+  max_gamemode_switches_per_second: 8
   # Commands to check for preprocessed text.
   # Matched against the Minecraft subcommand, e.g. "minecraft:<name>"
   base_commands:
@@ -302,6 +315,8 @@ crash_items:
   # Max number of custom potion effects an item may carry before it is treated as
   # a crash item. 0 disables.
   max_potion_effects: 24
+  command_depth_guard: true
+  max_command_depth: 30
 
 # ContainerPacketGuard
 # Removes unwanted items from item-bearing title entities that can be delivered
@@ -568,10 +583,13 @@ worldedit:
   - bell
   - note_block
   - '#clipboard'
+  block_category_tags: true
 
   # Maximum number of container blocks (e.g. chests, shulkers, hoppers...) that an
   # operator may place in a single WorldEdit operation. Set to -1 for no limit.
   max_containers: 500
+
+  max_block_entities_per_op: 512
 
   # Maximum size of a schematic file in kilobytes that an operator may save.
   # Set to -1 for no limit.
@@ -589,9 +607,19 @@ worldedit:
 # The `super_admin:ssh` entry dictates that password-authenticated SSH sessions will receive Super
 # Admin.
 #
+# Host channels (rcon, remotebukkit, console) carry no user identity, so they are pinned to
+# senior_admin in code: console access is itself the privilege. Entries here may raise a host
+# channel but not lower it. A lower binding is logged and ignored, since it silently locks the
+# panel out of senior-gated commands.
+#
+# SSH and Discord are different. They prove who is acting, by SSH public key or by a linked
+# Discord account, and so run at that admin's own rank, custom rank included. Their entries
+# below apply only when the session proved no identity, which in practice means password-only
+# SSH. Discord commands are rejected outright unless the author is linked to an active admin.
+#
 host_senders:
-  - 'super_admin:rcon'
-  - 'super_admin:remotebukkit'
+  - 'senior_admin:rcon'
+  - 'senior_admin:remotebukkit'
   - 'super_admin:ssh'
   - 'senior_admin:console'
   - 'senior_admin:discord'
@@ -814,17 +842,24 @@ ssh:
 
   # When true, SSH commands are sent under a cosmetic wrapper with the admin's username
   # instead of the `CONSOLE` sender.
+  #
+  # This is display only and does not affect permissions: the session always carries the
+  # authenticated identity, whether or not that identity is shown.
   show_user: false
 
   # Prefix prepended to the cosmetic name of the sender (e.g. ssh@Prozza).
   user_prefix: "SSH@"
 
-  # When true, commands dispatched via SSH will run at the permission level of the user's
-  # admin rank rather than the host_senders whitelist (see above).
+  # When true, commands dispatched via SSH run at the permission level of the user's own admin
+  # rank (including a custom rank pinned to their profile) rather than the host_senders
+  # whitelist (see above).
   #
-  # The session must be authenticated via public key (see ssh.auth.key).
-  # This is required because the password does not bind a username to an identity.
-  inherit_rank: false
+  # The session must be authenticated via public key (see ssh.auth.key). This is required
+  # because the password does not bind a username to an identity; password-only sessions
+  # always fall back to the `super_admin:ssh` binding regardless of this setting.
+  #
+  # Set to false only to force every SSH session to that flat tier.
+  inherit_rank: true
 
   # Port used by the one-time QR code setup page served by /sshtotp.
   qr_port: 8765

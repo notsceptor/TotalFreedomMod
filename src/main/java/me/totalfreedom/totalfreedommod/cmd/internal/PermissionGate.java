@@ -6,7 +6,6 @@ import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Permission;
 import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchContext;
 import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchSession;
 import me.totalfreedom.totalfreedommod.rank.CustomRank;
-import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.ssh.AttributedConsoleSender;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -146,14 +145,20 @@ public final class PermissionGate
             return result;
         }
 
-        Rank rank = plugin.rm.getRank(sender);
-        CustomRank boundCustom = null;
-        if (!RemoteDispatchContext.isActive())
-        {
-            String boundRankId = plugin.csr.getRankIdForSender(sender.getName());
-            boundCustom = boundRankId != null ? plugin.rm.getCustomRank(boundRankId) : null;
-        }
-        final boolean result = boundCustom != null ? boundCustom.isAtLeast(perm.level()) : rank.isAtLeast(perm.level());
+        // getEffectiveRank resolves how this sender earned its rank: an identified SSH or Discord
+        // session becomes that admin's own profile rank, custom rank included, while a host
+        // channel becomes its host_senders binding. Falling back to getRank keeps senders it
+        // cannot place working on the legacy scale.
+        final CustomRank effective = plugin.rm.getEffectiveRank(sender);
+
+        // A CustomRank's level is an operator-defined scale that need not line up with
+        // Rank.ordinal(), so testing one straight against perm.level() can be off by a tier and
+        // deny a sender its own rank. Resolve the requirement through the same registry the
+        // sender's rank came from, so both sides are read off one scale.
+        final CustomRank required = plugin.rm.getCustomRankForLegacy(perm.level());
+        final boolean result = effective != null && required != null
+            ? effective.isAtLeast(required)
+            : plugin.rm.getRank(sender).isAtLeast(perm.level());
         if (!result && sendMsg)
         {
             sender.sendMessage(Component.text(perm.message(), NamedTextColor.RED));

@@ -62,11 +62,10 @@ public class Command_smite extends FCommand
 
         if (reason != null) 
             msg(
-                player, 
-                // We take advantage of the String blocks newline byte here because it's encoded by MiniMessage and preserved in display.
+                player,
                 """
-                    You have been smitten. 
-                    Reason: <yellow><reason>
+                    <red>You have been smitten.
+                    <red>Reason: <yellow><reason>\
                 """,
                 MessageUtils.parsed("reason", reason)
             );

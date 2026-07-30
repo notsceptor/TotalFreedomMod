@@ -147,17 +147,22 @@ public class MessageUtils
     }
 
     /**
-     * Parses a MiniMessage string into a Component. 
+     * Parses a MiniMessage string into a Component.
      * Automatically escapes angle brackets that are not valid MiniMessage tags (e.g., <exp>, <user1>).
-     * 
+     * <p>
+     * Multi-line messages built with a Java text block ({@code """..."""}) keep their embedded
+     * newline bytes, which MiniMessage preserves and renders as line breaks in the output. To
+     * omit the newline before the closing {@code """} (e.g. when only using the text block for
+     * indentation), end the last line with a trailing {@code \}.
+     *
      * @param miniMessage MiniMessage string to be parsed
      * @return Parsed Component
      */
-    public static Component parse(String miniMessage) 
+    public static Component parse(String miniMessage)
     {
-        if (miniMessage == null) 
+        if (miniMessage == null)
             throw new IllegalArgumentException("MiniMessage string cannot be null");
-        
+
         final String escaped = escapeUnknownTags(miniMessage);
         return AdventureUtil.addLinks(MM.deserialize(escaped));
     }
@@ -166,12 +171,17 @@ public class MessageUtils
      * Parses a MiniMessage string with additional TagResolvers.
      * Automatically escapes angle brackets that are not valid MiniMessage tags (e.g., <exp>, <user1>).
      * Useful for including placeholders in the MiniMessage string.
-     * 
+     * <p>
+     * Multi-line messages built with a Java text block ({@code """..."""}) keep their embedded
+     * newline bytes, which MiniMessage preserves and renders as line breaks in the output. To
+     * omit the newline before the closing {@code """} (e.g. when only using the text block for
+     * indentation), end the last line with a trailing {@code \}.
+     *
      * @param miniMessage MiniMessage string to be parsed
      * @param resolvers Additional TagResolvers to resolve placeholders in the MiniMessage
      * @return Parsed Component with placeholders resolved
      */
-    public static Component parse(String miniMessage, TagResolver... resolvers) 
+    public static Component parse(String miniMessage, TagResolver... resolvers)
     {
         if (miniMessage == null)
             throw new IllegalArgumentException("MiniMessage string cannot be null");

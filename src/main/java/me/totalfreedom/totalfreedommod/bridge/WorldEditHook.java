@@ -23,6 +23,7 @@ import com.sk89q.worldedit.world.block.BlockCategory;
 import com.sk89q.worldedit.world.block.BlockStateHolder;
 import com.sk89q.worldedit.world.block.BlockType;
 import com.sk89q.worldedit.world.registry.BlockMaterial;
+import com.sk89q.worldedit.world.registry.LegacyMapper;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
@@ -102,6 +103,8 @@ public final class WorldEditHook implements Listener
         RADIUS_COMMANDS.put("hcyl", 1);
         RADIUS_COMMANDS.put("pyramid", 1);
         RADIUS_COMMANDS.put("removenear", 1);
+        RADIUS_COMMANDS.put("blob", 1);
+        RADIUS_COMMANDS.put("rock", 1);
     }
 
     private static final String[] BYPASS_NODES = {
@@ -127,6 +130,19 @@ public final class WorldEditHook implements Listener
     private static final long SWEEP_FLUSH_DELAY_TICKS = 60L;
     private static final long MAX_CONTAINER_SCAN_VOLUME = 2_000_000L;
     private static final Set<String> CLIPBOARD_CONTAINER_COMMANDS = Set.of("paste", "place");
+
+    private static final Set<String> BLOCK_ENTITY_IDS = Set.of(
+        "enchanting_table", "ender_chest", "beacon", "conduit", "bell", "lectern", "jukebox",
+        "spawner", "trial_spawner", "vault", "comparator", "daylight_detector",
+        "structure_block", "jigsaw", "end_gateway", "end_portal",
+        "sculk_sensor", "calibrated_sculk_sensor", "sculk_catalyst", "sculk_shrieker",
+        "chiseled_bookshelf", "decorated_pot", "suspicious_sand", "suspicious_gravel",
+        "brushable_block", "beehive", "bee_nest"
+    );
+
+    private static final String[] BLOCK_ENTITY_SUFFIXES = {
+        "_sign", "_head", "_skull", "_banner", "_bed", "shulker_box", "campfire", "command_block"
+    };
 
     private final TotalFreedomMod plugin;
     private final Map<UUID, RegionSnapshot> lastSelections = new HashMap<>();
@@ -185,6 +201,11 @@ public final class WorldEditHook implements Listener
                     if (containerCap >= 0)
                     {
                         wrapped = new ContainerLimitExtent(wrapped, wePlayer.getUniqueId(), containerCap);
+                    }
+                    final int tileCap = getMaxBlockEntities();
+                    if (tileCap >= 0)
+                    {
+                        wrapped = new TileLimitExtent(wrapped, wePlayer.getUniqueId(), tileCap);
                     }
                     final List<String> blockedTypes = getBlockedTypesLower();
                     if (!blockedTypes.isEmpty())
@@ -322,6 +343,11 @@ public final class WorldEditHook implements Listener
         }
 
         if (checkPatternComplexity(event))
+        {
+            return;
+        }
+
+        if (checkCategoryTags(event))
         {
             return;
         }
@@ -552,6 +578,43 @@ public final class WorldEditHook implements Listener
         return true;
     }
 
+    private boolean checkCategoryTags(PlayerCommandPreprocessEvent event)
+    {
+        if (!ConfigEntry.WORLDEDIT_BLOCK_CATEGORY_TAGS.getBoolean(true))
+        {
+            return false;
+        }
+
+        final Player player = event.getPlayer();
+        if (plugin.al.isAdmin(player))
+        {
+            return false;
+        }
+
+        final String message = event.getMessage();
+        if (!isPatternCapableOp(message))
+        {
+            return false;
+        }
+
+        final List<String> tokens = tokenizeArgs(stripSlashes(message));
+        for (int i = 1; i < tokens.size(); i++)
+        {
+            final String arg = tokens.get(i).toLowerCase(Locale.ROOT);
+            if (CATEGORY_TOKEN.matcher(arg).find())
+            {
+                event.setCancelled(true);
+                player.sendMessage(Component.text(
+                    "Block-category tags (##…) cannot be used in your WorldEdit operations.",
+                    NamedTextColor.RED));
+                FLog.warning(player.getName()
+                    + " tried to use a block-category tag in a W/E operation: " + message);
+                return true;
+            }
+        }
+        return false;
+    }
+
     private boolean checkPatternTypes(PlayerCommandPreprocessEvent event)
     {
         final List<String> blocked = getBlockedTypesLower();
@@ -607,7 +670,27 @@ public final class WorldEditHook implements Listener
             final Matcher m = BLOCK_TOKEN.matcher(arg);
             while (m.find())
             {
-                String id = m.group();
+                final String raw = m.group();
+
+                final String legacyId = resolveLegacyBlockId(raw);
+                if (legacyId != null)
+                {
+                    for (String entry : blocked)
+                    {
+                        if (!entry.isEmpty() && entry.charAt(0) == '#')
+                        {
+                            continue;
+                        }
+                        if (blockedIdMatches(legacyId, entry))
+                        {
+                            cancelBlockedType(event, player, raw + " (" + legacyId + ")", message);
+                            return true;
+                        }
+                    }
+                    continue;
+                }
+
+                String id = raw;
                 final int colon = id.indexOf(':');
                 if (colon >= 0)
                 {
@@ -666,6 +749,53 @@ public final class WorldEditHook implements Listener
         return id.equals(entry);
     }
 
+    private static String resolveLegacyBlockId(String token)
+    {
+        final int id;
+        final int data;
+        final int colon = token.indexOf(':');
+        try
+        {
+            if (colon >= 0)
+            {
+                id = Integer.parseInt(token.substring(0, colon));
+                data = Integer.parseInt(token.substring(colon + 1));
+            }
+            else
+            {
+                id = Integer.parseInt(token);
+                data = -1;
+            }
+        }
+        catch (NumberFormatException notNumeric)
+        {
+            return null;
+        }
+
+        try
+        {
+            final com.sk89q.worldedit.world.block.BlockState state = (data >= 0)
+                ? LegacyMapper.getInstance().getBlockFromLegacy(id, data)
+                : LegacyMapper.getInstance().getBlockFromLegacy(id);
+            if (state == null)
+            {
+                return null;
+            }
+            final BlockType type = state.getBlockType();
+            if (type == null)
+            {
+                return null;
+            }
+            String bid = type.id().toLowerCase(Locale.ROOT);
+            final int c = bid.indexOf(':');
+            return (c >= 0) ? bid.substring(c + 1) : bid;
+        }
+        catch (Throwable t)
+        {
+            return null;
+        }
+    }
+
     private boolean checkClipboardPattern(PlayerCommandPreprocessEvent event)
     {
         if (!ConfigEntry.WORLDEDIT_BLOCK_CLIPBOARD_PATTERN.getBoolean(true))
@@ -680,7 +810,7 @@ public final class WorldEditHook implements Listener
         }
 
         final String message = event.getMessage();
-        if (!isClipboardCapableOp(message))
+        if (!isPatternCapableOp(message))
         {
             return false;
         }
@@ -703,7 +833,7 @@ public final class WorldEditHook implements Listener
         return true;
     }
 
-    private static boolean isClipboardCapableOp(String message)
+    private static boolean isPatternCapableOp(String message)
     {
         if (message == null || message.length() < 2 || message.charAt(0) != '/')
         {
@@ -890,12 +1020,12 @@ public final class WorldEditHook implements Listener
         {
             return -1;
         }
-        int max = -1;
+        double max = -1;
         for (String part : token.split(","))
         {
             try
             {
-                final int v = Integer.parseInt(part.trim());
+                final double v = Double.parseDouble(part.trim());
                 if (v > max)
                 {
                     max = v;
@@ -906,7 +1036,11 @@ public final class WorldEditHook implements Listener
                 return -1;
             }
         }
-        return max;
+        if (max < 0)
+        {
+            return -1;
+        }
+        return (int) Math.min(Integer.MAX_VALUE, Math.ceil(max));
     }
 
     private static String stripSlashes(String message)
@@ -1085,6 +1219,16 @@ public final class WorldEditHook implements Listener
     private static int getMaxContainers()
     {
         final Integer raw = ConfigEntry.WORLDEDIT_MAX_CONTAINERS.getInteger();
+        if (raw == null || raw < 0)
+        {
+            return -1;
+        }
+        return raw;
+    }
+
+    private static int getMaxBlockEntities()
+    {
+        final Integer raw = ConfigEntry.WORLDEDIT_MAX_BLOCK_ENTITIES_PER_OP.getInteger();
         if (raw == null || raw < 0)
         {
             return -1;
@@ -1588,7 +1732,22 @@ public final class WorldEditHook implements Listener
         }
     }
 
-    private final class ProtectedAreaExtent extends AbstractDelegateExtent
+    private abstract static class PathCompleteExtent extends AbstractDelegateExtent
+    {
+
+        PathCompleteExtent(Extent parent)
+        {
+            super(parent);
+        }
+
+        public <T extends BlockStateHolder<T>> boolean setBlock(int x, int y, int z, T block)
+            throws WorldEditException
+        {
+            return setBlock(BlockVector3.at(x, y, z), block);
+        }
+    }
+
+    private final class ProtectedAreaExtent extends PathCompleteExtent
     {
 
         private final com.sk89q.worldedit.entity.Player wePlayer;
@@ -1677,7 +1836,7 @@ public final class WorldEditHook implements Listener
         }
     }
 
-    private final class LimitExtent extends AbstractDelegateExtent
+    private final class LimitExtent extends PathCompleteExtent
     {
 
         private final UUID uuid;
@@ -1717,7 +1876,7 @@ public final class WorldEditHook implements Listener
         }
     }
 
-    private final class ContainerLimitExtent extends AbstractDelegateExtent
+    private final class ContainerLimitExtent extends PathCompleteExtent
     {
 
         private final UUID uuid;
@@ -1762,7 +1921,47 @@ public final class WorldEditHook implements Listener
         }
     }
 
-    private final class BlockedTypeExtent extends AbstractDelegateExtent
+    private final class TileLimitExtent extends PathCompleteExtent
+    {
+
+        private final UUID uuid;
+        private final int cap;
+        private final AtomicInteger count = new AtomicInteger();
+        private final AtomicBoolean warned = new AtomicBoolean();
+
+        TileLimitExtent(Extent parent, UUID uuid, int cap)
+        {
+            super(parent);
+            this.uuid = uuid;
+            this.cap = cap;
+        }
+
+        @Override
+        public <T extends BlockStateHolder<T>> boolean setBlock(BlockVector3 pos, T block)
+            throws WorldEditException
+        {
+            if (hasBlockEntity(block) && count.incrementAndGet() > cap)
+            {
+                if (warned.compareAndSet(false, true))
+                {
+                    Bukkit.getScheduler().runTask(plugin, () ->
+                    {
+                        final Player p = Bukkit.getPlayer(uuid);
+                        if (p != null)
+                        {
+                            p.sendMessage(Component.text(
+                                "WorldEdit block-entity limit reached (" + cap + "). Operation halted.",
+                                NamedTextColor.RED));
+                        }
+                    });
+                }
+                throw new MaxChangedBlocksException(cap);
+            }
+            return super.setBlock(pos, block);
+        }
+    }
+
+    private final class BlockedTypeExtent extends PathCompleteExtent
     {
 
         private final UUID uuid;
@@ -1801,7 +2000,7 @@ public final class WorldEditHook implements Listener
         }
     }
 
-    private final class SweepRegionExtent extends AbstractDelegateExtent
+    private final class SweepRegionExtent extends PathCompleteExtent
     {
 
         private final com.sk89q.worldedit.world.World weWorld;
@@ -1863,6 +2062,38 @@ public final class WorldEditHook implements Listener
         }
         final BlockMaterial mat = type.getMaterial();
         return mat != null && mat.hasContainer();
+    }
+
+    private static boolean hasBlockEntity(BlockStateHolder<?> block)
+    {
+        final BlockType type = block.getBlockType();
+        if (type == null)
+        {
+            return false;
+        }
+        final BlockMaterial mat = type.getMaterial();
+        if (mat != null && mat.hasContainer())
+        {
+            return true;
+        }
+        String id = type.id().toLowerCase(Locale.ROOT);
+        final int colon = id.indexOf(':');
+        if (colon >= 0)
+        {
+            id = id.substring(colon + 1);
+        }
+        if (BLOCK_ENTITY_IDS.contains(id))
+        {
+            return true;
+        }
+        for (String suffix : BLOCK_ENTITY_SUFFIXES)
+        {
+            if (id.endsWith(suffix))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean isBlockedType(BlockStateHolder<?> block, List<String> blockedLower)

@@ -135,21 +135,21 @@ public class SshConsoleShellFactory implements ShellFactory
 
                 String sshUsername = env.getEnv().get(Environment.ENV_USER);
                 SshAuthMethod method = channel.getSession().getAttribute(SshDaemon.AUTH_METHOD_KEY);
-                if (ConfigEntry.SSH_SHOW_USER.getBoolean())
-                {
-                    String prefix = ConfigEntry.SSH_USER_PREFIX.getString();
-                    String resolvedName = resolveDisplayName(channel.getSession(), sshUsername);
-                    String displayName = (prefix == null ? "" : prefix) + resolvedName;
-                    sshSession = new RemoteDispatchSession(
-                            RemoteDispatchSession.Channel.SSH,
-                            resolvedName,
-                            displayName,
-                            method == SshAuthMethod.PUBLIC_KEY || method == SshAuthMethod.KEY_TOKEN);
-                }
-                else
-                {
-                    sshSession = null;
-                }
+
+                // The session is what carries the user's identity into the permission gate, so it
+                // is built unconditionally. ssh.show_user only decides whether that identity is
+                // also shown in output. Gating the session on it let a cosmetic setting silently
+                // drop authenticated admins back to the flat host_senders tier.
+                String resolvedName = resolveDisplayName(channel.getSession(), sshUsername);
+                String prefix = ConfigEntry.SSH_USER_PREFIX.getString();
+                String displayName = ConfigEntry.SSH_SHOW_USER.getBoolean()
+                        ? (prefix == null ? "" : prefix) + resolvedName
+                        : "CONSOLE";
+                sshSession = new RemoteDispatchSession(
+                        RemoteDispatchSession.Channel.SSH,
+                        resolvedName,
+                        displayName,
+                        method == SshAuthMethod.PUBLIC_KEY || method == SshAuthMethod.KEY_TOKEN);
 
                 mainExecutor = Bukkit.getScheduler().getMainThreadExecutor(plugin);
 

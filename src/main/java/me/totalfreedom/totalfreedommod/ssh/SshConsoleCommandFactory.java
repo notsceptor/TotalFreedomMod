@@ -77,22 +77,20 @@ public class SshConsoleCommandFactory implements CommandFactory
             String sshUsername = env.getEnv().get(Environment.ENV_USER);
             String resolvedName = resolveDisplayName(channel, sshUsername);
 
-            final RemoteDispatchSession session;
-            if (ConfigEntry.SSH_SHOW_USER.getBoolean())
-            {
-                SshAuthMethod method = channel.getSession().getAttribute(SshDaemon.AUTH_METHOD_KEY);
-                String prefix = ConfigEntry.SSH_USER_PREFIX.getString();
-                String displayName = (prefix == null ? "" : prefix) + resolvedName;
-                session = new RemoteDispatchSession(
-                        RemoteDispatchSession.Channel.SSH,
-                        resolvedName,
-                        displayName,
-                        method == SshAuthMethod.PUBLIC_KEY || method == SshAuthMethod.KEY_TOKEN);
-            }
-            else
-            {
-                session = null;
-            }
+            // The session is what carries the user's identity into the permission gate, so it is
+            // built unconditionally. ssh.show_user only decides whether that identity is also
+            // shown in output. Gating the session on it let a cosmetic setting silently drop
+            // authenticated admins back to the flat host_senders tier.
+            SshAuthMethod method = channel.getSession().getAttribute(SshDaemon.AUTH_METHOD_KEY);
+            String prefix = ConfigEntry.SSH_SHOW_USER.getBoolean() ? ConfigEntry.SSH_USER_PREFIX.getString() : null;
+            String displayName = ConfigEntry.SSH_SHOW_USER.getBoolean()
+                    ? (prefix == null ? "" : prefix) + resolvedName
+                    : "CONSOLE";
+            final RemoteDispatchSession session = new RemoteDispatchSession(
+                    RemoteDispatchSession.Channel.SSH,
+                    resolvedName,
+                    displayName,
+                    method == SshAuthMethod.PUBLIC_KEY || method == SshAuthMethod.KEY_TOKEN);
 
             PrintWriter writer = new PrintWriter(new OutputStreamWriter(out, StandardCharsets.UTF_8), true);
 

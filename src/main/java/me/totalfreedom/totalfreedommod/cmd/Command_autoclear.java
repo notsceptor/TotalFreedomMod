@@ -16,9 +16,13 @@ public class Command_autoclear extends FCommand
     @Callback
     public void autoclear(CommandSender sender, OfflinePlayer target)
     {
-        final boolean enabled = plugin().lp.CLEAR_ON_JOIN.removeIf(entry -> entry.equals(target.getUniqueId()));
+        final boolean enabled = !plugin().lp.CLEAR_ON_JOIN.removeIf(entry -> entry.equals(target.getUniqueId()));
+        if (enabled)
+        {
+            plugin().lp.CLEAR_ON_JOIN.add(target.getUniqueId());
+        }
 
-        msg(sender, "<gold><player> <aqua> will <enabled:no longer:now> have their inventory cleared when they join.",
+        msg(sender, "<gold><player> <aqua>will <enabled:now:no longer> have their inventory cleared when they join.",
                 Placeholder.unparsed("player", target.getName()),
                 Formatter.booleanChoice("enabled", enabled));
     }

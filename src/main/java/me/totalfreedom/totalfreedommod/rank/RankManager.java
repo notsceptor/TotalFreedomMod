@@ -16,6 +16,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.admin.Admin;
@@ -90,6 +91,16 @@ public class RankManager extends FreedomService
     {
         // Load custom ranks
         loadRanks();
+
+        // The console registry is built during onEnable, before any service starts, so its first
+        // read happened with no ranks in memory and every binding naming a custom rank was thrown
+        // away as unknown. Re-read it now that the ranks exist, which is also what lets the
+        // host-channel floor compare against real rank levels.
+        if (plugin.csr != null)
+        {
+            plugin.csr.load();
+        }
+
         server.getScheduler().runTask(plugin, this::updateAllPlayerTeams);
 
         // Start persistent monitor if enabled
@@ -682,17 +693,14 @@ public class RankManager extends FreedomService
                 return false;
             }
 
-            if (!RemoteDispatchContext.isActive())
+            // getEffectiveRank already knows how this sender earned its rank. An identified SSH or
+            // Discord session resolves to that admin's own profile; a host channel resolves to its
+            // binding. That covers what the dispatch-excluded lookup here used to miss, namely
+            // that a remote user's custom rank was invisible to the permission check.
+            CustomRank effective = getEffectiveRank(sender);
+            if (effective != null && hasCustomRankPermission(effective, permission))
             {
-                String boundRankId = plugin.csr.getRankIdForSender(sender.getName());
-                if (boundRankId != null && plugin.rm != null)
-                {
-                    CustomRank boundCustom = plugin.rm.getCustomRank(boundRankId);
-                    if (boundCustom != null && hasCustomRankPermission(boundCustom, permission))
-                    {
-                        return true;
-                    }
-                }
+                return true;
             }
 
             Rank rank = getRank(sender);
@@ -1319,6 +1327,152 @@ public class RankManager extends FreedomService
         return customRank != null ? customRank : rank;
     }
 
+    /**
+     * Resolves the rank a sender actually acts at, as a {@link CustomRank}.
+     * <p>
+     * This is the identity-aware view the permission gate tests against, and it is the only place
+     * that knows how a sender earns its rank:
+     * <ul>
+     *   <li>SSH and Discord carry a proven identity (an SSH public key, or a {@code discord_links}
+     *       row), so an identified session resolves to that admin's own profile rank, custom rank
+     *       included. A session that proved nothing, meaning password-only SSH, falls back to the
+     *       channel's {@code host_senders:} binding, which grants no identity and so no profile.</li>
+     *   <li>Host channels (RCON, RemoteBukkit, console) carry no identity at all and resolve to
+     *       their binding, which {@link ConsoleSenderRegistry} floors at senior admin.</li>
+     * </ul>
+     * Returning a {@link CustomRank} rather than a {@link Rank} matters: custom ranks carry
+     * operator-defined levels that need not line up with {@link Rank#ordinal()}, and an admin
+     * holding {@code executive} or {@code owner} would otherwise be demoted to their legacy tier
+     * the moment they acted through a console channel.
+     *
+     * @return the sender's effective rank, or {@code null} when no rank could be resolved (the
+     *         caller should then fall back to {@link #getRank(CommandSender)} on the legacy scale)
+     */
+    public CustomRank getEffectiveRank(CommandSender sender)
+    {
+        if (sender instanceof Player player)
+        {
+            CustomRank assigned = getAssignedAdminRank(player);
+            if (assigned != null)
+            {
+                return assigned;
+            }
+            return getCustomRankForLegacy(getRank(player));
+        }
+
+        if (sender instanceof BlockCommandSender || sender instanceof CommandMinecart)
+        {
+            return getCustomRankForLegacy(Rank.NON_OP);
+        }
+
+        RemoteDispatchSession dispatch = RemoteDispatchContext.getActiveSession();
+        if (dispatch != null)
+        {
+            CustomRank identity = resolveDispatchIdentity(dispatch);
+            if (identity != null)
+            {
+                return identity;
+            }
+
+            String channel = dispatch.getChannel() == RemoteDispatchSession.Channel.DISCORD ? "discord" : "ssh";
+            return getBoundRank(channel);
+        }
+
+        Admin admin = plugin.al.getEntryByName(sender.getName());
+        if (admin != null && admin.isActive())
+        {
+            return rankOf(admin);
+        }
+
+        CustomRank bound = getBoundRank(sender.getName());
+        return bound != null ? bound : getCustomRankForLegacy(Rank.NON_OP);
+    }
+
+    /**
+     * The admin behind an identified dispatch session, as a {@link CustomRank}, or {@code null}
+     * when the session proved no identity or the name no longer maps to an active admin.
+     * <p>
+     * SSH additionally honours {@code ssh.inherit_rank}: with it off, even a public-key session is
+     * held to the flat {@code host_senders:} tier.
+     */
+    private CustomRank resolveDispatchIdentity(RemoteDispatchSession dispatch)
+    {
+        if (!dispatch.isIdentified())
+        {
+            return null;
+        }
+
+        if (dispatch.getChannel() == RemoteDispatchSession.Channel.SSH
+            && !ConfigEntry.SSH_INHERIT_RANK.getBoolean())
+        {
+            return null;
+        }
+
+        Admin admin = plugin.al.getEntryByName(dispatch.getUsername());
+        return admin != null && admin.isActive() ? rankOf(admin) : null;
+    }
+
+    /**
+     * An admin's rank, preferring the custom rank pinned to their profile over their legacy tier.
+     */
+    private CustomRank rankOf(Admin admin)
+    {
+        if (admin.getCustomRankId() != null)
+        {
+            CustomRank custom = getCustomRank(admin.getCustomRankId());
+            if (custom != null)
+            {
+                return custom;
+            }
+        }
+        return getCustomRankForLegacy(admin.getRank());
+    }
+
+    /**
+     * The custom rank bound to a sender name by {@code host_senders:}, resolving a legacy rank id
+     * through the registry so both naming styles work.
+     */
+    private CustomRank getBoundRank(String senderName)
+    {
+        String boundRankId = plugin.csr.getRankIdForSender(senderName);
+        if (boundRankId == null)
+        {
+            return null;
+        }
+
+        CustomRank bound = getCustomRank(boundRankId);
+        if (bound != null)
+        {
+            return bound;
+        }
+
+        Rank legacy = plugin.csr.getRankForSender(senderName);
+        return legacy != null ? getCustomRankForLegacy(legacy) : null;
+    }
+
+    /**
+     * Places a custom rank on the legacy ladder by level, so callers that still speak {@link Rank}
+     * get a sane answer for operator-defined ranks. Compared on the registry's own scale, so it
+     * holds whatever numbering the operator chose.
+     */
+    public Rank toLegacyRank(CustomRank custom)
+    {
+        if (custom == null)
+        {
+            return Rank.NON_OP;
+        }
+
+        return Stream.of(Rank.values())
+            .filter(candidate -> !candidate.isConsole())
+            .filter(candidate ->
+            {
+                CustomRank equivalent = getCustomRankForLegacy(candidate);
+                return equivalent != null && custom.getLevel() >= equivalent.getLevel();
+            })
+            .max(Comparator.comparingInt(Rank::getLevel))
+            .orElse(Rank.NON_OP);
+    }
+
     public Rank getRank(CommandSender sender)
     {
         if (sender instanceof Player player)
@@ -1345,34 +1499,21 @@ public class RankManager extends FreedomService
         RemoteDispatchSession dispatch = RemoteDispatchContext.getActiveSession();
         if (dispatch != null)
         {
-            if (dispatch.getChannel() == RemoteDispatchSession.Channel.SSH)
+            CustomRank identity = resolveDispatchIdentity(dispatch);
+            if (identity != null)
             {
-                if (ConfigEntry.SSH_INHERIT_RANK.getBoolean() && dispatch.isIdentified())
-                {
-                    Admin admin = plugin.al.getEntryByName(dispatch.getUsername());
-                    if (admin != null)
-                    {
-                        return admin.getRank();
-                    }
-                }
-                Rank fallback = plugin.csr.getRankForSender("ssh");
-                return fallback != null ? fallback : Rank.NON_OP;
+                return toLegacyRank(identity);
             }
-            if (dispatch.getChannel() == RemoteDispatchSession.Channel.DISCORD)
+
+            String channel = dispatch.getChannel() == RemoteDispatchSession.Channel.DISCORD ? "discord" : "ssh";
+            Rank fallback = plugin.csr.getRankForSender(channel);
+            if (fallback != null)
             {
-                if (dispatch.isIdentified())
-                {
-                    Admin admin = plugin.al.getEntryByName(dispatch.getUsername());
-                    if (admin != null)
-                    {
-                        return admin.getRank();
-                    }
-                }
-                Rank fallback = plugin.csr.getRankForSender("discord");
-                return fallback != null ? fallback : Rank.NON_OP;
+                return fallback;
             }
-            Rank fallback = plugin.csr.getRankForSender("ssh");
-            return fallback != null ? fallback : Rank.NON_OP;
+
+            CustomRank bound = getBoundRank(channel);
+            return bound != null ? toLegacyRank(bound) : Rank.NON_OP;
         }
 
         Admin admin = plugin.al.getEntryByName(sender.getName());
@@ -1386,16 +1527,12 @@ public class RankManager extends FreedomService
         {
             return rank;
         }
-        String boundRankId = plugin.csr.getRankIdForSender(sender.getName());
-        if (boundRankId != null && plugin.rm != null)
-        {
-            CustomRank custom = plugin.rm.getCustomRank(boundRankId);
-            if (custom != null)
-            {
-                return Rank.SUPER_ADMIN;
-            }
-        }
-        return Rank.NON_OP;
+
+        // A host channel may be bound to a custom rank with no legacy equivalent; place it on the
+        // ladder by level rather than assuming a tier, which used to hand every such sender
+        // SUPER_ADMIN regardless of what it was actually bound to.
+        CustomRank bound = getBoundRank(sender.getName());
+        return bound != null ? toLegacyRank(bound) : Rank.NON_OP;
     }
 
     @EventHandler(priority = EventPriority.LOWEST)

@@ -33,7 +33,7 @@ public class Command_kick extends FCommand
 
         if (!silent)
         {
-            adminAction(sender, reason == null ? "<aqua>Kicking <player>" : "<aqua>Kicking <player> - Reason: <reason>",
+            adminAction(sender, reason == null ? "<red>Kicking <player>" : "<red>Kicking <player> - Reason: <reason>",
                     Placeholder.unparsed("player", player.getName()),
                     MessageUtils.parsed("reason", reason != null ? reason : ""));
 

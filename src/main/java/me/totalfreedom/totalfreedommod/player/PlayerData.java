@@ -29,6 +29,7 @@ public class PlayerData implements ConfigLoadable, Validatable
     private boolean muted;
     private boolean frozen;
     private boolean commandsBlocked;
+    private boolean joinLeaveMessagesEnabled = true;
     private String savedTag;
     private Component nickname;
     private int strikes;
@@ -149,6 +150,7 @@ public class PlayerData implements ConfigLoadable, Validatable
         this.muted = cs.getBoolean("muted", false);
         this.frozen = cs.getBoolean("frozen", false);
         this.commandsBlocked = cs.getBoolean("commands_blocked", false);
+        this.joinLeaveMessagesEnabled = cs.getBoolean("join_leave_messages", true);
         this.strikes = cs.getInt("strikes", 0);
         this.savedTag = cs.getString("saved_tag");
         if (this.savedTag != null && this.savedTag.isEmpty())
@@ -181,6 +183,16 @@ public class PlayerData implements ConfigLoadable, Validatable
     public void setCommandSpyMode(CommandSpyMode commandSpyMode)
     {
         this.commandSpyMode = commandSpyMode == null ? CommandSpyMode.OFF : commandSpyMode;
+    }
+
+    public boolean isJoinLeaveMessagesEnabled()
+    {
+        return joinLeaveMessagesEnabled;
+    }
+
+    public void setJoinLeaveMessagesEnabled(boolean joinLeaveMessagesEnabled)
+    {
+        this.joinLeaveMessagesEnabled = joinLeaveMessagesEnabled;
     }
 
     public List<String> getIps()
