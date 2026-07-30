@@ -10,7 +10,6 @@ import java.util.Collection;
 import java.util.concurrent.Callable;
 
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
 /**
  * Executes SQL against connections borrowed from {@link ConnectionHandler}'s pool.
@@ -29,9 +28,27 @@ public class StatementHandler
         this.connectionHandler = connectionHandler;
     }
 
+    /**
+     * Prepares a statement, guarded by the same {@link AccessController} permit used by the
+     * reactive path so synchronous and async callers draw from one fairly-queued pool of
+     * concurrent queries. The permit is released when the returned statement is closed OR when a ResultSet is obtained.
+     */
     public PreparedStatement prepareStatement(String sql, Object... params) throws SQLException
     {
-        Connection connection = connectionHandler.borrowConnection();
+        final AccessController accessController = connectionHandler.getAccessController();
+        accessController.acquireSync();
+
+        Connection connection;
+        try
+        {
+            connection = connectionHandler.borrowConnection();
+        }
+        catch (SQLException e)
+        {
+            accessController.releaseSync();
+            throw e;
+        }
+
         PreparedStatement statement;
         try
         {
@@ -41,9 +58,10 @@ public class StatementHandler
         catch (SQLException e)
         {
             closeQuietly(connection);
+            accessController.releaseSync();
             throw e;
         }
-        return closingStatementProxy(statement, connection);
+        return closingStatementProxy(statement, connection, accessController);
     }
 
     public ResultSet executeQuery(String sql, Object... params) throws SQLException
@@ -68,31 +86,37 @@ public class StatementHandler
         }
     }
 
-    /**
-     * Runs an INSERT and returns the first generated key, or -1 if none was generated.
-     */
     public long executeUpdateReturnKey(String sql, Object... params) throws SQLException
     {
-        Connection connection = connectionHandler.borrowConnection();
-        try (PreparedStatement statement = connection.prepareStatement(sql, java.sql.Statement.RETURN_GENERATED_KEYS))
+        final AccessController accessController = connectionHandler.getAccessController();
+        accessController.acquireSync();
+        try
         {
-            setParameters(statement, params);
-            statement.executeUpdate();
-            try (ResultSet keys = statement.getGeneratedKeys())
+            Connection connection = connectionHandler.borrowConnection();
+            try (PreparedStatement statement = connection.prepareStatement(sql, java.sql.Statement.RETURN_GENERATED_KEYS))
             {
-                return keys.next() ? keys.getLong(1) : -1L;
+                setParameters(statement, params);
+                statement.executeUpdate();
+                try (ResultSet keys = statement.getGeneratedKeys())
+                {
+                    return keys.next() ? keys.getLong(1) : -1L;
+                }
+            }
+            finally
+            {
+                closeQuietly(connection);
             }
         }
         finally
         {
-            closeQuietly(connection);
+            accessController.releaseSync();
         }
     }
 
     public <T> Mono<T> supplyMono(Callable<T> work)
     {
         return connectionHandler.getAccessController().guard(
-                Mono.fromCallable(work).subscribeOn(Schedulers.boundedElastic()));
+                Mono.fromCallable(work).subscribeOn(connectionHandler.getScheduler()));
     }
 
     public Mono<Void> runMono(SqlRunnable work)
@@ -108,7 +132,7 @@ public class StatementHandler
                     {
                         throw new RuntimeException(e);
                     }
-                }).subscribeOn(Schedulers.boundedElastic()));
+                }).subscribeOn(connectionHandler.getScheduler()));
     }
 
     @FunctionalInterface
@@ -215,9 +239,11 @@ public class StatementHandler
 
     /**
      * Wraps a PreparedStatement so that closing it also returns the pooled Connection
-     * that produced it, without changing anything about how callers use the statement.
+     * that produced it and releases the {@link AccessController} permit acquired in
+     * {@link #prepareStatement}, without changing anything about how callers use the statement.
      */
-    private static PreparedStatement closingStatementProxy(PreparedStatement target, Connection connection)
+    private static PreparedStatement closingStatementProxy(PreparedStatement target, Connection connection,
+            AccessController accessController)
     {
         return (PreparedStatement) Proxy.newProxyInstance(
                 StatementHandler.class.getClassLoader(),
@@ -232,7 +258,14 @@ public class StatementHandler
                         }
                         finally
                         {
-                            connection.close();
+                            try
+                            {
+                                connection.close();
+                            }
+                            finally
+                            {
+                                accessController.releaseSync();
+                            }
                         }
                         return null;
                     }

@@ -190,9 +190,6 @@ public class TotalFreedomMod extends JavaPlugin
 
         configConverter.convertAdminConsoleRanks();
 
-        // Run YAML to SQL migrations after database and admin list are ready
-        runYamlMigrations();
-
         rm = services.registerService(RankManager.class);
 
         // Console sender whitelist. This first read only resolves bindings that name a legacy
@@ -273,6 +270,9 @@ public class TotalFreedomMod extends JavaPlugin
 
         tl = services.registerService(TabList.class);
         services.start();
+
+        // Run YAML to SQL migrations now that every service (including the database) has started
+        runYamlMigrations();
 
         // Start bridges
         bridges = new ServiceManager<>(this);
@@ -376,8 +376,10 @@ public class TotalFreedomMod extends JavaPlugin
     }
 
     /**
-     * Run YAML to SQL migrations for admins, bans, and permbans.
-     * This converts existing YAML files to the new SQL database format.
+     * Run YAML to SQL migrations for every domain that has one. Converts existing YAML/dat files to the new SQL database format.
+     * <p>
+     * Must run after {@code services.start()}: {@link me.totalfreedom.totalfreedommod.sql.FreedomDatabase#onStart()}
+     * is what actually calls {@code initialize()}, so {@code dm.isInitialized()} cannot be true any earlier.
      */
     private void runYamlMigrations()
     {
@@ -386,16 +388,36 @@ public class TotalFreedomMod extends JavaPlugin
             FLog.info("Database not initialized, skipping YAML migrations");
             return;
         }
-        
+
         try
         {
             YamlMigrationService migrationService = new YamlMigrationService(this, dm);
             migrationService.runMigrations().block();
-            
-            // Reload admin list after migration to pick up SQL data
+
+            // Reload each domain after migration so in-memory state picks up freshly-migrated SQL data.
             if (al != null)
             {
                 al.load();
+            }
+            if (bm != null)
+            {
+                bm.reload();
+            }
+            if (pm != null)
+            {
+                pm.reload();
+            }
+            if (sl != null)
+            {
+                sl.reload();
+            }
+            if (rm != null)
+            {
+                rm.loadRanks();
+            }
+            if (pa != null)
+            {
+                pa.reload();
             }
         }
         catch (Exception ex)

@@ -3,19 +3,9 @@ package me.totalfreedom.totalfreedommod;
 import com.google.common.collect.Maps;
 import com.google.gson.reflect.TypeToken;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.Serializable;
+import java.io.*;
 import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 import me.totalfreedom.totalfreedommod.ProtectArea.ProtectedRegion.CantFindWorldException;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
@@ -30,53 +20,30 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.Item;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
-import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.block.BlockBurnEvent;
-import org.bukkit.event.block.BlockExplodeEvent;
-import org.bukkit.event.block.BlockFadeEvent;
-import org.bukkit.event.block.BlockFromToEvent;
-import org.bukkit.event.block.BlockIgniteEvent;
-import org.bukkit.event.block.BlockPistonExtendEvent;
-import org.bukkit.event.block.BlockPistonRetractEvent;
-import org.bukkit.event.block.BlockPlaceEvent;
-import org.bukkit.event.block.BlockSpreadEvent;
-import org.bukkit.event.block.SignChangeEvent;
-import org.bukkit.event.entity.AreaEffectCloudApplyEvent;
-import org.bukkit.event.entity.EntityChangeBlockEvent;
-import org.bukkit.event.entity.EntityDamageEvent;
-import org.bukkit.event.entity.EntityExplodeEvent;
-import org.bukkit.event.entity.EntityPickupItemEvent;
-import org.bukkit.event.entity.LingeringPotionSplashEvent;
-import org.bukkit.event.entity.PotionSplashEvent;
-import org.bukkit.event.hanging.HangingBreakByEntityEvent;
-import org.bukkit.event.hanging.HangingPlaceEvent;
+import org.bukkit.event.block.*;
+import org.bukkit.event.entity.*;
+import org.bukkit.event.hanging.*;
 import org.bukkit.event.inventory.InventoryPickupItemEvent;
-import org.bukkit.event.player.PlayerBucketEmptyEvent;
-import org.bukkit.event.player.PlayerBucketFillEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.event.player.*;
 import org.bukkit.event.vehicle.VehicleDestroyEvent;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 
 public class ProtectArea extends FreedomService
 {
+    private static final long ITEM_SWEEP_RATE = 40L;
+    private static final Type PROTECTED_AREA_LIST_TYPE = new TypeToken<List<ProtectedRegion>>() {}.getType();
 
     public static final String DATA_FILENAME = "protectedareas.json";
     public static final String LEGACY_YAML_FILENAME = "protectedareas.yml";
     public static final String LEGACY_DATA_FILENAME = "protectedareas.dat";
     public static final double MAX_RADIUS = 50.0;
-    // How often (in ticks) to sweep loose items out of protected areas.
-    private static final long ITEM_SWEEP_RATE = 40L;
-    private static final Type PROTECTED_AREA_LIST_TYPE = new TypeToken<List<ProtectedRegion>>() {}.getType();
-    //
+
     private final Map<UUID, ProtectedRegion> areas = Maps.newHashMap();
+
     private File dataFile;
     private boolean usingSql = false;
     private BukkitTask itemSweepTask;
@@ -90,20 +57,14 @@ public class ProtectArea extends FreedomService
     protected void onStart()
     {
         if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
-        {
             return;
-        }
 
         dataFile = new File(plugin.getDataFolder(), DATA_FILENAME);
 
         if (plugin.dm != null && plugin.dm.isInitialized())
-        {
             loadFromSql();
-        }
         else
-        {
             loadFromJsonOrLegacy();
-        }
 
         itemSweepTask = Bukkit.getScheduler().runTaskTimer(
             plugin, FTask.guard("ProtectArea/sweepItems", this::sweepItems), ITEM_SWEEP_RATE, ITEM_SWEEP_RATE);
@@ -121,9 +82,8 @@ public class ProtectArea extends FreedomService
             {
                 File legacyFile = new File(plugin.getDataFolder(), LEGACY_DATA_FILENAME);
                 if (legacyFile.exists())
-                {
                     migrateLegacyData(legacyFile);
-                }
+
                 return;
             }
 
@@ -147,9 +107,8 @@ public class ProtectArea extends FreedomService
         {
             File legacyFile = new File(plugin.getDataFolder(), LEGACY_DATA_FILENAME);
             if (legacyFile.exists())
-            {
                 migrateLegacyData(legacyFile);
-            }
+
             return;
         }
 
@@ -185,29 +144,21 @@ public class ProtectArea extends FreedomService
     private void reconcileFromJsonIfNewer(ProtectedAreaRepository repo)
     {
         if (!dataFile.exists())
-        {
             return;
-        }
 
         try
         {
             Long sqlUpdatedAt = repo.getMaxUpdatedAt();
             if (sqlUpdatedAt != null && dataFile.lastModified() <= sqlUpdatedAt)
-            {
                 return;
-            }
 
             List<ProtectedRegion> jsonAreas = readJsonAreas();
             if (jsonAreas.isEmpty())
-            {
                 return;
-            }
 
             FLog.info(DATA_FILENAME + " is newer than the database; re-importing " + jsonAreas.size() + " protected area(s) from it.");
             for (ProtectedRegion region : jsonAreas)
-            {
                 repo.saveOrUpdate(region);
-            }
 
             areas.clear();
             jsonAreas.forEach(region -> areas.put(region.getUuid(), region));
@@ -246,13 +197,10 @@ public class ProtectArea extends FreedomService
 
             File oldFile = new File(legacyFile.getParent(), LEGACY_DATA_FILENAME + ".old");
             if (legacyFile.renameTo(oldFile))
-            {
                 FLog.info("Migration complete. Legacy file renamed to " + LEGACY_DATA_FILENAME + ".old");
-            }
             else
-            {
                 FLog.warning("Migration complete but could not rename legacy file.");
-            }
+
         }
         catch (Exception ex)
         {
@@ -261,18 +209,13 @@ public class ProtectArea extends FreedomService
         }
     }
 
-    /**
-     * Reads the pre-JSON {@code protectedareas.yml} format. Retained only for the one-time
-     * legacy-install migration path (not called during normal startup).
-     */
+    @Deprecated
     private void loadFromYaml(File file)
     {
         areas.clear();
 
         if (!file.exists())
-        {
             return;
-        }
 
         try
         {
@@ -280,17 +223,13 @@ public class ProtectArea extends FreedomService
             ConfigurationSection areasSection = config.getConfigurationSection("areas");
 
             if (areasSection == null)
-            {
                 return;
-            }
 
             for (String id : areasSection.getKeys(false))
             {
                 ConfigurationSection areaSection = areasSection.getConfigurationSection(id);
                 if (areaSection == null)
-                {
                     continue;
-                }
 
                 UUID uuid = UUID.fromString(id);
                 String name = areaSection.getString("name");
@@ -330,16 +269,18 @@ public class ProtectArea extends FreedomService
         save();
     }
 
+    public void reload()
+    {
+        onStop();
+        onStart();
+    }
+
     public void save()
     {
         if (usingSql)
-        {
             saveToSql();
-        }
         else
-        {
             saveToJson();
-        }
     }
 
     private void saveToSql()
@@ -370,9 +311,7 @@ public class ProtectArea extends FreedomService
     private void saveToJson()
     {
         if (dataFile == null)
-        {
             dataFile = new File(plugin.getDataFolder(), DATA_FILENAME);
-        }
 
         try (FileWriter writer = new FileWriter(dataFile))
         {
@@ -389,83 +328,57 @@ public class ProtectArea extends FreedomService
     public void onBlockBreak(BlockBreakEvent event)
     {
         if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
-        {
             return;
-        }
 
         final Player player = event.getPlayer();
         if (plugin.al.isAdmin(player))
-        {
             return;
-        }
 
         final Location location = event.getBlock().getLocation();
 
         if (isInProtectedArea(location))
-        {
             event.setCancelled(true);
-        }
     }
 
     @EventHandler(priority = EventPriority.NORMAL)
     public void onBlockPlace(BlockPlaceEvent event)
     {
         if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
-        {
             return;
-        }
 
         final Player player = event.getPlayer();
         if (plugin.al.isAdmin(player))
-        {
             return;
-        }
 
         final Location location = event.getBlock().getLocation();
 
         if (isInProtectedArea(location))
-        {
             event.setCancelled(true);
-        }
     }
 
     // Entity explosions (TNT, Creepers, Withers, etc.)
     @EventHandler(priority = EventPriority.NORMAL)
     public void onEntityExplode(EntityExplodeEvent event)
     {
-        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
-        {
-            return;
-        }
-
-        event.blockList().removeIf(block -> isInProtectedArea(block.getLocation()));
+        if (ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
+            event.blockList().removeIf(block -> isInProtectedArea(block.getLocation()));
     }
 
     // Block explosions (beds in nether, respawn anchors)
     @EventHandler(priority = EventPriority.NORMAL)
     public void onBlockExplode(BlockExplodeEvent event)
     {
-        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
-        {
-            return;
-        }
-
-        event.blockList().removeIf(block -> isInProtectedArea(block.getLocation()));
+        if (ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
+            event.blockList().removeIf(block -> isInProtectedArea(block.getLocation()));
     }
 
     // Enderman picking up blocks, falling blocks, etc.
     @EventHandler(priority = EventPriority.NORMAL)
     public void onEntityChangeBlock(EntityChangeBlockEvent event)
     {
-        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
-        {
-            return;
-        }
-
-        if (isInProtectedArea(event.getBlock().getLocation()))
-        {
+        if (ConfigEntry.PROTECTAREA_ENABLED.getBoolean()
+                && isInProtectedArea(event.getBlock().getLocation()))
             event.setCancelled(true);
-        }
     }
 
     // Water/lava bucket placement
@@ -473,20 +386,14 @@ public class ProtectArea extends FreedomService
     public void onBucketEmpty(PlayerBucketEmptyEvent event)
     {
         if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
-        {
             return;
-        }
 
         final Player player = event.getPlayer();
         if (plugin.al.isAdmin(player))
-        {
             return;
-        }
 
         if (isInProtectedArea(event.getBlock().getLocation()))
-        {
             event.setCancelled(true);
-        }
     }
 
     // Water/lava bucket removal
@@ -494,20 +401,14 @@ public class ProtectArea extends FreedomService
     public void onBucketFill(PlayerBucketFillEvent event)
     {
         if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
-        {
             return;
-        }
 
         final Player player = event.getPlayer();
         if (plugin.al.isAdmin(player))
-        {
             return;
-        }
 
         if (isInProtectedArea(event.getBlock().getLocation()))
-        {
             event.setCancelled(true);
-        }
     }
 
     // Fire starting
@@ -515,70 +416,43 @@ public class ProtectArea extends FreedomService
     public void onBlockIgnite(BlockIgniteEvent event)
     {
         if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
-        {
             return;
-        }
 
         final Player player = event.getPlayer();
         if (player != null && plugin.al.isAdmin(player))
-        {
             return;
-        }
 
         if (isInProtectedArea(event.getBlock().getLocation()))
-        {
             event.setCancelled(true);
-        }
     }
 
     // Fire spread
     @EventHandler(priority = EventPriority.NORMAL)
     public void onBlockSpread(BlockSpreadEvent event)
     {
-        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
-        {
-            return;
-        }
-
-        // Only block fire spread
-        if (event.getSource().getType() == org.bukkit.Material.FIRE)
-        {
-            if (isInProtectedArea(event.getBlock().getLocation()))
-            {
-                event.setCancelled(true);
-            }
-        }
+        if (ConfigEntry.PROTECTAREA_ENABLED.getBoolean()
+                && (event.getSource().getType() == org.bukkit.Material.FIRE)
+                && isInProtectedArea(event.getBlock().getLocation()))
+                    event.setCancelled(true);
     }
 
     // Blocks burning
     @EventHandler(priority = EventPriority.NORMAL)
     public void onBlockBurn(BlockBurnEvent event)
     {
-        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
-        {
-            return;
-        }
-
-        if (isInProtectedArea(event.getBlock().getLocation()))
-        {
-            event.setCancelled(true);
-        }
+        if (ConfigEntry.PROTECTAREA_ENABLED.getBoolean()
+                && isInProtectedArea(event.getBlock().getLocation()))
+                    event.setCancelled(true);
     }
 
     // Water/lava flow
     @EventHandler(priority = EventPriority.NORMAL)
     public void onBlockFromTo(BlockFromToEvent event)
     {
-        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
-        {
-            return;
-        }
-
-        // Check if liquid is flowing INTO a protected area from outside
-        if (!isInProtectedArea(event.getBlock().getLocation()) && isInProtectedArea(event.getToBlock().getLocation()))
-        {
-            event.setCancelled(true);
-        }
+        if (ConfigEntry.PROTECTAREA_ENABLED.getBoolean() 
+                && !isInProtectedArea(event.getBlock().getLocation()) 
+                && isInProtectedArea(event.getToBlock().getLocation()))
+                    event.setCancelled(true);
     }
 
     // Piston extend
@@ -586,9 +460,7 @@ public class ProtectArea extends FreedomService
     public void onPistonExtend(BlockPistonExtendEvent event)
     {
         if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
-        {
             return;
-        }
 
         for (Block block : event.getBlocks())
         {
@@ -605,18 +477,14 @@ public class ProtectArea extends FreedomService
     public void onPistonRetract(BlockPistonRetractEvent event)
     {
         if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
-        {
             return;
-        }
 
         for (Block block : event.getBlocks())
-        {
             if (isInProtectedArea(block.getLocation()))
             {
                 event.setCancelled(true);
                 return;
             }
-        }
     }
 
     // Placing paintings, item frames, etc.
@@ -624,20 +492,14 @@ public class ProtectArea extends FreedomService
     public void onHangingPlace(HangingPlaceEvent event)
     {
         if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
-        {
             return;
-        }
 
         final Player player = event.getPlayer();
         if (player != null && plugin.al.isAdmin(player))
-        {
             return;
-        }
 
         if (isInProtectedArea(event.getEntity().getLocation()))
-        {
             event.setCancelled(true);
-        }
     }
 
     // Breaking paintings, item frames by entity
@@ -645,24 +507,18 @@ public class ProtectArea extends FreedomService
     public void onHangingBreak(HangingBreakByEntityEvent event)
     {
         if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
-        {
             return;
-        }
 
         Entity remover = event.getRemover();
         if (remover instanceof Player)
         {
             Player player = (Player) remover;
             if (plugin.al.isAdmin(player))
-            {
                 return;
-            }
         }
 
         if (isInProtectedArea(event.getEntity().getLocation()))
-        {
             event.setCancelled(true);
-        }
     }
 
     // Vehicle destruction (minecarts, boats)
@@ -670,39 +526,27 @@ public class ProtectArea extends FreedomService
     public void onVehicleDestroy(VehicleDestroyEvent event)
     {
         if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
-        {
             return;
-        }
 
         Entity attacker = event.getAttacker();
         if (attacker instanceof Player)
         {
             Player player = (Player) attacker;
             if (plugin.al.isAdmin(player))
-            {
                 return;
-            }
         }
 
         if (isInProtectedArea(event.getVehicle().getLocation()))
-        {
             event.setCancelled(true);
-        }
     }
 
     // Block fade (ice melting, snow melting, etc.) - protect structure integrity
     @EventHandler(priority = EventPriority.NORMAL)
     public void onBlockFade(BlockFadeEvent event)
     {
-        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
-        {
-            return;
-        }
-
-        if (isInProtectedArea(event.getBlock().getLocation()))
-        {
-            event.setCancelled(true);
-        }
+        if (ConfigEntry.PROTECTAREA_ENABLED.getBoolean()
+                && isInProtectedArea(event.getBlock().getLocation()))
+                    event.setCancelled(true);
     }
 
     // Sign text editing (Minecraft 1.20+ allows editing signs after placement)
@@ -710,20 +554,14 @@ public class ProtectArea extends FreedomService
     public void onSignChange(SignChangeEvent event)
     {
         if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
-        {
             return;
-        }
 
         final Player player = event.getPlayer();
         if (plugin.al.isAdmin(player))
-        {
             return;
-        }
 
         if (isInProtectedArea(event.getBlock().getLocation()))
-        {
             event.setCancelled(true);
-        }
     }
 
     // Player interact (crop trampling, etc.)
@@ -733,15 +571,11 @@ public class ProtectArea extends FreedomService
         final Player player = event.getPlayer();
         Block block = event.getClickedBlock();
         if (block == null)
-        {
             return;
-        }
 
         final Location location = block.getLocation();
         if (!shouldBlockInteraction(player, location))
-        {
             return;
-        }
 
         if (event.getAction() == org.bukkit.event.block.Action.PHYSICAL)
         {
@@ -750,13 +584,9 @@ public class ProtectArea extends FreedomService
         }
 
         // block right-click interactions
-		if (event.getAction() == org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK)
-        {
-            if (event.getItem() != null)
-            {
-                event.setCancelled(true);
-            }
-        }
+		if ((event.getAction() == org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK) 
+                && event.getItem() != null)
+                    event.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.NORMAL)
@@ -766,137 +596,88 @@ public class ProtectArea extends FreedomService
         final Location location = event.getRightClicked().getLocation();
         
         if (shouldBlockInteraction(player, location))
-        {
             event.setCancelled(true);
-        }
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onPlayerDamage(EntityDamageEvent event)
     {
-        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
-        {
+        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean()
+                || !ConfigEntry.PROTECTAREA_PROTECT_PLAYERS.getBoolean()
+                || !(event.getEntity() instanceof Player))
             return;
-        }
-
-        if (!ConfigEntry.PROTECTAREA_PROTECT_PLAYERS.getBoolean())
-        {
-            return;
-        }
-
-        if (!(event.getEntity() instanceof Player))
-        {
-            return;
-        }
 
         if (isInProtectedArea(event.getEntity().getLocation()))
-        {
             event.setCancelled(true);
-        }
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onPotionSplash(PotionSplashEvent event)
     {
-        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
-        {
-            return;
-        }
-
-        if (!ConfigEntry.PROTECTAREA_BLOCK_POTIONS.getBoolean())
-        {
-            return;
-        }
+        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean()
+                || !ConfigEntry.PROTECTAREA_BLOCK_POTIONS.getBoolean())
+                    return;
 
         for (LivingEntity affected : event.getAffectedEntities())
-        {
             if (affected instanceof Player && isInProtectedArea(affected.getLocation()))
-            {
                 event.setIntensity(affected, 0.0D);
-            }
-        }
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onLingeringPotionSplash(LingeringPotionSplashEvent event)
     {
-        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
-        {
-            return;
-        }
-
-        if (!ConfigEntry.PROTECTAREA_BLOCK_POTIONS.getBoolean())
-        {
-            return;
-        }
+        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean() 
+                || !ConfigEntry.PROTECTAREA_BLOCK_POTIONS.getBoolean())
+                    return;
 
         if (isInProtectedArea(event.getEntity().getLocation()))
-        {
             event.setCancelled(true);
-        }
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onAreaEffectCloudApply(AreaEffectCloudApplyEvent event)
     {
-        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
-        {
-            return;
-        }
+        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean() 
+                || !ConfigEntry.PROTECTAREA_BLOCK_POTIONS.getBoolean())
+                    return;
 
-        if (!ConfigEntry.PROTECTAREA_BLOCK_POTIONS.getBoolean())
-        {
-            return;
-        }
-
-        event.getAffectedEntities().removeIf(
-                entity -> entity instanceof Player && isInProtectedArea(entity.getLocation()));
+        event.getAffectedEntities()
+             .removeIf(entity -> 
+                       entity instanceof Player && isInProtectedArea(entity.getLocation())
+                    );
     }
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onItemPickup(EntityPickupItemEvent event)
     {
-        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean() || !ConfigEntry.PROTECTAREA_BLOCK_ITEMS.getBoolean())
-        {
-            return;
-        }
-
-        if (event.getEntity() instanceof Player player && plugin.al.isAdmin(player))
-        {
-            return;
-        }
+        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean() 
+                || !ConfigEntry.PROTECTAREA_BLOCK_ITEMS.getBoolean()
+                || (event.getEntity() instanceof Player player 
+                        && plugin.al.isAdmin(player)))
+                    return;
 
         if (isInProtectedArea(event.getItem().getLocation()))
-        {
             event.setCancelled(true);
-        }
     }
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onInventoryPickupItem(InventoryPickupItemEvent event)
     {
-        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean() || !ConfigEntry.PROTECTAREA_BLOCK_ITEMS.getBoolean())
-        {
-            return;
-        }
+        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean() 
+                || !ConfigEntry.PROTECTAREA_BLOCK_ITEMS.getBoolean())
+                    return;
 
         if (isInProtectedArea(event.getItem().getLocation()))
-        {
             event.setCancelled(true);
-        }
     }
 
     private boolean shouldBlockInteraction(Player player, Location location)
     {
         if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
-        {
             return false;
-        }
 
         if (player != null && plugin.al.isAdmin(player))
-        {
             return false;
-        }
 
         return isInProtectedArea(location);
     }

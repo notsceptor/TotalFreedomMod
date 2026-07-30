@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.gson.reflect.TypeToken;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -29,22 +30,24 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 public class BanManager extends FreedomService
 {
     private static final Type BAN_LIST_TYPE = new TypeToken<List<Ban>>() {}.getType();
+    private static final long SHUTDOWN_FLUSH_TIMEOUT_MS = 10L * 1000L;
 
     private final Set<Ban> bans = Sets.newHashSet();
     private final Map<String, Ban> ipBans = Maps.newHashMap();
     private final Map<String, Ban> nameBans = Maps.newHashMap();
     private final List<String> unbannableUsernames = Lists.newArrayList();
-    //
     private final File configFile;
-
     private final Object lock = new Object();
     private final Object persistenceLock = new Object();
 
-    // Flag to track if SQL is available
+    private Mono<Void> persistenceChain = Mono.empty();
     private boolean usingSql = false;
 
     public BanManager(TotalFreedomMod plugin)
@@ -57,17 +60,11 @@ public class BanManager extends FreedomService
     @SuppressWarnings("unchecked")
     protected void onStart()
     {
-        // Try to load from SQL database first
         if (plugin.dm != null && plugin.dm.isInitialized())
-        {
             loadFromSql();
-        }
         else
-        {
             loadFromJson();
-        }
 
-        // Load unbannable usernames
         unbannableUsernames.clear();
         unbannableUsernames.addAll((Collection<? extends String>) ConfigEntry.FAMOUS_PLAYERS.getList());
         FLog.info("Loaded " + unbannableUsernames.size() + " unbannable usernames.");
@@ -107,31 +104,24 @@ public class BanManager extends FreedomService
     private void reconcileFromJsonIfNewer(BanRepository repo)
     {
         if (!configFile.exists())
-        {
             return;
-        }
 
         try
         {
             Long sqlUpdatedAt = repo.getMaxUpdatedAt();
             if (sqlUpdatedAt != null && configFile.lastModified() <= sqlUpdatedAt)
-            {
                 return;
-            }
 
             List<Ban> jsonBans = readJsonBans();
             if (jsonBans.isEmpty())
-            {
                 return;
-            }
 
             FLog.info("bans.json is newer than the database; re-importing " + jsonBans.size() + " ban(s) from it.");
             for (Ban ban : jsonBans)
             {
                 if (!ban.isValid())
-                {
                     continue;
-                }
+
                 repo.save(ban).block();
             }
 
@@ -204,8 +194,68 @@ public class BanManager extends FreedomService
     @Override
     protected void onStop()
     {
+        awaitPendingWrites(SHUTDOWN_FLUSH_TIMEOUT_MS);
         saveAll();
         FLog.info("Saved " + bans.size() + " player bans");
+    }
+
+    public void reload()
+    {
+        onStop();
+        onStart();
+    }
+
+    public void awaitPendingWrites(long timeoutMs)
+    {
+        final Mono<Void> pending;
+        synchronized (persistenceLock)
+        {
+            pending = persistenceChain;
+        }
+
+        try
+        {
+            pending.block(Duration.ofMillis(timeoutMs));
+        }
+        catch (IllegalStateException ex)
+        {
+            FLog.warning(String.format("Gave up after %dms waiting for pending ban writes (%s); flushing anyway",
+                    timeoutMs, ex.getMessage()));
+        }
+        catch (RuntimeException ex)
+        {
+            FLog.warning("A queued ban write failed before shutdown: " + ex.getMessage());
+        }
+    }
+
+    /**
+     * Append {@code work} to the persistence chain and subscribe. Every queued write runs
+     * after the one before it, so a batch can never be reordered behind a single-row update
+     * that was requested later.
+     */
+    private void enqueue(Mono<Void> work)
+    {
+        synchronized (persistenceLock)
+        {
+            final Mono<Void> queued = persistenceChain
+                    .onErrorResume(ignored -> Mono.empty())
+                    .then(work)
+                    .cache();
+
+            persistenceChain = queued;
+            queued.doFinally(signal -> collapseChain(queued)).subscribe();
+        }
+    }
+
+    private void collapseChain(Mono<Void> completed)
+    {
+        synchronized (persistenceLock)
+        {
+            if (persistenceChain == completed)
+            {
+                persistenceChain = Mono.empty();
+            }
+        }
     }
 
     public Set<Ban> getAllBans()
@@ -223,6 +273,11 @@ public class BanManager extends FreedomService
         return Collections.unmodifiableCollection(nameBans.values());
     }
 
+    /**
+     * Blocking write of every ban record. Startup/shutdown only. Single-entry changes belong
+     * on {@link #saveBanToSqlAsync(Ban)}; whole-list changes reachable from a command or event
+     * handler belong on {@link #saveAllAsync()}.
+     */
     public void saveAll()
     {
         final boolean sql;
@@ -234,52 +289,126 @@ public class BanManager extends FreedomService
             snapshot = new ArrayList<>(bans);
         }
 
-        synchronized (persistenceLock)
+        if (sql)
         {
-            if (sql)
-            {
-                writeAllToSql(snapshot);
-            }
-            else
-            {
-                writeAllToJson(snapshot);
-            }
+            writeAllToSql(snapshot);
+        }
+        else
+        {
+            writeAllToJson(snapshot);
         }
     }
 
     public void saveAllAsync()
     {
-        if (!plugin.isEnabled())
+        final boolean sql;
+        final List<Ban> snapshot;
+        synchronized (lock)
         {
-            saveAll();
-            return;
+            updateViews();
+            sql = usingSql;
+            snapshot = new ArrayList<>(bans);
         }
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, this::saveAll);
-    }
 
-    private void saveBanToSqlAsync(Ban ban)
-    {
-        if (!plugin.isEnabled())
+        if (!sql)
         {
-            saveBanToSql(ban);
+            if (!plugin.isEnabled())
+            {
+                writeAllToJson(snapshot);
+                return;
+            }
+            enqueue(writeJsonAsync(snapshot));
             return;
         }
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> saveBanToSql(ban));
-    }
 
-    private void removeBanFromSqlAsync(Ban ban)
-    {
-        if (!plugin.isEnabled())
+        if (plugin.dm == null || !plugin.dm.isInitialized())
         {
-            removeBanFromSql(ban);
+            FLog.warning("SQL not available, falling back to JSON save");
+            enqueue(writeJsonAsync(snapshot));
             return;
         }
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> removeBanFromSql(ban));
+
+        final BanRepository repo = plugin.dm.getBanRepository();
+
+        enqueue(repo.deleteAll()
+                .onErrorResume(ex ->
+                {
+                    FLog.warning("Failed to clear bans before rewrite: " + ex.getMessage());
+                    return Mono.empty();
+                })
+                .thenMany(Flux.fromIterable(snapshot)
+                        .concatMap(ban -> repo.save(ban)
+                                .onErrorResume(ex ->
+                                {
+                                    FLog.warning("Failed to save ban to SQL: " + ex.getMessage());
+                                    return Mono.<Integer>empty();
+                                })))
+                .then(writeJsonAsync(snapshot)));
     }
 
     /**
-     * Write the given snapshot of bans to the SQL database. Must be called under persistenceLock.
+     * Queue a single ban for an off-thread SQL write, followed by a refresh of the JSON
+     * snapshot. Safe to call from commands and event handlers.
      */
+    private void saveBanToSqlAsync(Ban ban)
+    {
+        if (plugin.dm == null || !plugin.dm.isInitialized())
+        {
+            FLog.warning("SQL not available; ban change was not saved");
+            return;
+        }
+
+        final BanRepository repo = plugin.dm.getBanRepository();
+        final List<Ban> snapshot = currentBansSnapshot();
+
+        enqueue(repo.save(ban)
+                .onErrorResume(ex ->
+                {
+                    FLog.warning("Failed to save ban to SQL: " + ex.getMessage());
+                    return Mono.<Integer>empty();
+                })
+                .then(writeJsonAsync(snapshot)));
+    }
+
+    /**
+     * Queue a single ban removal for an off-thread SQL write, followed by a refresh of the
+     * JSON snapshot. Safe to call from commands and event handlers.
+     */
+    private void removeBanFromSqlAsync(Ban ban)
+    {
+        if (plugin.dm == null || !plugin.dm.isInitialized())
+        {
+            FLog.warning("SQL not available; ban removal was not saved");
+            return;
+        }
+
+        final BanRepository repo = plugin.dm.getBanRepository();
+        final List<Ban> snapshot = currentBansSnapshot();
+
+        final Mono<Boolean> delete;
+        if (ban.getUuid() != null)
+        {
+            delete = repo.deleteByUuid(ban.getUuid());
+        }
+        else if (ban.hasUsername())
+        {
+            delete = Mono.fromCallable(() -> repo.deleteByUsername(ban.getUsername()))
+                    .subscribeOn(Schedulers.boundedElastic());
+        }
+        else
+        {
+            delete = Mono.just(Boolean.FALSE);
+        }
+
+        enqueue(delete
+                .onErrorResume(ex ->
+                {
+                    FLog.warning("Failed to remove ban from SQL: " + ex.getMessage());
+                    return Mono.<Boolean>empty();
+                })
+                .then(writeJsonAsync(snapshot)));
+    }
+
     private void writeAllToSql(List<Ban> snapshot)
     {
         if (plugin.dm == null || !plugin.dm.isInitialized())
@@ -292,7 +421,6 @@ public class BanManager extends FreedomService
         try
         {
             BanRepository repo = plugin.dm.getBanRepository();
-            // Clear and re-add all (simple approach for now)
             repo.deleteAll().block();
             for (Ban ban : snapshot)
             {
@@ -308,8 +436,7 @@ public class BanManager extends FreedomService
     }
 
     /**
-     * Write the given snapshot of bans to the JSON file (fallback, and the write-through
-     * snapshot when using SQL). Must be called under persistenceLock.
+     * Write the given snapshot of bans to the JSON file (fallback, and the write-through snapshot when using SQL).
      */
     private void writeAllToJson(List<Ban> snapshot)
     {
@@ -321,6 +448,12 @@ public class BanManager extends FreedomService
         {
             FLog.severe("Could not save bans.json");
         }
+    }
+
+    private Mono<Void> writeJsonAsync(List<Ban> snapshot)
+    {
+        return Mono.<Void>fromRunnable(() -> writeAllToJson(snapshot))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
     public Ban getByIp(String ip)
@@ -494,61 +627,6 @@ public class BanManager extends FreedomService
         if (player != null)
         {
             plugin.web.cancel(player);
-        }
-    }
-
-    /**
-     * Save a single ban to SQL database.
-     */
-    private void saveBanToSql(Ban ban)
-    {
-        if (plugin.dm == null || !plugin.dm.isInitialized())
-        {
-            return;
-        }
-
-        synchronized (persistenceLock)
-        {
-            try
-            {
-                plugin.dm.getBanRepository().save(ban).block();
-                writeAllToJson(currentBansSnapshot());
-            }
-            catch (Exception ex)
-            {
-                FLog.warning("Failed to save ban to SQL: " + ex.getMessage());
-            }
-        }
-    }
-
-    /**
-     * Remove a ban from SQL database.
-     */
-    private void removeBanFromSql(Ban ban)
-    {
-        if (plugin.dm == null || !plugin.dm.isInitialized())
-        {
-            return;
-        }
-
-        synchronized (persistenceLock)
-        {
-            try
-            {
-                if (ban.getUuid() != null)
-                {
-                    plugin.dm.getBanRepository().deleteByUuid(ban.getUuid()).block();
-                }
-                else if (ban.hasUsername())
-                {
-                    plugin.dm.getBanRepository().deleteByUsername(ban.getUsername());
-                }
-                writeAllToJson(currentBansSnapshot());
-            }
-            catch (Exception ex)
-            {
-                FLog.warning("Failed to remove ban from SQL: " + ex.getMessage());
-            }
         }
     }
 

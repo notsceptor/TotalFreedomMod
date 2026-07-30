@@ -17,6 +17,10 @@ import me.totalfreedom.totalfreedommod.sql.adapter.StrikeRepository;
 import me.totalfreedom.totalfreedommod.util.FLog;
 
 import java.sql.SQLException;
+import java.time.Duration;
+
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 /**
  * Central database management service.
@@ -28,6 +32,12 @@ import java.sql.SQLException;
  */
 public class FreedomDatabase extends FreedomService
 {
+    /**
+     * Upper bound on how long {@link #initialize()} waits for the connection pool and schema
+     * migrations to finish. The actual work runs on a background thread either way.
+     */
+    private static final long INIT_TIMEOUT_SECONDS = 45L;
+
     private ConnectionHandler connectionHandler;
     private StatementHandler statementHandler;
     private DatabaseAdapter adapter;
@@ -60,6 +70,13 @@ public class FreedomDatabase extends FreedomService
 
     /**
      * Initialize the database connection and adapter.
+     * <p>
+     * The actual connection-pool bootstrap and schema migration run on a background thread,
+     * not the calling thread. This is called synchronously from {@link #onStart()} during
+     * {@code onEnable}, which runs on the main thread, and a slow or unreachable host must
+     * not hang the whole server boot. The wait is bounded by {@link #INIT_TIMEOUT_SECONDS};
+     * if it elapses, this throws and every domain falls back to its JSON snapshot, same as
+     * any other connection failure.
      */
     public void initialize() throws SQLException
     {
@@ -71,25 +88,36 @@ public class FreedomDatabase extends FreedomService
 
         FLog.info("Initializing database...");
 
-        // Create connection handler
         connectionHandler = new ConnectionHandler(plugin);
-
-        // Check database type
         SQLProperties properties = connectionHandler.getSqlProperties();
         DatabaseType dbType = properties.getDatabaseType();
 
-        // Build the connection pool
-        connectionHandler.connect();
+        final DatabaseAdapter built;
+        try
+        {
+            built = Mono.fromCallable(() ->
+            {
+                connectionHandler.connect();
+                statementHandler = new StatementHandler(connectionHandler);
+                DatabaseAdapter created = AdapterFactory.createAdapter(plugin, properties, connectionHandler, statementHandler);
+                created.initialize();
+                return created;
+            })
+                    .subscribeOn(Schedulers.boundedElastic())
+                    .block(Duration.ofSeconds(INIT_TIMEOUT_SECONDS));
+        }
+        catch (Exception ex)
+        {
+            throw new SQLException(String.format(
+                    "Database did not finish initializing within %ds", INIT_TIMEOUT_SECONDS), ex);
+        }
 
-        // Create statement handler
-        statementHandler = new StatementHandler(connectionHandler);
+        if (built == null)
+        {
+            throw new SQLException("Database initialization completed with no adapter");
+        }
 
-        // Create the adapter using the factory
-        adapter = AdapterFactory.createAdapter(plugin, properties, connectionHandler, statementHandler);
-
-        // Initialize the adapter (runs migrations)
-        adapter.initialize();
-
+        adapter = built;
         initialized = true;
         FLog.info("Database initialized successfully (" + dbType.getName() + ")");
     }
@@ -240,6 +268,19 @@ public class FreedomDatabase extends FreedomService
             throw new IllegalStateException("Database not initialized");
         }
         return adapter.getPlayerRepository();
+    }
+
+    /**
+     * Snapshot of live connection pool and fairness-queue health, or {@code null} if the
+     * database isn't initialized.
+     */
+    public ConnectionHandler.PoolStats getPoolStats()
+    {
+        if (!initialized || connectionHandler == null)
+        {
+            return null;
+        }
+        return connectionHandler.getPoolStats();
     }
 
     /**

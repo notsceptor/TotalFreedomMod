@@ -3,6 +3,7 @@ package me.totalfreedom.totalfreedommod.banning;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.gson.reflect.TypeToken;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -25,24 +26,24 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 public class PermbanList extends FreedomService
 {
 
     public static final String CONFIG_FILENAME = "permbans.json";
-
     private static final Type PERMBAN_MAP_TYPE = new TypeToken<Map<String, PermBan>>() {}.getType();
+    private static final long SHUTDOWN_FLUSH_TIMEOUT_MS = 10L * 1000L;
 
     private final Set<String> permbannedNames = Sets.newHashSet();
     private final Set<String> permbannedIps = Sets.newHashSet();
-
-    // Store full PermBan objects for SQL operations
     private final Map<String, PermBan> permbansByName = Maps.newHashMap();
     private final File configFile;
     private final Object lock = new Object();
     private final Object persistenceLock = new Object();
 
-    // Flag to track if SQL is available
+    private Mono<Void> persistenceChain = Mono.empty();
     private boolean usingSql = false;
 
     public PermbanList(TotalFreedomMod plugin)
@@ -54,15 +55,10 @@ public class PermbanList extends FreedomService
     @Override
     protected void onStart()
     {
-        // Try to load from SQL database first
         if (plugin.dm != null && plugin.dm.isInitialized())
-        {
             loadFromSql();
-        }
         else
-        {
             loadFromJson();
-        }
     }
 
     /**
@@ -108,29 +104,21 @@ public class PermbanList extends FreedomService
     private void reconcileFromJsonIfNewer(PermbanRepository repo)
     {
         if (!configFile.exists())
-        {
             return;
-        }
 
         try
         {
             Long sqlUpdatedAt = repo.getMaxUpdatedAt();
             if (sqlUpdatedAt != null && configFile.lastModified() <= sqlUpdatedAt)
-            {
                 return;
-            }
 
             Map<String, PermBan> jsonPermbans = readJsonPermbans();
             if (jsonPermbans.isEmpty())
-            {
                 return;
-            }
 
             FLog.info("permbans.json is newer than the database; re-importing " + jsonPermbans.size() + " permban(s) from it.");
             for (PermBan permban : jsonPermbans.values())
-            {
                 repo.save(permban).block();
-            }
 
             synchronized (lock)
             {
@@ -226,25 +214,85 @@ public class PermbanList extends FreedomService
     @Override
     protected void onStop()
     {
+        awaitPendingWrites(SHUTDOWN_FLUSH_TIMEOUT_MS);
+
         if (usingSql)
-        {
             saveAllToSql();
-        }
         else
-        {
             saveToJson();
+        
+    }
+
+    /**
+     * Wait for queued async writes to land, up to {@code timeoutMs}. Without this a shutdown
+     * flush can race the queue and let an older queued snapshot overwrite the state we just wrote.
+     */
+    public void awaitPendingWrites(long timeoutMs)
+    {
+        final Mono<Void> pending;
+        synchronized (persistenceLock)
+        {
+            pending = persistenceChain;
+        }
+
+        try
+        {
+            pending.block(Duration.ofMillis(timeoutMs));
+        }
+        catch (IllegalStateException ex)
+        {
+            FLog.warning(String.format("Gave up after %dms waiting for pending permban writes (%s); flushing anyway",
+                    timeoutMs, ex.getMessage()));
+        }
+        catch (RuntimeException ex)
+        {
+            FLog.warning("A queued permban write failed before shutdown: " + ex.getMessage());
         }
     }
 
     /**
-     * Save all permbans to SQL database.
+     * Append {@code work} to the persistence chain and subscribe. Every queued write runs
+     * after the one before it, so a batch can never be reordered behind a single-row update
+     * that was requested later.
+     */
+    private void enqueue(Mono<Void> work)
+    {
+        synchronized (persistenceLock)
+        {
+            final Mono<Void> queued = persistenceChain
+                    .onErrorResume(ignored -> Mono.empty())
+                    .then(work)
+                    .cache();
+
+            persistenceChain = queued;
+            queued.doFinally(signal -> collapseChain(queued)).subscribe();
+        }
+    }
+
+    private void collapseChain(Mono<Void> completed)
+    {
+        synchronized (persistenceLock)
+        {
+            if (persistenceChain == completed)
+            {
+                persistenceChain = Mono.empty();
+            }
+        }
+    }
+
+    private Mono<Void> writeJsonAsync()
+    {
+        return Mono.<Void>fromRunnable(this::saveToJson)
+                   .subscribeOn(Schedulers.boundedElastic());
+    }
+
+    /**
+     * Blocking write of every permban record to SQL. Startup/shutdown only.
      */
     private void saveAllToSql()
     {
         if (plugin.dm == null || !plugin.dm.isInitialized())
-        {
             return;
-        }
 
         final List<PermBan> snapshot;
         synchronized (lock)
@@ -252,22 +300,18 @@ public class PermbanList extends FreedomService
             snapshot = new ArrayList<>(permbansByName.values());
         }
 
-        synchronized (persistenceLock)
+        try
         {
-            try
-            {
-                PermbanRepository repo = plugin.dm.getPermbanRepository();
-                for (PermBan permban : snapshot)
-                {
-                    repo.save(permban).block();
-                }
-                FLog.debug("Saved " + snapshot.size() + " permbans to SQL database");
-                saveToJson();
-            }
-            catch (Exception ex)
-            {
-                FLog.warning("Failed to save permbans to SQL: " + ex.getMessage());
-            }
+            PermbanRepository repo = plugin.dm.getPermbanRepository();
+            for (PermBan permban : snapshot)
+                repo.save(permban).block();
+
+            FLog.debug("Saved " + snapshot.size() + " permbans to SQL database");
+            saveToJson();
+        }
+        catch (Exception ex)
+        {
+            FLog.warning("Failed to save permbans to SQL: " + ex.getMessage());
         }
     }
 
@@ -293,13 +337,9 @@ public class PermbanList extends FreedomService
         }
 
         if (sql)
-        {
             savePermbanToSqlAsync(permban);
-        }
         else
-        {
             saveToJson();
-        }
     }
 
     /**
@@ -314,24 +354,17 @@ public class PermbanList extends FreedomService
         {
             permban = permbansByName.remove(name);
             if (permban == null)
-            {
                 return false;
-            }
 
             permbannedNames.remove(name);
-            // Remove IPs associated with this permban
             permbannedIps.removeAll(permban.getIps());
             sql = usingSql;
         }
 
         if (sql)
-        {
             removePermbanFromSqlAsync(name);
-        }
         else
-        {
             saveToJson();
-        }
 
         return true;
     }
@@ -358,9 +391,7 @@ public class PermbanList extends FreedomService
                 }
 
                 if (!matches)
-                {
                     continue;
-                }
 
                 final String name = permban.getUsername().toLowerCase().trim();
                 permbansByName.remove(name);
@@ -371,24 +402,17 @@ public class PermbanList extends FreedomService
             // Rebuild the IP view so IPs shared with surviving permbans are retained.
             permbannedIps.clear();
             for (PermBan permban : permbansByName.values())
-            {
                 permbannedIps.addAll(permban.getIps());
-            }
 
             sql = usingSql;
         }
 
         if (sql)
-        {
             for (String name : removedNames)
-            {
-                removePermbanFromSqlAsync(name.toLowerCase().trim());
-            }
-        }
+                removePermbanFromSqlAsync(name.toLowerCase().trim()); // why does this look so nice without brackets lmao
+
         else if (!removedNames.isEmpty())
-        {
             saveToJson();
-        }
 
         return removedNames;
     }
@@ -427,71 +451,50 @@ public class PermbanList extends FreedomService
     }
 
     /**
-     * Save a single permban to SQL.
+     * Queue a single permban for an off-thread SQL write, followed by a refresh of the JSON
+     * snapshot. Safe to call from commands and event handlers.
      */
     private void savePermbanToSqlAsync(PermBan permban)
     {
-        if (!plugin.isEnabled())
-        {
-            savePermbanToSql(permban);
-            return;
-        }
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> savePermbanToSql(permban));
-    }
-
-    private void savePermbanToSql(PermBan permban)
-    {
         if (plugin.dm == null || !plugin.dm.isInitialized())
         {
+            FLog.warning("SQL not available; permban change was not saved");
             return;
         }
 
-        synchronized (persistenceLock)
-        {
-            try
-            {
-                plugin.dm.getPermbanRepository().save(permban).block();
-                saveToJson();
-            }
-            catch (Exception ex)
-            {
-                FLog.warning("Failed to save permban to SQL: " + ex.getMessage());
-            }
-        }
+        final PermbanRepository repo = plugin.dm.getPermbanRepository();
+
+        enqueue(repo.save(permban)
+                .onErrorResume(ex ->
+                {
+                    FLog.warning("Failed to save permban to SQL: " + ex.getMessage());
+                    return Mono.<Integer>empty();
+                })
+                .then(writeJsonAsync()));
     }
-    
+
     /**
-     * Remove a single permban from SQL.
+     * Queue a single permban removal for an off-thread SQL write, followed by a refresh of
+     * the JSON snapshot. Safe to call from commands and event handlers.
      */
     private void removePermbanFromSqlAsync(String name)
     {
-        if (!plugin.isEnabled())
-        {
-            removePermbanFromSql(name);
-            return;
-        }
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> removePermbanFromSql(name));
-    }
-
-    private void removePermbanFromSql(String name)
-    {
         if (plugin.dm == null || !plugin.dm.isInitialized())
         {
+            FLog.warning("SQL not available; permban removal was not saved");
             return;
         }
 
-        synchronized (persistenceLock)
-        {
-            try
-            {
-                plugin.dm.getPermbanRepository().deleteByUsername(name);
-                saveToJson();
-            }
-            catch (Exception ex)
-            {
-                FLog.warning("Failed to remove permban from SQL: " + ex.getMessage());
-            }
-        }
+        final PermbanRepository repo = plugin.dm.getPermbanRepository();
+
+        enqueue(Mono.fromCallable(() -> repo.deleteByUsername(name))
+                .subscribeOn(Schedulers.boundedElastic())
+                .onErrorResume(ex ->
+                {
+                    FLog.warning("Failed to remove permban from SQL: " + ex.getMessage());
+                    return Mono.<Boolean>empty();
+                })
+                .then(writeJsonAsync()));
     }
 
     @EventHandler(priority = EventPriority.LOWEST)

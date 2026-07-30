@@ -8,10 +8,14 @@ import org.jetbrains.annotations.NotNull;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import com.zaxxer.hikari.HikariPoolMXBean;
 
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.sql.SQLProperties.DatabaseType;
 import me.totalfreedom.totalfreedommod.util.FLog;
+
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 
 /**
  * Contains the HikariCP connection pool for the configured database.
@@ -22,9 +26,19 @@ public class ConnectionHandler
     private static final int DEFAULT_POOL_SIZE = 10;
     private static final int SQLITE_POOL_SIZE = 1;
 
+    /**
+     * A thread waiting to acquire an {@link AccessController} permit blocks for the duration of awaiting, 
+     * so for SQLite's pool of 1, a scheduler capped at 1 thread would let only one caller
+     * ever be "waiting" at a time and starve every other concurrent request.
+     */
+    private static final int SCHEDULER_POOL_MULTIPLIER = 4;
+    private static final int SCHEDULER_MIN_THREADS = 16;
+    private static final int SCHEDULER_QUEUED_TASK_CAP = 100_000;
+
     private final SQLProperties sqlProperties;
     private volatile HikariDataSource dataSource;
     private volatile AccessController accessController;
+    private volatile Scheduler scheduler;
 
     public ConnectionHandler(@NotNull final TotalFreedomMod plugin)
     {
@@ -87,7 +101,9 @@ public class ConnectionHandler
                                     maskPassword(config.getJdbcUrl())
                                 ));
             this.dataSource = new HikariDataSource(config);
-            this.accessController = new AccessController(dataSource.getMaximumPoolSize());
+            final int schedulerThreads = Math.max(dataSource.getMaximumPoolSize() * SCHEDULER_POOL_MULTIPLIER, SCHEDULER_MIN_THREADS);
+            this.scheduler = Schedulers.newBoundedElastic(schedulerThreads, SCHEDULER_QUEUED_TASK_CAP, "tfm-sql-" + dbType.getName());
+            this.accessController = new AccessController(dataSource.getMaximumPoolSize(), scheduler);
 
             if (dbType == DatabaseType.SQLITE)
             {
@@ -148,10 +164,65 @@ public class ConnectionHandler
         return accessController;
     }
 
+    /**
+     * Dedicated Reactor scheduler for SQL work, sized off the pool's actual max size plus additional headroom to avoid starvation. 
+     * <p>
+     * Use {@link SCHEDULER_POOL_MULTIPLIER} rather than sharing the JVM-wide
+     * default {@link Schedulers#boundedElastic()} with unrelated plugin async work.
+     */
+    @NotNull
+    public Scheduler getScheduler()
+    {
+        if (scheduler == null)
+        {
+            throw new IllegalStateException("Connection pool not initialized. Call connect() first.");
+        }
+        return scheduler;
+    }
+
     @NotNull
     public DatabaseType getDatabaseType()
     {
         return sqlProperties.getDatabaseType();
+    }
+
+    /**
+     * Snapshot of live pool and fairness-queue stats, for admin-facing diagnostics.
+     */
+    public record PoolStats(
+            String databaseType,
+            int maxPoolSize,
+            int activeConnections,
+            int idleConnections,
+            int totalConnections,
+            int threadsAwaitingConnection,
+            int availablePermits,
+            int queueLength)
+    {
+    }
+
+    /**
+     * Read current pool health directly off Hikari's own {@link HikariPoolMXBean}, plus the
+     * {@link AccessController} fairness-queue counters.
+     */
+    @NotNull
+    public PoolStats getPoolStats()
+    {
+        if (dataSource == null || accessController == null)
+        {
+            throw new IllegalStateException("Connection pool not initialized. Call connect() first.");
+        }
+
+        final HikariPoolMXBean poolMXBean = dataSource.getHikariPoolMXBean();
+        return new PoolStats(
+                getDatabaseType().getName(),
+                dataSource.getMaximumPoolSize(),
+                poolMXBean.getActiveConnections(),
+                poolMXBean.getIdleConnections(),
+                poolMXBean.getTotalConnections(),
+                poolMXBean.getThreadsAwaitingConnection(),
+                accessController.availablePermits(),
+                accessController.queueLength());
     }
 
     public boolean isConnected()
@@ -178,6 +249,10 @@ public class ConnectionHandler
     public void shutdown()
     {
         FLog.info("Shutting down database connection handler...");
+        if (scheduler != null)
+        {
+            scheduler.dispose();
+        }
         if (dataSource != null && !dataSource.isClosed())
         {
             dataSource.close();
