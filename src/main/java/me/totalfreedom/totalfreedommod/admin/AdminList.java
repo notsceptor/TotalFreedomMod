@@ -124,7 +124,7 @@ public class AdminList extends FreedomService
     }
 
     /**
-     * Blocking write of every admin record. This is the shutdown flush - it is
+     * Blocking write of every admin record. This is the shutdown flush which is
      * called from {@link #onStop()} so nothing is lost when the server stops.
      * <p>
      * Do <b>not</b> call this from a command or event handler: under SQL it is a
@@ -178,9 +178,8 @@ public class AdminList extends FreedomService
      * list goes out as one queued batch, written serially so the connection pool
      * is not swamped.
      * <p>
-     * Only call this when the whole list is genuinely dirty. If a single entry
-     * changed - a login, an IP edit, a rank change - call
-     * {@link #saveAdminAsync(Admin)} instead, which queues just that row.
+     * Only call this when the whole list is genuinely dirty. If only a single entry
+     * changed, call {@link #saveAdminAsync(Admin)} instead, which queues just that row.
      */
     public void saveAsync()
     {
@@ -710,8 +709,6 @@ public class AdminList extends FreedomService
      */
     private Admin fixConfigKey(Admin admin, String key)
     {
-        // configKey is only set through the constructor, so a mismatch means
-        // rebuilding the entry under the right key.
         if (admin.getConfigKey() == null || !admin.getConfigKey().equals(key))
         {
             Admin fixed = new Admin(key);
@@ -894,8 +891,6 @@ public class AdminList extends FreedomService
 
         final AdminRepository repo = plugin.dm.getAdminRepository();
 
-        // Isolate per admin: this is the shutdown flush, so one unwritable row
-        // must not take the rest of the list down with it.
         final Long failed = Flux.fromIterable(List.copyOf(allAdmins.values()))
                 .concatMap(admin -> Mono.fromCallable(() -> resolveUuidFor(admin))
                         .flatMap(uuid -> repo.save(uuid, admin))
@@ -913,9 +908,7 @@ public class AdminList extends FreedomService
         FLog.debug(String.format("Flushed %d admin(s) to SQL (%d failed)",
                 allAdmins.size(), failed == null ? 0L : failed));
 
-        // Write the snapshot either way, so a later SQL-less start has something
-        // to read. Note we deliberately do not treat JSON as the authority when
-        // SQL rejects a row - that would create two conflicting sources of truth.
+        // Write the snapshot either way, so a later SQL-less start has something to read.
         saveToJson();
     }
 
@@ -973,8 +966,7 @@ public class AdminList extends FreedomService
     /**
      * Resolve the UUID for a queued write. The lookup runs on the persistence
      * chain rather than the caller, because {@link FUtil#usernameToUuid} can make
-     * a blocking Mojang request with a 5s connect and 5s read timeout - that must
-     * never land on the main thread during play. The resolved value is handed
+     * a blocking Mojang request with a 5s connect and 5s read timeout. The resolved value is handed
      * back to the live entry on the main thread, which owns the lookup tables.
      */
     private Mono<UUID> resolveUuidAsync(Admin live, Admin snapshot)
