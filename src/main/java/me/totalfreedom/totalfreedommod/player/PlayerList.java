@@ -6,9 +6,11 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.totalfreedommod.sql.PersistenceQueue;
 import me.totalfreedom.totalfreedommod.sql.adapter.PlayerRepository;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
@@ -22,17 +24,23 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
+import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 public class PlayerList extends FreedomService
 {
 
     public static final long AUTO_PURGE_TICKS = 20L * 60L * 5L;
+
+    private static final long SHUTDOWN_FLUSH_TIMEOUT_MS = 10L * 1000L;
     //
     public final Map<String, FPlayer> playerMap = Maps.newHashMap(); // key: lowercase username
     public final Map<String, PlayerData> dataMap = Maps.newHashMap(); // key: lowercase username
     private final File configFolder;
+    private final PersistenceQueue writes = new PersistenceQueue("player data");
 
     public Map<String, FPlayer> getPlayerMap()
     {
@@ -78,48 +86,48 @@ public class PlayerList extends FreedomService
     protected void onStop()
     {
         save();
+        writes.await(SHUTDOWN_FLUSH_TIMEOUT_MS);
     }
 
+    /**
+     * Queue a write of every loaded player record.
+     */
     public void save()
     {
-        for (PlayerData data : dataMap.values())
-        {
-            saveOne(data);
-        }
+        List.copyOf(dataMap.values()).forEach(this::saveOne);
     }
 
     public void saveAsync()
     {
-        if (!plugin.isEnabled())
-        {
-            save();
-            return;
-        }
-        final java.util.List<PlayerData> snapshot = new java.util.ArrayList<>(dataMap.values());
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () ->
-        {
-            for (PlayerData data : snapshot)
-            {
-                saveOne(data);
-            }
-        });
+        save();
     }
 
-    private void saveOne(PlayerData data)
+    /**
+     * Queue one player's SQL write plus its JSON snapshot refresh. Safe from an event handler:
+     * the round trip runs off the main thread.
+     */
+    private void saveOne(final PlayerData data)
     {
-        if (usingSql())
+        if (!usingSql())
         {
-            try
-            {
-                plugin.dm.getPlayerRepository().save(data).block();
-            }
-            catch (Exception ex)
-            {
-                FLog.severe("Could not save player data for " + data.getUsername() + " to SQL: " + ex.getMessage());
-            }
+            writes.enqueue(writeJsonAsync(data));
+            return;
         }
 
-        saveToJson(data);
+        writes.enqueue(plugin.dm.getPlayerRepository().save(data)
+                .onErrorResume(ex ->
+                {
+                    FLog.severe(String.format("Could not save player data for %s to SQL: %s",
+                            data.getUsername(), ex.getMessage()));
+                    return Mono.empty();
+                })
+                .then(writeJsonAsync(data)));
+    }
+
+    private Mono<Void> writeJsonAsync(final PlayerData data)
+    {
+        return Mono.<Void>fromRunnable(() -> saveToJson(data))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
     private void saveToJson(PlayerData data)
@@ -434,8 +442,24 @@ public class PlayerList extends FreedomService
         }
         if (plugin.isEnabled())
         {
-            plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> saveOne(data));
+            saveOne(data);
         }
+    }
+
+    /**
+     * Warm {@link #dataMap} before the player reaches the main thread. This event already runs
+     * off it, so the lookup that {@code onPlayerJoin} would otherwise make against the database
+     * happens here instead and finds a cached entry on join.
+     */
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPreLogin(AsyncPlayerPreLoginEvent event)
+    {
+        if (event.getLoginResult() != AsyncPlayerPreLoginEvent.Result.ALLOWED)
+            return;
+
+        final PlayerData data = getData(event.getName());
+        if (data != null)
+            dataMap.put(data.getUsername().toLowerCase(), data);
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -447,7 +471,7 @@ public class PlayerList extends FreedomService
 
         if (data != null && plugin.isEnabled())
         {
-            plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> saveOne(data));
+            saveOne(data);
         }
     }
 
@@ -471,14 +495,12 @@ public class PlayerList extends FreedomService
 
         if (usingSql())
         {
-            try
-            {
-                plugin.dm.getPlayerRepository().deleteAll().block();
-            }
-            catch (Exception ex)
-            {
-                FLog.severe("Could not purge player data from SQL: " + ex.getMessage());
-            }
+            writes.enqueue(plugin.dm.getPlayerRepository().deleteAll()
+                    .onErrorResume(ex ->
+                    {
+                        FLog.severe(String.format("Could not purge player data from SQL: %s", ex.getMessage()));
+                        return Mono.empty();
+                    }));
         }
 
         dataMap.clear();

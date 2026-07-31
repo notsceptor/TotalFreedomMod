@@ -3,8 +3,8 @@ package me.totalfreedom.totalfreedommod.banning;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.gson.reflect.TypeToken;
-import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -12,6 +12,7 @@ import java.util.Set;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
+import me.totalfreedom.totalfreedommod.sql.PersistenceQueue;
 import me.totalfreedom.totalfreedommod.sql.adapter.PermbanRepository;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
@@ -26,6 +27,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
@@ -41,9 +43,8 @@ public class PermbanList extends FreedomService
     private final Map<String, PermBan> permbansByName = Maps.newHashMap();
     private final File configFile;
     private final Object lock = new Object();
-    private final Object persistenceLock = new Object();
+    private final PersistenceQueue writes = new PersistenceQueue("permban");
 
-    private Mono<Void> persistenceChain = Mono.empty();
     private boolean usingSql = false;
 
     public PermbanList(TotalFreedomMod plugin)
@@ -55,89 +56,124 @@ public class PermbanList extends FreedomService
     @Override
     protected void onStart()
     {
-        if (plugin.dm != null && plugin.dm.isInitialized())
-            loadFromSql();
-        else
-            loadFromJson();
+        load();
+        plugin.dm.whenReady(this::load);
     }
 
     /**
-     * Load permbans from SQL database.
+     * Populate the permban list from SQL where it is available and the JSON snapshot otherwise.
+     * Never blocks: the SQL read runs off-thread and is applied back on the main thread.
      */
-    private void loadFromSql()
+    public void load()
     {
-        try
+        if (plugin.dm != null && plugin.dm.isInitialized())
         {
-            PermbanRepository repo = plugin.dm.getPermbanRepository();
-            List<PermBan> loadedPermbans = repo.findAll().block();
-
-            synchronized (lock)
-            {
-                permbannedNames.clear();
-                permbannedIps.clear();
-                permbansByName.clear();
-
-                for (PermBan permban : loadedPermbans)
-                {
-                    String name = permban.getUsername().toLowerCase().trim();
-                    permbannedNames.add(name);
-                    permbannedIps.addAll(permban.getIps());
-                    permbansByName.put(name, permban);
-                }
-
-                usingSql = true;
-                FLog.info("Loaded " + permbannedIps.size() + " perm IP bans and " + permbannedNames.size() + " perm username bans from SQL database.");
-            }
-
-            reconcileFromJsonIfNewer(repo);
+            loadFromSqlAsync();
+            return;
         }
-        catch (Exception ex)
+
+        loadFromJson();
+    }
+
+    private void loadFromSqlAsync()
+    {
+        final PermbanRepository repo = plugin.dm.getPermbanRepository();
+        plugin.dm.readAsync("PermbanList/loadFromSql", repo.findAll(),
+                loaded -> applyLoadedPermbans(repo, loaded),
+                this::loadFromJson);
+    }
+
+    private void applyLoadedPermbans(final PermbanRepository repo, final List<PermBan> loaded)
+    {
+        synchronized (lock)
         {
-            FLog.warning("Failed to load permbans from SQL, falling back to JSON: " + ex.getMessage());
-            loadFromJson();
+            replaceViews(loaded);
+            usingSql = true;
+            FLog.info(String.format("Loaded %d perm IP bans and %d perm username bans from SQL database.",
+                    permbannedIps.size(), permbannedNames.size()));
         }
+
+        reconcileFromJsonIfNewer(repo);
     }
 
     /**
-     * If permbans.json was written more recently than the database's last update, re-import it into SQL.
+     * If permbans.json was written more recently than the database's last update, re-import it
+     * into SQL. The comparison and the re-import both ride the write queue off the main thread.
      */
-    private void reconcileFromJsonIfNewer(PermbanRepository repo)
+    private void reconcileFromJsonIfNewer(final PermbanRepository repo)
     {
         if (!configFile.exists())
+        {
+            // Nothing to reconcile against, but SQL now has rows that no snapshot covers.
+            enqueue(writeJsonAsync());
             return;
+        }
 
+        final Map<String, PermBan> jsonPermbans;
         try
         {
-            Long sqlUpdatedAt = repo.getMaxUpdatedAt();
-            if (sqlUpdatedAt != null && configFile.lastModified() <= sqlUpdatedAt)
-                return;
-
-            Map<String, PermBan> jsonPermbans = readJsonPermbans();
-            if (jsonPermbans.isEmpty())
-                return;
-
-            FLog.info("permbans.json is newer than the database; re-importing " + jsonPermbans.size() + " permban(s) from it.");
-            for (PermBan permban : jsonPermbans.values())
-                repo.save(permban).block();
-
-            synchronized (lock)
-            {
-                permbannedNames.clear();
-                permbannedIps.clear();
-                permbansByName.clear();
-                for (PermBan permban : jsonPermbans.values())
-                {
-                    String name = permban.getUsername().toLowerCase().trim();
-                    permbannedNames.add(name);
-                    permbannedIps.addAll(permban.getIps());
-                    permbansByName.put(name, permban);
-                }
-            }
+            jsonPermbans = readJsonPermbans();
         }
-        catch (Exception ex)
+        catch (IOException ex)
         {
-            FLog.warning("Failed to reconcile permbans.json into the database: " + ex.getMessage());
+            FLog.warning(String.format("Failed to read %s: %s", CONFIG_FILENAME, ex.getMessage()));
+            return;
         }
+
+        if (jsonPermbans.isEmpty())
+            return;
+
+        final long fileModified = configFile.lastModified();
+
+        enqueue(Mono.fromCallable(() ->
+                {
+                    final Long sqlUpdatedAt = repo.getMaxUpdatedAt();
+                    return sqlUpdatedAt == null || fileModified > sqlUpdatedAt;
+                })
+                .subscribeOn(Schedulers.boundedElastic())
+                .filter(Boolean::booleanValue)
+                .flatMapMany(ignored ->
+                {
+                    FLog.info(String.format("%s is newer than the database; re-importing %d permban(s) from it.",
+                            CONFIG_FILENAME, jsonPermbans.size()));
+                    return Flux.fromIterable(jsonPermbans.values())
+                            .concatMap(repo::save);
+                })
+                .then(Mono.fromRunnable(() -> plugin.dm.sync("PermbanList/applyReconciled",
+                        () -> applyReconciledPermbans(jsonPermbans.values()))))
+                .onErrorResume(ex ->
+                {
+                    FLog.warning(String.format("Failed to reconcile %s into the database: %s",
+                            CONFIG_FILENAME, ex.getMessage()));
+                    return Mono.empty();
+                })
+                .then());
+    }
+
+    private void applyReconciledPermbans(final Collection<PermBan> jsonPermbans)
+    {
+        synchronized (lock)
+        {
+            replaceViews(jsonPermbans);
+        }
+    }
+
+    /**
+     * Rebuild the name/IP lookup views from {@code source}. Callers hold {@link #lock}.
+     */
+    private void replaceViews(final Collection<PermBan> source)
+    {
+        permbannedNames.clear();
+        permbannedIps.clear();
+        permbansByName.clear();
+
+        source.forEach(permban ->
+        {
+            final String name = permban.getUsername().toLowerCase().trim();
+            permbannedNames.add(name);
+            permbannedIps.addAll(permban.getIps());
+            permbansByName.put(name, permban);
+        });
     }
 
     private Map<String, PermBan> readJsonPermbans() throws IOException
@@ -224,60 +260,16 @@ public class PermbanList extends FreedomService
     }
 
     /**
-     * Wait for queued async writes to land, up to {@code timeoutMs}. Without this a shutdown
-     * flush can race the queue and let an older queued snapshot overwrite the state we just wrote.
+     * Wait for queued async writes to land, up to {@code timeoutMs}.
      */
     public void awaitPendingWrites(long timeoutMs)
     {
-        final Mono<Void> pending;
-        synchronized (persistenceLock)
-        {
-            pending = persistenceChain;
-        }
-
-        try
-        {
-            pending.block(Duration.ofMillis(timeoutMs));
-        }
-        catch (IllegalStateException ex)
-        {
-            FLog.warning(String.format("Gave up after %dms waiting for pending permban writes (%s); flushing anyway",
-                    timeoutMs, ex.getMessage()));
-        }
-        catch (RuntimeException ex)
-        {
-            FLog.warning("A queued permban write failed before shutdown: " + ex.getMessage());
-        }
+        writes.await(timeoutMs);
     }
 
-    /**
-     * Append {@code work} to the persistence chain and subscribe. Every queued write runs
-     * after the one before it, so a batch can never be reordered behind a single-row update
-     * that was requested later.
-     */
     private void enqueue(Mono<Void> work)
     {
-        synchronized (persistenceLock)
-        {
-            final Mono<Void> queued = persistenceChain
-                    .onErrorResume(ignored -> Mono.empty())
-                    .then(work)
-                    .cache();
-
-            persistenceChain = queued;
-            queued.doFinally(signal -> collapseChain(queued)).subscribe();
-        }
-    }
-
-    private void collapseChain(Mono<Void> completed)
-    {
-        synchronized (persistenceLock)
-        {
-            if (persistenceChain == completed)
-            {
-                persistenceChain = Mono.empty();
-            }
-        }
+        writes.enqueue(work);
     }
 
     private Mono<Void> writeJsonAsync()
@@ -315,12 +307,46 @@ public class PermbanList extends FreedomService
         }
     }
 
+    /**
+     * Flush pending changes and re-read the list. Safe from a command handler: the flush is
+     * queued rather than awaited, and {@link #load()} applies its result asynchronously.
+     */
     public void reload()
     {
-        onStop();
-        onStart();
+        saveAsync();
+        load();
     }
-    
+
+    /**
+     * Queue a write of every permban record, followed by a refresh of the JSON snapshot.
+     */
+    public void saveAsync()
+    {
+        if (!usingSql || plugin.dm == null || !plugin.dm.isInitialized())
+        {
+            enqueue(writeJsonAsync());
+            return;
+        }
+
+        final List<PermBan> snapshot;
+        synchronized (lock)
+        {
+            snapshot = new ArrayList<>(permbansByName.values());
+        }
+
+        final PermbanRepository repo = plugin.dm.getPermbanRepository();
+        enqueue(Flux.fromIterable(snapshot)
+                .concatMap(permban -> repo.save(permban)
+                        .onErrorResume(ex ->
+                        {
+                            FLog.warning(String.format("Failed to save permban %s to SQL: %s",
+                                    permban.getUsername(), ex.getMessage()));
+                            return Mono.empty();
+                        }))
+                .then(writeJsonAsync()));
+    }
+
+
     /**
      * Add a permban.
      */

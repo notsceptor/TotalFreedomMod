@@ -119,21 +119,75 @@ public class GenericBanRepository implements BanRepository
             }
         }
 
+        attachIps(banById);
+
+        return bans;
+    }
+
+    /**
+     * Fold the {@code ban_ips} child rows into bans that have already been read.
+     * One flat query, run after the caller's cursor is closed: a nested read would hold two
+     * connections at once, which SQLite's single-connection pool cannot serve.
+     */
+    private void attachIps(Map<Integer, Ban> banById) throws SQLException
+    {
+        if (banById.isEmpty())
+            return;
+
         String ipSql = String.format("SELECT %s, %s FROM %s", colBanId, colIp, tblBanIps);
         try (ResultSet rs = statementHandler.executeQuery(ipSql))
         {
             while (rs.next())
             {
-                int banId = rs.getInt("ban_id");
-                String ip = rs.getString("ip");
-                Ban ban = banById.get(banId);
+                Ban ban = banById.get(rs.getInt("ban_id"));
                 if (ban != null)
                 {
-                    ban.addIp(ip);
+                    ban.addIp(rs.getString("ip"));
                 }
             }
         }
+    }
 
+    /**
+     * Read a single ban and its IPs, closing the row's statement before looking the IPs up.
+     */
+    private Ban findOne(String sql, Object... params) throws SQLException
+    {
+        final Ban ban;
+        final int banId;
+        try (PreparedStatement stmt = statementHandler.prepareStatement(sql, params);
+             ResultSet rs = stmt.executeQuery())
+        {
+            if (!rs.next())
+                return null;
+
+            ban = loadBanFromRow(rs);
+            banId = rs.getInt("id");
+        }
+
+        ban.setIps(getIps(banId));
+        return ban;
+    }
+
+    /**
+     * Read every ban matching {@code sql}, then attach IPs once the cursor is closed.
+     */
+    private List<Ban> findMany(final String sql) throws SQLException
+    {
+        List<Ban> bans = new ArrayList<>();
+        Map<Integer, Ban> banById = new HashMap<>();
+
+        try (ResultSet rs = statementHandler.executeQuery(sql))
+        {
+            while (rs.next())
+            {
+                Ban ban = loadBanFromRow(rs);
+                bans.add(ban);
+                banById.put(rs.getInt("id"), ban);
+            }
+        }
+
+        attachIps(banById);
         return bans;
     }
 
@@ -141,15 +195,7 @@ public class GenericBanRepository implements BanRepository
     public Ban findByUuid(UUID uuid) throws SQLException
     {
         String sql = String.format("SELECT %s FROM %s WHERE %s = ?", selectColumns, tblBans, colUuid);
-        try (PreparedStatement stmt = statementHandler.prepareStatement(sql, uuid.toString());
-             ResultSet rs = stmt.executeQuery())
-        {
-            if (rs.next())
-            {
-                return loadBanFromResultSet(rs);
-            }
-        }
-        return null;
+        return findOne(sql, uuid.toString());
     }
 
     @Override
@@ -157,15 +203,7 @@ public class GenericBanRepository implements BanRepository
     {
         String sql = String.format("SELECT %s FROM %s WHERE %s",
                 selectColumns, tblBans, adapter.caseInsensitiveEquals(colUsername, "?"));
-        try (PreparedStatement stmt = statementHandler.prepareStatement(sql, username);
-             ResultSet rs = stmt.executeQuery())
-        {
-            if (rs.next())
-            {
-                return loadBanFromResultSet(rs);
-            }
-        }
-        return null;
+        return findOne(sql, username);
     }
 
     @Override
@@ -175,47 +213,21 @@ public class GenericBanRepository implements BanRepository
                 "SELECT b.%s, b.%s, b.%s, b.%s, b.%s, b.%s, b.%s FROM %s b INNER JOIN %s bi ON b.%s = bi.%s WHERE bi.%s = ?",
                 colId, colUuid, colUsername, colBannedBy, colBannedByUuid, colReason, colExpireAt,
                 tblBans, tblBanIps, colId, colBanId, colIp);
-        try (PreparedStatement stmt = statementHandler.prepareStatement(sql, ip);
-             ResultSet rs = stmt.executeQuery())
-        {
-            if (rs.next())
-            {
-                return loadBanFromResultSet(rs);
-            }
-        }
-        return null;
+        return findOne(sql, ip);
     }
 
     @Override
     public List<Ban> findActiveBans() throws SQLException
     {
-        String sql = String.format("SELECT %s FROM %s WHERE %s IS NULL OR %s",
-                selectColumns, tblBans, colExpireAt, adapter.compareToNow(colExpireAt, ">"));
-        List<Ban> bans = new ArrayList<>();
-        try (ResultSet rs = statementHandler.executeQuery(sql))
-        {
-            while (rs.next())
-            {
-                bans.add(loadBanFromResultSet(rs));
-            }
-        }
-        return bans;
+        return findMany(String.format("SELECT %s FROM %s WHERE %s IS NULL OR %s",
+                selectColumns, tblBans, colExpireAt, adapter.compareToNow(colExpireAt, ">")));
     }
 
     @Override
     public List<Ban> findExpiredBans() throws SQLException
     {
-        String sql = String.format("SELECT %s FROM %s WHERE %s IS NOT NULL AND %s",
-                selectColumns, tblBans, colExpireAt, adapter.compareToNow(colExpireAt, "<="));
-        List<Ban> bans = new ArrayList<>();
-        try (ResultSet rs = statementHandler.executeQuery(sql))
-        {
-            while (rs.next())
-            {
-                bans.add(loadBanFromResultSet(rs));
-            }
-        }
-        return bans;
+        return findMany(String.format("SELECT %s FROM %s WHERE %s IS NOT NULL AND %s",
+                selectColumns, tblBans, colExpireAt, adapter.compareToNow(colExpireAt, "<=")));
     }
 
     @Override
@@ -463,13 +475,6 @@ public class GenericBanRepository implements BanRepository
     public Mono<Void> deleteAll()
     {
         return statementHandler.runMono(this::deleteAllSync);
-    }
-
-    private Ban loadBanFromResultSet(ResultSet rs) throws SQLException
-    {
-        Ban ban = loadBanFromRow(rs);
-        ban.setIps(getIps(rs.getInt("id")));
-        return ban;
     }
 
     private Ban loadBanFromRow(ResultSet rs) throws SQLException

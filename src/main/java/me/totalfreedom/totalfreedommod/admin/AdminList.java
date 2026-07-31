@@ -23,6 +23,7 @@ import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.rank.Rank;
+import me.totalfreedom.totalfreedommod.sql.PersistenceQueue;
 import me.totalfreedom.totalfreedommod.sql.adapter.AdminRepository;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
@@ -62,12 +63,8 @@ public class AdminList extends FreedomService
     //
     private final File configFile;
 
-    private final Object persistenceLock = new Object();
-
-    // Serialises every queued write so a stale snapshot can never land after a
-    // newer one. Guarded by persistenceLock; collapsed back to Mono.empty() once
-    // the tail completes so the operator chain cannot grow without bound.
-    private Mono<Void> persistenceChain = Mono.empty();
+    // Serialises every queued write so a stale snapshot can never land after a newer one.
+    private final PersistenceQueue writes = new PersistenceQueue("admin");
 
     // Flag to track if SQL is available
     private boolean usingSql = false;
@@ -83,6 +80,7 @@ public class AdminList extends FreedomService
     protected void onStart()
     {
         load();
+        plugin.dm.whenReady(this::load);
 
         server.getServicesManager().register(Function.class, new Function<Player, Boolean>()
         {
@@ -105,22 +103,21 @@ public class AdminList extends FreedomService
         save();
     }
 
+    /**
+     * Populate the list from SQL where it is available and the JSON snapshot otherwise. Never
+     * blocks: the SQL read runs off-thread and its result is applied back on the main thread,
+     * so this is safe from a command handler as well as from startup.
+     */
     public void load()
     {
-        // Try to load from SQL database first
         if (plugin.dm != null && plugin.dm.isInitialized())
         {
-            loadFromSql();
-        }
-        else
-        {
-            loadFromJson();
+            loadFromSqlAsync();
+            return;
         }
 
-        if (ConfigEntry.ADMINLIST_USE_UUID_ONLY.getBoolean())
-        {
-            getMissingUuids();
-        }
+        loadFromJson();
+        backfillUuidsIfEnabled();
     }
 
     /**
@@ -145,32 +142,11 @@ public class AdminList extends FreedomService
     }
 
     /**
-     * Wait for queued {@link #saveAdminAsync(Admin)} writes to land, up to
-     * {@code timeoutMs}. Without this a shutdown flush can race the queue and
-     * let an older queued snapshot overwrite the state we just wrote.
+     * Wait for queued {@link #saveAdminAsync(Admin)} writes to land, up to {@code timeoutMs}.
      */
     public void awaitPendingWrites(long timeoutMs)
     {
-        final Mono<Void> pending;
-        synchronized (persistenceLock)
-        {
-            pending = persistenceChain;
-        }
-
-        try
-        {
-            pending.block(Duration.ofMillis(timeoutMs));
-        }
-        catch (IllegalStateException ex)
-        {
-            // Reactor answers a blocking-read timeout with IllegalStateException.
-            FLog.warning(String.format("Gave up after %dms waiting for pending admin writes (%s); flushing anyway",
-                    timeoutMs, ex.getMessage()));
-        }
-        catch (RuntimeException ex)
-        {
-            FLog.warning(String.format("A queued admin write failed before shutdown: %s", ex.getMessage()));
-        }
+        writes.await(timeoutMs);
     }
 
     /**
@@ -618,81 +594,106 @@ public class AdminList extends FreedomService
     }
 
     /**
-     * Load admins from SQL database.
+     * Read every admin off-thread and apply the result on the main thread, dropping back to
+     * the JSON snapshot if the read fails.
      */
-    private void loadFromSql()
+    private void loadFromSqlAsync()
     {
-        try
-        {
-            final AdminRepository repo = plugin.dm.getAdminRepository();
-            final List<Admin> admins = repo.findAll().block();
-
-            allAdmins.clear();
-            if (admins != null)
-            {
-                admins.forEach(admin ->
+        final AdminRepository repo = plugin.dm.getAdminRepository();
+        plugin.dm.readAsync("AdminList/loadFromSql", repo.findAll(),
+                admins -> applyLoadedAdmins(repo, admins),
+                () ->
                 {
-                    final String key = admin.getName().toLowerCase();
-                    allAdmins.put(key, fixConfigKey(admin, key));
+                    loadFromJson();
+                    backfillUuidsIfEnabled();
                 });
-            }
+    }
 
-            usingSql = true;
-            updateTables();
-            FLog.info(String.format("Loaded %d admins from SQL database (%d active, %d IPs)",
-                    allAdmins.size(), nameTable.size(), ipTable.size()));
-
-            reconcileFromJsonIfNewer(repo);
-        }
-        catch (Exception ex)
+    private void applyLoadedAdmins(final AdminRepository repo, final List<Admin> admins)
+    {
+        allAdmins.clear();
+        admins.forEach(admin ->
         {
-            FLog.warning(String.format("Failed to load admins from SQL, falling back to JSON: %s", ex.getMessage()));
-            loadFromJson();
-        }
+            final String key = admin.getName().toLowerCase();
+            allAdmins.put(key, fixConfigKey(admin, key));
+        });
+
+        usingSql = true;
+        updateTables();
+        FLog.info(String.format("Loaded %d admins from SQL database (%d active, %d IPs)",
+                allAdmins.size(), nameTable.size(), ipTable.size()));
+
+        reconcileFromJsonIfNewer(repo);
+        backfillUuidsIfEnabled();
+    }
+
+    private void backfillUuidsIfEnabled()
+    {
+        if (ConfigEntry.ADMINLIST_USE_UUID_ONLY.getBoolean())
+            getMissingUuids();
     }
 
     /**
      * If admins.json was written more recently than the database's last update (e.g. edited
      * by hand, or restored from backup while SQL was unavailable), re-import it into SQL.
+     * The comparison and the re-import both ride the write queue off the main thread.
      */
-    private void reconcileFromJsonIfNewer(AdminRepository repo)
+    private void reconcileFromJsonIfNewer(final AdminRepository repo)
     {
         if (!configFile.exists())
         {
+            // Nothing to reconcile against, but SQL now has rows that no snapshot covers.
+            enqueue(writeJsonAsync(serialiseAdmins()));
             return;
         }
 
+        final Map<String, Admin> jsonAdmins;
         try
         {
-            final Long sqlUpdatedAt = repo.getMaxUpdatedAt();
-            if (sqlUpdatedAt != null && configFile.lastModified() <= sqlUpdatedAt)
-            {
-                return;
-            }
-
-            final Map<String, Admin> jsonAdmins = readJsonAdmins();
-            if (jsonAdmins.isEmpty())
-            {
-                return;
-            }
-
-            FLog.info(String.format("admins.json is newer than the database; re-importing %d admin(s) from it.",
-                    jsonAdmins.size()));
-
-            Flux.fromIterable(jsonAdmins.values())
-                    .filter(Admin::isValid)
-                    .concatMap(admin -> repo.save(resolveUuidFor(admin), admin))
-                    .blockLast();
-
-            allAdmins.clear();
-            allAdmins.putAll(jsonAdmins);
-            updateTables();
+            jsonAdmins = readJsonAdmins();
         }
-        catch (Exception ex)
+        catch (IOException ex)
         {
-            FLog.warning(String.format("Failed to reconcile %s into the database: %s",
-                    CONFIG_FILENAME, ex.getMessage()));
+            FLog.warning(String.format("Failed to read %s: %s", CONFIG_FILENAME, ex.getMessage()));
+            return;
         }
+
+        if (jsonAdmins.isEmpty())
+            return;
+
+        final long fileModified = configFile.lastModified();
+
+        enqueue(Mono.fromCallable(() ->
+                {
+                    final Long sqlUpdatedAt = repo.getMaxUpdatedAt();
+                    return sqlUpdatedAt == null || fileModified > sqlUpdatedAt;
+                })
+                .subscribeOn(Schedulers.boundedElastic())
+                .filter(Boolean::booleanValue)
+                .flatMapMany(ignored ->
+                {
+                    FLog.info(String.format("%s is newer than the database; re-importing %d admin(s) from it.",
+                            CONFIG_FILENAME, jsonAdmins.size()));
+                    return Flux.fromIterable(jsonAdmins.values())
+                            .filter(Admin::isValid)
+                            .concatMap(admin -> repo.save(resolveUuidFor(admin), admin));
+                })
+                .then(Mono.fromRunnable(() -> plugin.dm.sync("AdminList/applyReconciled",
+                        () -> applyReconciledAdmins(jsonAdmins))))
+                .onErrorResume(ex ->
+                {
+                    FLog.warning(String.format("Failed to reconcile %s into the database: %s",
+                            CONFIG_FILENAME, ex.getMessage()));
+                    return Mono.empty();
+                })
+                .then());
+    }
+
+    private void applyReconciledAdmins(final Map<String, Admin> jsonAdmins)
+    {
+        allAdmins.clear();
+        allAdmins.putAll(jsonAdmins);
+        updateTables();
     }
 
     private Map<String, Admin> readJsonAdmins() throws IOException
@@ -767,39 +768,9 @@ public class AdminList extends FreedomService
                 allAdmins.size(), nameTable.size(), ipTable.size()));
     }
 
-    /**
-     * Append {@code work} to the persistence chain and subscribe. Every queued
-     * write runs after the one before it, so a batch can never be reordered
-     * behind a single-row update that was requested later.
-     */
     private void enqueue(Mono<Void> work)
     {
-        synchronized (persistenceLock)
-        {
-            final Mono<Void> queued = persistenceChain
-                    .onErrorResume(ignored -> Mono.empty())
-                    .then(work)
-                    .cache();
-
-            persistenceChain = queued;
-            queued.doFinally(signal -> collapseChain(queued)).subscribe();
-        }
-    }
-
-    /**
-     * Drop the retained operator chain once its tail has completed. The chain is
-     * strictly sequential, so a completed tail means every write before it is
-     * done and nothing needs to wait on them any more.
-     */
-    private void collapseChain(Mono<Void> completed)
-    {
-        synchronized (persistenceLock)
-        {
-            if (persistenceChain == completed)
-            {
-                persistenceChain = Mono.empty();
-            }
-        }
+        writes.enqueue(work);
     }
 
     /**

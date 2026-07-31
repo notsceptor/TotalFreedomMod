@@ -31,6 +31,7 @@ public class PostgreSQLAdapter extends DatabaseAdapter
     private ProtectedAreaRepository protectedAreaRepository;
     private SavedFlagRepository savedFlagRepository;
     private PlayerRepository playerRepository;
+    private MigrationRepository migrationRepository;
 
     public PostgreSQLAdapter(TotalFreedomMod plugin, ConnectionHandler connectionHandler, StatementHandler statementHandler)
     {
@@ -511,5 +512,15 @@ public class PostgreSQLAdapter extends DatabaseAdapter
             playerRepository = new GenericPlayerRepository(statementHandler, this);
         }
         return playerRepository;
+    }
+
+    @Override
+    public MigrationRepository getMigrationRepository()
+    {
+        if (migrationRepository == null)
+        {
+            migrationRepository = new GenericMigrationRepository(statementHandler, this);
+        }
+        return migrationRepository;
     }
 }

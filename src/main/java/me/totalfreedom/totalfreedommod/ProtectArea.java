@@ -9,6 +9,7 @@ import java.util.*;
 
 import me.totalfreedom.totalfreedommod.ProtectArea.ProtectedRegion.CantFindWorldException;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
+import me.totalfreedom.totalfreedommod.sql.PersistenceQueue;
 import me.totalfreedom.totalfreedommod.sql.adapter.ProtectedAreaRepository;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FTask;
@@ -30,11 +31,15 @@ import org.bukkit.event.inventory.InventoryPickupItemEvent;
 import org.bukkit.event.player.*;
 import org.bukkit.event.vehicle.VehicleDestroyEvent;
 import org.bukkit.scheduler.BukkitTask;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 import org.bukkit.util.Vector;
 
 public class ProtectArea extends FreedomService
 {
     private static final long ITEM_SWEEP_RATE = 40L;
+    private static final long SHUTDOWN_FLUSH_TIMEOUT_MS = 10L * 1000L;
     private static final Type PROTECTED_AREA_LIST_TYPE = new TypeToken<List<ProtectedRegion>>() {}.getType();
 
     public static final String DATA_FILENAME = "protectedareas.json";
@@ -43,6 +48,8 @@ public class ProtectArea extends FreedomService
     public static final double MAX_RADIUS = 50.0;
 
     private final Map<UUID, ProtectedRegion> areas = Maps.newHashMap();
+
+    private final PersistenceQueue writes = new PersistenceQueue("protected area");
 
     private File dataFile;
     private boolean usingSql = false;
@@ -61,44 +68,61 @@ public class ProtectArea extends FreedomService
 
         dataFile = new File(plugin.getDataFolder(), DATA_FILENAME);
 
-        if (plugin.dm != null && plugin.dm.isInitialized())
-            loadFromSql();
-        else
-            loadFromJsonOrLegacy();
+        load();
+        plugin.dm.whenReady(this::load);
 
         itemSweepTask = Bukkit.getScheduler().runTaskTimer(
             plugin, FTask.guard("ProtectArea/sweepItems", this::sweepItems), ITEM_SWEEP_RATE, ITEM_SWEEP_RATE);
     }
 
-    private void loadFromSql()
+    /**
+     * Populate the area list from SQL where it is available and the JSON snapshot otherwise.
+     * Never blocks: the SQL read runs off-thread and is applied back on the main thread.
+     */
+    public void load()
     {
-        try
+        if (dataFile == null)
+            dataFile = new File(plugin.getDataFolder(), DATA_FILENAME);
+
+        if (plugin.dm != null && plugin.dm.isInitialized())
         {
-            ProtectedAreaRepository repo = plugin.dm.getProtectedAreaRepository();
-            List<ProtectedRegion> loaded = repo.loadAllAsync().block();
-            usingSql = true;
-
-            if (loaded.isEmpty() && !dataFile.exists())
-            {
-                File legacyFile = new File(plugin.getDataFolder(), LEGACY_DATA_FILENAME);
-                if (legacyFile.exists())
-                    migrateLegacyData(legacyFile);
-
-                return;
-            }
-
-            areas.clear();
-            loaded.forEach(region -> areas.put(region.getUuid(), region));
-            FLog.info("Loaded " + areas.size() + " protected area(s) from SQL database.");
-
-            reconcileFromJsonIfNewer(repo);
+            loadFromSqlAsync();
+            return;
         }
-        catch (Exception ex)
+
+        loadFromJsonOrLegacy();
+    }
+
+    private void loadFromSqlAsync()
+    {
+        final ProtectedAreaRepository repo = plugin.dm.getProtectedAreaRepository();
+        plugin.dm.readAsync("ProtectArea/loadFromSql", repo.loadAllAsync(),
+                loaded -> applyLoadedAreas(repo, loaded),
+                () ->
+                {
+                    usingSql = false;
+                    loadFromJsonOrLegacy();
+                });
+    }
+
+    private void applyLoadedAreas(final ProtectedAreaRepository repo, final List<ProtectedRegion> loaded)
+    {
+        usingSql = true;
+
+        if (loaded.isEmpty() && !dataFile.exists())
         {
-            FLog.warning("Failed to load protected areas from SQL, falling back to JSON: " + ex.getMessage());
-            usingSql = false;
-            loadFromJsonOrLegacy();
+            final File legacyFile = new File(plugin.getDataFolder(), LEGACY_DATA_FILENAME);
+            if (legacyFile.exists())
+                migrateLegacyData(legacyFile);
+
+            return;
         }
+
+        areas.clear();
+        loaded.forEach(region -> areas.put(region.getUuid(), region));
+        FLog.info(String.format("Loaded %d protected area(s) from SQL database.", areas.size()));
+
+        reconcileFromJsonIfNewer(repo);
     }
 
     private void loadFromJsonOrLegacy()
@@ -139,34 +163,60 @@ public class ProtectArea extends FreedomService
     }
 
     /**
-     * If protectedareas.json was written more recently than the database's last update, re-import it into SQL.
+     * If protectedareas.json was written more recently than the database's last update, re-import
+     * it into SQL. The comparison and the re-import both ride the write queue off the main thread.
      */
-    private void reconcileFromJsonIfNewer(ProtectedAreaRepository repo)
+    private void reconcileFromJsonIfNewer(final ProtectedAreaRepository repo)
     {
         if (!dataFile.exists())
+        {
+            // Nothing to reconcile against, but SQL now has rows that no snapshot covers.
+            writes.enqueue(writeJsonAsync());
             return;
+        }
 
+        final List<ProtectedRegion> jsonAreas;
         try
         {
-            Long sqlUpdatedAt = repo.getMaxUpdatedAt();
-            if (sqlUpdatedAt != null && dataFile.lastModified() <= sqlUpdatedAt)
-                return;
-
-            List<ProtectedRegion> jsonAreas = readJsonAreas();
-            if (jsonAreas.isEmpty())
-                return;
-
-            FLog.info(DATA_FILENAME + " is newer than the database; re-importing " + jsonAreas.size() + " protected area(s) from it.");
-            for (ProtectedRegion region : jsonAreas)
-                repo.saveOrUpdate(region);
-
-            areas.clear();
-            jsonAreas.forEach(region -> areas.put(region.getUuid(), region));
+            jsonAreas = readJsonAreas();
         }
-        catch (Exception ex)
+        catch (IOException ex)
         {
-            FLog.warning("Failed to reconcile " + DATA_FILENAME + " into the database: " + ex.getMessage());
+            FLog.warning(String.format("Failed to read %s: %s", DATA_FILENAME, ex.getMessage()));
+            return;
         }
+
+        if (jsonAreas.isEmpty())
+            return;
+
+        final long fileModified = dataFile.lastModified();
+
+        writes.enqueue(Mono.fromCallable(() ->
+                {
+                    final Long sqlUpdatedAt = repo.getMaxUpdatedAt();
+                    return sqlUpdatedAt == null || fileModified > sqlUpdatedAt;
+                })
+                .subscribeOn(Schedulers.boundedElastic())
+                .filter(Boolean::booleanValue)
+                .flatMapMany(ignored ->
+                {
+                    FLog.info(String.format("%s is newer than the database; re-importing %d protected area(s) from it.",
+                            DATA_FILENAME, jsonAreas.size()));
+                    return Flux.fromIterable(jsonAreas)
+                            .concatMap(repo::save);
+                })
+                .then(Mono.fromRunnable(() -> plugin.dm.sync("ProtectArea/applyReconciled", () ->
+                {
+                    areas.clear();
+                    jsonAreas.forEach(region -> areas.put(region.getUuid(), region));
+                })))
+                .onErrorResume(ex ->
+                {
+                    FLog.warning(String.format("Failed to reconcile %s into the database: %s",
+                            DATA_FILENAME, ex.getMessage()));
+                    return Mono.empty();
+                })
+                .then());
     }
 
     @SuppressWarnings("unchecked")
@@ -266,56 +316,63 @@ public class ProtectArea extends FreedomService
             itemSweepTask.cancel();
             itemSweepTask = null;
         }
+
+        // Let the queue drain first, then flush: a queued write landing after the flush would
+        // restore a stale snapshot.
         save();
+        awaitPendingWrites(SHUTDOWN_FLUSH_TIMEOUT_MS);
     }
 
-    public void reload()
-    {
-        onStop();
-        onStart();
-    }
-
+    /**
+     * Queue a write of every protected area to SQL, followed by a refresh of the
+     * protectedareas.json snapshot. Falls back to a JSON-only write when SQL is unavailable.
+     * Safe from a command handler: the SQL round trips run off the main thread.
+     */
     public void save()
     {
-        if (usingSql)
-            saveToSql();
-        else
-            saveToJson();
-    }
-
-    private void saveToSql()
-    {
-        if (plugin.dm == null || !plugin.dm.isInitialized())
+        if (!usingSql || plugin.dm == null || !plugin.dm.isInitialized())
         {
-            FLog.warning("SQL not available, falling back to JSON save for protected areas");
-            saveToJson();
+            writes.enqueue(writeJsonAsync());
             return;
         }
 
-        try
-        {
-            ProtectedAreaRepository repo = plugin.dm.getProtectedAreaRepository();
-            for (ProtectedRegion region : areas.values())
-            {
-                repo.save(region).block();
-            }
-        }
-        catch (Exception ex)
-        {
-            FLog.severe("Could not save protected areas to SQL: " + ex.getMessage());
-        }
+        final ProtectedAreaRepository repo = plugin.dm.getProtectedAreaRepository();
+        final List<ProtectedRegion> snapshot = new ArrayList<>(areas.values());
 
-        saveToJson();
+        writes.enqueue(Flux.fromIterable(snapshot)
+                .concatMap(region -> repo.save(region)
+                        .onErrorResume(ex ->
+                        {
+                            FLog.severe(String.format("Could not save protected area %s to SQL: %s",
+                                    region.getName(), ex.getMessage()));
+                            return Mono.empty();
+                        }))
+                .then(writeJsonAsync()));
     }
 
-    private void saveToJson()
+    /**
+     * Wait for queued protected-area writes to land, up to {@code timeoutMs}.
+     */
+    public void awaitPendingWrites(long timeoutMs)
+    {
+        writes.await(timeoutMs);
+    }
+
+    private Mono<Void> writeJsonAsync()
+    {
+        final List<ProtectedRegion> snapshot = new ArrayList<>(areas.values());
+        return Mono.<Void>fromRunnable(() -> writeJson(snapshot))
+                .subscribeOn(Schedulers.boundedElastic());
+    }
+
+    private void writeJson(final List<ProtectedRegion> snapshot)
     {
         if (dataFile == null)
             dataFile = new File(plugin.getDataFolder(), DATA_FILENAME);
 
         try (FileWriter writer = new FileWriter(dataFile))
         {
-            JsonUtil.GSON.toJson(new ArrayList<>(areas.values()), PROTECTED_AREA_LIST_TYPE, writer);
+            JsonUtil.GSON.toJson(snapshot, PROTECTED_AREA_LIST_TYPE, writer);
         }
         catch (IOException ex)
         {

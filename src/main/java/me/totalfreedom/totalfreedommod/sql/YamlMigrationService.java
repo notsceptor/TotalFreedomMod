@@ -13,6 +13,7 @@ import me.totalfreedom.totalfreedommod.sql.adapter.BanRepository;
 import me.totalfreedom.totalfreedommod.sql.adapter.PermbanRepository;
 import me.totalfreedom.totalfreedommod.sql.adapter.PlayerRepository;
 import me.totalfreedom.totalfreedommod.sql.adapter.ProtectedAreaRepository;
+import me.totalfreedom.totalfreedommod.sql.adapter.MigrationRepository;
 import me.totalfreedom.totalfreedommod.sql.adapter.RankRepository;
 import me.totalfreedom.totalfreedommod.sql.adapter.SavedFlagRepository;
 import me.totalfreedom.totalfreedommod.util.FLog;
@@ -21,9 +22,12 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
+import java.sql.SQLException;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -52,6 +56,21 @@ public class YamlMigrationService
     private static final String SAVED_FLAGS_FILE = "savedflags.yml";
     private static final String PLAYERS_DIR = "players";
 
+    /**
+     * Ledger keys, one per domain. Recorded in the {@code migrations} table once that domain's
+     * YAML import has run, whether or not it found anything to import.
+     */
+    private static final String V_ADMINS = "yaml-import:admins";
+    private static final String V_BANS = "yaml-import:bans";
+    private static final String V_PERMBANS = "yaml-import:permbans";
+    private static final String V_RANKS = "yaml-import:ranks";
+    private static final String V_PROTECTED_AREAS = "yaml-import:protected_areas";
+    private static final String V_SAVED_FLAGS = "yaml-import:saved_flags";
+    private static final String V_PLAYERS = "yaml-import:players";
+
+    private static final Set<String> ALL_VERSIONS = Set.of(
+            V_ADMINS, V_BANS, V_PERMBANS, V_RANKS, V_PROTECTED_AREAS, V_SAVED_FLAGS, V_PLAYERS);
+
     public YamlMigrationService(TotalFreedomMod plugin, FreedomDatabase databaseManager)
     {
         this.plugin = plugin;
@@ -75,13 +94,7 @@ public class YamlMigrationService
                     return;
                 }
 
-                migrateAdmins();
-                migrateBans();
-                migratePermbans();
-                migrateRanks();
-                migrateProtectedAreas();
-                migrateSavedFlags();
-                migratePlayers();
+                runAllMigrations();
 
                 FLog.info("YAML data migration check complete");
             }
@@ -91,6 +104,47 @@ public class YamlMigrationService
                 ex.printStackTrace();
             }
         }).subscribeOn(Schedulers.boundedElastic());
+    }
+
+    /**
+     * Run every domain's one-time YAML import, in the order their tables reference each other,
+     * skipping any already recorded in the ledger.
+     */
+    private void runAllMigrations() throws SQLException
+    {
+        final MigrationRepository ledger = databaseManager.getMigrationRepository();
+        final Set<String> applied = ledger.findApplied();
+
+        if (applied.containsAll(ALL_VERSIONS))
+        {
+            FLog.info("YAML imports already applied to this database; nothing to migrate.");
+            return;
+        }
+
+        runOnce(ledger, applied, V_ADMINS, this::migrateAdmins);
+        runOnce(ledger, applied, V_BANS, this::migrateBans);
+        runOnce(ledger, applied, V_PERMBANS, this::migratePermbans);
+        runOnce(ledger, applied, V_RANKS, this::migrateRanks);
+        runOnce(ledger, applied, V_PROTECTED_AREAS, this::migrateProtectedAreas);
+        runOnce(ledger, applied, V_SAVED_FLAGS, this::migrateSavedFlags);
+        runOnce(ledger, applied, V_PLAYERS, this::migratePlayers);
+    }
+
+    /**
+     * Run {@code body} unless {@code version} is already in the ledger, then record it.
+     * <p>
+     * The version is recorded even when the domain had no YAML to import, so an install that
+     * never had the file stops re-checking for it. A {@code body} that throws is left
+     * unrecorded and retried on the next start.
+     */
+    private void runOnce(final MigrationRepository ledger, final Set<String> applied,
+            final String version, final Runnable body) throws SQLException
+    {
+        if (applied.contains(version))
+            return;
+
+        body.run();
+        ledger.markApplied(version);
     }
 
     /**
@@ -625,12 +679,20 @@ public class YamlMigrationService
         return Mono.<Void>fromRunnable(() -> {
             FLog.warning("Force migration requested - this will overwrite database data!");
 
-            // Clear existing data
             try
             {
+                // Clear existing data
                 databaseManager.getAdminRepository().deleteAll().block();
                 databaseManager.getBanRepository().deleteAll().block();
                 databaseManager.getPermbanRepository().deleteAll().block();
+                databaseManager.getStrikeRepository().deleteAll().block();
+                databaseManager.getRankRepository().deleteAll().block();
+                databaseManager.getProtectedAreaRepository().deleteAll().block();
+                databaseManager.getSavedFlagRepository().deleteAll().block();
+                databaseManager.getPlayerRepository().deleteAll().block();
+
+                // Forget the ledger, otherwise every import below is skipped as already applied
+                databaseManager.getMigrationRepository().clear();
             }
             catch (Exception ex)
             {
@@ -641,10 +703,14 @@ public class YamlMigrationService
             // Restore backup files if they exist
             restoreBackupFiles();
 
-            // Run migrations
-            migrateAdmins();
-            migrateBans();
-            migratePermbans();
+            try
+            {
+                runAllMigrations();
+            }
+            catch (SQLException ex)
+            {
+                FLog.severe(String.format("Force migration failed: %s", ex.getMessage()));
+            }
         }).subscribeOn(Schedulers.boundedElastic());
     }
 
@@ -653,11 +719,10 @@ public class YamlMigrationService
      */
     private void restoreBackupFiles()
     {
-        File dataFolder = plugin.getDataFolder();
+        final File dataFolder = plugin.getDataFolder();
 
-        restoreBackupFile(new File(dataFolder, ADMINS_FILE + ".migrated"), new File(dataFolder, ADMINS_FILE));
-        restoreBackupFile(new File(dataFolder, BANS_FILE + ".migrated"), new File(dataFolder, BANS_FILE));
-        restoreBackupFile(new File(dataFolder, PERMBANS_FILE + ".migrated"), new File(dataFolder, PERMBANS_FILE));
+        Stream.of(ADMINS_FILE, BANS_FILE, PERMBANS_FILE, RANKS_FILE, PROTECTED_AREAS_FILE, SAVED_FLAGS_FILE)
+              .forEach(name -> restoreBackupFile(new File(dataFolder, name + ".migrated"), new File(dataFolder, name)));
     }
 
     private void restoreBackupFile(File backup, File original)

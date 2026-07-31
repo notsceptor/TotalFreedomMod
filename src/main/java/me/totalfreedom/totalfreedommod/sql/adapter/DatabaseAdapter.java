@@ -104,6 +104,11 @@ public abstract class DatabaseAdapter
      */
     public abstract PlayerRepository getPlayerRepository();
 
+    /**
+     * Get the applied-migration ledger for this database type.
+     */
+    public abstract MigrationRepository getMigrationRepository();
+
     // ============================================
     // SQL Dialect Methods (override for differences)
     // ============================================

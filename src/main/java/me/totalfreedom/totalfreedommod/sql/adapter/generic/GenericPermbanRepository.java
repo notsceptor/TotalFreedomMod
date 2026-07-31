@@ -107,37 +107,61 @@ public class GenericPermbanRepository implements PermbanRepository
             }
         }
 
+        attachIps(permbanById);
+
+        return permbans;
+    }
+
+    /**
+     * Fold the {@code permban_ips} child rows into permbans that have already been read.
+     * One flat query, run after the caller's cursor is closed: a nested read would hold two
+     * connections at once, which SQLite's single-connection pool cannot serve.
+     */
+    private void attachIps(Map<Integer, PermBan> permbanById) throws SQLException
+    {
+        if (permbanById.isEmpty())
+            return;
+
         String ipSql = String.format("SELECT %s, %s FROM %s", colPermbanId, colIp, tblPermbanIps);
         try (ResultSet rs = statementHandler.executeQuery(ipSql))
         {
             while (rs.next())
             {
-                int permbanId = rs.getInt("permban_id");
-                String ip = rs.getString("ip");
-                PermBan permban = permbanById.get(permbanId);
+                PermBan permban = permbanById.get(rs.getInt("permban_id"));
                 if (permban != null)
                 {
-                    permban.addIp(ip);
+                    permban.addIp(rs.getString("ip"));
                 }
             }
         }
+    }
 
-        return permbans;
+    /**
+     * Read a single permban and its IPs, closing the row's statement before looking the IPs up.
+     */
+    private PermBan findOne(String sql, Object... params) throws SQLException
+    {
+        final PermBan permban;
+        final int permbanId;
+        try (PreparedStatement stmt = statementHandler.prepareStatement(sql, params);
+             ResultSet rs = stmt.executeQuery())
+        {
+            if (!rs.next())
+                return null;
+
+            permban = loadPermbanFromRow(rs);
+            permbanId = rs.getInt("id");
+        }
+
+        permban.setIps(getIps(permbanId));
+        return permban;
     }
 
     @Override
     public PermBan findByUuid(UUID uuid) throws SQLException
     {
         String sql = String.format("SELECT %s FROM %s WHERE %s = ?", selectColumns, tblPermbans, colUuid);
-        try (PreparedStatement stmt = statementHandler.prepareStatement(sql, uuid.toString());
-             ResultSet rs = stmt.executeQuery())
-        {
-            if (rs.next())
-            {
-                return loadPermbanFromResultSet(rs);
-            }
-        }
-        return null;
+        return findOne(sql, uuid.toString());
     }
 
     @Override
@@ -145,15 +169,7 @@ public class GenericPermbanRepository implements PermbanRepository
     {
         String sql = String.format("SELECT %s FROM %s WHERE %s",
                 selectColumns, tblPermbans, adapter.caseInsensitiveEquals(colUsername, "?"));
-        try (PreparedStatement stmt = statementHandler.prepareStatement(sql, username);
-             ResultSet rs = stmt.executeQuery())
-        {
-            if (rs.next())
-            {
-                return loadPermbanFromResultSet(rs);
-            }
-        }
-        return null;
+        return findOne(sql, username);
     }
 
     @Override
@@ -162,15 +178,7 @@ public class GenericPermbanRepository implements PermbanRepository
         String sql = String.format(
                 "SELECT p.%s, p.%s, p.%s, p.%s FROM %s p INNER JOIN %s pi ON p.%s = pi.%s WHERE pi.%s = ?",
                 colId, colUuid, colUsername, colReason, tblPermbans, tblPermbanIps, colId, colPermbanId, colIp);
-        try (PreparedStatement stmt = statementHandler.prepareStatement(sql, ip);
-             ResultSet rs = stmt.executeQuery())
-        {
-            if (rs.next())
-            {
-                return loadPermbanFromResultSet(rs);
-            }
-        }
-        return null;
+        return findOne(sql, ip);
     }
 
     @Override
@@ -390,13 +398,6 @@ public class GenericPermbanRepository implements PermbanRepository
     public Mono<Void> deleteAll()
     {
         return statementHandler.runMono(this::deleteAllSync);
-    }
-
-    private PermBan loadPermbanFromResultSet(ResultSet rs) throws SQLException
-    {
-        PermBan permban = loadPermbanFromRow(rs);
-        permban.setIps(getIps(rs.getInt("id")));
-        return permban;
     }
 
     private PermBan loadPermbanFromRow(ResultSet rs) throws SQLException

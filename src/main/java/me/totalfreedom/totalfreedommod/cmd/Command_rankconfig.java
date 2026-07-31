@@ -196,7 +196,7 @@ public class Command_rankconfig extends FCommand
             }
 
             admin.setCustomRankId(null);
-            plugin().al.save();
+            plugin().al.saveAsync();
             msg(sender, "<green>Cleared custom rank for <player>", Placeholder.unparsed("player", target.getName()));
             return;
         }
@@ -217,7 +217,7 @@ public class Command_rankconfig extends FCommand
         }
 
         admin.setCustomRankId(rankId);
-        plugin().al.save();
+        plugin().al.saveAsync();
 
         adminAction(
             sender,

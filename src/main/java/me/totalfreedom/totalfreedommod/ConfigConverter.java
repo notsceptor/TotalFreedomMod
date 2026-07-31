@@ -193,7 +193,7 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
 
         if (migrated > 0)
         {
-            plugin.al.save();
+            plugin.al.saveAsync();
             FLog.info("Remapped " + migrated + " admin(s) from deprecated console ranks.");
         }
     }

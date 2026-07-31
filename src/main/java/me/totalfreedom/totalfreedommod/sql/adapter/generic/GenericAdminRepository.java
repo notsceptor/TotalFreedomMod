@@ -123,37 +123,61 @@ public class GenericAdminRepository implements AdminRepository
             }
         }
 
+        attachIps(adminById);
+
+        return admins;
+    }
+
+    /**
+     * Fold the {@code admin_ips} child rows into admins that have already been read.
+     * One flat query, run after the caller's cursor is closed: a nested read would hold two
+     * connections at once, which SQLite's single-connection pool cannot serve.
+     */
+    private void attachIps(Map<Integer, Admin> adminById) throws SQLException
+    {
+        if (adminById.isEmpty())
+            return;
+
         String ipSql = String.format("SELECT %s, %s FROM %s", colAdminId, colIp, tblAdminIps);
         try (ResultSet rs = statementHandler.executeQuery(ipSql))
         {
             while (rs.next())
             {
-                int adminId = rs.getInt("admin_id");
-                String ip = rs.getString("ip");
-                Admin admin = adminById.get(adminId);
+                Admin admin = adminById.get(rs.getInt("admin_id"));
                 if (admin != null)
                 {
-                    admin.addIp(ip);
+                    admin.addIp(rs.getString("ip"));
                 }
             }
         }
+    }
 
-        return admins;
+    /**
+     * Read a single admin and its IPs, closing the row's statement before looking the IPs up.
+     */
+    private Admin findOne(String sql, Object... params) throws SQLException
+    {
+        final Admin admin;
+        final int adminId;
+        try (PreparedStatement stmt = statementHandler.prepareStatement(sql, params);
+             ResultSet rs = stmt.executeQuery())
+        {
+            if (!rs.next())
+                return null;
+
+            admin = loadAdminFromRow(rs);
+            adminId = rs.getInt("id");
+        }
+
+        admin.addIps(getIps(adminId));
+        return admin;
     }
 
     @Override
     public Admin findByUuid(UUID uuid) throws SQLException
     {
         String sql = String.format("SELECT %s FROM %s WHERE %s = ?", selectColumns, tblAdmins, colUuid);
-        try (PreparedStatement stmt = statementHandler.prepareStatement(sql, uuid.toString());
-             ResultSet rs = stmt.executeQuery())
-        {
-            if (rs.next())
-            {
-                return loadAdminFromResultSet(rs);
-            }
-        }
-        return null;
+        return findOne(sql, uuid.toString());
     }
 
     @Override
@@ -161,15 +185,7 @@ public class GenericAdminRepository implements AdminRepository
     {
         String sql = String.format("SELECT %s FROM %s WHERE %s",
                 selectColumns, tblAdmins, adapter.caseInsensitiveEquals(colUsername, "?"));
-        try (PreparedStatement stmt = statementHandler.prepareStatement(sql, username);
-             ResultSet rs = stmt.executeQuery())
-        {
-            if (rs.next())
-            {
-                return loadAdminFromResultSet(rs);
-            }
-        }
-        return null;
+        return findOne(sql, username);
     }
 
     @Override
@@ -179,15 +195,7 @@ public class GenericAdminRepository implements AdminRepository
                 "SELECT a.%s, a.%s, a.%s, a.%s, a.%s, a.%s, a.%s, a.%s FROM %s a INNER JOIN %s ai ON a.%s = ai.%s WHERE ai.%s = ?",
                 colId, colUuid, colUsername, colRank, colActive, colLastLogin, colLoginMessage, colCustomRank,
                 tblAdmins, tblAdminIps, colId, colAdminId, colIp);
-        try (PreparedStatement stmt = statementHandler.prepareStatement(sql, ip);
-             ResultSet rs = stmt.executeQuery())
-        {
-            if (rs.next())
-            {
-                return loadAdminFromResultSet(rs);
-            }
-        }
-        return null;
+        return findOne(sql, ip);
     }
 
     @Override
@@ -439,14 +447,6 @@ public class GenericAdminRepository implements AdminRepository
     public Mono<Void> deleteAll()
     {
         return statementHandler.runMono(this::deleteAllSync);
-    }
-
-    private Admin loadAdminFromResultSet(ResultSet rs) throws SQLException
-    {
-        Admin admin = loadAdminFromRow(rs);
-        List<String> ips = getIps(rs.getInt("id"));
-        admin.addIps(ips);
-        return admin;
     }
 
     private Admin loadAdminFromRow(ResultSet rs) throws SQLException

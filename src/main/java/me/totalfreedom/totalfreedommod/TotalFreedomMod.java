@@ -48,7 +48,6 @@ import me.totalfreedom.totalfreedommod.player.PlayerList;
 import me.totalfreedom.totalfreedommod.rank.ConsoleSenderRegistry;
 import me.totalfreedom.totalfreedommod.rank.RankManager;
 import me.totalfreedom.totalfreedommod.sql.FreedomDatabase;
-import me.totalfreedom.totalfreedommod.sql.YamlMigrationService;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import me.totalfreedom.totalfreedommod.util.MethodTimer;
@@ -77,7 +76,6 @@ public class TotalFreedomMod extends JavaPlugin
     public AdminList al; // AdminList - Manages admin list and permissions
     public RankManager rm; // RankManager - Handles player ranks and display
     public ConsoleSenderRegistry csr; // ConsoleSenderRegistry - Maps console senders to appropriate rank
-    // public CommandLoader cl; // CommandLoader - Loads and registers commands (LEGACY)
     public CommandLoader cmdl; // CmdLoader - Loads and registers Brigadier commands 
     public CommandBlocker cb; // CommandBlocker - Blocks specific commands
     public SweepScheduler sweepScheduler; // SweepScheduler - Shared budgeted world/chunk sweep walker
@@ -180,11 +178,13 @@ public class TotalFreedomMod extends JavaPlugin
 
         // Start services
         services = new ServiceManager<>(this);
-        sf = services.registerService(SavedFlags.class);
-        
-        // Initialize database manager first (before services that depend on it)
+
+        // Initialize database manager first (before services that depend on it). Services stop
+        // in reverse registration order, so everything registered after this also flushes its
+        // pending writes before the connection pool closes.
         dm = services.registerService(FreedomDatabase.class);
-        
+
+        sf = services.registerService(SavedFlags.class);
         wm = services.registerService(WorldManager.class);
         al = services.registerService(AdminList.class);
 
@@ -270,9 +270,6 @@ public class TotalFreedomMod extends JavaPlugin
 
         tl = services.registerService(TabList.class);
         services.start();
-
-        // Run YAML to SQL migrations now that every service (including the database) has started
-        runYamlMigrations();
 
         // Start bridges
         bridges = new ServiceManager<>(this);
@@ -372,57 +369,6 @@ public class TotalFreedomMod extends JavaPlugin
         public String formattedVersion()
         {
             return pluginVersion + "." + number + " (" + head + ")";
-        }
-    }
-
-    /**
-     * Run YAML to SQL migrations for every domain that has one. Converts existing YAML/dat files to the new SQL database format.
-     * <p>
-     * Must run after {@code services.start()}: {@link me.totalfreedom.totalfreedommod.sql.FreedomDatabase#onStart()}
-     * is what actually calls {@code initialize()}, so {@code dm.isInitialized()} cannot be true any earlier.
-     */
-    private void runYamlMigrations()
-    {
-        if (dm == null || !dm.isInitialized())
-        {
-            FLog.info("Database not initialized, skipping YAML migrations");
-            return;
-        }
-
-        try
-        {
-            YamlMigrationService migrationService = new YamlMigrationService(this, dm);
-            migrationService.runMigrations().block();
-
-            // Reload each domain after migration so in-memory state picks up freshly-migrated SQL data.
-            if (al != null)
-            {
-                al.load();
-            }
-            if (bm != null)
-            {
-                bm.reload();
-            }
-            if (pm != null)
-            {
-                pm.reload();
-            }
-            if (sl != null)
-            {
-                sl.reload();
-            }
-            if (rm != null)
-            {
-                rm.loadRanks();
-            }
-            if (pa != null)
-            {
-                pa.reload();
-            }
-        }
-        catch (Exception ex)
-        {
-            FLog.warning("Error during YAML migrations: " + ex.getMessage());
         }
     }
 

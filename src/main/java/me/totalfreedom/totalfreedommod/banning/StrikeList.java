@@ -7,7 +7,6 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.reflect.Type;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -17,6 +16,7 @@ import java.util.Map;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
+import me.totalfreedom.totalfreedommod.sql.PersistenceQueue;
 import me.totalfreedom.totalfreedommod.sql.adapter.StrikeRepository;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.JsonUtil;
@@ -31,11 +31,10 @@ public class StrikeList extends FreedomService
 
     private final Map<String, StrikeRecord> strikes = Maps.newHashMap();
     private final File configFile;
-    private final Object persistenceLock = new Object();
+    private final PersistenceQueue writes = new PersistenceQueue("strike");
 
     private boolean usingSql = false;
     private boolean persistEnabled = true;
-    private Mono<Void> persistenceChain = Mono.empty();
 
     public StrikeList(TotalFreedomMod plugin)
     {
@@ -58,17 +57,27 @@ public class StrikeList extends FreedomService
             return;
         }
 
+        load();
+        plugin.dm.whenReady(this::load);
+    }
+
+    /**
+     * Populate the strike map from SQL where it is available and the JSON snapshot otherwise.
+     * Never blocks: the SQL read runs off-thread and is applied back on the main thread.
+     */
+    public void load()
+    {
+        if (!persistEnabled)
+            return;
+
         if (plugin.dm != null && plugin.dm.isInitialized())
         {
-            loadFromSql();
-        }
-        else
-        {
-            loadFromJson();
+            loadFromSqlAsync();
+            return;
         }
 
-        pruneDecayed();
-        FLog.info("Loaded " + strikes.size() + " strike records.");
+        loadFromJson();
+        finishLoad();
     }
 
     @Override
@@ -85,73 +94,16 @@ public class StrikeList extends FreedomService
     }
 
     /**
-     * Re-run the startup load. Used after a one-time YAML-to-SQL migration so this manager's
-     * in-memory state picks up the freshly-migrated rows.
-     */
-    public void reload()
-    {
-        onStop();
-        onStart();
-    }
-
-    /**
-     * Wait for queued async writes to land, up to {@code timeoutMs}. Without this a shutdown
-     * flush can race the queue and let an older queued snapshot overwrite the state we just wrote.
+     * Wait for queued async writes to land, up to {@code timeoutMs}.
      */
     public void awaitPendingWrites(long timeoutMs)
     {
-        final Mono<Void> pending;
-        synchronized (persistenceLock)
-        {
-            pending = persistenceChain;
-        }
-
-        try
-        {
-            pending.block(Duration.ofMillis(timeoutMs));
-        }
-        catch (IllegalStateException ex)
-        {
-            FLog.warning(String.format("Gave up after %dms waiting for pending strike writes (%s); flushing anyway",
-                    timeoutMs, ex.getMessage()));
-        }
-        catch (RuntimeException ex)
-        {
-            FLog.warning("A queued strike write failed before shutdown: " + ex.getMessage());
-        }
+        writes.await(timeoutMs);
     }
 
-    /**
-     * Append {@code work} to the persistence chain and subscribe. Every queued write runs
-     * after the one before it, so a decay-prune can never race a concurrent re-strike on the
-     * same IP into landing out of order.
-     */
     private void enqueue(Mono<Void> work)
     {
-        synchronized (persistenceLock)
-        {
-            final Mono<Void> queued = persistenceChain
-                    .onErrorResume(ignored -> Mono.empty())
-                    .then(work)
-                    .cache();
-
-            persistenceChain = queued;
-            queued.doFinally(signal -> collapseChain(queued)).subscribe();
-        }
-    }
-
-    /**
-     * Drop the retained operator chain once its tail has completed. The chain is strictly
-     * sequential, so a completed tail means every write before it is done and nothing needs
-     * to wait on them any more.
-     */
-    private void collapseChain(Mono<Void> completed)
-    {
-        synchronized (persistenceLock)
-        {
-            if (persistenceChain == completed)
-                persistenceChain = Mono.empty();
-        }
+        writes.enqueue(work);
     }
 
     private Mono<Void> writeJsonAsync()
@@ -160,53 +112,89 @@ public class StrikeList extends FreedomService
                    .subscribeOn(Schedulers.boundedElastic());
     }
 
-    private void loadFromSql()
+    private void loadFromSqlAsync()
     {
-        try
-        {
-            StrikeRepository repo = plugin.dm.getStrikeRepository();
-            Map<String, StrikeRecord> loaded = repo.loadAllAsync().block();
-            strikes.putAll(loaded);
-            usingSql = true;
+        final StrikeRepository repo = plugin.dm.getStrikeRepository();
+        plugin.dm.readAsync("StrikeList/loadFromSql", repo.loadAllAsync(),
+                loaded -> applyLoadedStrikes(repo, loaded),
+                () ->
+                {
+                    loadFromJson();
+                    finishLoad();
+                });
+    }
 
-            reconcileFromJsonIfNewer(repo);
-        }
-        catch (Exception ex)
-        {
-            FLog.warning("Failed to load strikes from SQL, falling back to JSON: " + ex.getMessage());
-            loadFromJson();
-        }
+    private void applyLoadedStrikes(final StrikeRepository repo, final Map<String, StrikeRecord> loaded)
+    {
+        strikes.clear();
+        strikes.putAll(loaded);
+        usingSql = true;
+
+        reconcileFromJsonIfNewer(repo);
+        finishLoad();
+    }
+
+    private void finishLoad()
+    {
+        pruneDecayed();
+        FLog.info(String.format("Loaded %d strike records.", strikes.size()));
     }
 
     /**
-     * If strikes.json was written more recently than the database's last update, re-import it into SQL.
+     * If strikes.json was written more recently than the database's last update, re-import it
+     * into SQL. The comparison and the re-import both ride the write queue off the main thread.
      */
-    private void reconcileFromJsonIfNewer(StrikeRepository repo)
+    private void reconcileFromJsonIfNewer(final StrikeRepository repo)
     {
         if (!configFile.exists())
+        {
+            // Nothing to reconcile against, but SQL now has rows that no snapshot covers.
+            enqueue(writeJsonAsync());
             return;
+        }
 
+        final Map<String, StrikeRecord> jsonStrikes;
         try
         {
-            Long sqlUpdatedAt = repo.getMaxUpdatedAt();
-            if (sqlUpdatedAt != null && configFile.lastModified() <= sqlUpdatedAt)
-                return;
-
-            Map<String, StrikeRecord> jsonStrikes = readJsonStrikes();
-            if (jsonStrikes.isEmpty())
-                return;
-
-            FLog.info("strikes.json is newer than the database; re-importing " + jsonStrikes.size() + " strike record(s) from it.");
-            for (StrikeRecord r : jsonStrikes.values())
-                repo.upsertAsync(r).block();
-
-            strikes.clear();
-            strikes.putAll(jsonStrikes);
+            jsonStrikes = readJsonStrikes();
         }
-        catch (Exception ex)
+        catch (IOException ex)
         {
-            FLog.warning("Failed to reconcile strikes.json into the database: " + ex.getMessage());
+            FLog.warning(String.format("Failed to read strikes.json: %s", ex.getMessage()));
+            return;
         }
+
+        if (jsonStrikes.isEmpty())
+            return;
+
+        final long fileModified = configFile.lastModified();
+
+        enqueue(Mono.fromCallable(() ->
+                {
+                    final Long sqlUpdatedAt = repo.getMaxUpdatedAt();
+                    return sqlUpdatedAt == null || fileModified > sqlUpdatedAt;
+                })
+                .subscribeOn(Schedulers.boundedElastic())
+                .filter(Boolean::booleanValue)
+                .flatMapMany(ignored ->
+                {
+                    FLog.info(String.format("strikes.json is newer than the database; re-importing %d "
+                            + "strike record(s) from it.", jsonStrikes.size()));
+                    return Flux.fromIterable(jsonStrikes.values())
+                            .concatMap(repo::upsertAsync);
+                })
+                .then(Mono.fromRunnable(() -> plugin.dm.sync("StrikeList/applyReconciled", () ->
+                {
+                    strikes.clear();
+                    strikes.putAll(jsonStrikes);
+                })))
+                .onErrorResume(ex ->
+                {
+                    FLog.warning(String.format("Failed to reconcile strikes.json into the database: %s",
+                            ex.getMessage()));
+                    return Mono.empty();
+                })
+                .then());
     }
 
     private Map<String, StrikeRecord> readJsonStrikes() throws IOException

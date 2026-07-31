@@ -8,6 +8,7 @@ import me.totalfreedom.totalfreedommod.sql.adapter.AdminRepository;
 import me.totalfreedom.totalfreedommod.sql.adapter.BanRepository;
 import me.totalfreedom.totalfreedommod.sql.adapter.DatabaseAdapter;
 import me.totalfreedom.totalfreedommod.sql.adapter.DiscordLinkRepository;
+import me.totalfreedom.totalfreedommod.sql.adapter.MigrationRepository;
 import me.totalfreedom.totalfreedommod.sql.adapter.PermbanRepository;
 import me.totalfreedom.totalfreedommod.sql.adapter.PlayerRepository;
 import me.totalfreedom.totalfreedommod.sql.adapter.ProtectedAreaRepository;
@@ -15,9 +16,11 @@ import me.totalfreedom.totalfreedommod.sql.adapter.RankRepository;
 import me.totalfreedom.totalfreedommod.sql.adapter.SavedFlagRepository;
 import me.totalfreedom.totalfreedommod.sql.adapter.StrikeRepository;
 import me.totalfreedom.totalfreedommod.util.FLog;
+import me.totalfreedom.totalfreedommod.util.FTask;
 
-import java.sql.SQLException;
-import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
 
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -32,16 +35,18 @@ import reactor.core.scheduler.Schedulers;
  */
 public class FreedomDatabase extends FreedomService
 {
-    /**
-     * Upper bound on how long {@link #initialize()} waits for the connection pool and schema
-     * migrations to finish. The actual work runs on a background thread either way.
-     */
-    private static final long INIT_TIMEOUT_SECONDS = 45L;
-
     private ConnectionHandler connectionHandler;
     private StatementHandler statementHandler;
     private DatabaseAdapter adapter;
-    private boolean initialized = false;
+    private volatile boolean initialized = false;
+
+    /**
+     * Callbacks waiting on the database, and whether they have already been drained. Both are
+     * touched only on the main thread, so registering during {@code onStart} cannot race the
+     * drain that happens once the background bootstrap finishes.
+     */
+    private final List<Runnable> readyCallbacks = new ArrayList<>();
+    private boolean readyFired = false;
 
     public FreedomDatabase(TotalFreedomMod plugin)
     {
@@ -51,15 +56,7 @@ public class FreedomDatabase extends FreedomService
     @Override
     protected void onStart()
     {
-        try
-        {
-            initialize();
-        }
-        catch (Exception ex)
-        {
-            FLog.severe("Failed to initialize database: " + ex.getMessage());
-            ex.printStackTrace();
-        }
+        initializeAsync();
     }
 
     @Override
@@ -69,16 +66,12 @@ public class FreedomDatabase extends FreedomService
     }
 
     /**
-     * Initialize the database connection and adapter.
-     * <p>
-     * The actual connection-pool bootstrap and schema migration run on a background thread,
-     * not the calling thread. This is called synchronously from {@link #onStart()} during
-     * {@code onEnable}, which runs on the main thread, and a slow or unreachable host must
-     * not hang the whole server boot. The wait is bounded by {@link #INIT_TIMEOUT_SECONDS};
-     * if it elapses, this throws and every domain falls back to its JSON snapshot, same as
-     * any other connection failure.
+     * Build the connection pool, run schema migrations, then fold any legacy YAML data in,
+     * entirely on a background thread. {@code onEnable} does not wait for any of it: every
+     * domain starts on its JSON snapshot and swaps to SQL through {@link #whenReady(Runnable)}
+     * once this finishes, so an unreachable database host delays nothing but the swap.
      */
-    public void initialize() throws SQLException
+    public void initializeAsync()
     {
         if (initialized)
         {
@@ -86,40 +79,84 @@ public class FreedomDatabase extends FreedomService
             return;
         }
 
-        FLog.info("Initializing database...");
+        FLog.info("Initializing database in the background...");
 
         connectionHandler = new ConnectionHandler(plugin);
-        SQLProperties properties = connectionHandler.getSqlProperties();
-        DatabaseType dbType = properties.getDatabaseType();
+        final SQLProperties properties = connectionHandler.getSqlProperties();
+        final DatabaseType dbType = properties.getDatabaseType();
 
-        final DatabaseAdapter built;
-        try
+        Mono.fromCallable(() ->
         {
-            built = Mono.fromCallable(() ->
+            connectionHandler.connect();
+            statementHandler = new StatementHandler(connectionHandler);
+            DatabaseAdapter created = AdapterFactory.createAdapter(plugin, properties, connectionHandler, statementHandler);
+            created.initialize();
+            return created;
+        })
+            .subscribeOn(Schedulers.boundedElastic())
+            .doOnNext(built ->
             {
-                connectionHandler.connect();
-                statementHandler = new StatementHandler(connectionHandler);
-                DatabaseAdapter created = AdapterFactory.createAdapter(plugin, properties, connectionHandler, statementHandler);
-                created.initialize();
-                return created;
+                adapter = built;
+                initialized = true;
+                FLog.info(String.format("Database initialized successfully (%s)", dbType.getName()));
             })
-                    .subscribeOn(Schedulers.boundedElastic())
-                    .block(Duration.ofSeconds(INIT_TIMEOUT_SECONDS));
-        }
-        catch (Exception ex)
-        {
-            throw new SQLException(String.format(
-                    "Database did not finish initializing within %ds", INIT_TIMEOUT_SECONDS), ex);
-        }
+            // Migrations have to finish before any domain reads SQL, so they ride this
+            // chain rather than registering as another ready callback.
+            .then(Mono.defer(() -> new YamlMigrationService(plugin, this).runMigrations()))
+            .subscribe(
+                    ignored -> {},
+                    ex -> FLog.severe(String.format(
+                            "Failed to initialize database, every domain stays on its JSON fallback: %s",
+                            ex.getMessage())),
+                    () -> sync("FreedomDatabase/ready", this::fireReady));
+    }
 
-        if (built == null)
+    /**
+     * Register {@code callback} to run on the main thread once the database is up and its YAML
+     * migrations have finished, or immediately if that has already happened. Callbacks run in
+     * registration order and are skipped entirely if the database never comes up.
+     * <p>
+     * Main thread only.
+     */
+    public void whenReady(final Runnable callback)
+    {
+        if (readyFired)
         {
-            throw new SQLException("Database initialization completed with no adapter");
+            callback.run();
+            return;
         }
+        readyCallbacks.add(callback);
+    }
 
-        adapter = built;
-        initialized = true;
-        FLog.info("Database initialized successfully (" + dbType.getName() + ")");
+    /**
+     * Run {@code query} off the main thread and hand its result to {@code apply} back on it.
+     * A failed or empty query logs against {@code label} and runs {@code onFailure} instead,
+     * also on the main thread.
+     */
+    public <T> void readAsync(final String label, final Mono<T> query, final Consumer<T> apply,
+            final Runnable onFailure)
+    {
+        query.switchIfEmpty(Mono.error(new IllegalStateException("query returned no result")))
+                .subscribe(
+                        result -> sync(label, () -> apply.accept(result)),
+                        ex ->
+                        {
+                            FLog.warning(String.format("%s failed: %s", label, ex.getMessage()));
+                            sync(label, onFailure);
+                        });
+    }
+
+    /**
+     * Run {@code body} on the main thread, or inline if the plugin is already disabled.
+     */
+    public void sync(final String label, final Runnable body)
+    {
+        if (!plugin.isEnabled())
+        {
+            FTask.run(label, body);
+            return;
+        }
+        plugin.getServer().getScheduler().runTask(plugin, FTask.guard(label, body));
     }
 
     /**
@@ -270,6 +307,15 @@ public class FreedomDatabase extends FreedomService
         return adapter.getPlayerRepository();
     }
 
+    public MigrationRepository getMigrationRepository()
+    {
+        if (adapter == null)
+        {
+            throw new IllegalStateException("Database not initialized");
+        }
+        return adapter.getMigrationRepository();
+    }
+
     /**
      * Snapshot of live connection pool and fairness-queue health, or {@code null} if the
      * database isn't initialized.
@@ -293,5 +339,12 @@ public class FreedomDatabase extends FreedomService
             return DatabaseType.SQLITE; // Default
         }
         return connectionHandler.getSqlProperties().getDatabaseType();
+    }
+
+    private void fireReady()
+    {
+        readyFired = true;
+        readyCallbacks.forEach(callback -> FTask.run("FreedomDatabase/readyCallback", callback));
+        readyCallbacks.clear();
     }
 }

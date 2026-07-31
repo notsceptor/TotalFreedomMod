@@ -8,9 +8,13 @@ import java.lang.reflect.Type;
 import java.util.Map;
 import java.util.UUID;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.totalfreedommod.sql.PersistenceQueue;
 import me.totalfreedom.totalfreedommod.sql.adapter.DiscordLinkRepository;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.JsonUtil;
+
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 /**
  * JSON write-through + startup reconciliation for admin-uuid to Discord-user-id links.
@@ -22,6 +26,7 @@ final class DiscordLinkJsonSync
     static final String DATA_FILENAME = "discord_links.json";
 
     private static final Type LINKS_MAP_TYPE = new TypeToken<Map<String, String>>() {}.getType();
+    private static final PersistenceQueue WRITES = new PersistenceQueue("discord link");
 
     private DiscordLinkJsonSync()
     {
@@ -49,48 +54,50 @@ final class DiscordLinkJsonSync
     }
 
     /**
-     * If discord_links.json was written more recently than the database's last update, re-import it into SQL.
+     * If discord_links.json was written more recently than the database's last update, re-import
+     * it into SQL. Runs entirely off the main thread, so this is safe to call from {@code onStart}.
      */
     static void reconcileFromJsonIfNewer(TotalFreedomMod plugin, DiscordLinkRepository repo)
     {
-        File file = new File(plugin.getDataFolder(), DATA_FILENAME);
+        final File file = new File(plugin.getDataFolder(), DATA_FILENAME);
         if (!file.exists())
-        {
             return;
-        }
 
-        try
+        final Map<String, String> jsonLinks;
+        try (FileReader reader = new FileReader(file))
         {
-            Long sqlUpdatedAt = repo.getMaxUpdatedAt();
-            if (sqlUpdatedAt != null && file.lastModified() <= sqlUpdatedAt)
-            {
-                return;
-            }
-
-            Map<String, String> jsonLinks;
-            try (FileReader reader = new FileReader(file))
-            {
-                Map<String, String> loaded = JsonUtil.GSON.fromJson(reader, LINKS_MAP_TYPE);
-                jsonLinks = loaded != null ? loaded : Map.of();
-            }
-
-            if (jsonLinks.isEmpty())
-            {
-                return;
-            }
-
-            FLog.info(DATA_FILENAME + " is newer than the database; re-importing " + jsonLinks.size() + " discord link(s) from it.");
-            for (Map.Entry<String, String> entry : jsonLinks.entrySet())
-            {
-                UUID adminUuid = UUID.fromString(entry.getKey());
-                repo.deleteByAdminUuid(adminUuid);
-                repo.deleteByDiscordUserId(entry.getValue());
-                repo.insert(adminUuid, entry.getValue());
-            }
+            final Map<String, String> loaded = JsonUtil.GSON.fromJson(reader, LINKS_MAP_TYPE);
+            jsonLinks = loaded != null ? loaded : Map.of();
         }
         catch (Exception ex)
         {
-            FLog.warning("Failed to reconcile " + DATA_FILENAME + " into the database: " + ex.getMessage());
+            FLog.warning(String.format("Failed to read %s: %s", DATA_FILENAME, ex.getMessage()));
+            return;
         }
+
+        if (jsonLinks.isEmpty())
+            return;
+
+        final long fileModified = file.lastModified();
+
+        WRITES.enqueue(repo.getMaxUpdatedAtAsync()
+                .map(sqlUpdatedAt -> fileModified > sqlUpdatedAt)
+                .defaultIfEmpty(Boolean.TRUE)
+                .filter(Boolean::booleanValue)
+                .flatMap(ignored ->
+                {
+                    FLog.info(String.format("%s is newer than the database; re-importing %d discord link(s) from it.",
+                            DATA_FILENAME, jsonLinks.size()));
+                    return Flux.fromIterable(jsonLinks.entrySet())
+                            .concatMap(entry -> repo.relinkAsync(UUID.fromString(entry.getKey()), entry.getValue()))
+                            .then();
+                })
+                .onErrorResume(ex ->
+                {
+                    FLog.warning(String.format("Failed to reconcile %s into the database: %s",
+                            DATA_FILENAME, ex.getMessage()));
+                    return Mono.empty();
+                })
+                .then());
     }
 }

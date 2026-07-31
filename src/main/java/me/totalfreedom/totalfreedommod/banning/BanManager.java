@@ -16,6 +16,7 @@ import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
+import me.totalfreedom.totalfreedommod.sql.PersistenceQueue;
 import me.totalfreedom.totalfreedommod.sql.adapter.BanRepository;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
@@ -45,9 +46,8 @@ public class BanManager extends FreedomService
     private final List<String> unbannableUsernames = Lists.newArrayList();
     private final File configFile;
     private final Object lock = new Object();
-    private final Object persistenceLock = new Object();
+    private final PersistenceQueue writes = new PersistenceQueue("ban");
 
-    private Mono<Void> persistenceChain = Mono.empty();
     private boolean usingSql = false;
 
     public BanManager(TotalFreedomMod plugin)
@@ -60,81 +60,113 @@ public class BanManager extends FreedomService
     @SuppressWarnings("unchecked")
     protected void onStart()
     {
-        if (plugin.dm != null && plugin.dm.isInitialized())
-            loadFromSql();
-        else
-            loadFromJson();
+        load();
+        plugin.dm.whenReady(this::load);
 
         unbannableUsernames.clear();
         unbannableUsernames.addAll((Collection<? extends String>) ConfigEntry.FAMOUS_PLAYERS.getList());
-        FLog.info("Loaded " + unbannableUsernames.size() + " unbannable usernames.");
+        FLog.info(String.format("Loaded %d unbannable usernames.", unbannableUsernames.size()));
     }
 
     /**
-     * Load bans from SQL database.
+     * Populate the ban list from SQL where it is available and the JSON snapshot otherwise.
+     * Never blocks: the SQL read runs off-thread and is applied back on the main thread.
      */
-    private void loadFromSql()
+    public void load()
     {
-        try
+        if (plugin.dm != null && plugin.dm.isInitialized())
         {
-            BanRepository repo = plugin.dm.getBanRepository();
-            List<Ban> loadedBans = repo.findAll().block();
-
-            synchronized (lock)
-            {
-                bans.clear();
-                bans.addAll(loadedBans);
-                usingSql = true;
-                updateViews();
-                FLog.info("Loaded " + ipBans.size() + " IP bans and " + nameBans.size() + " username bans from SQL database.");
-            }
-
-            reconcileFromJsonIfNewer(repo);
+            loadFromSqlAsync();
+            return;
         }
-        catch (Exception ex)
+
+        loadFromJson();
+    }
+
+    private void loadFromSqlAsync()
+    {
+        final BanRepository repo = plugin.dm.getBanRepository();
+        plugin.dm.readAsync("BanManager/loadFromSql", repo.findAll(),
+                loaded -> applyLoadedBans(repo, loaded),
+                this::loadFromJson);
+    }
+
+    private void applyLoadedBans(final BanRepository repo, final List<Ban> loaded)
+    {
+        synchronized (lock)
         {
-            FLog.warning("Failed to load bans from SQL, falling back to JSON: " + ex.getMessage());
-            loadFromJson();
+            bans.clear();
+            bans.addAll(loaded);
+            usingSql = true;
+            updateViews();
+            FLog.info(String.format("Loaded %d IP bans and %d username bans from SQL database.",
+                    ipBans.size(), nameBans.size()));
         }
+
+        reconcileFromJsonIfNewer(repo);
     }
 
     /**
-     * If bans.json was written more recently than the database's last update, re-import it into SQL.
+     * If bans.json was written more recently than the database's last update, re-import it into
+     * SQL. The comparison and the re-import both ride the write queue off the main thread.
      */
-    private void reconcileFromJsonIfNewer(BanRepository repo)
+    private void reconcileFromJsonIfNewer(final BanRepository repo)
     {
         if (!configFile.exists())
+        {
+            // Nothing to reconcile against, but SQL now has rows that no snapshot covers.
+            enqueue(writeJsonAsync(new ArrayList<>(bans)));
             return;
+        }
 
+        final List<Ban> jsonBans;
         try
         {
-            Long sqlUpdatedAt = repo.getMaxUpdatedAt();
-            if (sqlUpdatedAt != null && configFile.lastModified() <= sqlUpdatedAt)
-                return;
-
-            List<Ban> jsonBans = readJsonBans();
-            if (jsonBans.isEmpty())
-                return;
-
-            FLog.info("bans.json is newer than the database; re-importing " + jsonBans.size() + " ban(s) from it.");
-            for (Ban ban : jsonBans)
-            {
-                if (!ban.isValid())
-                    continue;
-
-                repo.save(ban).block();
-            }
-
-            synchronized (lock)
-            {
-                bans.clear();
-                bans.addAll(jsonBans);
-                updateViews();
-            }
+            jsonBans = readJsonBans();
         }
-        catch (Exception ex)
+        catch (IOException ex)
         {
-            FLog.warning("Failed to reconcile bans.json into the database: " + ex.getMessage());
+            FLog.warning(String.format("Failed to read bans.json: %s", ex.getMessage()));
+            return;
+        }
+
+        if (jsonBans.isEmpty())
+            return;
+
+        final long fileModified = configFile.lastModified();
+
+        enqueue(Mono.fromCallable(() ->
+                {
+                    final Long sqlUpdatedAt = repo.getMaxUpdatedAt();
+                    return sqlUpdatedAt == null || fileModified > sqlUpdatedAt;
+                })
+                .subscribeOn(Schedulers.boundedElastic())
+                .filter(Boolean::booleanValue)
+                .flatMapMany(ignored ->
+                {
+                    FLog.info(String.format("bans.json is newer than the database; re-importing %d ban(s) from it.",
+                            jsonBans.size()));
+                    return Flux.fromIterable(jsonBans)
+                            .filter(Ban::isValid)
+                            .concatMap(repo::save);
+                })
+                .then(Mono.fromRunnable(() -> plugin.dm.sync("BanManager/applyReconciled",
+                        () -> applyReconciledBans(jsonBans))))
+                .onErrorResume(ex ->
+                {
+                    FLog.warning(String.format("Failed to reconcile bans.json into the database: %s", ex.getMessage()));
+                    return Mono.empty();
+                })
+                .then());
+    }
+
+    private void applyReconciledBans(final List<Ban> jsonBans)
+    {
+        synchronized (lock)
+        {
+            bans.clear();
+            bans.addAll(jsonBans);
+            updateViews();
         }
     }
 
@@ -199,63 +231,14 @@ public class BanManager extends FreedomService
         FLog.info("Saved " + bans.size() + " player bans");
     }
 
-    public void reload()
-    {
-        onStop();
-        onStart();
-    }
-
     public void awaitPendingWrites(long timeoutMs)
     {
-        final Mono<Void> pending;
-        synchronized (persistenceLock)
-        {
-            pending = persistenceChain;
-        }
-
-        try
-        {
-            pending.block(Duration.ofMillis(timeoutMs));
-        }
-        catch (IllegalStateException ex)
-        {
-            FLog.warning(String.format("Gave up after %dms waiting for pending ban writes (%s); flushing anyway",
-                    timeoutMs, ex.getMessage()));
-        }
-        catch (RuntimeException ex)
-        {
-            FLog.warning("A queued ban write failed before shutdown: " + ex.getMessage());
-        }
+        writes.await(timeoutMs);
     }
 
-    /**
-     * Append {@code work} to the persistence chain and subscribe. Every queued write runs
-     * after the one before it, so a batch can never be reordered behind a single-row update
-     * that was requested later.
-     */
     private void enqueue(Mono<Void> work)
     {
-        synchronized (persistenceLock)
-        {
-            final Mono<Void> queued = persistenceChain
-                    .onErrorResume(ignored -> Mono.empty())
-                    .then(work)
-                    .cache();
-
-            persistenceChain = queued;
-            queued.doFinally(signal -> collapseChain(queued)).subscribe();
-        }
-    }
-
-    private void collapseChain(Mono<Void> completed)
-    {
-        synchronized (persistenceLock)
-        {
-            if (persistenceChain == completed)
-            {
-                persistenceChain = Mono.empty();
-            }
-        }
+        writes.enqueue(work);
     }
 
     public Set<Ban> getAllBans()

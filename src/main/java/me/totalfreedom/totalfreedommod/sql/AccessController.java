@@ -1,11 +1,12 @@
 package me.totalfreedom.totalfreedommod.sql;
 
 import java.sql.SQLException;
+import java.util.concurrent.Callable;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
-import reactor.core.publisher.Flux;
+import me.totalfreedom.totalfreedommod.util.FLog;
+
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 
@@ -17,9 +18,12 @@ import reactor.core.scheduler.Scheduler;
  * The query that has been waiting longest always receives the next available permit.
  * Permit release is guaranteed on completion, error, and cancellation.
  *
- * The same semaphore backs both the reactive {@link #guard} path and the synchronous
- * {@link #acquireSync()}/{@link #releaseSync()} pair, so {@link #availablePermits()} and
- * {@link #queueLength()} reflect total demand regardless of which path callers use.
+ * A permit is owned by a <i>thread</i>, not by a call, and acquisition is re-entrant: nested
+ * acquires bump a depth counter and only the outermost release hands the permit back. A
+ * repository operation takes one permit via {@link #guard(Callable)} and the statements it
+ * issues re-enter it, so an operation never waits on a permit it is already holding.
+ * <p>
+ * {@link #acquireSync()} and its matching {@link #releaseSync()} must run on the same thread.
  */
 public final class AccessController
 {
@@ -29,10 +33,13 @@ public final class AccessController
     private final Semaphore semaphore;
     private final Scheduler scheduler;
 
+    /** How many times the current thread has acquired without releasing. */
+    private final ThreadLocal<int[]> holdDepth = ThreadLocal.withInitial(() -> new int[1]);
+
     /**
      * @param permits maximum number of concurrently executing queries.
      *                Should always match the HikariCP maximum pool size.
-     * @param scheduler dedicated scheduler to acquire permits on, sized off the same pool.
+     * @param scheduler dedicated scheduler to run guarded work on, sized off the same pool.
      */
     public AccessController(final int permits, final Scheduler scheduler)
     {
@@ -41,40 +48,47 @@ public final class AccessController
     }
 
     /**
-     * Guard a single-result query. The permit is held for the entire duration of the query, 
-     * including the time spent mapping the result to the return type.
+     * Run a unit of database work on the scheduler holding exactly one permit, however many
+     * statements it issues, released on completion, error, and cancellation alike. The permit
+     * is taken on the thread that runs {@code work} so the nested acquires inside it re-enter.
+     *
+     * @return a {@link Mono} that is empty when {@code work} returns {@code null}.
      */
-    public <T> Mono<T> guard(final Mono<T> query)
+    public <T> Mono<T> guard(final Callable<T> work)
     {
-        return Mono.usingWhen(
-                acquire(),
-                ignored -> query,
-                ignored -> release());
+        return Mono.fromCallable(() -> callGuarded(work)).subscribeOn(scheduler);
+    }
+
+    private <T> T callGuarded(final Callable<T> work) throws Exception
+    {
+        acquireSync();
+        try
+        {
+            return work.call();
+        }
+        finally
+        {
+            releaseSync();
+        }
     }
 
     /**
-     * Guard a multi-row query or stream of results. 
-     * The permit is held for the entire duration of the flux.
-     */
-    public <T> Flux<T> guard(final Flux<T> query)
-    {
-        return Flux.usingWhen(
-                acquire(),
-                ignored -> query,
-                ignored -> release(),
-                (ignored, err) -> release(),
-                ignored -> release());
-    }
-
-    /**
-     * Acquire a permit for a synchronous unit of work, 
-     * for the handful of call sites that don't go through the reactive {@link #guard} path.
-     * <p> 
-     * Waits at most {@link #ACQUIRE_TIMEOUT_SECONDS} rather than blocking forever.
+     * Acquire a permit for a synchronous unit of work, for the call sites that reach JDBC
+     * directly instead of going through {@link #guard(Callable)}.
+     * <p>
+     * Returns immediately if this thread already holds the permit. Otherwise waits at most
+     * {@link #ACQUIRE_TIMEOUT_SECONDS} rather than blocking forever.
      * Always paired with {@link #releaseSync()}, typically in a {@code finally} block.
      */
     public void acquireSync() throws SQLException
     {
+        final int[] depth = holdDepth.get();
+        if (depth[0] > 0)
+        {
+            depth[0]++;
+            return;
+        }
+
         final boolean acquired;
         try
         {
@@ -89,11 +103,31 @@ public final class AccessController
         if (!acquired)
             throw new SQLException(String.format(
                     "Timed out after %ds waiting for a permit", ACQUIRE_TIMEOUT_SECONDS));
+
+        depth[0] = 1;
     }
 
+    /**
+     * Release one level of this thread's hold. The permit goes back to the semaphore only when
+     * the outermost hold is released.
+     */
     public void releaseSync()
     {
-        semaphore.release();
+        final int[] depth = holdDepth.get();
+        if (depth[0] == 0)
+        {
+            // Releasing here would inflate the semaphore past the pool size.
+            FLog.severe("AccessController.releaseSync() on a thread holding no permit; "
+                    + "acquire and release must be paired on the same thread");
+            holdDepth.remove();
+            return;
+        }
+
+        if (--depth[0] == 0)
+        {
+            holdDepth.remove();
+            semaphore.release();
+        }
     }
 
     public int availablePermits()
@@ -105,40 +139,5 @@ public final class AccessController
     public int queueLength()
     {
         return semaphore.getQueueLength();
-    }
-
-    private Mono<Boolean> acquire()
-    {
-        return Mono.<Boolean>create(sink ->
-        {
-            final Thread thread = Thread.currentThread();
-            final AtomicBoolean cancelled = new AtomicBoolean(false);
-            sink.onCancel(() ->
-            {
-                cancelled.set(true);
-                thread.interrupt();
-            });
-            try
-            {
-                semaphore.acquire();
-                if (cancelled.get())
-                    semaphore.release();
-                else
-                    sink.success(Boolean.TRUE);
-            }
-            catch (final InterruptedException e)
-            {
-                sink.error(e);
-            }
-            finally
-            {
-                Thread.interrupted();
-            }
-        }).subscribeOn(scheduler);
-    }
-
-    private Mono<Void> release()
-    {
-        return Mono.fromRunnable(semaphore::release);
     }
 }

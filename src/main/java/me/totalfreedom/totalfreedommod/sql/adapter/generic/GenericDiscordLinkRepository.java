@@ -11,6 +11,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import reactor.core.publisher.Mono;
+
 /**
  * All dialect differences are resolved through the {@link DatabaseAdapter} passed in.
  */
@@ -114,5 +116,28 @@ public class GenericDiscordLinkRepository implements DiscordLinkRepository
             }
         }
         return null;
+    }
+
+    @Override
+    public Mono<Map<String, String>> loadAllAsync()
+    {
+        return statementHandler.supplyMono(this::loadAll);
+    }
+
+    @Override
+    public Mono<Void> relinkAsync(UUID adminUuid, String discordUserId)
+    {
+        return statementHandler.runMono(() ->
+        {
+            deleteByAdminUuid(adminUuid);
+            deleteByDiscordUserId(discordUserId);
+            insert(adminUuid, discordUserId);
+        });
+    }
+
+    @Override
+    public Mono<Long> getMaxUpdatedAtAsync()
+    {
+        return statementHandler.supplyMono(this::getMaxUpdatedAt);
     }
 }

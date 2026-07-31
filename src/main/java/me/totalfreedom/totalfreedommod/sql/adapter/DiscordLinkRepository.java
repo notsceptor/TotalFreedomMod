@@ -4,6 +4,8 @@ import java.sql.SQLException;
 import java.util.Map;
 import java.util.UUID;
 
+import reactor.core.publisher.Mono;
+
 public interface DiscordLinkRepository
 {
     /**
@@ -44,4 +46,14 @@ public interface DiscordLinkRepository
      * Used to compare SQL freshness against the discord_links.json snapshot's last-modified time.
      */
     Long getMaxUpdatedAt() throws SQLException;
+
+    Mono<Map<String, String>> loadAllAsync();
+
+    /**
+     * Replace any existing link for either side, then link {@code adminUuid} to
+     * {@code discordUserId}.
+     */
+    Mono<Void> relinkAsync(UUID adminUuid, String discordUserId);
+
+    Mono<Long> getMaxUpdatedAtAsync();
 }

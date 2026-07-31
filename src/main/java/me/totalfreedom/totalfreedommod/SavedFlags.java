@@ -8,14 +8,18 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.lang.reflect.Type;
-import java.sql.SQLException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import me.totalfreedom.totalfreedommod.sql.PersistenceQueue;
 import me.totalfreedom.totalfreedommod.sql.adapter.SavedFlagRepository;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.JsonUtil;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 public class SavedFlags extends FreedomService
 {
@@ -25,6 +29,14 @@ public class SavedFlags extends FreedomService
     public static final String LEGACY_DATA_FILENAME = "savedflags.dat";
 
     private static final Type FLAGS_MAP_TYPE = new TypeToken<Map<String, Boolean>>() {}.getType();
+    private static final long SHUTDOWN_FLUSH_TIMEOUT_MS = 10L * 1000L;
+
+    private final PersistenceQueue writes = new PersistenceQueue("saved flag");
+
+    /**
+     * Authoritative in-memory view. Kept current so reads never touch JDBC on the calling thread.
+     */
+    private final Map<String, Boolean> flags = new HashMap<>();
 
     private boolean usingSql = false;
 
@@ -36,25 +48,43 @@ public class SavedFlags extends FreedomService
     @Override
     protected void onStart()
     {
-        usingSql = plugin.dm != null && plugin.dm.isInitialized();
-
-        File dataFile = new File(plugin.getDataFolder(), DATA_FILENAME);
-        File legacyFile = new File(plugin.getDataFolder(), LEGACY_DATA_FILENAME);
+        final File dataFile = new File(plugin.getDataFolder(), DATA_FILENAME);
+        final File legacyFile = new File(plugin.getDataFolder(), LEGACY_DATA_FILENAME);
 
         if (legacyFile.exists() && !dataFile.exists())
         {
             migrateLegacyData(legacyFile, dataFile);
         }
 
-        if (usingSql)
-        {
-            reconcileFromJsonIfNewer();
-        }
+        flags.putAll(readJsonFlags(dataFile));
+        plugin.dm.whenReady(this::load);
     }
 
     @Override
     protected void onStop()
     {
+        writes.await(SHUTDOWN_FLUSH_TIMEOUT_MS);
+    }
+
+    /**
+     * Refresh the in-memory view from SQL, then reconcile the JSON snapshot back into it if the
+     * file is the newer of the two. Never blocks.
+     */
+    public void load()
+    {
+        if (plugin.dm == null || !plugin.dm.isInitialized())
+            return;
+
+        final SavedFlagRepository repo = plugin.dm.getSavedFlagRepository();
+        plugin.dm.readAsync("SavedFlags/loadFromSql", repo.loadAllAsync(),
+                loaded ->
+                {
+                    usingSql = true;
+                    flags.clear();
+                    flags.putAll(loaded);
+                    reconcileFromJsonIfNewer(repo);
+                },
+                () -> usingSql = false);
     }
 
     @SuppressWarnings("unchecked")
@@ -64,23 +94,10 @@ public class SavedFlags extends FreedomService
         try (FileInputStream fis = new FileInputStream(legacyFile);
              ObjectInputStream ois = new ObjectInputStream(fis))
         {
-            HashMap<String, Boolean> legacyFlags = (HashMap<String, Boolean>) ois.readObject();
+            final HashMap<String, Boolean> legacyFlags = (HashMap<String, Boolean>) ois.readObject();
 
-            if (usingSql)
-            {
-                try
-                {
-                    SavedFlagRepository repo = plugin.dm.getSavedFlagRepository();
-                    for (Map.Entry<String, Boolean> entry : legacyFlags.entrySet())
-                    {
-                        repo.upsert(entry.getKey(), entry.getValue());
-                    }
-                }
-                catch (SQLException ex)
-                {
-                    FLog.severe("Could not save migrated flags to SQL: " + ex.getMessage());
-                }
-            }
+            // Writing the snapshot is enough: the database is still coming up, and the
+            // reconcile pass on ready folds this file into SQL because it is the newer of the two.
             saveToJson(legacyFlags);
 
             File oldFile = new File(legacyFile.getParent(), LEGACY_DATA_FILENAME + ".old");
@@ -135,41 +152,51 @@ public class SavedFlags extends FreedomService
     }
 
     /**
-     * If savedflags.json was written more recently than the database's last update, re-import it into SQL.
+     * If savedflags.json was written more recently than the database's last update, re-import it
+     * into SQL. The comparison and the re-import both ride the write queue off the main thread.
      */
-    private void reconcileFromJsonIfNewer()
+    private void reconcileFromJsonIfNewer(final SavedFlagRepository repo)
     {
-        File dataFile = new File(plugin.getDataFolder(), DATA_FILENAME);
+        final File dataFile = new File(plugin.getDataFolder(), DATA_FILENAME);
         if (!dataFile.exists())
         {
+            // Nothing to reconcile against, but SQL now has rows that no snapshot covers.
+            writes.enqueue(writeJsonAsync());
             return;
         }
 
-        try
-        {
-            SavedFlagRepository repo = plugin.dm.getSavedFlagRepository();
-            Long sqlUpdatedAt = repo.getMaxUpdatedAt();
-            if (sqlUpdatedAt != null && dataFile.lastModified() <= sqlUpdatedAt)
-            {
-                return;
-            }
+        final Map<String, Boolean> jsonFlags = readJsonFlags(dataFile);
+        if (jsonFlags.isEmpty())
+            return;
 
-            Map<String, Boolean> jsonFlags = readJsonFlags(dataFile);
-            if (jsonFlags.isEmpty())
-            {
-                return;
-            }
+        final long fileModified = dataFile.lastModified();
 
-            FLog.info(DATA_FILENAME + " is newer than the database; re-importing " + jsonFlags.size() + " flag(s) from it.");
-            for (Map.Entry<String, Boolean> entry : jsonFlags.entrySet())
-            {
-                repo.upsert(entry.getKey(), entry.getValue());
-            }
-        }
-        catch (Exception ex)
-        {
-            FLog.warning("Failed to reconcile " + DATA_FILENAME + " into the database: " + ex.getMessage());
-        }
+        writes.enqueue(Mono.fromCallable(() ->
+                {
+                    final Long sqlUpdatedAt = repo.getMaxUpdatedAt();
+                    return sqlUpdatedAt == null || fileModified > sqlUpdatedAt;
+                })
+                .subscribeOn(Schedulers.boundedElastic())
+                .filter(Boolean::booleanValue)
+                .flatMapMany(ignored ->
+                {
+                    FLog.info(String.format("%s is newer than the database; re-importing %d flag(s) from it.",
+                            DATA_FILENAME, jsonFlags.size()));
+                    return Flux.fromIterable(jsonFlags.entrySet())
+                            .concatMap(entry -> repo.upsertAsync(entry.getKey(), entry.getValue()));
+                })
+                .then(Mono.fromRunnable(() -> plugin.dm.sync("SavedFlags/applyReconciled", () ->
+                {
+                    flags.clear();
+                    flags.putAll(jsonFlags);
+                })))
+                .onErrorResume(ex ->
+                {
+                    FLog.warning(String.format("Failed to reconcile %s into the database: %s",
+                            DATA_FILENAME, ex.getMessage()));
+                    return Mono.empty();
+                })
+                .then());
     }
 
     private Map<String, Boolean> readJsonFlags(File file)
@@ -197,82 +224,65 @@ public class SavedFlags extends FreedomService
         return flags;
     }
 
-    private void saveToJson(Map<String, Boolean> flags)
+    private void saveToJson(final Map<String, Boolean> snapshot)
     {
-        File file = new File(plugin.getDataFolder(), DATA_FILENAME);
+        final File file = new File(plugin.getDataFolder(), DATA_FILENAME);
         try (FileWriter writer = new FileWriter(file))
         {
-            JsonUtil.GSON.toJson(flags, FLAGS_MAP_TYPE, writer);
+            JsonUtil.GSON.toJson(snapshot, FLAGS_MAP_TYPE, writer);
         }
         catch (IOException ex)
         {
-            FLog.severe("Failed to save saved flags: " + ex.getMessage());
+            FLog.severe(String.format("Failed to save saved flags: %s", ex.getMessage()));
             FLog.severe(ex);
         }
     }
 
+    private Mono<Void> writeJsonAsync()
+    {
+        final Map<String, Boolean> snapshot = new HashMap<>(flags);
+        return Mono.<Void>fromRunnable(() -> saveToJson(snapshot))
+                .subscribeOn(Schedulers.boundedElastic());
+    }
+
+    /**
+     * The current flags, served from memory. Never touches JDBC on the calling thread.
+     */
     public Map<String, Boolean> getSavedFlags()
     {
-        if (usingSql && plugin.dm != null && plugin.dm.isInitialized())
-        {
-            try
-            {
-                return plugin.dm.getSavedFlagRepository().loadAll();
-            }
-            catch (SQLException ex)
-            {
-                FLog.severe("Failed to load saved flags from SQL: " + ex.getMessage());
-            }
-        }
-
-        return readJsonFlags(new File(PluginProvider.get().getDataFolder(), DATA_FILENAME));
+        return Collections.unmodifiableMap(flags);
     }
 
     public boolean getSavedFlag(String flag) throws Exception
     {
-        Boolean flagValue = null;
-
-        Map<String, Boolean> flags = getSavedFlags();
-
-        if (flags != null)
-        {
-            if (flags.containsKey(flag))
-            {
-                flagValue = flags.get(flag);
-            }
-        }
-
-        if (flagValue != null)
-        {
-            return flagValue;
-        }
-        else
-        {
+        final Boolean flagValue = flags.get(flag);
+        if (flagValue == null)
             throw new Exception();
-        }
+
+        return flagValue;
     }
 
+    /**
+     * Set a flag in memory and queue the SQL write plus a refresh of the JSON snapshot. Safe
+     * from a command handler: the round trip runs off the main thread.
+     */
     public void setSavedFlag(String flag, boolean value)
     {
-        if (usingSql && plugin.dm != null && plugin.dm.isInitialized())
+        flags.put(flag, value);
+
+        if (!usingSql || plugin.dm == null || !plugin.dm.isInitialized())
         {
-            try
-            {
-                plugin.dm.getSavedFlagRepository().upsert(flag, value);
-            }
-            catch (SQLException ex)
-            {
-                FLog.severe("Could not save flag '" + flag + "' to SQL: " + ex.getMessage());
-            }
+            writes.enqueue(writeJsonAsync());
+            return;
         }
 
-        Map<String, Boolean> flags = getSavedFlags();
-        if (flags == null)
-        {
-            flags = new HashMap<>();
-        }
-        flags.put(flag, value);
-        saveToJson(flags);
+        writes.enqueue(plugin.dm.getSavedFlagRepository().upsertAsync(flag, value)
+                .onErrorResume(ex ->
+                {
+                    FLog.severe(String.format("Could not save flag '%s' to SQL: %s", flag, ex.getMessage()));
+                    return Mono.empty();
+                })
+                .then(writeJsonAsync()));
     }
 
 }

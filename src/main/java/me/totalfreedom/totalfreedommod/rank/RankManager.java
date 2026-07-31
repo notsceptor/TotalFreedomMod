@@ -10,6 +10,7 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -24,6 +25,7 @@ import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchContext;
 import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchSession;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
+import me.totalfreedom.totalfreedommod.sql.PersistenceQueue;
 import me.totalfreedom.totalfreedommod.sql.adapter.RankRepository;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FLog;
@@ -55,12 +57,16 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.ScoreboardManager;
 import org.bukkit.scoreboard.Team;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 public class RankManager extends FreedomService
 {
     public static final String RANKS_FILENAME = "ranks.json";
 
     private static final Type RANK_MAP_TYPE = new TypeToken<Map<String, CustomRank>>() {}.getType();
+    private static final long SHUTDOWN_FLUSH_TIMEOUT_MS = 10L * 1000L;
 
     /**
      * All custom ranks, keyed by ID.
@@ -71,6 +77,8 @@ public class RankManager extends FreedomService
      * File for storing custom ranks.
      */
     private File ranksFile;
+
+    private final PersistenceQueue writes = new PersistenceQueue("rank");
 
     private boolean usingSql = false;
 
@@ -113,8 +121,10 @@ public class RankManager extends FreedomService
     @Override
     protected void onStop()
     {
-        // Save ranks before shutdown
+        // Save ranks before shutdown, then let the queue drain: a queued write landing after
+        // the flush would restore a stale snapshot.
         saveRanks();
+        awaitPendingWrites(SHUTDOWN_FLUSH_TIMEOUT_MS);
 
         // Stop persistent monitor
         if (persistentMonitorTask != null)
@@ -128,7 +138,9 @@ public class RankManager extends FreedomService
     }
 
     /**
-     * Load custom ranks from SQL (falling back to ranks.json).
+     * Load custom ranks from SQL, falling back to ranks.json. Never blocks: the SQL read runs
+     * off-thread and its result is applied back on the main thread, so this is safe from a
+     * command handler as well as from startup.
      */
     public void loadRanks()
     {
@@ -136,44 +148,44 @@ public class RankManager extends FreedomService
 
         if (plugin.dm != null && plugin.dm.isInitialized())
         {
-            loadFromSql();
+            loadFromSqlAsync();
+            return;
         }
-        else
-        {
-            loadFromJsonOrDefaults();
-        }
+
+        loadFromJsonOrDefaults();
     }
 
-    private void loadFromSql()
+    private void loadFromSqlAsync()
     {
-        try
+        final RankRepository repo = plugin.dm.getRankRepository();
+        plugin.dm.readAsync("RankManager/loadFromSql", repo.loadAllAsync(),
+                loaded -> applyLoadedRanks(repo, loaded),
+                () ->
+                {
+                    usingSql = false;
+                    loadFromJsonOrDefaults();
+                });
+    }
+
+    private void applyLoadedRanks(final RankRepository repo, final Map<String, CustomRank> loaded)
+    {
+        usingSql = true;
+
+        if (loaded.isEmpty() && !ranksFile.exists())
         {
-            RankRepository repo = plugin.dm.getRankRepository();
-            Map<String, CustomRank> loaded = repo.loadAllAsync().block();
-            usingSql = true;
-
-            if (loaded.isEmpty() && !ranksFile.exists())
-            {
-                createDefaultRanks();
-                migrateConfigRanks();
-                return;
-            }
-
-            customRanks.clear();
-            customRanks.putAll(loaded);
-            validateEssentialRanks();
-            resolveInheritance();
-            updateAllPlayerTeams();
-            FLog.info("Loaded " + customRanks.size() + " custom ranks from SQL database.");
-
-            reconcileFromJsonIfNewer(repo);
+            createDefaultRanks();
+            migrateConfigRanks();
+            return;
         }
-        catch (Exception ex)
-        {
-            FLog.warning("Failed to load ranks from SQL, falling back to JSON: " + ex.getMessage());
-            usingSql = false;
-            loadFromJsonOrDefaults();
-        }
+
+        customRanks.clear();
+        customRanks.putAll(loaded);
+        validateEssentialRanks();
+        resolveInheritance();
+        updateAllPlayerTeams();
+        FLog.info(String.format("Loaded %d custom ranks from SQL database.", customRanks.size()));
+
+        reconcileFromJsonIfNewer(repo);
     }
 
     private void loadFromJsonOrDefaults()
@@ -216,44 +228,65 @@ public class RankManager extends FreedomService
     }
 
     /**
-     * If ranks.json was written more recently than the database's last update, re-import it into SQL.
+     * If ranks.json was written more recently than the database's last update, re-import it into
+     * SQL. The comparison and the re-import both ride the write queue off the main thread.
      */
-    private void reconcileFromJsonIfNewer(RankRepository repo)
+    private void reconcileFromJsonIfNewer(final RankRepository repo)
     {
         if (!ranksFile.exists())
         {
+            // Nothing to reconcile against, but SQL now has rows that no snapshot covers.
+            writes.enqueue(writeJsonAsync());
             return;
         }
 
+        final Map<String, CustomRank> jsonRanks;
         try
         {
-            Long sqlUpdatedAt = repo.getMaxUpdatedAt();
-            if (sqlUpdatedAt != null && ranksFile.lastModified() <= sqlUpdatedAt)
-            {
-                return;
-            }
-
-            Map<String, CustomRank> jsonRanks = readJsonRanks();
-            if (jsonRanks.isEmpty())
-            {
-                return;
-            }
-
-            FLog.info("ranks.json is newer than the database; re-importing " + jsonRanks.size() + " rank(s) from it.");
-            for (CustomRank rank : jsonRanks.values())
-            {
-                repo.saveOrUpdate(rank);
-            }
-
-            customRanks.clear();
-            customRanks.putAll(jsonRanks);
-            resolveInheritance();
-            updateAllPlayerTeams();
+            jsonRanks = readJsonRanks();
         }
-        catch (Exception ex)
+        catch (IOException ex)
         {
-            FLog.warning("Failed to reconcile ranks.json into the database: " + ex.getMessage());
+            FLog.warning(String.format("Failed to read %s: %s", RANKS_FILENAME, ex.getMessage()));
+            return;
         }
+
+        if (jsonRanks.isEmpty())
+            return;
+
+        final long fileModified = ranksFile.lastModified();
+
+        writes.enqueue(Mono.fromCallable(() ->
+                {
+                    final Long sqlUpdatedAt = repo.getMaxUpdatedAt();
+                    return sqlUpdatedAt == null || fileModified > sqlUpdatedAt;
+                })
+                .subscribeOn(Schedulers.boundedElastic())
+                .filter(Boolean::booleanValue)
+                .flatMapMany(ignored ->
+                {
+                    FLog.info(String.format("%s is newer than the database; re-importing %d rank(s) from it.",
+                            RANKS_FILENAME, jsonRanks.size()));
+                    return Flux.fromIterable(jsonRanks.values())
+                            .concatMap(repo::save);
+                })
+                .then(Mono.fromRunnable(() -> plugin.dm.sync("RankManager/applyReconciled",
+                        () -> applyReconciledRanks(jsonRanks))))
+                .onErrorResume(ex ->
+                {
+                    FLog.warning(String.format("Failed to reconcile %s into the database: %s",
+                            RANKS_FILENAME, ex.getMessage()));
+                    return Mono.empty();
+                })
+                .then());
+    }
+
+    private void applyReconciledRanks(final Map<String, CustomRank> jsonRanks)
+    {
+        customRanks.clear();
+        customRanks.putAll(jsonRanks);
+        resolveInheritance();
+        updateAllPlayerTeams();
     }
 
     private static final String[] ESSENTIAL_RANKS = {
@@ -430,46 +463,48 @@ public class RankManager extends FreedomService
     }
 
     /**
-     * Save custom ranks to SQL (or ranks.json if SQL is unavailable).
+     * Queue a write of every custom rank to SQL, followed by a refresh of the ranks.json
+     * snapshot. Falls back to a JSON-only write when SQL is unavailable. Safe from a command
+     * handler: the SQL round trips run off the main thread.
      */
     public void saveRanks()
     {
-        if (usingSql)
+        if (!usingSql || plugin.dm == null || !plugin.dm.isInitialized())
         {
-            saveToSql();
-        }
-        else
-        {
-            saveToJson();
-        }
-    }
-
-    private void saveToSql()
-    {
-        if (plugin.dm == null || !plugin.dm.isInitialized())
-        {
-            FLog.warning("SQL not available, falling back to JSON save for ranks");
-            saveToJson();
+            writes.enqueue(writeJsonAsync());
             return;
         }
 
-        try
-        {
-            RankRepository repo = plugin.dm.getRankRepository();
-            for (CustomRank rank : customRanks.values())
-            {
-                repo.save(rank).block();
-            }
-        }
-        catch (Exception ex)
-        {
-            FLog.severe("Could not save ranks to SQL: " + ex.getMessage());
-        }
+        final RankRepository repo = plugin.dm.getRankRepository();
+        final List<CustomRank> snapshot = new ArrayList<>(customRanks.values());
 
-        saveToJson();
+        writes.enqueue(Flux.fromIterable(snapshot)
+                .concatMap(rank -> repo.save(rank)
+                        .onErrorResume(ex ->
+                        {
+                            FLog.severe(String.format("Could not save rank %s to SQL: %s",
+                                    rank.getId(), ex.getMessage()));
+                            return Mono.empty();
+                        }))
+                .then(writeJsonAsync()));
     }
 
-    private void saveToJson()
+    /**
+     * Wait for queued rank writes to land, up to {@code timeoutMs}.
+     */
+    public void awaitPendingWrites(long timeoutMs)
+    {
+        writes.await(timeoutMs);
+    }
+
+    private Mono<Void> writeJsonAsync()
+    {
+        final Map<String, CustomRank> snapshot = new LinkedHashMap<>(customRanks);
+        return Mono.<Void>fromRunnable(() -> writeJson(snapshot))
+                .subscribeOn(Schedulers.boundedElastic());
+    }
+
+    private void writeJson(final Map<String, CustomRank> snapshot)
     {
         if (ranksFile == null)
         {
@@ -478,11 +513,11 @@ public class RankManager extends FreedomService
 
         try (FileWriter writer = new FileWriter(ranksFile))
         {
-            JsonUtil.GSON.toJson(customRanks, RANK_MAP_TYPE, writer);
+            JsonUtil.GSON.toJson(snapshot, RANK_MAP_TYPE, writer);
         }
         catch (IOException ex)
         {
-            FLog.severe("Could not save " + RANKS_FILENAME + ": " + ex.getMessage());
+            FLog.severe(String.format("Could not save %s: %s", RANKS_FILENAME, ex.getMessage()));
         }
     }
 
@@ -1655,7 +1690,7 @@ public class RankManager extends FreedomService
                             .replace("%coloredrank%", "<colored_rank>");
 
                     admin.setLoginMessage(loginMessage);
-                    plugin.al.save();
+                    plugin.al.saveAsync();
                     plugin.al.updateTables();
                 }
 

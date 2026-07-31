@@ -113,26 +113,24 @@ public class StatementHandler
         }
     }
 
+    /**
+     * Run {@code work} on the SQL scheduler under a single {@link AccessController} permit.
+     * The statements {@code work} issues re-enter that same permit rather than queueing for
+     * one of their own, so a repository operation costs exactly one permit no matter how many
+     * round trips it makes.
+     */
     public <T> Mono<T> supplyMono(Callable<T> work)
     {
-        return connectionHandler.getAccessController().guard(
-                Mono.fromCallable(work).subscribeOn(connectionHandler.getScheduler()));
+        return connectionHandler.getAccessController().guard(work);
     }
 
     public Mono<Void> runMono(SqlRunnable work)
     {
-        return connectionHandler.getAccessController().guard(
-                Mono.<Void>fromRunnable(() ->
-                {
-                    try
-                    {
-                        work.run();
-                    }
-                    catch (SQLException e)
-                    {
-                        throw new RuntimeException(e);
-                    }
-                }).subscribeOn(connectionHandler.getScheduler()));
+        return connectionHandler.getAccessController().<Void>guard(() ->
+        {
+            work.run();
+            return null;
+        }).then();
     }
 
     @FunctionalInterface
