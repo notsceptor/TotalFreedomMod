@@ -37,6 +37,7 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
     @Getter
     @Setter
     private boolean potionSpy;
+    private boolean signSpy;
     private CommandSpyMode commandSpyMode = CommandSpyMode.OFF;
     @Getter
     @Setter
@@ -77,6 +78,7 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
         this.firstJoinUnix = cs.getLong("first_join", 0);
         this.lastJoinUnix = cs.getLong("last_join", 0);
         this.potionSpy = cs.getBoolean("potion_spy", false);
+        this.signSpy = cs.getBoolean("sign_spy", false);
         final boolean legacyCommandSpy = cs.getBoolean("command_spy", false);
         this.commandSpyMode = CommandSpyMode.fromString(cs.getString("command_spy_mode", legacyCommandSpy ? "ops" : "off"));
         this.muted = cs.getBoolean("muted", false);
@@ -106,6 +108,7 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
         cs.set("first_join", firstJoinUnix);
         cs.set("last_join", lastJoinUnix);
         cs.set("potion_spy", potionSpy);
+        cs.set("sign_spy", signSpy);
         cs.set("command_spy", isCommandSpy());
         cs.set("command_spy_mode", commandSpyMode.getName());
         cs.set("muted", muted);
@@ -135,6 +138,16 @@ public class PlayerData implements ConfigLoadable, ConfigSavable, Validatable
     public void setCommandSpyMode(CommandSpyMode commandSpyMode)
     {
         this.commandSpyMode = commandSpyMode == null ? CommandSpyMode.OFF : commandSpyMode;
+    }
+
+    public boolean isSignSpy()
+    {
+        return signSpy;
+    }
+
+    public void setSignSpy(final boolean signSpy)
+    {
+        this.signSpy = signSpy;
     }
 
     public boolean isJoinLeaveMessagesEnabled()
