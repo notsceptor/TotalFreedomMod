@@ -25,6 +25,7 @@ import org.bukkit.World;
 import org.bukkit.block.Sign;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.type.WallSign;
 import org.bukkit.block.sign.Side;
 import org.bukkit.block.sign.SignSide;
 import org.bukkit.entity.Player;
@@ -41,12 +42,26 @@ public class SignSpy extends FreedomService
     // so the revert doubles as a force-close deadline rather than running right after opening.
     private static final long REVERT_DELAY_TICKS = 20L * 60L;
     private static final int FAKE_SIGN_DEPTH = 4;
+    // The sign editor caps a line at 90 pixels rather than at a character count, which is about 15
+    // characters of ordinary text and about 45 of the narrowest. Anything past this came from a
+    // client that skipped the editor, so cutting it costs no legitimate text and stops a 384
+    // character line, the packet's own limit, from flooding chat.
+    private static final int MAX_LINE_CHARS = 50;
+    // A four line sign of narrow text still runs long, so the whole summary gets a budget too.
+    private static final int SUMMARY_CHARS = 90;
+    // Trailing room this small only fits a stub of the next line, which reads worse than dropping it.
+    private static final int MIN_CHANGE_CHARS = 8;
 
     private Map<UUID, Location> pendingReverts;
 
     private record SignSnapshot(BlockData blockData, Side side,
-                                List<Component> lines, DyeColor color, boolean glowing,
+                                List<Component> lines, List<Component> oldLines,
+                                DyeColor color, boolean glowing,
                                 List<Component> otherLines, DyeColor otherColor, boolean otherGlowing)
+    {
+    }
+
+    private record LineChange(boolean added, String text)
     {
     }
 
@@ -86,10 +101,11 @@ public class SignSpy extends FreedomService
         final Sign oldState = event.getBlock().getState() instanceof Sign sign ? sign : null;
         final SignSide oldSide = oldState != null ? oldState.getSide(event.getSide()) : null;
 
-        String changedLine = "";
-        String firstLine = "";
+        // Written and cleared lines are listed in the order they appear on the sign, so the chat
+        // line reads like the edit itself rather than a summary of it.
+        final List<LineChange> changes = new ArrayList<>(LINES_PER_SIDE);
         int nonEmptyLines = 0;
-        boolean changed = false;
+        int deletedLines = 0;
         for (int i = 0; i < LINES_PER_SIDE; i++)
         {
             final Component line = event.line(i);
@@ -98,31 +114,28 @@ public class SignSpy extends FreedomService
                     ? AdventureUtil.componentToPlainText(oldSide.line(i)).trim() : "";
             if (!plain.equals(oldPlain))
             {
-                changed = true;
-                if (changedLine.isEmpty() && !plain.isEmpty())
+                if (plain.isEmpty())
                 {
-                    changedLine = plain;
+                    deletedLines++;
+                    changes.add(new LineChange(false, oldPlain));
+                }
+                else
+                {
+                    changes.add(new LineChange(true, plain));
                 }
             }
-            if (plain.isEmpty())
+            if (!plain.isEmpty())
             {
-                continue;
+                nonEmptyLines++;
             }
-            if (nonEmptyLines == 0)
-            {
-                firstLine = plain;
-            }
-            nonEmptyLines++;
         }
 
         // Covers no-op edits and blank placements alike: submitting the editor without altering
         // any line is not worth logging.
-        if (!changed)
+        if (changes.isEmpty())
         {
             return;
         }
-
-        final String displayLine = !changedLine.isEmpty() ? changedLine : firstLine;
 
         int otherNonEmptyLines = 0;
         if (oldState != null)
@@ -137,7 +150,13 @@ public class SignSpy extends FreedomService
             }
         }
 
-        final String sideName = event.getSide() == Side.FRONT ? "front" : "back";
+        // Naming the side only says something when the other side is written on too; a wall sign
+        // has just the one reachable side, and a blank back is nothing to distinguish from.
+        final boolean bothSides = otherNonEmptyLines > 0
+                && !(event.getBlock().getBlockData() instanceof WallSign);
+        final String context = bothSides
+                ? (event.getSide() == Side.FRONT ? " (front)" : " (back)") : "";
+
         Component message = Component.empty();
         if (plugin.al.isAdmin(editor))
         {
@@ -154,24 +173,61 @@ public class SignSpy extends FreedomService
             }
         }
         message = message.append(Component.text(
-                editor.getName() + " edited sign (" + sideName + "): '" + displayLine + "'",
-                NamedTextColor.GRAY));
-        if (otherNonEmptyLines > 0)
+                editor.getName() + " edited sign" + context, NamedTextColor.GRAY));
+
+        final List<LineChange> shown = new ArrayList<>(changes.size());
+        int budget = SUMMARY_CHARS;
+        for (final LineChange change : changes)
+        {
+            if (budget < MIN_CHANGE_CHARS && !shown.isEmpty())
+            {
+                break;
+            }
+            final String text = change.text();
+            final int room = Math.min(budget, MAX_LINE_CHARS);
+            shown.add(text.length() > room
+                    ? new LineChange(change.added(), text.substring(0, room)) : change);
+            budget -= Math.min(text.length(), room);
+        }
+
+        boolean firstChange = true;
+        for (final LineChange change : shown)
+        {
+            message = message.append(Component.text(firstChange ? " " : ", ", NamedTextColor.GRAY))
+                    .append(Component.text(change.added() ? "+" : "-",
+                            change.added() ? NamedTextColor.GREEN : NamedTextColor.RED))
+                    .append(Component.text("'" + change.text() + "'", NamedTextColor.GRAY));
+            firstChange = false;
+        }
+
+        if (deletedLines > 0)
         {
             final SignSnapshot snapshot = snapshot(event, oldState);
-            message = message.append(Component.text(" [View: ", NamedTextColor.GRAY))
-                    .append(viewButton("Front", "Click to view the front of the sign",
-                            snapshot, Side.FRONT))
+            message = message.append(Component.text(" [", NamedTextColor.GRAY))
+                    .append(viewButton("Before", "Click to view the sign before this edit",
+                            snapshot, snapshot.side(), true))
                     .append(Component.text(" | ", NamedTextColor.GRAY))
-                    .append(viewButton("Back", "Click to view the back of the sign",
-                            snapshot, Side.BACK))
+                    .append(viewButton("After", "Click to view the sign after this edit",
+                            snapshot, snapshot.side(), false))
                     .append(Component.text("]", NamedTextColor.GRAY));
         }
-        else if (nonEmptyLines > 1)
+        else if (bothSides)
         {
             final SignSnapshot snapshot = snapshot(event, oldState);
-            message = message.append(viewButton(" [See more]", "Click to view the full sign",
-                    snapshot, snapshot.side()));
+            message = message.append(Component.text(" [", NamedTextColor.GRAY))
+                    .append(viewButton("Front", "Click to view the front of the sign",
+                            snapshot, Side.FRONT, false))
+                    .append(Component.text(" | ", NamedTextColor.GRAY))
+                    .append(viewButton("Back", "Click to view the back of the sign",
+                            snapshot, Side.BACK, false))
+                    .append(Component.text("]", NamedTextColor.GRAY));
+        }
+        else
+        {
+            final SignSnapshot snapshot = snapshot(event, oldState);
+            message = message.append(Component.text(" ", NamedTextColor.GRAY))
+                    .append(viewButton("[View]", "Click to view the full sign",
+                            snapshot, snapshot.side(), false));
         }
 
         for (final Player admin : plugin.al.getOnlineAdmins())
@@ -205,6 +261,7 @@ public class SignSpy extends FreedomService
         DyeColor otherColor = DyeColor.BLACK;
         boolean otherGlowing = false;
         final List<Component> otherLines = new ArrayList<>(LINES_PER_SIDE);
+        final List<Component> oldLines = new ArrayList<>(LINES_PER_SIDE);
         // Dye and glow are applied by separate interactions, never by the edit itself, so the
         // pre-edit state is the correct source for them; only the text comes from the event.
         if (oldState != null)
@@ -218,11 +275,13 @@ public class SignSpy extends FreedomService
             for (int i = 0; i < LINES_PER_SIDE; i++)
             {
                 otherLines.add(otherSide.line(i));
+                oldLines.add(side.line(i));
             }
         }
         while (otherLines.size() < LINES_PER_SIDE)
         {
             otherLines.add(Component.empty());
+            oldLines.add(Component.empty());
         }
 
         final List<Component> lines = new ArrayList<>(LINES_PER_SIDE);
@@ -233,7 +292,8 @@ public class SignSpy extends FreedomService
         }
 
         return new SignSnapshot(event.getBlock().getBlockData().clone(), event.getSide(),
-                List.copyOf(lines), color, glowing, List.copyOf(otherLines), otherColor, otherGlowing);
+                List.copyOf(lines), List.copyOf(oldLines), color, glowing,
+                List.copyOf(otherLines), otherColor, otherGlowing);
     }
 
     /**
@@ -241,8 +301,8 @@ public class SignSpy extends FreedomService
      * unlike runCommand it needs no client-side command parse and never prompts the click
      * confirmation screen added in 1.21.6.
      */
-    private Component viewButton(final String label, final String hover,
-                                 final SignSnapshot snapshot, final Side displaySide)
+    private Component viewButton(final String label, final String hover, final SignSnapshot snapshot,
+                                 final Side displaySide, final boolean beforeEdit)
     {
         return Component.text(label, NamedTextColor.YELLOW)
                 .clickEvent(ClickEvent.callback(
@@ -251,7 +311,7 @@ public class SignSpy extends FreedomService
                             if (audience instanceof Player viewer)
                             {
                                 Bukkit.getScheduler().runTask(plugin, FTask.guard("SignSpy/openView",
-                                        () -> openView(viewer, snapshot, displaySide)));
+                                        () -> openView(viewer, snapshot, displaySide, beforeEdit)));
                             }
                         },
                         ClickCallback.Options.builder()
@@ -261,7 +321,8 @@ public class SignSpy extends FreedomService
                 .hoverEvent(HoverEvent.showText(Component.text(hover, NamedTextColor.GRAY)));
     }
 
-    private void openView(final Player viewer, final SignSnapshot snapshot, final Side displaySide)
+    private void openView(final Player viewer, final SignSnapshot snapshot, final Side displaySide,
+                          final boolean beforeEdit)
     {
         if (!viewer.isOnline())
         {
@@ -278,9 +339,11 @@ public class SignSpy extends FreedomService
         final Sign state = (Sign) blockData.createBlockState();
         final SignSide sideState = state.getSide(snapshot.side());
         final SignSide otherSideState = state.getSide(opposite(snapshot.side()));
+        // The other side is untouched by the edit, so it reads the same before and after.
+        final List<Component> editedLines = beforeEdit ? snapshot.oldLines() : snapshot.lines();
         for (int i = 0; i < LINES_PER_SIDE; i++)
         {
-            sideState.line(i, snapshot.lines().get(i));
+            sideState.line(i, editedLines.get(i));
             otherSideState.line(i, snapshot.otherLines().get(i));
         }
         sideState.setColor(snapshot.color());
