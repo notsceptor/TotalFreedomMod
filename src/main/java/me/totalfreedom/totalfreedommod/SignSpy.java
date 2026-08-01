@@ -89,10 +89,21 @@ public class SignSpy extends FreedomService
         String changedLine = "";
         String firstLine = "";
         int nonEmptyLines = 0;
+        boolean changed = false;
         for (int i = 0; i < LINES_PER_SIDE; i++)
         {
             final Component line = event.line(i);
             final String plain = line != null ? AdventureUtil.componentToPlainText(line).trim() : "";
+            final String oldPlain = oldSide != null
+                    ? AdventureUtil.componentToPlainText(oldSide.line(i)).trim() : "";
+            if (!plain.equals(oldPlain))
+            {
+                changed = true;
+                if (changedLine.isEmpty() && !plain.isEmpty())
+                {
+                    changedLine = plain;
+                }
+            }
             if (plain.isEmpty())
             {
                 continue;
@@ -102,14 +113,15 @@ public class SignSpy extends FreedomService
                 firstLine = plain;
             }
             nonEmptyLines++;
-
-            final String oldPlain = oldSide != null
-                    ? AdventureUtil.componentToPlainText(oldSide.line(i)).trim() : "";
-            if (changedLine.isEmpty() && !plain.equals(oldPlain))
-            {
-                changedLine = plain;
-            }
         }
+
+        // Covers no-op edits and blank placements alike: submitting the editor without altering
+        // any line is not worth logging.
+        if (!changed)
+        {
+            return;
+        }
+
         final String displayLine = !changedLine.isEmpty() ? changedLine : firstLine;
 
         int otherNonEmptyLines = 0;
