@@ -38,18 +38,10 @@ public class SignSpy extends FreedomService
 {
     private static final int LINES_PER_SIDE = 4;
     private static final Duration VIEW_LIFETIME = Duration.ofMinutes(10);
-    // The client closes the sign editor on its own if the faked block entity disappears under it,
-    // so the revert doubles as a force-close deadline rather than running right after opening.
     private static final long REVERT_DELAY_TICKS = 20L * 60L;
     private static final int FAKE_SIGN_DEPTH = 4;
-    // The sign editor caps a line at 90 pixels rather than at a character count, which is about 15
-    // characters of ordinary text and about 45 of the narrowest. Anything past this came from a
-    // client that skipped the editor, so cutting it costs no legitimate text and stops a 384
-    // character line, the packet's own limit, from flooding chat.
     private static final int MAX_LINE_CHARS = 50;
-    // A four line sign of narrow text still runs long, so the whole summary gets a budget too.
     private static final int SUMMARY_CHARS = 90;
-    // Trailing room this small only fits a stub of the next line, which reads worse than dropping it.
     private static final int MIN_CHANGE_CHARS = 8;
 
     private Map<UUID, Location> pendingReverts;
@@ -96,13 +88,9 @@ public class SignSpy extends FreedomService
     {
         final Player editor = event.getPlayer();
 
-        // The event fires before the edit is applied, so the block state still holds the
-        // pre-edit text; diff against it so the chat line shows what actually changed.
         final Sign oldState = event.getBlock().getState() instanceof Sign sign ? sign : null;
         final SignSide oldSide = oldState != null ? oldState.getSide(event.getSide()) : null;
 
-        // Written and cleared lines are listed in the order they appear on the sign, so the chat
-        // line reads like the edit itself rather than a summary of it.
         final List<LineChange> changes = new ArrayList<>(LINES_PER_SIDE);
         int nonEmptyLines = 0;
         int deletedLines = 0;
@@ -130,8 +118,6 @@ public class SignSpy extends FreedomService
             }
         }
 
-        // Covers no-op edits and blank placements alike: submitting the editor without altering
-        // any line is not worth logging.
         if (changes.isEmpty())
         {
             return;
@@ -150,8 +136,6 @@ public class SignSpy extends FreedomService
             }
         }
 
-        // Naming the side only says something when the other side is written on too; a wall sign
-        // has just the one reachable side, and a blank back is nothing to distinguish from.
         final boolean bothSides = otherNonEmptyLines > 0
                 && !(event.getBlock().getBlockData() instanceof WallSign);
         final String context = bothSides
@@ -262,8 +246,6 @@ public class SignSpy extends FreedomService
         boolean otherGlowing = false;
         final List<Component> otherLines = new ArrayList<>(LINES_PER_SIDE);
         final List<Component> oldLines = new ArrayList<>(LINES_PER_SIDE);
-        // Dye and glow are applied by separate interactions, never by the edit itself, so the
-        // pre-edit state is the correct source for them; only the text comes from the event.
         if (oldState != null)
         {
             final SignSide side = oldState.getSide(event.getSide());
@@ -296,11 +278,6 @@ public class SignSpy extends FreedomService
                 List.copyOf(otherLines), otherColor, otherGlowing);
     }
 
-    /**
-     * A callback click event reaches the server as an opaque payload rather than a command, so
-     * unlike runCommand it needs no client-side command parse and never prompts the click
-     * confirmation screen added in 1.21.6.
-     */
     private Component viewButton(final String label, final String hover, final SignSnapshot snapshot,
                                  final Side displaySide, final boolean beforeEdit)
     {
@@ -379,7 +356,6 @@ public class SignSpy extends FreedomService
         final Player viewer = Bukkit.getPlayer(viewerId);
         if (viewer == null || !viewer.getWorld().equals(faked.getWorld()))
         {
-            // A world change forces a full chunk resend, which cleans the ghost block up anyway.
             return;
         }
         viewer.sendBlockChange(faked, faked.getBlock().getBlockData());
