@@ -135,7 +135,8 @@ public class YamlMigrationService
      * <p>
      * The version is recorded even when the domain had no YAML to import, so an install that
      * never had the file stops re-checking for it. A {@code body} that throws is left
-     * unrecorded and retried on the next start.
+     * unrecorded and retried on the next start; the remaining domains still run, since one
+     * unimportable file should not strand every other domain's data.
      */
     private void runOnce(final MigrationRepository ledger, final Set<String> applied,
             final String version, final Runnable body) throws SQLException
@@ -143,7 +144,17 @@ public class YamlMigrationService
         if (applied.contains(version))
             return;
 
-        body.run();
+        try
+        {
+            body.run();
+        }
+        catch (RuntimeException ex)
+        {
+            FLog.warning(String.format("YAML import '%s' did not complete, will retry on next start: %s",
+                    version, ex.getMessage()));
+            return;
+        }
+
         ledger.markApplied(version);
     }
 
@@ -219,8 +230,7 @@ public class YamlMigrationService
 
         FLog.info("Admin migration complete: " + migrated.get() + " migrated, " + failed.get() + " failed");
 
-        // Backup the old file
-        backupFile(adminsFile);
+        finishMigration(failed.get(), adminsFile);
     }
 
     /**
@@ -292,8 +302,7 @@ public class YamlMigrationService
 
         FLog.info("Ban migration complete: " + migrated.get() + " migrated, " + failed.get() + " failed");
 
-        // Backup the old file
-        backupFile(bansFile);
+        finishMigration(failed.get(), bansFile);
     }
 
     /**
@@ -357,8 +366,7 @@ public class YamlMigrationService
 
         FLog.info("Permban migration complete: " + migrated.get() + " migrated, " + failed.get() + " failed");
 
-        // Backup the old file
-        backupFile(permbansFile);
+        finishMigration(failed.get(), permbansFile);
     }
 
     /**
@@ -420,7 +428,7 @@ public class YamlMigrationService
 
         FLog.info("Rank migration complete: " + migrated.get() + " migrated, " + failed.get() + " failed");
 
-        backupFile(ranksFile);
+        finishMigration(failed.get(), ranksFile);
     }
 
     /**
@@ -500,7 +508,7 @@ public class YamlMigrationService
 
         FLog.info("Protected area migration complete: " + migrated.get() + " migrated, " + failed.get() + " failed");
 
-        backupFile(areasFile);
+        finishMigration(failed.get(), areasFile);
     }
 
     /**
@@ -619,10 +627,7 @@ public class YamlMigrationService
 
         FLog.info("Player data migration complete: " + migrated.get() + " migrated, " + failed.get() + " failed");
 
-        for (File file : files)
-        {
-            backupFile(file);
-        }
+        finishMigration(failed.get(), files);
     }
 
     /**
@@ -639,6 +644,23 @@ public class YamlMigrationService
 
         // Fallback: generate offline-mode UUID
         return UUID.nameUUIDFromBytes(("OfflinePlayer:" + admin.getName().toLowerCase()).getBytes());
+    }
+
+    /**
+     * Retire the imported YAML now that every entry landed in the database.
+     * <p>
+     * A domain that lost even one entry keeps its file under the original name and aborts, so
+     * {@link #runOnce} leaves the version unrecorded and the whole domain is retried on the next
+     * start rather than silently stranding the data in a {@code .migrated} file.
+     */
+    private void finishMigration(final int failed, final File... sources)
+    {
+        if (failed > 0)
+            throw new IllegalStateException(String.format("%d entr%s could not be imported",
+                    failed, failed == 1 ? "y" : "ies"));
+
+        Stream.of(sources)
+              .forEach(this::backupFile);
     }
 
     /**
