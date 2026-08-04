@@ -229,8 +229,6 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
         final long migrated = plugin.al.getAllAdmins().values()
                 .stream()
                 .filter(admin -> admin.getRankId() != null)
-                // A rank id that no longer names a rank but does name a title is exactly one of
-                // these; anything else unresolvable is left alone for an operator to look at.
                 .filter(admin -> plugin.rm.getCustomRank(admin.getRankId()) == null)
                 .filter(admin -> plugin.tm.hasTitle(admin.getRankId()))
                 .peek(admin -> grantTitleOffline(admin.getName(), admin.getRankId()))
@@ -264,7 +262,7 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
     /**
      * The rank a senior admin should hold, resolved as the least privileged rank that is granted
      * senior standing. Derived from {@code ranks.json} rather than named, so a renamed or
-     * operator-defined senior rank is still found.
+     * defined senior rank is still found.
      */
     private String seniorRankId()
     {

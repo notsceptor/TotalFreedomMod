@@ -224,7 +224,7 @@ public class RankManager extends FreedomService
      * Ranks are defined entirely by that file; nothing in code knows a default tier any more, so a
      * first run copies the shipped definitions rather than synthesising them. If the resource is
      * somehow missing the registry is left empty, which denies every guarded command instead of
-     * inventing ranks that the operator never approved.
+     * inventing ranks that the team never approved.
      */
     private void installBundledRanks()
     {
@@ -1107,7 +1107,7 @@ public class RankManager extends FreedomService
      * Display is not the same question as permission. A few identities are recognised here purely
      * so they read correctly in chat, and none of them grants anything: the impostor marker, the
      * hardcoded developer list, and the owners named in config. Each is honoured only when a rank
-     * of that name actually exists in the registry, so an operator who removes one simply gets the
+     * of that name actually exists in the registry, so a staff member who removes one simply gets the
      * sender's real rank instead.
      */
     public Displayable getDisplay(CommandSender sender)

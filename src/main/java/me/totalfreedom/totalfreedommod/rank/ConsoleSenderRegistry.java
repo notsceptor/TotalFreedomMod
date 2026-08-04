@@ -110,7 +110,7 @@ public class ConsoleSenderRegistry
     /**
      * Raises every {@link #HOST_CHANNELS host channel} to {@link #HOST_CHANNEL_FLOOR}, whether it
      * was bound too low or left out of {@code host_senders:} entirely. A binding at or above the
-     * floor is left alone, so an operator can still hand a host channel a higher custom rank.
+     * floor is left alone, so any console user can still hand a host channel a higher custom rank.
      */
     private void applyHostChannelFloor()
     {
@@ -152,7 +152,7 @@ public class ConsoleSenderRegistry
 
     /**
      * Whether {@code rankId} sits at or above the host-channel floor, compared on the registry's own
-     * level scale so operator-defined numbering is honoured.
+     * level scale so custom defined numbering is honoured.
      */
     private boolean outranksFloor(final String rankId, final CustomRank floor)
     {

@@ -9,7 +9,7 @@ import java.util.Optional;
  * A few code paths cannot be expressed as a permission check because they have to answer "which
  * rank?" rather than "may they?": what an unidentified sender falls back to, what a newly added
  * admin starts as, which rank marks an impostor. Naming those ranks in code would break the moment
- * an operator renamed or deleted one, so a rank instead declares the roles it fills:
+ * a custom renamed or deleted one, so a rank instead declares the roles it fills:
  * <pre>
  * "senior_admin": { ..., "roles": ["console_floor"] }
  * </pre>

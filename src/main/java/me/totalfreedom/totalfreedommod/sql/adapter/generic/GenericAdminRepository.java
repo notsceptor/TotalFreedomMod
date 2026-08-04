@@ -451,7 +451,7 @@ public class GenericAdminRepository implements AdminRepository
     /**
      * Picks the rank id out of the two columns admin rows may still carry.
      * <p>
-     * {@code custom_rank} held the operator-assigned rank and took precedence over {@code rank},
+     * {@code custom_rank} held the custom-assigned rank and took precedence over {@code rank},
      * which held a fixed tier name, so it is preferred here as well. Rows are rewritten with the id
      * in {@code rank} and {@code custom_rank} cleared, so this only matters until a row is next
      * saved. A tier name lowercases into an id, which is the convention {@code ranks.json} uses.

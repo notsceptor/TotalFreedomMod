@@ -76,7 +76,7 @@ public final class PersistenceQueue
     }
 
     /**
-     * Drop the retained operator chain once its tail completes. The chain is strictly
+     * Drop the retained chain once its tail completes. The chain is strictly
      * sequential, so a completed tail means every write before it is done.
      */
     private void collapse(final Mono<Void> completed)

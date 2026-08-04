@@ -277,7 +277,7 @@ public class Command_saconfig extends FCommand
         }
 
         // Group by the rank each admin actually holds. Ranks come from the registry rather than a
-        // fixed set, so an operator-defined rank gets its own line instead of being folded into a
+        // fixed set, so a custom defined rank gets its own line instead of being folded into a
         // tier that happens to sit near it.
         final Map<CustomRank, List<Admin>> byRank = activeAdmins.stream()
             .filter(admin -> plugin().rm.getCustomRank(admin.getRankId()) != null)

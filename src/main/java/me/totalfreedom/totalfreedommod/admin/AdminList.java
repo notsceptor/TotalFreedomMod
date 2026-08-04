@@ -46,7 +46,7 @@ public class AdminList extends FreedomService
 
     /**
      * The node that marks a rank as senior. Senior standing is a capability granted by
-     * {@code ranks.json} rather than a fixed tier, so an operator-defined rank can hold it and a
+     * {@code ranks.json} rather than a fixed tier, so a defined rank can hold it and a
      * rename or re-tier of the shipped ranks does not strand this check.
      */
     public static final String SENIOR_STATUS_NODE = "tfm.admin.senior.status";
@@ -230,7 +230,7 @@ public class AdminList extends FreedomService
      * <p>
      * Asked as a capability rather than as a rank comparison, because no rank is named in code any
      * more: whichever ranks {@code ranks.json} grants {@link #SENIOR_STATUS_NODE} to are the senior
-     * ones, including any the operator defined themselves.
+     * ones, including any custom definitions.
      */
     public boolean isSeniorAdmin(CommandSender sender)
     {

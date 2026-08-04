@@ -20,7 +20,7 @@ public class Admin implements ConfigLoadable, Validatable
 
     /**
      * The id of the rank this admin holds, resolved against {@code ranks.json}. Stored as an id
-     * rather than as a fixed tier so that operator-defined ranks are first-class: an admin may hold
+     * rather than as a fixed tier so that defined ranks are first-class: an admin may hold
      * any rank the registry knows, not just one of a handful the plugin ships with.
      */
     private String rankId = null;
@@ -81,7 +81,7 @@ public class Admin implements ConfigLoadable, Validatable
     /**
      * Folds the two rank fields records used to carry into the single id used now.
      * <p>
-     * {@code custom_rank} was the operator-assigned rank and took precedence over {@code rank},
+     * {@code custom_rank} was the assigned rank and took precedence over {@code rank},
      * which held one of the fixed tiers, so it is preferred here too. A tier name is lowercased to
      * become an id, which is the convention the shipped {@code ranks.json} follows.
      */

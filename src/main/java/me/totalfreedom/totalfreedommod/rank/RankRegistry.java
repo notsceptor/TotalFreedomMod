@@ -89,7 +89,7 @@ public final class RankRegistry
      * The rank filling {@code role}, preferring one that declares it in {@code ranks.json} and
      * otherwise deriving it from the shape of the registry.
      * <p>
-     * Nothing in code names a rank, so an operator may rename, re-tier or delete any of them and
+     * Nothing in code names a rank, so a designated staff member may rename, re-tier or delete any of them and
      * the roles follow. When two ranks declare the same role the lower-level one wins, which keeps
      * the answer stable rather than depending on map order.
      */
