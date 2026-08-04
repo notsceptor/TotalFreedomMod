@@ -7,6 +7,7 @@ import me.totalfreedom.totalfreedommod.sql.adapter.*;
 import me.totalfreedom.totalfreedommod.sql.adapter.generic.*;
 import me.totalfreedom.totalfreedommod.util.FLog;
 
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Locale;
 import java.util.stream.Collectors;
@@ -22,6 +23,13 @@ import java.util.stream.Stream;
  */
 public class SQLiteAdapter extends DatabaseAdapter
 {
+    /**
+     * Constant stand-in for CURRENT_TIMESTAMP, which SQLite will not accept as the default of a
+     * column added by ALTER TABLE. Rows carrying it are backfilled immediately after the column
+     * is added.
+     */
+    private static final String EPOCH_TIMESTAMP = "1970-01-01 00:00:00";
+
     private AdminRepository adminRepository;
     private BanRepository banRepository;
     private PermbanRepository permbanRepository;
@@ -198,7 +206,7 @@ public class SQLiteAdapter extends DatabaseAdapter
 
         // Migration for tables created before custom_rank/updated_at existed.
         addColumnIfMissing("admins", "custom_rank", "TEXT");
-        addTimeStampColumnIfMissing("admins", "updated_at");
+        addTimestampColumnIfMissing("admins", "updated_at");
 
         // Create indexes
         statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_admins_username ON admins(username)");
@@ -235,7 +243,7 @@ public class SQLiteAdapter extends DatabaseAdapter
             )
             """;
         statementHandler.executeUpdate(sql);
-        addTimeStampColumnIfMissing("bans", "updated_at");
+        addTimestampColumnIfMissing("bans", "updated_at");
 
         statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_bans_uuid ON bans(uuid)");
         statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_bans_username ON bans(username)");
@@ -269,7 +277,7 @@ public class SQLiteAdapter extends DatabaseAdapter
             )
             """;
         statementHandler.executeUpdate(sql);
-        addTimeStampColumnIfMissing("permbans", "updated_at");
+        addTimestampColumnIfMissing("permbans", "updated_at");
 
         statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_permbans_uuid ON permbans(uuid)");
         statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_permbans_username ON permbans(username)");
@@ -303,7 +311,7 @@ public class SQLiteAdapter extends DatabaseAdapter
             )
             """;
         statementHandler.executeUpdate(sql);
-        addTimeStampColumnIfMissing("strikes", "updated_at");
+        addTimestampColumnIfMissing("strikes", "updated_at");
     }
 
     private void createDiscordLinksTable() throws SQLException
@@ -318,7 +326,7 @@ public class SQLiteAdapter extends DatabaseAdapter
             )
             """;
         statementHandler.executeUpdate(sql);
-        addTimeStampColumnIfMissing("discord_links", "updated_at");
+        addTimestampColumnIfMissing("discord_links", "updated_at");
     }
 
     private void createRanksTable() throws SQLException
@@ -339,7 +347,7 @@ public class SQLiteAdapter extends DatabaseAdapter
             )
             """;
         statementHandler.executeUpdate(sql);
-        addTimeStampColumnIfMissing("ranks", "updated_at");
+        addTimestampColumnIfMissing("ranks", "updated_at");
         statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_ranks_level ON ranks(level)");
     }
 
@@ -374,7 +382,7 @@ public class SQLiteAdapter extends DatabaseAdapter
             )
             """;
         statementHandler.executeUpdate(sql);
-        addTimeStampColumnIfMissing("protected_areas", "updated_at");
+        addTimestampColumnIfMissing("protected_areas", "updated_at");
         statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_protected_areas_name ON protected_areas(name)");
     }
 
@@ -388,7 +396,7 @@ public class SQLiteAdapter extends DatabaseAdapter
             )
             """;
         statementHandler.executeUpdate(sql);
-        addTimeStampColumnIfMissing("saved_flags", "updated_at");
+        addTimestampColumnIfMissing("saved_flags", "updated_at");
     }
 
     private void createPlayersTable() throws SQLException
@@ -410,7 +418,7 @@ public class SQLiteAdapter extends DatabaseAdapter
             )
             """;
         statementHandler.executeUpdate(sql);
-        addTimeStampColumnIfMissing("players", "updated_at");
+        addTimestampColumnIfMissing("players", "updated_at");
     }
 
     private void createPlayerIpsTable() throws SQLException
@@ -450,6 +458,7 @@ public class SQLiteAdapter extends DatabaseAdapter
             }
             return false;
         }
+        return false;
     }
 
     /**
