@@ -9,7 +9,6 @@ import me.totalfreedom.totalfreedommod.util.FLog;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Locale;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -436,47 +435,45 @@ public class SQLiteAdapter extends DatabaseAdapter
     }
 
     /**
-     * Add a column to a table created before that column existed. Ignores the error
-     * when the column is already present (older SQLite has no ADD COLUMN IF NOT EXISTS),
-     * and reports anything else rather than leaving the table unmigrated.
-     * 
-     * @return whether the column was actually added
+     * Add a column to a table created before that column existed. SQLite has no
+     * ADD COLUMN IF NOT EXISTS, so presence is checked up front rather than by
+     * swallowing the resulting error.
      */
-    private boolean addColumnIfMissing(String table, String column, String definition)
+    private void addColumnIfMissing(final String table, final String column, final String definition) throws SQLException
     {
-        try
-        {
-            statementHandler.executeUpdate(String.format("ALTER TABLE %s ADD COLUMN %s %s", table, column, definition));
-            return true;
-        }
-        catch (SQLException ex)
-        {
-            final String message = ex.getMessage() != null ? ex.getMessage().toLowerCase(Locale.ROOT) : "";
-            if (!message.contains("duplicate column name"))
-            {
-                FLog.warning(String.format("Could not add column %s to %s: %s", column, table, ex.getMessage()));
-            }
-            return false;
-        }
-        return false;
+        if (columnExists(table, column))
+            return;
+
+        statementHandler.executeUpdate(String.format("ALTER TABLE %s ADD COLUMN %s %s", table, column, definition));
     }
 
     /**
-     * Add a timestamp column to a table created before that column existed.
-     * <p>
-     * SQLite rejects ADD COLUMN with a non-constant default such as CURRENT_TIMESTAMP, and
-     * rejects NOT NULL without a default, so the column is added nullable and backfilled.
-     * Tables created fresh still declare it NOT NULL DEFAULT CURRENT_TIMESTAMP.
+     * Add a missing timestamp column to a table created before that column existed.
+     * SQLite rejects a non-constant default such as CURRENT_TIMESTAMP in ALTER TABLE ADD COLUMN,
+     * so the column is added with a constant default and existing rows are then backfilled with
+     * the current time.
      */
-    private void addTimeStampColumnIfMissing(String table, String column) throws SQLException
+    private void addTimestampColumnIfMissing(final String table, final String column) throws SQLException
     {
-        if (!addColumnIfMissing(table, column, "TEXT"))
-        {
+        if (columnExists(table, column))
             return;
-        }
 
-        statementHandler.executeUpdate(String.format(
-                 "UPDATE %s SET %s = CURRENT_TIMESTAMP WHERE %s IS NULL", table, column, column));
+        statementHandler.executeUpdate(String.format("ALTER TABLE %s ADD COLUMN %s TEXT NOT NULL DEFAULT '%s'",
+                table, column, EPOCH_TIMESTAMP));
+        statementHandler.executeUpdate(String.format("UPDATE %s SET %s = CURRENT_TIMESTAMP", table, column));
+    }
+
+    private boolean columnExists(final String table, final String column) throws SQLException
+    {
+        try (ResultSet columns = statementHandler.executeQuery(String.format("PRAGMA table_info(%s)", table)))
+        {
+            while (columns.next())
+            {
+                if (column.equalsIgnoreCase(columns.getString("name")))
+                    return true;
+            }
+        }
+        return false;
     }
 
     // ============================================

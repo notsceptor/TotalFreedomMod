@@ -270,18 +270,16 @@ public class PlayerList extends FreedomService
             PlayerRepository repo = plugin.dm.getPlayerRepository();
             reconcileFromJsonIfNewer(username, repo);
 
-            PlayerData data = repo.findByUsername(username);
-            if (data == null)
-            {
-                return null;
-            }
-
-            if (Bukkit.getPlayerExact(data.getUsername()) != null)
-            {
-                dataMap.put(data.getUsername().toLowerCase(), data);
-            }
-
-            return data;
+            return repo.findByUsername(username)
+                       .map(data ->
+                       {
+                           if (Bukkit.getPlayerExact(data.getUsername()) != null)
+                           {
+                               dataMap.put(data.getUsername().toLowerCase(), data);
+                           }
+                           return data;
+                       })
+                       .orElse(null);
         }
         catch (Exception ex)
         {
