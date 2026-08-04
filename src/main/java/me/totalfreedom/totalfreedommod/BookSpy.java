@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
+import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.rank.Displayable;
 import me.totalfreedom.totalfreedommod.util.*;
@@ -28,7 +29,9 @@ public class BookSpy extends FreedomService
 	private static final int MAX_CHANGE_CHARS = 30;
 	private static final int MIN_CHANGE_CHARS = 8;
 	private static final int MAX_LISTED_PAGES = 5;
+	private static final int MAX_BOOK_PAGES = 100;
 	private static final Component UNTITLED = Component.text("Untitled");
+	private static final Component UNSAFE_PAGE = Component.text("[unsafe page withheld]");
 
 	private record BookSnapshot(Component title, String author, List<Component> newPages, int firstChangedPage)
 	{
@@ -59,8 +62,8 @@ public class BookSpy extends FreedomService
 		final Player editor = event.getPlayer();
 		final BookMeta oldMeta = event.getPreviousBookMeta();
 		final BookMeta newMeta = event.getNewBookMeta();
-		final List<Component> oldPages = List.copyOf(oldMeta.pages());
-		final List<Component> newPages = List.copyOf(newMeta.pages());
+		final List<Component> oldPages = sanitize(oldMeta.pages());
+		final List<Component> newPages = sanitize(newMeta.pages());
 
 		if (!event.isSigning() && oldPages.equals(newPages))
 		{
@@ -73,7 +76,8 @@ public class BookSpy extends FreedomService
 		}
 
 		final boolean editorIsAdmin = plugin.al.isAdmin(editor);
-		final Component title = newMeta.hasTitle() ? newMeta.title() : UNTITLED;
+		final Component rawTitle = newMeta.hasTitle() ? newMeta.title() : UNTITLED;
+		final Component title = isCursed(rawTitle) ? UNTITLED : rawTitle;
 		final List<PageChange> changes = diff(oldPages, newPages);
 		final BookSnapshot snapshot = new BookSnapshot(title, editor.getName(), newPages,
 				changes.isEmpty() ? 0 : changes.get(0).page());
@@ -158,6 +162,24 @@ public class BookSpy extends FreedomService
 			}
 			FUtil.playerMsg(admin, message);
 		}
+	}
+
+	/**
+	 * Drop the component graph of any page that fails inspection, and cap the page count.
+	 * A spy reads this content back through the view buttons, so a book crafted to carry a
+	 * malicious graph must not be relayed to their client verbatim.
+	 */
+	private static List<Component> sanitize(final List<Component> pages)
+	{
+		return pages.stream()
+					.limit(MAX_BOOK_PAGES)
+					.map(page -> isCursed(page) ? UNSAFE_PAGE : page)
+					.toList();
+	}
+
+	private static boolean isCursed(final Component component)
+	{
+		return ComponentScanner.isCursed(component, ConfigEntry.maxComponentNodes());
 	}
 
 	private static boolean isBlank(final List<Component> pages)
