@@ -1,11 +1,7 @@
 package me.totalfreedom.totalfreedommod;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 import io.papermc.paper.math.Position;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
@@ -18,10 +14,7 @@ import net.kyori.adventure.text.event.ClickCallback;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
-import org.bukkit.Bukkit;
-import org.bukkit.DyeColor;
-import org.bukkit.Location;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.block.Sign;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
@@ -141,8 +134,10 @@ public class SignSpy extends FreedomService
         final String context = bothSides
                 ? (event.getSide() == Side.FRONT ? " (front)" : " (back)") : "";
 
+        final boolean editorIsAdmin = plugin.al.isAdmin(editor);
+
         Component message = Component.empty();
-        if (plugin.al.isAdmin(editor))
+        if (editorIsAdmin)
         {
             final Displayable display = plugin.rm.getDisplay(editor);
             String prefix = AdventureUtil.componentToPlainText(display.getColoredTag()).trim();
@@ -170,7 +165,7 @@ public class SignSpy extends FreedomService
             final String text = change.text();
             final int room = Math.min(budget, MAX_LINE_CHARS);
             shown.add(text.length() > room
-                    ? new LineChange(change.added(), text.substring(0, room)) : change);
+                    ? new LineChange(change.added(), String.format("%s[...]", text.substring(0, room))) : change);
             budget -= Math.min(text.length(), room);
         }
 
@@ -209,9 +204,10 @@ public class SignSpy extends FreedomService
         else
         {
             final SignSnapshot snapshot = snapshot(event, oldState);
-            message = message.append(Component.text(" ", NamedTextColor.GRAY))
-                    .append(viewButton("[View]", "Click to view the full sign",
-                            snapshot, snapshot.side(), false));
+            message = message.append(Component.text(" [", NamedTextColor.GRAY))
+                    .append(viewButton("View", "Click to view the full sign",
+                            snapshot, snapshot.side(), false))
+                    .append(Component.text("]", NamedTextColor.GRAY));
         }
 
         for (final Player admin : plugin.al.getOnlineAdmins())
@@ -221,7 +217,7 @@ public class SignSpy extends FreedomService
                 continue;
             }
             final PlayerData data = plugin.pl.getData(admin);
-            if (data == null || !data.isSignSpy())
+            if (data == null || !data.getSignSpyMode().shows(editorIsAdmin))
             {
                 continue;
             }

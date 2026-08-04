@@ -1,6 +1,6 @@
 package me.totalfreedom.totalfreedommod;
 
-import me.totalfreedom.totalfreedommod.player.CommandSpyMode;
+import me.totalfreedom.totalfreedommod.player.SpyMode;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.rank.Displayable;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
@@ -49,13 +49,7 @@ public class CommandSpy extends FreedomService
                 continue;
             }
 
-            final CommandSpyMode mode = playerData.getCommandSpyMode();
-            if (mode == CommandSpyMode.ADMINS && !senderIsAdmin)
-            {
-                continue;
-            }
-
-            if (mode == CommandSpyMode.OPS && senderIsAdmin)
+            if (!playerData.getCommandSpyMode().shows(senderIsAdmin))
             {
                 continue;
             }

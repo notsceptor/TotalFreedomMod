@@ -392,8 +392,10 @@ public class PostgreSQLAdapter extends DatabaseAdapter
                 "username" VARCHAR(16) PRIMARY KEY,
                 "first_join_unix" BIGINT NOT NULL DEFAULT 0,
                 "last_join_unix" BIGINT NOT NULL DEFAULT 0,
-                "potion_spy" BOOLEAN NOT NULL DEFAULT FALSE,
+                "potion_spy_mode" VARCHAR(16) NOT NULL DEFAULT 'off',
                 "command_spy_mode" VARCHAR(16) NOT NULL DEFAULT 'off',
+                "sign_spy_mode" VARCHAR(16) NOT NULL DEFAULT 'off',
+                "book_spy_mode" VARCHAR(16) NOT NULL DEFAULT 'off',
                 "muted" BOOLEAN NOT NULL DEFAULT FALSE,
                 "frozen" BOOLEAN NOT NULL DEFAULT FALSE,
                 "commands_blocked" BOOLEAN NOT NULL DEFAULT FALSE,
@@ -405,6 +407,9 @@ public class PostgreSQLAdapter extends DatabaseAdapter
             """;
         statementHandler.executeUpdate(sql);
         statementHandler.executeUpdate("ALTER TABLE \"players\" ADD COLUMN IF NOT EXISTS \"updated_at\" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP");
+        statementHandler.executeUpdate("ALTER TABLE \"players\" ADD COLUMN IF NOT EXISTS \"potion_spy_mode\" VARCHAR(16) NOT NULL DEFAULT 'off'");
+        statementHandler.executeUpdate("ALTER TABLE \"players\" ADD COLUMN IF NOT EXISTS \"sign_spy_mode\" VARCHAR(16) NOT NULL DEFAULT 'off'");
+        statementHandler.executeUpdate("ALTER TABLE \"players\" ADD COLUMN IF NOT EXISTS \"book_spy_mode\" VARCHAR(16) NOT NULL DEFAULT 'off'");
     }
 
     private void createPlayerIpsTable() throws SQLException
