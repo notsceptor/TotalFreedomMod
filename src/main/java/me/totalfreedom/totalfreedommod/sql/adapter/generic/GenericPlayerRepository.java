@@ -147,18 +147,24 @@ public class GenericPlayerRepository implements PlayerRepository
     @Override
     public PlayerData findByUsername(String username) throws SQLException
     {
+        PlayerData data = null;
         String sql = String.format("SELECT %s FROM %s WHERE %s = ?", selectColumns, tblPlayers, colUsername);
         try (PreparedStatement stmt = statementHandler.prepareStatement(sql, username);
              ResultSet rs = stmt.executeQuery())
         {
             if (rs.next())
             {
-                PlayerData data = loadPlayerFromRow(rs);
-                getIps(data.getUsername()).forEach(data::addIp);
-                return data;
+                data = loadPlayerFromRow(rs);
             }
         }
-        return null;
+
+        if (data == null)
+        {
+            return null;
+        }
+
+        getIps(data.getUsername()).forEach(data::addIp);
+        return data;
     }
 
     @Override
