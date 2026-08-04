@@ -24,8 +24,10 @@ public class PlayerData implements ConfigLoadable, Validatable
     private String username;
     private long firstJoinUnix;
     private long lastJoinUnix;
-    private boolean potionSpy;
-    private CommandSpyMode commandSpyMode = CommandSpyMode.OFF;
+    private SpyMode potionSpyMode = SpyMode.OFF;
+    private SpyMode signSpyMode = SpyMode.OFF;
+    private SpyMode bookSpyMode = SpyMode.OFF;
+    private SpyMode commandSpyMode = SpyMode.OFF;
     private boolean muted;
     private boolean frozen;
     private boolean commandsBlocked;
@@ -77,12 +79,17 @@ public class PlayerData implements ConfigLoadable, Validatable
 
     public boolean isPotionSpy()
     {
-        return potionSpy;
+        return getPotionSpyMode() != SpyMode.OFF;
     }
 
-    public void setPotionSpy(boolean potionSpy)
+    public SpyMode getPotionSpyMode()
     {
-        this.potionSpy = potionSpy;
+        return potionSpyMode == null ? SpyMode.OFF : potionSpyMode;
+    }
+
+    public void setPotionSpyMode(SpyMode potionSpyMode)
+    {
+        this.potionSpyMode = potionSpyMode == null ? SpyMode.OFF : potionSpyMode;
     }
 
     public boolean isMuted()
@@ -144,9 +151,11 @@ public class PlayerData implements ConfigLoadable, Validatable
         trimIps();
         this.firstJoinUnix = cs.getLong("first_join", 0);
         this.lastJoinUnix = cs.getLong("last_join", 0);
-        this.potionSpy = cs.getBoolean("potion_spy", false);
+        this.potionSpyMode = SpyMode.fromStorage(cs.getString("potion_spy_mode", cs.getBoolean("potion_spy", false) ? "all" : "off"));
+        this.signSpyMode = SpyMode.fromStorage(cs.getString("sign_spy_mode", cs.getBoolean("sign_spy", false) ? "all" : "off"));
+        this.bookSpyMode = SpyMode.fromStorage(cs.getString("book_spy_mode", "off"));
         final boolean legacyCommandSpy = cs.getBoolean("command_spy", false);
-        this.commandSpyMode = CommandSpyMode.fromString(cs.getString("command_spy_mode", legacyCommandSpy ? "ops" : "off"));
+        this.commandSpyMode = SpyMode.fromStorage(cs.getString("command_spy_mode", legacyCommandSpy ? "ops" : "off"));
         this.muted = cs.getBoolean("muted", false);
         this.frozen = cs.getBoolean("frozen", false);
         this.commandsBlocked = cs.getBoolean("commands_blocked", false);
@@ -167,22 +176,52 @@ public class PlayerData implements ConfigLoadable, Validatable
 
     public boolean isCommandSpy()
     {
-        return commandSpyMode != CommandSpyMode.OFF;
+        return getCommandSpyMode() != SpyMode.OFF;
     }
 
     public void setCommandSpy(boolean commandSpy)
     {
-        this.commandSpyMode = commandSpy ? CommandSpyMode.ALL : CommandSpyMode.OFF;
+        this.commandSpyMode = commandSpy ? SpyMode.ALL : SpyMode.OFF;
     }
 
-    public CommandSpyMode getCommandSpyMode()
+    public SpyMode getCommandSpyMode()
     {
-        return commandSpyMode;
+        return commandSpyMode == null ? SpyMode.OFF : commandSpyMode;
     }
 
-    public void setCommandSpyMode(CommandSpyMode commandSpyMode)
+    public void setCommandSpyMode(SpyMode commandSpyMode)
     {
-        this.commandSpyMode = commandSpyMode == null ? CommandSpyMode.OFF : commandSpyMode;
+        this.commandSpyMode = commandSpyMode == null ? SpyMode.OFF : commandSpyMode;
+    }
+
+    public boolean isSignSpy()
+    {
+        return getSignSpyMode() != SpyMode.OFF;
+    }
+
+    public SpyMode getSignSpyMode()
+    {
+        return signSpyMode == null ? SpyMode.OFF : signSpyMode;
+    }
+
+    public void setSignSpyMode(SpyMode signSpyMode)
+    {
+        this.signSpyMode = signSpyMode == null ? SpyMode.OFF : signSpyMode;
+    }
+
+    public boolean isBookSpy()
+    {
+        return getBookSpyMode() != SpyMode.OFF;
+    }
+
+    public SpyMode getBookSpyMode()
+    {
+        return bookSpyMode == null ? SpyMode.OFF : bookSpyMode;
+    }
+
+    public void setBookSpyMode(SpyMode bookSpyMode)
+    {
+        this.bookSpyMode = bookSpyMode == null ? SpyMode.OFF : bookSpyMode;
     }
 
     public boolean isJoinLeaveMessagesEnabled()

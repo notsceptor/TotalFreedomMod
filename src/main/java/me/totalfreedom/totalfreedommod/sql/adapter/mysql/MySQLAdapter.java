@@ -392,8 +392,10 @@ public class MySQLAdapter extends DatabaseAdapter
                 `username` VARCHAR(16) PRIMARY KEY,
                 `first_join_unix` BIGINT NOT NULL DEFAULT 0,
                 `last_join_unix` BIGINT NOT NULL DEFAULT 0,
-                `potion_spy` TINYINT(1) NOT NULL DEFAULT 0,
+                `potion_spy_mode` VARCHAR(16) NOT NULL DEFAULT 'off',
                 `command_spy_mode` VARCHAR(16) NOT NULL DEFAULT 'off',
+                `sign_spy_mode` VARCHAR(16) NOT NULL DEFAULT 'off',
+                `book_spy_mode` VARCHAR(16) NOT NULL DEFAULT 'off',
                 `muted` TINYINT(1) NOT NULL DEFAULT 0,
                 `frozen` TINYINT(1) NOT NULL DEFAULT 0,
                 `commands_blocked` TINYINT(1) NOT NULL DEFAULT 0,
@@ -405,6 +407,9 @@ public class MySQLAdapter extends DatabaseAdapter
             """;
         statementHandler.executeUpdate(sql);
         addColumnIfMissing("players", "updated_at", "DATETIME NOT NULL DEFAULT NOW()");
+        addColumnIfMissing("players", "potion_spy_mode", "VARCHAR(16) NOT NULL DEFAULT 'off'");
+        addColumnIfMissing("players", "sign_spy_mode", "VARCHAR(16) NOT NULL DEFAULT 'off'");
+        addColumnIfMissing("players", "book_spy_mode", "VARCHAR(16) NOT NULL DEFAULT 'off'");
     }
 
     private void createPlayerIpsTable() throws SQLException

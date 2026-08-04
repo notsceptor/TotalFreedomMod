@@ -11,31 +11,31 @@ import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.player.SpyMode;
 import me.totalfreedom.totalfreedommod.rank.Rank;
 
-@Command(name = "potionspy", description = "Spy on potion usage", usage = "/potionspy [ops | admins | all | off]", aliases = {"potspy"})
-@Permission(permission = "tfm.admin.potspy", level = Rank.SUPER_ADMIN, source = SourceType.ONLY_IN_GAME)
-public class Command_potionspy extends FCommand
+@Command(name = "signspy", description = "Spy on sign edits", usage = "/signspy [ops | admins | all | off]", aliases = {"sspy"})
+@Permission(permission = "tfm.admin.signspy", level = Rank.SUPER_ADMIN, source = SourceType.ONLY_IN_GAME)
+public class Command_signspy extends FCommand
 {
     @Callback
     public void toggle(final Player player)
     {
         final PlayerData data = plugin().pl.getData(player);
-        potionSpy(player, data.isPotionSpy() ? SpyMode.OFF : SpyMode.ALL);
+        signSpy(player, data.isSignSpy() ? SpyMode.OFF : SpyMode.OPS);
     }
 
     @Callback
-    public void potionSpy(final Player player, final SpyMode mode)
+    public void signSpy(final Player player, final SpyMode mode)
     {
         final PlayerData data = plugin().pl.getData(player);
 
-        data.setPotionSpyMode(mode);
+        data.setSignSpyMode(mode);
         plugin().pl.saveAsync();
-
+        
         switch (mode)
         {
-        case OFF -> msg(player, "<gray>PotionSpy disabled.");
-        case OPS -> msg(player, "<gray>PotionSpy set to <green>OPS</green> mode. You will only see non-admins' potions.");
-        case ADMINS -> msg(player, "<gray>PotionSpy set to <green>ADMINS</green> mode. You will only see admins' potions.");
-        case ALL -> msg(player, "<gray>PotionSpy set to <green>ALL</green> mode. You will see both non-admins' and admins' potions.");
+        case OFF -> msg(player, "<gray>SignSpy disabled.");
+        case OPS -> msg(player, "<gray>SignSpy set to <green>OPS</green> mode. You will only see non-admins' sign edits.");
+        case ADMINS -> msg(player, "<gray>SignSpy set to <green>ADMINS</green> mode. You will only see admins' sign edits.");
+        case ALL -> msg(player, "<gray>SignSpy set to <green>ALL</green> mode. You will see both non-admins' and admins' sign edits.");
         }
     }
 
