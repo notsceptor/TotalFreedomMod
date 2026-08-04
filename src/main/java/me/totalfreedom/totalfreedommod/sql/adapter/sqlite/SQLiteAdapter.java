@@ -8,6 +8,7 @@ import me.totalfreedom.totalfreedommod.sql.adapter.generic.*;
 import me.totalfreedom.totalfreedommod.util.FLog;
 
 import java.sql.SQLException;
+import java.util.Locale;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -197,7 +198,7 @@ public class SQLiteAdapter extends DatabaseAdapter
 
         // Migration for tables created before custom_rank/updated_at existed.
         addColumnIfMissing("admins", "custom_rank", "TEXT");
-        addColumnIfMissing("admins", "updated_at", "TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP");
+        addTimeStampColumnIfMissing("admins", "updated_at");
 
         // Create indexes
         statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_admins_username ON admins(username)");
@@ -234,7 +235,7 @@ public class SQLiteAdapter extends DatabaseAdapter
             )
             """;
         statementHandler.executeUpdate(sql);
-        addColumnIfMissing("bans", "updated_at", "TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP");
+        addTimeStampColumnIfMissing("bans", "updated_at");
 
         statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_bans_uuid ON bans(uuid)");
         statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_bans_username ON bans(username)");
@@ -268,7 +269,7 @@ public class SQLiteAdapter extends DatabaseAdapter
             )
             """;
         statementHandler.executeUpdate(sql);
-        addColumnIfMissing("permbans", "updated_at", "TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP");
+        addTimeStampColumnIfMissing("permbans", "updated_at");
 
         statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_permbans_uuid ON permbans(uuid)");
         statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_permbans_username ON permbans(username)");
@@ -302,7 +303,7 @@ public class SQLiteAdapter extends DatabaseAdapter
             )
             """;
         statementHandler.executeUpdate(sql);
-        addColumnIfMissing("strikes", "updated_at", "TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP");
+        addTimeStampColumnIfMissing("strikes", "updated_at");
     }
 
     private void createDiscordLinksTable() throws SQLException
@@ -317,7 +318,7 @@ public class SQLiteAdapter extends DatabaseAdapter
             )
             """;
         statementHandler.executeUpdate(sql);
-        addColumnIfMissing("discord_links", "updated_at", "TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP");
+        addTimeStampColumnIfMissing("discord_links", "updated_at");
     }
 
     private void createRanksTable() throws SQLException
@@ -338,7 +339,7 @@ public class SQLiteAdapter extends DatabaseAdapter
             )
             """;
         statementHandler.executeUpdate(sql);
-        addColumnIfMissing("ranks", "updated_at", "TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP");
+        addTimeStampColumnIfMissing("ranks", "updated_at");
         statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_ranks_level ON ranks(level)");
     }
 
@@ -373,7 +374,7 @@ public class SQLiteAdapter extends DatabaseAdapter
             )
             """;
         statementHandler.executeUpdate(sql);
-        addColumnIfMissing("protected_areas", "updated_at", "TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP");
+        addTimeStampColumnIfMissing("protected_areas", "updated_at");
         statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_protected_areas_name ON protected_areas(name)");
     }
 
@@ -387,7 +388,7 @@ public class SQLiteAdapter extends DatabaseAdapter
             )
             """;
         statementHandler.executeUpdate(sql);
-        addColumnIfMissing("saved_flags", "updated_at", "TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP");
+        addTimeStampColumnIfMissing("saved_flags", "updated_at");
     }
 
     private void createPlayersTable() throws SQLException
@@ -409,7 +410,7 @@ public class SQLiteAdapter extends DatabaseAdapter
             )
             """;
         statementHandler.executeUpdate(sql);
-        addColumnIfMissing("players", "updated_at", "TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP");
+        addTimeStampColumnIfMissing("players", "updated_at");
     }
 
     private void createPlayerIpsTable() throws SQLException
@@ -428,18 +429,45 @@ public class SQLiteAdapter extends DatabaseAdapter
 
     /**
      * Add a column to a table created before that column existed. Ignores the error
-     * when the column is already present (older SQLite has no ADD COLUMN IF NOT EXISTS).
+     * when the column is already present (older SQLite has no ADD COLUMN IF NOT EXISTS),
+     * and reports anything else rather than leaving the table unmigrated.
+     * 
+     * @return whether the column was actually added
      */
-    private void addColumnIfMissing(String table, String column, String definition)
+    private boolean addColumnIfMissing(String table, String column, String definition)
     {
         try
         {
             statementHandler.executeUpdate(String.format("ALTER TABLE %s ADD COLUMN %s %s", table, column, definition));
+            return true;
         }
-        catch (SQLException ignored)
+        catch (SQLException ex)
         {
-            // Column already exists.
+            final String message = ex.getMessage() != null ? ex.getMessage().toLowerCase(Locale.ROOT) : "";
+            if (!message.contains("duplicate column name"))
+            {
+                FLog.warning(String.format("Could not add column %s to %s: %s", column, table, ex.getMessage()));
+            }
+            return false;
         }
+    }
+
+    /**
+     * Add a timestamp column to a table created before that column existed.
+     * <p>
+     * SQLite rejects ADD COLUMN with a non-constant default such as CURRENT_TIMESTAMP, and
+     * rejects NOT NULL without a default, so the column is added nullable and backfilled.
+     * Tables created fresh still declare it NOT NULL DEFAULT CURRENT_TIMESTAMP.
+     */
+    private void addTimeStampColumnIfMissing(String table, String column) throws SQLException
+    {
+        if (!addColumnIfMissing(table, column, "TEXT"))
+        {
+            return;
+        }
+
+        statementHandler.executeUpdate(String.format(
+                 "UPDATE %s SET %s = CURRENT_TIMESTAMP WHERE %s IS NULL", table, column, column));
     }
 
     // ============================================
