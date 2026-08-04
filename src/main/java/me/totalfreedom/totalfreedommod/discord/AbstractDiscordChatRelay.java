@@ -4,8 +4,11 @@ import java.awt.Color;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
@@ -61,16 +64,20 @@ public abstract class AbstractDiscordChatRelay extends ListenerAdapter
             NamedTextColor.WHITE
     };
 
-    private final TextChannel channel;
+    /**
+     * Resolved per send rather than captured at construction, so a reconnect that produces new
+     * channel handles does not leave this relay writing into a dead session's objects.
+     */
+    private final Supplier<Optional<TextChannel>> channelSupplier;
     private final String channelFormat;
     private final String chatFormat;
     private final Consumer<Component> chatAction;
     private final TotalFreedomMod plugin;
     private final DiscordBridge bridge;
 
-    public AbstractDiscordChatRelay(TextChannel channel, String channelFormat, String chatFormat, Consumer<Component> chatAction, TotalFreedomMod plugin, DiscordBridge bridge)
+    public AbstractDiscordChatRelay(Supplier<Optional<TextChannel>> channelSupplier, String channelFormat, String chatFormat, Consumer<Component> chatAction, TotalFreedomMod plugin, DiscordBridge bridge)
     {
-        this.channel = channel;
+        this.channelSupplier = channelSupplier;
         this.channelFormat = channelFormat;
         this.chatFormat = chatFormat;
         this.chatAction = chatAction;
@@ -109,6 +116,11 @@ public abstract class AbstractDiscordChatRelay extends ListenerAdapter
         sendToRelayChannel(sanitizeForDiscord(message), "send system message to Discord");
     }
 
+    /**
+     * Blocking send used on shutdown, where a queued message would be dropped when the client
+     * stops. Targets this relay's own channel: it previously hardcoded the public channel, so an
+     * adminchat relay calling it would have posted into public chat.
+     */
     public void sendSystemMessageToDiscordNow(String message, long timeout, TimeUnit unit)
     {
         if (message == null || message.isBlank())
@@ -116,15 +128,15 @@ public abstract class AbstractDiscordChatRelay extends ListenerAdapter
             return;
         }
 
-        TextChannel channel = bridge.getPublicChannel();
-        if (channel == null)
+        Optional<TextChannel> target = channelSupplier.get();
+        if (target.isEmpty())
         {
             return;
         }
 
         try
         {
-            channel.sendMessage(sanitizeForDiscord(message))
+            target.get().sendMessage(sanitizeForDiscord(message))
                     .setAllowedMentions(Collections.emptyList())
                     .submit().get(timeout, unit);
         }
@@ -146,11 +158,13 @@ public abstract class AbstractDiscordChatRelay extends ListenerAdapter
         {
             return;
         }
-        if (channel == null || !event.isFromGuild())
+        if (!event.isFromGuild())
         {
             return;
         }
-        if (!event.getChannel().getId().equals(channel.getId()))
+
+        Optional<TextChannel> target = channelSupplier.get();
+        if (target.isEmpty() || !event.getChannel().getId().equals(target.get().getId()))
         {
             return;
         }
@@ -429,7 +443,8 @@ public abstract class AbstractDiscordChatRelay extends ListenerAdapter
 
     private void sendToRelayChannel(final String body, final String failureDescription)
     {
-        if (channel == null || body == null)
+        final Optional<TextChannel> target = channelSupplier.get();
+        if (target.isEmpty() || body == null)
         {
             failRelayChannelSend(failureDescription, null);
             return;
@@ -437,16 +452,19 @@ public abstract class AbstractDiscordChatRelay extends ListenerAdapter
 
         try
         {
-            channel.sendMessage(body)
+            target.get().sendMessage(body)
                     .setAllowedMentions(Collections.emptyList())
                     .queue(
                             null,
                             err -> failRelayChannelSend(failureDescription, err)
                     );
         }
-        catch (java.util.concurrent.RejectedExecutionException ex)
+        catch (RejectedExecutionException ex)
         {
+            // The client underneath us is gone, so no gateway event is coming to announce it.
+            // Tell the supervisor directly or the bridge would sit here failing every send.
             failRelayChannelSend(failureDescription, ex);
+            bridge.reportTransportFailure(failureDescription, ex);
         }
     }
 

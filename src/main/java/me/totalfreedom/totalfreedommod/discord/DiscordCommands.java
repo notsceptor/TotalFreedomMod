@@ -1,6 +1,7 @@
 package me.totalfreedom.totalfreedommod.discord;
 
 import java.sql.SQLException;
+import java.util.Optional;
 import java.util.UUID;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.admin.Admin;
@@ -61,14 +62,15 @@ public class DiscordCommands extends ListenerAdapter
             return;
         }
         String code = codeOption.getAsString().trim().toUpperCase();
-        UUID adminUuid = bridge.consumePendingLink(code);
-        if (adminUuid == null)
+        Optional<UUID> pendingUuid = bridge.consumePendingLink(code);
+        if (pendingUuid.isEmpty())
         {
             event.reply("That code is unknown or expired. Run `/link` in-game to get a fresh one.")
                     .setEphemeral(true).queue();
             return;
         }
 
+        UUID adminUuid = pendingUuid.get();
         Admin admin = plugin.al.getAdminByUuid(adminUuid);
         if (admin == null)
         {
