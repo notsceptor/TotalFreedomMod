@@ -11,7 +11,6 @@ import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.cmd.resolver.DateOffsetArgumentResolver;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
-import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
@@ -23,7 +22,7 @@ import org.bukkit.entity.Player;
 @Command(name = "tempban", aliases = {"tban", "noob"},
     description = "Temporarily bans an online or previously known player.",
     usage = "/<command> [-s] [-rb] <player> [duration] [reason]")
-@Permission(permission = "tfm.admin.ban", level = Rank.SUPER_ADMIN)
+@Permission(permission = "tfm.admin.ban")
 public class Command_tempban extends FCommand
 {
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd 'at' HH:mm:ss z");

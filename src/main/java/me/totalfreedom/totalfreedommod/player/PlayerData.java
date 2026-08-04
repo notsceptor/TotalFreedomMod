@@ -1,8 +1,11 @@
 package me.totalfreedom.totalfreedommod.player;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import me.totalfreedom.totalfreedommod.PluginProvider;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
@@ -34,6 +37,15 @@ public class PlayerData implements ConfigLoadable, Validatable
     private Component nickname;
     private int strikes;
     private final List<String> ips = Lists.newArrayList();
+
+    /**
+     * Ids of the titles this player holds.
+     * <p>
+     * A player may hold several at once; their capabilities are the union of what those titles
+     * grant, and no title implies any other. Stored as ids rather than as resolved titles so that
+     * deleting a title simply stops it applying instead of stranding every holder.
+     */
+    private final Set<String> titles = Sets.newLinkedHashSet();
 
     public PlayerData(Player player)
     {
@@ -152,6 +164,7 @@ public class PlayerData implements ConfigLoadable, Validatable
         this.commandsBlocked = cs.getBoolean("commands_blocked", false);
         this.joinLeaveMessagesEnabled = cs.getBoolean("join_leave_messages", true);
         this.strikes = cs.getInt("strikes", 0);
+        setTitles(cs.getStringList("titles"));
         this.savedTag = cs.getString("saved_tag");
         if (this.savedTag != null && this.savedTag.isEmpty())
         {
@@ -193,6 +206,51 @@ public class PlayerData implements ConfigLoadable, Validatable
     public void setJoinLeaveMessagesEnabled(boolean joinLeaveMessagesEnabled)
     {
         this.joinLeaveMessagesEnabled = joinLeaveMessagesEnabled;
+    }
+
+    /**
+     * The ids of every title this player holds. Unmodifiable: use {@link #addTitle(String)} and
+     * {@link #removeTitle(String)} so ids stay normalised.
+     */
+    public Set<String> getTitles()
+    {
+        return Collections.unmodifiableSet(titles);
+    }
+
+    /**
+     * Grants a title. Returns {@code false} when it was already held.
+     */
+    public boolean addTitle(String titleId)
+    {
+        return titleId != null && titles.add(titleId.toLowerCase());
+    }
+
+    /**
+     * Revokes a title. Returns {@code false} when it was not held.
+     */
+    public boolean removeTitle(String titleId)
+    {
+        return titleId != null && titles.remove(titleId.toLowerCase());
+    }
+
+    public boolean hasTitle(String titleId)
+    {
+        return titleId != null && titles.contains(titleId.toLowerCase());
+    }
+
+    /**
+     * Replaces the whole set, normalising ids. Used by the persistence layer on load.
+     */
+    public void setTitles(Collection<String> titleIds)
+    {
+        titles.clear();
+        if (titleIds != null)
+        {
+            titleIds.stream()
+                    .filter(id -> id != null && !id.isBlank())
+                    .map(String::toLowerCase)
+                    .forEach(titles::add);
+        }
     }
 
     public List<String> getIps()

@@ -43,14 +43,15 @@ public class Module_players extends HTTPDModule
         {
             final String username = admin.getName();
 
-            switch (admin.getRank())
+            // Buckets are by capability rather than by a named rank, so an operator-defined rank
+            // lands in the right one instead of vanishing from the feed.
+            if (plugin.al.grantsSeniorStatus(admin))
             {
-                case SUPER_ADMIN:
-                    superadmins.add(username);
-                    break;
-                case SENIOR_ADMIN:
-                    senioradmins.add(username);
-                    break;
+                senioradmins.add(username);
+            }
+            else
+            {
+                superadmins.add(username);
             }
         }
 

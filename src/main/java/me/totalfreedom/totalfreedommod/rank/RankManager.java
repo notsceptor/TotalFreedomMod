@@ -24,6 +24,7 @@ import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchContext;
 import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchSession;
+import me.totalfreedom.totalfreedommod.display.Displayable;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.sql.PersistenceQueue;
 import me.totalfreedom.totalfreedommod.sql.adapter.RankRepository;
@@ -74,6 +75,12 @@ public class RankManager extends FreedomService
     private final Map<String, CustomRank> customRanks = Maps.newLinkedHashMap();
 
     /**
+     * Resolves senders to ranks and permission nodes to the tier they require. Reads
+     * {@link #customRanks} live, so a reload is visible without rebuilding it.
+     */
+    private final RankRegistry registry;
+
+    /**
      * File for storing custom ranks.
      */
     private File ranksFile;
@@ -90,6 +97,16 @@ public class RankManager extends FreedomService
     public RankManager(TotalFreedomMod plugin)
     {
         super(plugin);
+        this.registry = new RankRegistry(plugin, customRanks);
+    }
+
+    /**
+     * The rank registry, which is the only supported way to ask what rank something holds or what
+     * tier a permission node requires.
+     */
+    public RankRegistry getRegistry()
+    {
+        return registry;
     }
 
     private BukkitRunnable persistentMonitorTask = null;
@@ -173,14 +190,16 @@ public class RankManager extends FreedomService
 
         if (loaded.isEmpty() && !ranksFile.exists())
         {
-            createDefaultRanks();
-            migrateConfigRanks();
+            installBundledRanks();
+
+            // The bundled set only reached memory. Push it so a database that started empty ends
+            // up holding the shipped ranks rather than staying empty until someone edits one.
+            saveRanks();
             return;
         }
 
         customRanks.clear();
         customRanks.putAll(loaded);
-        validateEssentialRanks();
         resolveInheritance();
         updateAllPlayerTeams();
         FLog.info(String.format("Loaded %d custom ranks from SQL database.", customRanks.size()));
@@ -192,11 +211,41 @@ public class RankManager extends FreedomService
     {
         if (!ranksFile.exists())
         {
-            createDefaultRanks();
-            migrateConfigRanks();
+            installBundledRanks();
             return;
         }
 
+        loadFromJson();
+    }
+
+    /**
+     * Writes the {@code ranks.json} bundled with the plugin into the data folder and loads it.
+     * <p>
+     * Ranks are defined entirely by that file; nothing in code knows a default tier any more, so a
+     * first run copies the shipped definitions rather than synthesising them. If the resource is
+     * somehow missing the registry is left empty, which denies every guarded command instead of
+     * inventing ranks that the operator never approved.
+     */
+    private void installBundledRanks()
+    {
+        try
+        {
+            plugin.saveResource(RANKS_FILENAME, false);
+        }
+        catch (IllegalArgumentException ex)
+        {
+            FLog.severe(String.format("No bundled %s to install: %s", RANKS_FILENAME, ex.getMessage()));
+            return;
+        }
+
+        if (!ranksFile.exists())
+        {
+            FLog.severe(String.format("Could not install a default %s; all guarded commands will be denied.",
+                    RANKS_FILENAME));
+            return;
+        }
+
+        FLog.info(String.format("Installed the default %s.", RANKS_FILENAME));
         loadFromJson();
     }
 
@@ -212,7 +261,6 @@ public class RankManager extends FreedomService
             FLog.severe("Could not read " + RANKS_FILENAME + ": " + ex.getMessage());
         }
 
-        validateEssentialRanks();
         resolveInheritance();
         updateAllPlayerTeams();
         FLog.info("Loaded " + customRanks.size() + " custom ranks.");
@@ -222,9 +270,31 @@ public class RankManager extends FreedomService
     {
         try (FileReader reader = new FileReader(ranksFile))
         {
-            Map<String, CustomRank> loaded = JsonUtil.GSON.fromJson(reader, RANK_MAP_TYPE);
-            return loaded != null ? loaded : Maps.newLinkedHashMap();
+            return stampIds(JsonUtil.GSON.fromJson(reader, RANK_MAP_TYPE));
         }
+    }
+
+    /**
+     * Re-files deserialised ranks under their own normalised id.
+     * <p>
+     * A JSON entry carries its id as the key it sits under rather than as a field, so a freshly
+     * deserialised rank has none. Stamping it here and re-keying the map on the result keeps the
+     * key and the rank's own id in agreement even where normalisation rewrites the key.
+     */
+    private static Map<String, CustomRank> stampIds(final Map<String, CustomRank> loaded)
+    {
+        if (loaded == null)
+            return Maps.newLinkedHashMap();
+
+        final Map<String, CustomRank> keyed = Maps.newLinkedHashMap();
+
+        loaded.forEach((key, rank) ->
+        {
+            rank.assignId(key);
+            keyed.put(rank.getId(), rank);
+        });
+
+        return keyed;
     }
 
     /**
@@ -289,178 +359,6 @@ public class RankManager extends FreedomService
         updateAllPlayerTeams();
     }
 
-    private static final String[] ESSENTIAL_RANKS = {
-            "non_op", "op", "super_admin", "senior_admin"
-    };
-
-    private void validateEssentialRanks()
-    {
-        boolean modified = false;
-        for (String rankId : ESSENTIAL_RANKS)
-        {
-            if (!customRanks.containsKey(rankId))
-            {
-                FLog.warning("Essential rank '" + rankId + "' missing from ranks.yml, recreating...");
-                Rank legacyRank = Rank.findRank(rankId);
-                CustomRank custom = CustomRank.fromLegacyRank(legacyRank);
-                customRanks.put(rankId, custom);
-                modified = true;
-            }
-        }
-        if (modified)
-        {
-            saveRanks();
-            FLog.info("Repaired ranks.yml with missing essential ranks.");
-        }
-    }
-
-    /**
-     * Create default ranks from the legacy Rank enum.
-     */
-    private void createDefaultRanks()
-    {
-        customRanks.clear();
-
-        for (Rank legacyRank : Rank.values())
-        {
-            CustomRank custom = CustomRank.fromLegacyRank(legacyRank);
-
-            // Add default permissions based on rank type
-            switch (legacyRank)
-            {
-                case SENIOR_ADMIN:
-                case SENIOR_CONSOLE:
-                    custom.addPermission("tfm.manage.ranks");
-                    custom.addPermission("tfm.admin.senior");
-                    // Fall through
-                    custom.addPermission("tfm.admin.telnet");
-                    custom.addPermission("tfm.admin.ban.perm");
-                    // Fall through
-                case SUPER_ADMIN:
-                    custom.addPermission("tfm.admin.ban");
-                    custom.addPermission("tfm.admin.kick");
-                    custom.addPermission("tfm.admin.mute");
-                    custom.addPermission("tfm.admin.freeze");
-                    custom.addPermission("tfm.admin.cage");
-                    custom.addPermission("tfm.fun.smite");
-                    custom.addPermission("tfm.fun.doom");
-                    custom.addPermission("tfm.world.gamerule");
-                    break;
-                case OP:
-                    custom.addPermission("tfm.player.op");
-                    break;
-                default:
-                    break;
-            }
-
-            customRanks.put(custom.getId(), custom);
-        }
-
-        resolveInheritance();
-        saveRanks();
-        FLog.info("Created default ranks configuration.");
-    }
-
-    private void migrateConfigRanks()
-    {
-        applyConfigPrefix("impostor", ConfigEntry.VAULT_PREFIX_IMPOSTOR);
-        applyConfigPrefix("non_op", ConfigEntry.VAULT_PREFIX_NON_OP);
-        applyConfigPrefix("op", ConfigEntry.VAULT_PREFIX_OP);
-        applyConfigPrefix("super_admin", ConfigEntry.VAULT_PREFIX_SUPER_ADMIN);
-        applyConfigPrefix("senior_admin", ConfigEntry.VAULT_PREFIX_SENIOR_ADMIN);
-        applyConfigPrefix("senior_console", ConfigEntry.VAULT_PREFIX_SENIOR_CONSOLE);
-        applyConfigPrefix("developer", ConfigEntry.VAULT_PREFIX_DEVELOPER);
-        applyConfigPrefix("owner", ConfigEntry.VAULT_PREFIX_OWNER);
-
-        List<String> owners = ConfigEntry.SERVER_OWNERS.getStringList();
-        if (owners != null && !owners.isEmpty())
-        {
-            int found = 0;
-            for (String ownerName : owners)
-            {
-                if (ownerName != null && !ownerName.trim().isEmpty())
-                {
-                    if (plugin.al.getEntryByName(ownerName.trim()) != null)
-                    {
-                        found++;
-                    }
-                }
-            }
-            if (found > 0)
-            {
-                FLog.info("Found " + found + " owner(s) from config.yml. They will display with the owner rank.");
-            }
-        }
-
-        saveRanks();
-        removeConfigRanks();
-        FLog.info("Migrated rank configuration from config.yml to ranks.yml.");
-    }
-
-    private void applyConfigPrefix(String rankId, ConfigEntry entry)
-    {
-        String prefix = entry.getString();
-        if (prefix != null && !prefix.isEmpty())
-        {
-            CustomRank rank = getCustomRank(rankId);
-            if (rank != null)
-            {
-                rank.setPrefix(prefix);
-            }
-        }
-    }
-
-    private void removeConfigRanks()
-    {
-        File configFile = new File(plugin.getDataFolder(), "config.yml");
-        if (!configFile.exists())
-        {
-            return;
-        }
-
-        try
-        {
-            YamlConfiguration config = YamlConfiguration.loadConfiguration(configFile);
-            boolean modified = false;
-
-            if (config.contains("server.owners"))
-            {
-                config.set("server.owners", null);
-                modified = true;
-            }
-
-            String[] prefixKeys = {
-                    "chat.prefix.impostor", "chat.prefix.non_op", "chat.prefix.op",
-                    "chat.prefix.super_admin", "chat.prefix.senior_admin",
-                    "chat.prefix.senior_console",
-                    "chat.prefix.developer", "chat.prefix.owner"
-            };
-
-            for (String key : prefixKeys)
-            {
-                if (config.contains(key))
-                {
-                    config.set(key, null);
-                    modified = true;
-                }
-            }
-
-            ConfigurationSection prefixSection = config.getConfigurationSection("chat.prefix");
-            if (prefixSection != null && prefixSection.getKeys(false).isEmpty())
-            {
-                config.set("chat.prefix", null);
-            }
-
-            if (modified)
-            {
-                config.save(configFile);
-            }
-        }
-        catch (IOException ex)
-        {
-            FLog.warning("Could not update config.yml: " + ex.getMessage());
-        }
-    }
 
     /**
      * Queue a write of every custom rank to SQL, followed by a refresh of the ranks.json
@@ -521,13 +419,16 @@ public class RankManager extends FreedomService
         }
     }
 
+    /**
+     * Flattens each rank's inherited permissions, then rebuilds the registry's permission index so
+     * that the tier a node requires is recomputed from what the ranks now grant.
+     */
     private void resolveInheritance()
     {
-        for (CustomRank rank : customRanks.values())
-        {
-            Set<String> resolved = collectPermissions(rank, new HashSet<>());
-            rank.setResolvedPermissions(resolved);
-        }
+        customRanks.values()
+                   .forEach(rank -> rank.setResolvedPermissions(collectPermissions(rank, new HashSet<>())));
+
+        registry.reindex();
     }
 
     private Set<String> collectPermissions(CustomRank rank, Set<String> visited)
@@ -576,24 +477,14 @@ public class RankManager extends FreedomService
             return null;
         }
 
-        Admin admin = plugin.al.getAdmin(player);
+        final Admin admin = plugin.al.getAdmin(player);
 
         if (admin == null || !admin.isActive())
         {
             return null;
         }
 
-        if (admin.getCustomRankId() != null)
-        {
-            CustomRank customRank = getCustomRank(admin.getCustomRankId());
-
-            if (customRank != null)
-            {
-                return customRank;
-            }
-        }
-
-        return getCustomRankForLegacy(admin.getRank());
+        return getCustomRank(admin.getRankId());
     }
 
     public void updatePlayerTeam(Player player)
@@ -605,16 +496,13 @@ public class RankManager extends FreedomService
             return;
         }
 
-        Scoreboard scoreboard = manager.getMainScoreboard();
-        Team currentTeam = scoreboard.getEntryTeam(player.getName());
-        CustomRank rank = getAssignedAdminRank(player);
+        final Scoreboard scoreboard = manager.getMainScoreboard();
+        final Team currentTeam = scoreboard.getEntryTeam(player.getName());
+        final CustomRank rank = getAssignedAdminRank(player);
+
+        // Only an admin rank earns its own team; everyone else shares the default one, so an
+        // unresolvable rank is an ordinary outcome here rather than something to substitute for.
         final boolean admin = rank != null && rank.isAdmin();
-
-        if (rank == null)
-        {
-            rank = CustomRank.fromLegacyRank(Rank.OP); // potential NPE, averting by setting to OP, should be an optional but that's outside of the scope. Rank system will get it's own dedicated branch scope. 
-        }
-
         final String teamName = admin ? createTeamName(rank) : DEFAULT_TEAM_NAME;
 
         if (currentTeam != null && !currentTeam.getName().equals(teamName))
@@ -689,14 +577,33 @@ public class RankManager extends FreedomService
      */
     public boolean removeCustomRank(String id)
     {
-        CustomRank removed = customRanks.remove(id.toLowerCase());
-        if (removed != null)
+        if (id == null)
+            return false;
+
+        final CustomRank removed = customRanks.remove(CustomRank.normalizeId(id));
+        if (removed == null)
+            return false;
+
+        // saveRanks() only writes the ranks that survive, so without an explicit delete the row
+        // stays behind in SQL and the rank returns on the next load.
+        if (usingSql && plugin.dm != null && plugin.dm.isInitialized())
         {
-            saveRanks();
-            updateAllPlayerTeams();
-            return true;
+            writes.enqueue(plugin.dm.getRankRepository()
+                    .deleteAsync(removed.getId())
+                    .onErrorResume(ex ->
+                    {
+                        FLog.severe(String.format("Could not delete rank %s from SQL: %s",
+                                removed.getId(), ex.getMessage()));
+                        return Mono.empty();
+                    })
+                    .then());
         }
-        return false;
+
+        resolveInheritance();
+        saveRanks();
+        updateAllPlayerTeams();
+
+        return true;
     }
 
     /**
@@ -712,141 +619,19 @@ public class RankManager extends FreedomService
     // ========================================================================
 
     /**
-     * Check if a sender has a specific TFM permission.
-     * This does NOT use Bukkit permission nodes - it's purely internal.
+     * Whether {@code sender} may exercise an internal TFM permission node.
+     * <p>
+     * These are TFM's own nodes and are never registered with Bukkit: every player on a
+     * TotalFreedom server is opped, so a Bukkit node would grant itself. The answer is delegated to
+     * the {@link RankRegistry}, which resolves how this sender earned its rank and compares that
+     * against the tier the node requires, both read off {@code ranks.json}.
      *
-     * @param sender The command sender
-     * @param permission The TFM permission string (e.g., "tfm.admin.ban")
-     * @return true if the sender has the permission
+     * @param sender     the command sender
+     * @param permission the internal node, for example {@code tfm.admin.ban}
      */
     public boolean hasPermission(CommandSender sender, String permission)
     {
-        if (!(sender instanceof Player))
-        {
-            if (sender instanceof BlockCommandSender || sender instanceof CommandMinecart)
-            {
-                return false;
-            }
-
-            // getEffectiveRank already knows how this sender earned its rank. An identified SSH or
-            // Discord session resolves to that admin's own profile; a host channel resolves to its
-            // binding. That covers what the dispatch-excluded lookup here used to miss, namely
-            // that a remote user's custom rank was invisible to the permission check.
-            CustomRank effective = getEffectiveRank(sender);
-            if (effective != null && hasCustomRankPermission(effective, permission))
-            {
-                return true;
-            }
-
-            Rank rank = getRank(sender);
-            CustomRank customRank = getCustomRankForLegacy(rank);
-            if (customRank != null && hasCustomRankPermission(customRank, permission))
-            {
-                return true;
-            }
-            return checkLegacyPermission(rank, permission);
-        }
-
-        Player player = (Player) sender;
-
-        // Check if admin
-        Admin admin = plugin.al.getAdmin(player);
-        if (admin != null && admin.isActive())
-        {
-            // Try custom rank ID assigned to the admin first
-            if (admin.getCustomRankId() != null)
-            {
-                CustomRank custom = getCustomRank(admin.getCustomRankId());
-                if (custom != null)
-                {
-                    if (hasCustomRankPermission(custom, permission))
-                    {
-                        return true;
-                    }
-                }
-            }
-
-            // Fallback to custom rank derived from legacy rank
-            CustomRank customRank = getCustomRankForLegacy(admin.getRank());
-            if (customRank != null)
-            {
-                if (hasCustomRankPermission(customRank, permission))
-                {
-                    return true;
-                }
-            }
-
-            // Legacy fallback: check rank level
-            return checkLegacyPermission(admin.getRank(), permission);
-        }
-
-        // Non-admins: check if they have a custom rank assigned (for future expansion)
-        // For now, non-admins only have basic player permissions
-        CustomRank opRank = getCustomRank("op");
-        if (player.isOp() && opRank != null)
-        {
-            return hasCustomRankPermission(opRank, permission);
-        }
-
-        return false;
-    }
-
-    private boolean hasCustomRankPermission(CustomRank rank, String permission)
-    {
-        if (rank.hasPermission(permission))
-        {
-            return true;
-        }
-
-        String[] parts = permission.split("\\.");
-        StringBuilder wildcard = new StringBuilder();
-        for (int i = 0; i < parts.length - 1; i++)
-        {
-            wildcard.append(parts[i]).append(".");
-            if (rank.hasPermission(wildcard + "*"))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Check permission based on legacy rank level.
-     */
-    private boolean checkLegacyPermission(Rank rank, String permission)
-    {
-        // Map common permissions to rank levels
-        if (permission.startsWith("tfm.manage."))
-        {
-            return rank.isAtLeast(Rank.SENIOR_ADMIN);
-        }
-        if (permission.startsWith("tfm.admin.senior") || permission.equals("tfm.admin.ban.perm"))
-        {
-            return rank.isAtLeast(Rank.SENIOR_ADMIN);
-        }
-        if (permission.startsWith("tfm.admin.telnet"))
-        {
-            return rank.isAtLeast(Rank.SENIOR_ADMIN);
-        }
-        if (permission.startsWith("tfm.admin."))
-        {
-            return rank.isAtLeast(Rank.SUPER_ADMIN);
-        }
-        if (permission.startsWith("tfm.fun."))
-        {
-            return rank.isAtLeast(Rank.SUPER_ADMIN);
-        }
-        return false;
-    }
-
-    /**
-     * Get the custom rank that corresponds to a legacy Rank enum.
-     */
-    public CustomRank getCustomRankForLegacy(Rank legacyRank)
-    {
-        return getCustomRank(legacyRank.name().toLowerCase());
+        return registry.satisfies(sender, permission);
     }
 
     /**
@@ -1142,7 +927,6 @@ public class RankManager extends FreedomService
         builder.append(buildEditableProperty("Color", rank.getColor().toString(), "/rankconfig set " + rank.getId() + " color"));
         builder.append(buildEditableProperty("Determiner", rank.getDeterminer(), "/rankconfig set " + rank.getId() + " determiner"));
         builder.append(buildEditableProperty("Is Admin", String.valueOf(rank.isAdmin()), "/rankconfig set " + rank.getId() + " admin"));
-        builder.append(buildEditableProperty("Console Only", String.valueOf(rank.isConsoleOnly()), "/rankconfig set " + rank.getId() + " console"));
         builder.append(buildEditableProperty("Inherit From", rank.getInheritFrom() != null ? rank.getInheritFrom() : "(none)", "/rankconfig set " + rank.getId() + " inherit"));
 
         builder.append(Component.text("\n"));
@@ -1317,257 +1101,57 @@ public class RankManager extends FreedomService
         }
     }
 
+    /**
+     * The rank whose name, colour and tag should be shown for {@code sender}.
+     * <p>
+     * Display is not the same question as permission. A few identities are recognised here purely
+     * so they read correctly in chat, and none of them grants anything: the impostor marker, the
+     * hardcoded developer list, and the owners named in config. Each is honoured only when a rank
+     * of that name actually exists in the registry, so an operator who removes one simply gets the
+     * sender's real rank instead.
+     */
     public Displayable getDisplay(CommandSender sender)
     {
-        if (!(sender instanceof Player))
+        if (!(sender instanceof Player player))
         {
-            Rank rank = getRank(sender);
-            CustomRank custom = getCustomRankForLegacy(rank);
-            return custom != null ? custom : rank;
+            return registry.forSender(sender).orElse(null);
         }
-
-        final Player player = (Player) sender;
 
         if (plugin.al.isAdminImpostor(player))
         {
-            CustomRank impostorRank = getCustomRank("impostor");
-            return impostorRank != null ? impostorRank : Rank.IMPOSTOR;
+            return registry.byRole(RankRole.IMPOSTOR).orElse(null);
         }
 
-        if (FUtil.DEVELOPERS.contains(player.getName()))
-        {
-            CustomRank devRank = getCustomRank("developer");
-            if (devRank != null) return devRank;
-        }
+        // A held title outranks the player's rank for display purposes: a title is the identity
+        // people recognise ("Master Builder"), while the rank underneath is only what they may do.
+        final Displayable title = plugin.tm == null ? null : plugin.tm.getDisplayTitle(player);
 
-        final Rank rank = getRank(player);
-
-        if (ConfigEntry.SERVER_OWNERS.getList().contains(player.getName()))
-        {
-            CustomRank ownerRank = getCustomRank("owner");
-            if (ownerRank != null) return ownerRank;
-        }
-
-        Admin admin = plugin.al.getAdmin(player);
-        if (admin != null && admin.isActive() && admin.getCustomRankId() != null)
-        {
-            CustomRank custom = getCustomRank(admin.getCustomRankId());
-            if (custom != null)
-            {
-                return custom;
-            }
-        }
-
-        CustomRank customRank = getCustomRankForLegacy(rank);
-        return customRank != null ? customRank : rank;
+        return title != null ? title : registry.forSender(player).orElse(null);
     }
 
     /**
-     * Resolves the rank a sender actually acts at, as a {@link CustomRank}.
+     * The login line announcing an impostor, falling back to plain wording when the registry has no
+     * impostor rank to style it with.
+     */
+    private Component impostorLoginMessage()
+    {
+        return registry.byRole(RankRole.IMPOSTOR)
+                       .map(CustomRank::getColoredLoginMessage)
+                       .orElseGet(() -> Component.text("an Impostor").color(NamedTextColor.YELLOW));
+    }
+
+    /**
+     * Resolves the rank a sender actually acts at.
      * <p>
-     * This is the identity-aware view the permission gate tests against, and it is the only place
-     * that knows how a sender earns its rank:
-     * <ul>
-     *   <li>SSH and Discord carry a proven identity (an SSH public key, or a {@code discord_links}
-     *       row), so an identified session resolves to that admin's own profile rank, custom rank
-     *       included. A session that proved nothing, meaning password-only SSH, falls back to the
-     *       channel's {@code host_senders:} binding, which grants no identity and so no profile.</li>
-     *   <li>Host channels (RCON, RemoteBukkit, console) carry no identity at all and resolve to
-     *       their binding, which {@link ConsoleSenderRegistry} floors at senior admin.</li>
-     * </ul>
-     * Returning a {@link CustomRank} rather than a {@link Rank} matters: custom ranks carry
-     * operator-defined levels that need not line up with {@link Rank#ordinal()}, and an admin
-     * holding {@code executive} or {@code owner} would otherwise be demoted to their legacy tier
-     * the moment they acted through a console channel.
+     * Delegates to {@link RankRegistry}, which is the single place that knows how a sender earns a
+     * rank: an identified SSH or Discord session resolves to that admin's own profile, while a host
+     * channel carries no identity and resolves to its {@code host_senders:} binding.
      *
-     * @return the sender's effective rank, or {@code null} when no rank could be resolved (the
-     *         caller should then fall back to {@link #getRank(CommandSender)} on the legacy scale)
+     * @return the sender's effective rank, or {@code null} when none could be resolved
      */
     public CustomRank getEffectiveRank(CommandSender sender)
     {
-        if (sender instanceof Player player)
-        {
-            CustomRank assigned = getAssignedAdminRank(player);
-            if (assigned != null)
-            {
-                return assigned;
-            }
-            return getCustomRankForLegacy(getRank(player));
-        }
-
-        if (sender instanceof BlockCommandSender || sender instanceof CommandMinecart)
-        {
-            return getCustomRankForLegacy(Rank.NON_OP);
-        }
-
-        RemoteDispatchSession dispatch = RemoteDispatchContext.getActiveSession();
-        if (dispatch != null)
-        {
-            CustomRank identity = resolveDispatchIdentity(dispatch);
-            if (identity != null)
-            {
-                return identity;
-            }
-
-            String channel = dispatch.getChannel() == RemoteDispatchSession.Channel.DISCORD ? "discord" : "ssh";
-            return getBoundRank(channel);
-        }
-
-        Admin admin = plugin.al.getEntryByName(sender.getName());
-        if (admin != null && admin.isActive())
-        {
-            return rankOf(admin);
-        }
-
-        CustomRank bound = getBoundRank(sender.getName());
-        return bound != null ? bound : getCustomRankForLegacy(Rank.NON_OP);
-    }
-
-    /**
-     * The admin behind an identified dispatch session, as a {@link CustomRank}, or {@code null}
-     * when the session proved no identity or the name no longer maps to an active admin.
-     * <p>
-     * SSH additionally honours {@code ssh.inherit_rank}: with it off, even a public-key session is
-     * held to the flat {@code host_senders:} tier.
-     */
-    private CustomRank resolveDispatchIdentity(RemoteDispatchSession dispatch)
-    {
-        if (!dispatch.isIdentified())
-        {
-            return null;
-        }
-
-        if (dispatch.getChannel() == RemoteDispatchSession.Channel.SSH
-            && !ConfigEntry.SSH_INHERIT_RANK.getBoolean())
-        {
-            return null;
-        }
-
-        Admin admin = plugin.al.getEntryByName(dispatch.getUsername());
-        return admin != null && admin.isActive() ? rankOf(admin) : null;
-    }
-
-    /**
-     * An admin's rank, preferring the custom rank pinned to their profile over their legacy tier.
-     */
-    private CustomRank rankOf(Admin admin)
-    {
-        if (admin.getCustomRankId() != null)
-        {
-            CustomRank custom = getCustomRank(admin.getCustomRankId());
-            if (custom != null)
-            {
-                return custom;
-            }
-        }
-        return getCustomRankForLegacy(admin.getRank());
-    }
-
-    /**
-     * The custom rank bound to a sender name by {@code host_senders:}, resolving a legacy rank id
-     * through the registry so both naming styles work.
-     */
-    private CustomRank getBoundRank(String senderName)
-    {
-        String boundRankId = plugin.csr.getRankIdForSender(senderName);
-        if (boundRankId == null)
-        {
-            return null;
-        }
-
-        CustomRank bound = getCustomRank(boundRankId);
-        if (bound != null)
-        {
-            return bound;
-        }
-
-        Rank legacy = plugin.csr.getRankForSender(senderName);
-        return legacy != null ? getCustomRankForLegacy(legacy) : null;
-    }
-
-    /**
-     * Places a custom rank on the legacy ladder by level, so callers that still speak {@link Rank}
-     * get a sane answer for operator-defined ranks. Compared on the registry's own scale, so it
-     * holds whatever numbering the operator chose.
-     */
-    public Rank toLegacyRank(CustomRank custom)
-    {
-        if (custom == null)
-        {
-            return Rank.NON_OP;
-        }
-
-        return Stream.of(Rank.values())
-            .filter(candidate -> !candidate.isConsole())
-            .filter(candidate ->
-            {
-                CustomRank equivalent = getCustomRankForLegacy(candidate);
-                return equivalent != null && custom.getLevel() >= equivalent.getLevel();
-            })
-            .max(Comparator.comparingInt(Rank::getLevel))
-            .orElse(Rank.NON_OP);
-    }
-
-    public Rank getRank(CommandSender sender)
-    {
-        if (sender instanceof Player player)
-        {
-            if (plugin.al.isAdminImpostor(player))
-            {
-                return Rank.IMPOSTOR;
-            }
-    
-            final Admin entry = plugin.al.getAdmin(player);
-            if (entry != null)
-            {
-                return entry.getRank();
-            }
-    
-            return player.isOp() ? Rank.OP : Rank.NON_OP;
-        }
-
-        if (sender instanceof BlockCommandSender || sender instanceof CommandMinecart)
-        {
-            return Rank.NON_OP;
-        }
-
-        RemoteDispatchSession dispatch = RemoteDispatchContext.getActiveSession();
-        if (dispatch != null)
-        {
-            CustomRank identity = resolveDispatchIdentity(dispatch);
-            if (identity != null)
-            {
-                return toLegacyRank(identity);
-            }
-
-            String channel = dispatch.getChannel() == RemoteDispatchSession.Channel.DISCORD ? "discord" : "ssh";
-            Rank fallback = plugin.csr.getRankForSender(channel);
-            if (fallback != null)
-            {
-                return fallback;
-            }
-
-            CustomRank bound = getBoundRank(channel);
-            return bound != null ? toLegacyRank(bound) : Rank.NON_OP;
-        }
-
-        Admin admin = plugin.al.getEntryByName(sender.getName());
-        if (admin != null)
-        {
-            return admin.getRank();
-        }
-
-        Rank rank = plugin.csr.getRankForSender(sender.getName());
-        if (rank != null)
-        {
-            return rank;
-        }
-
-        // A host channel may be bound to a custom rank with no legacy equivalent; place it on the
-        // ladder by level rather than assuming a tier, which used to hand every such sender
-        // SUPER_ADMIN regardless of what it was actually bound to.
-        CustomRank bound = getBoundRank(sender.getName());
-        return bound != null ? toLegacyRank(bound) : Rank.NON_OP;
+        return registry.forSender(sender).orElse(null);
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
@@ -1623,7 +1207,7 @@ public class RankManager extends FreedomService
         {
             Component impostorMsg = Component.text(player.getName() + " is ")
                     .color(NamedTextColor.AQUA)
-                    .append(Rank.IMPOSTOR.getColoredLoginMessage());
+                    .append(impostorLoginMessage());
             FUtil.bcastMsg(impostorMsg);
             if (plugin.db != null)
             {
@@ -1645,8 +1229,9 @@ public class RankManager extends FreedomService
             return;
         }
 
-        // Set display
-        if (isAdmin || FUtil.DEVELOPERS.contains(player.getName()))
+        // Announce admins, and anyone holding a title worth announcing. The hardcoded developer
+        // list used to stand in for the latter; a title says the same thing as data instead.
+        if (isAdmin || (plugin.tm != null && plugin.tm.getDisplayTitle(player) != null))
         {
             final Displayable display = getDisplay(player);
             Component loginMsg = formatLoginMessage(player);
@@ -1698,7 +1283,7 @@ public class RankManager extends FreedomService
                         AdventureUtil.formatWithPlaceholders(
                                 loginMessage,
                                 Placeholder.unparsed("name", player.getName()),
-                                Placeholder.unparsed("rank", admin.getRank().getName()),
+                                Placeholder.unparsed("rank", display.getName()),
                                 Placeholder.component("colored_rank", display.getColoredName())
                         ));
             }

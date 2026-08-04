@@ -28,6 +28,7 @@ public class PostgreSQLAdapter extends DatabaseAdapter
     private StrikeRepository strikeRepository;
     private DiscordLinkRepository discordLinkRepository;
     private RankRepository rankRepository;
+    private TitleRepository titleRepository;
     private ProtectedAreaRepository protectedAreaRepository;
     private SavedFlagRepository savedFlagRepository;
     private PlayerRepository playerRepository;
@@ -157,6 +158,8 @@ public class PostgreSQLAdapter extends DatabaseAdapter
         createDiscordLinksTable();
         createRanksTable();
         createRankPermissionsTable();
+        createTitlesTable();
+        createTitlePermissionsTable();
         createProtectedAreasTable();
         createSavedFlagsTable();
         createPlayersTable();
@@ -327,14 +330,15 @@ public class PostgreSQLAdapter extends DatabaseAdapter
                 "level" INTEGER NOT NULL DEFAULT 0,
                 "color" VARCHAR(32) NOT NULL DEFAULT 'white',
                 "admin" BOOLEAN NOT NULL DEFAULT FALSE,
-                "console_only" BOOLEAN NOT NULL DEFAULT FALSE,
                 "prefix" VARCHAR(64),
                 "inherit_from" VARCHAR(64),
+                "roles" VARCHAR(255),
                 "updated_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
             """;
         statementHandler.executeUpdate(sql);
         statementHandler.executeUpdate("ALTER TABLE \"ranks\" ADD COLUMN IF NOT EXISTS \"updated_at\" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP");
+        statementHandler.executeUpdate("ALTER TABLE \"ranks\" ADD COLUMN IF NOT EXISTS \"roles\" VARCHAR(255)");
         statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_ranks_level ON \"ranks\"(\"level\")");
     }
 
@@ -346,6 +350,37 @@ public class PostgreSQLAdapter extends DatabaseAdapter
                 "rank_id" VARCHAR(64) NOT NULL REFERENCES "ranks"("id") ON DELETE CASCADE,
                 "permission" VARCHAR(128) NOT NULL,
                 UNIQUE ("rank_id", "permission")
+            )
+            """;
+        statementHandler.executeUpdate(sql);
+    }
+
+    private void createTitlesTable() throws SQLException
+    {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS "titles" (
+                "id" VARCHAR(64) PRIMARY KEY,
+                "name" VARCHAR(64) NOT NULL,
+                "determiner" VARCHAR(8) NOT NULL DEFAULT 'a',
+                "abbreviation" VARCHAR(16),
+                "color" VARCHAR(32) NOT NULL DEFAULT 'white',
+                "prefix" VARCHAR(64),
+                "weight" INTEGER NOT NULL DEFAULT 0,
+                "announce" BOOLEAN NOT NULL DEFAULT TRUE,
+                "updated_at" TIMESTAMP NOT NULL DEFAULT NOW()
+            )
+            """;
+        statementHandler.executeUpdate(sql);
+    }
+
+    private void createTitlePermissionsTable() throws SQLException
+    {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS "title_permissions" (
+                "id" SERIAL PRIMARY KEY,
+                "title_id" VARCHAR(64) NOT NULL REFERENCES "titles"("id") ON DELETE CASCADE,
+                "permission" VARCHAR(128) NOT NULL,
+                UNIQUE ("title_id", "permission")
             )
             """;
         statementHandler.executeUpdate(sql);
@@ -405,6 +440,7 @@ public class PostgreSQLAdapter extends DatabaseAdapter
             """;
         statementHandler.executeUpdate(sql);
         statementHandler.executeUpdate("ALTER TABLE \"players\" ADD COLUMN IF NOT EXISTS \"updated_at\" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP");
+        statementHandler.executeUpdate("ALTER TABLE \"players\" ADD COLUMN IF NOT EXISTS \"titles\" TEXT");
     }
 
     private void createPlayerIpsTable() throws SQLException
@@ -472,6 +508,16 @@ public class PostgreSQLAdapter extends DatabaseAdapter
             discordLinkRepository = new GenericDiscordLinkRepository(statementHandler, this);
         }
         return discordLinkRepository;
+    }
+
+    @Override
+    public TitleRepository getTitleRepository()
+    {
+        if (titleRepository == null)
+        {
+            titleRepository = new GenericTitleRepository(statementHandler, this);
+        }
+        return titleRepository;
     }
 
     @Override

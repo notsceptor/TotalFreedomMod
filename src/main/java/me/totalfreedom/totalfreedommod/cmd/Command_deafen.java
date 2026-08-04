@@ -1,7 +1,6 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
-import me.totalfreedom.totalfreedommod.rank.Rank;
 import org.bukkit.Location;
 import org.bukkit.Registry;
 import org.bukkit.Sound;
@@ -11,7 +10,7 @@ import org.bukkit.entity.Player;
 import java.util.List;
 import java.util.Random;
 
-@Permission(level = Rank.SENIOR_ADMIN, permission = "tfm.admin.senior.deafen")
+@Permission(permission = "tfm.admin.senior.deafen")
 @Command(name = "deafen", description = "Make some noise.", usage = "/<command>")
 public class Command_deafen extends FCommand
 {

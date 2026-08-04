@@ -9,7 +9,6 @@ import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Completer;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Permission;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Subcommand;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
-import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FTask;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
@@ -19,7 +18,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 
 @Command(name = "lockup", description = "Block target's minecraft input. This is evil, and I never should have wrote it.", usage = "/<command> <all | purge | <<partialname> on | off>>")
-@Permission(level = Rank.SENIOR_ADMIN, source = SourceType.ONLY_CONSOLE, permission = "tfm.admin.senior.lockup")
+@Permission(source = SourceType.ONLY_CONSOLE, permission = "tfm.admin.senior.lockup")
 public class Command_lockup extends FCommand
 {
     @Callback

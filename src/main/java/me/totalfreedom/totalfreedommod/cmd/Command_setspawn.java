@@ -4,12 +4,11 @@ import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
-import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
 @Command(name = "setspawn", description = "Set the server spawn to your current location.", usage = "/setspawn")
-@Permission(permission = "tfm.world.setspawn", level = Rank.SUPER_ADMIN, source = SourceType.ONLY_IN_GAME)
+@Permission(permission = "tfm.world.setspawn", source = SourceType.ONLY_IN_GAME)
 public class Command_setspawn extends FCommand
 {
     @Callback

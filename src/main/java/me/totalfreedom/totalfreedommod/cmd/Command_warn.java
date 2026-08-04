@@ -5,14 +5,13 @@ import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Command;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Greedy;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Permission;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
-import me.totalfreedom.totalfreedommod.rank.Rank;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 @Command(name = "warn", description = "Warns a player.", usage = "/<command> <player> <reason>")
-@Permission(level = Rank.SUPER_ADMIN, permission = "tfm.admin.warn")
+@Permission(permission = "tfm.admin.warn")
 public class Command_warn extends FCommand
 {
     @Callback

@@ -35,6 +35,7 @@ public class GenericPlayerRepository implements PlayerRepository
     private final String colCommandsBlocked;
     private final String colStrikes;
     private final String colSavedTag;
+    private final String colTitles;
     private final String colNickname;
     private final String colId;
     private final String colPlayerUsername;
@@ -59,21 +60,22 @@ public class GenericPlayerRepository implements PlayerRepository
         this.colCommandsBlocked = adapter.quoteIdentifier("commands_blocked");
         this.colStrikes = adapter.quoteIdentifier("strikes");
         this.colSavedTag = adapter.quoteIdentifier("saved_tag");
+        this.colTitles = adapter.quoteIdentifier("titles");
         this.colNickname = adapter.quoteIdentifier("nickname");
         this.colId = adapter.quoteIdentifier("id");
         this.colPlayerUsername = adapter.quoteIdentifier("username");
         this.colIp = adapter.quoteIdentifier("ip");
         this.colUpdatedAt = adapter.quoteIdentifier("updated_at");
-        this.selectColumns = String.format("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s",
+        this.selectColumns = String.format("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s",
                 colUsername, colFirstJoin, colLastJoin, colPotionSpy, colCommandSpyMode, colMuted, colFrozen,
-                colCommandsBlocked, colStrikes, colSavedTag)
+                colCommandsBlocked, colStrikes, colSavedTag, colTitles)
                 + ", " + colNickname;
     }
 
     @Override
     public void insert(PlayerData data) throws SQLException
     {
-        String sql = String.format("INSERT INTO %s (%s, %s) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, %s)",
+        String sql = String.format("INSERT INTO %s (%s, %s) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, %s)",
                 tblPlayers, selectColumns, colUpdatedAt, adapter.currentTimestamp());
 
         statementHandler.executeUpdate(sql,
@@ -87,6 +89,7 @@ public class GenericPlayerRepository implements PlayerRepository
                 data.isCommandsBlocked(),
                 data.getStrikes(),
                 data.getSavedTag(),
+                serializeTitles(data),
                 serializeNickname(data));
 
         insertIps(data.getUsername(), data.getIps());
@@ -191,9 +194,9 @@ public class GenericPlayerRepository implements PlayerRepository
     @Override
     public boolean update(PlayerData data) throws SQLException
     {
-        String sql = String.format("UPDATE %s SET %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = %s WHERE %s = ?",
+        String sql = String.format("UPDATE %s SET %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = %s WHERE %s = ?",
                 tblPlayers, colFirstJoin, colLastJoin, colPotionSpy, colCommandSpyMode, colMuted, colFrozen,
-                colCommandsBlocked, colStrikes, colSavedTag, colUpdatedAt, adapter.currentTimestamp(), colUsername);
+                colCommandsBlocked, colStrikes, colSavedTag, colTitles, colUpdatedAt, adapter.currentTimestamp(), colUsername);
 
         int rows = statementHandler.executeUpdate(sql,
                 data.getFirstJoinUnix(),
@@ -205,6 +208,7 @@ public class GenericPlayerRepository implements PlayerRepository
                 data.isCommandsBlocked(),
                 data.getStrikes(),
                 data.getSavedTag(),
+                serializeTitles(data),
                 data.getUsername());
 
         statementHandler.executeUpdate(
@@ -301,6 +305,7 @@ public class GenericPlayerRepository implements PlayerRepository
         data.setCommandsBlocked(rs.getBoolean("commands_blocked"));
         data.setStrikes(rs.getInt("strikes"));
         data.setSavedTag(rs.getString("saved_tag"));
+        data.setTitles(parseTitles(rs.getString("titles")));
 
         String rawNickname = rs.getString("nickname");
         if (rawNickname != null && !rawNickname.isEmpty())
@@ -309,6 +314,28 @@ public class GenericPlayerRepository implements PlayerRepository
         }
 
         return data;
+    }
+
+    /**
+     * Held titles are stored as a comma-separated list in one column rather than as a child table:
+     * a player holds a handful at most and they are always read with the player row itself, so a
+     * join would cost more than it saves.
+     */
+    private static String serializeTitles(PlayerData data)
+    {
+        final Set<String> titles = data.getTitles();
+
+        return titles.isEmpty() ? null : String.join(",", titles);
+    }
+
+    private static List<String> parseTitles(String stored)
+    {
+        return stored == null || stored.isBlank()
+                ? List.of()
+                : Arrays.stream(stored.split(","))
+                        .map(String::trim)
+                        .filter(id -> !id.isEmpty())
+                        .toList();
     }
 
     private static String serializeNickname(PlayerData data)

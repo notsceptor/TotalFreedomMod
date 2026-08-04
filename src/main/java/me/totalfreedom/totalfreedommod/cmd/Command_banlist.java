@@ -10,7 +10,6 @@ import org.bukkit.command.CommandSender;
 
 import me.totalfreedom.totalfreedommod.banning.Ban;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
-import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 
 @Command(name = "banlist", description = "Shows all banned players and IP addresses. Senior Admins may optionally use 'purge' to clear the list.", usage = "/banlist [purge]")
@@ -62,7 +61,7 @@ public class Command_banlist extends FCommand
 
     @Callback
     @Subcommand("purge")
-    @Permission(level = Rank.SENIOR_ADMIN, permission = "tfm.admin.banlist")
+    @Permission(permission = "tfm.admin.banlist.purge")
     public void purgeBans(CommandSender sender)
     {
         // Ok so apparently plugin().bm.purge() purges the banlist then returns an int to count how many bans were purged.

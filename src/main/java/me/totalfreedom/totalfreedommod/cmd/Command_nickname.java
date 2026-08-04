@@ -13,7 +13,6 @@ import me.totalfreedom.totalfreedommod.PluginProvider;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.rank.CustomRank;
-import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
@@ -187,7 +186,7 @@ public class Command_nickname extends FCommand
 
     @Callback
     @Subcommand("clean")
-    @Permission(permission = "tfm.player.nickname", level = Rank.SUPER_ADMIN)
+    @Permission(permission = "tfm.admin.nickclean")
     public void clean(CommandSender sender)
     {
         adminAction(sender, "<aqua>Cleaning all nicknames");
@@ -261,11 +260,6 @@ public class Command_nickname extends FCommand
     public static boolean containsForbidden(String plainText)
     {
         final List<String> terms = new ArrayList<>(FORBIDDEN_WORDS);
-
-        Stream.of(Rank.values())
-              .filter(r -> r.isAdmin())
-              .filter(r -> !r.getTag().isEmpty())
-              .forEach(r -> terms.add(r.getTag()));
 
         PluginProvider.get()
                       .rm

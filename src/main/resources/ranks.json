@@ -7,7 +7,9 @@
     "color": "dark_gray",
     "determiner": "an",
     "admin": false,
-    "console_only": false,
+    "roles": [
+      "impostor"
+    ],
     "permissions": [
       "tfm.player.list",
       "tfm.admin.overlord"
@@ -21,7 +23,9 @@
     "color": "white",
     "determiner": "a",
     "admin": false,
-    "console_only": false,
+    "roles": [
+      "default"
+    ],
     "permissions": [
       "tfm.player.localspawn",
       "tfm.player.radar",
@@ -40,11 +44,12 @@
     "color": "green",
     "determiner": "an",
     "admin": false,
-    "console_only": false,
+    "roles": [
+      "default_op"
+    ],
     "inherit": "non_op",
     "permissions": [
       "tfm.player.*",
-      "tfm.world.adminworld",
       "tfm.admin.banlist",
       "tfm.fun.hack",
       "tfm.fun.landmine",
@@ -63,7 +68,9 @@
     "color": "gold",
     "determiner": "a",
     "admin": true,
-    "console_only": false,
+    "roles": [
+      "admin_default"
+    ],
     "inherit": "op",
     "permissions": [
       "tfm.fun.*",
@@ -103,6 +110,18 @@
       "tfm.admin.wildcard",
       "tfm.admin.gamemode",
       "tfm.admin.protectregion",
+      "tfm.admin.aeclear",
+      "tfm.admin.autoclear",
+      "tfm.admin.autotp",
+      "tfm.admin.cleanchat",
+      "tfm.admin.discordlink",
+      "tfm.admin.fuckup",
+      "tfm.admin.gchat",
+      "tfm.admin.saconfig",
+      "tfm.admin.sqlstatus",
+      "tfm.server.reload",
+      "tfm.server.whitelist.manage",
+      "tfm.world.adminworld.manage",
       "tfm.server.*",
       "tfm.manage.saconfig"
     ]
@@ -115,47 +134,20 @@
     "color": "light_purple",
     "determiner": "a",
     "admin": true,
-    "console_only": false,
+    "roles": [
+      "console_floor"
+    ],
     "inherit": "super_admin",
     "permissions": [
       "tfm.admin.senior.*",
       "tfm.admin.telnet.*",
       "tfm.manage.*",
       "tfm.manage.ssh",
-      "tfm.manage.telnet"
+      "tfm.manage.telnet",
+      "tfm.admin.ban.perm",
+      "tfm.admin.banlist.purge",
+      "tfm.ssh.totp",
+      "tfm.admin.senior.status"
     ]
-  },
-  "developer": {
-    "name": "Developer",
-    "abbreviation": "Dev",
-    "prefix": "&8[&5Dev&8] ",
-    "level": 4,
-    "color": "dark_purple",
-    "determiner": "a",
-    "admin": true,
-    "console_only": false,
-    "inherit": "senior_admin"
-  },
-  "owner": {
-    "name": "Owner",
-    "abbreviation": "Owner",
-    "prefix": "&8[&9Owner&8] ",
-    "level": 4,
-    "color": "blue",
-    "determiner": "the",
-    "admin": true,
-    "console_only": false,
-    "inherit": "senior_admin"
-  },
-  "executive": {
-    "name": "Executive",
-    "abbreviation": "Exec",
-    "prefix": "&8[&eExec&8] ",
-    "level": 4,
-    "color": "yellow",
-    "determiner": "an",
-    "admin": true,
-    "console_only": false,
-    "inherit": "senior_admin"
   }
 }

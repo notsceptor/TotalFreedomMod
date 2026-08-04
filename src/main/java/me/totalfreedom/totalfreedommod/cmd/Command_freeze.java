@@ -5,7 +5,6 @@ import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Command;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Permission;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Resolve;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Subcommand;
-import me.totalfreedom.totalfreedommod.rank.Rank;
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
@@ -14,7 +13,7 @@ import org.bukkit.entity.Player;
 
 @Command(name = "freeze", description = "Freeze players. Append \"on\" or \"off\" at the end to set a specific state.",
         usage = "/freeze <[on | off] | <player> [on | off]>", aliases = {"fr"})
-@Permission(permission = "tfm.admin.freeze", level = Rank.SUPER_ADMIN)
+@Permission(permission = "tfm.admin.freeze")
 public class Command_freeze extends FCommand
 {
 

@@ -6,10 +6,9 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
-import me.totalfreedom.totalfreedommod.rank.Rank;
 
 @Command(name = "autotp", description = "Toggle whether or not a player is automatically teleported when they join.", usage = "/autotp <player>")
-@Permission(level = Rank.SUPER_ADMIN, permission = "tfm.admin.autotp")
+@Permission(permission = "tfm.admin.autotp")
 public class Command_autotp extends FCommand
 {
     @Callback

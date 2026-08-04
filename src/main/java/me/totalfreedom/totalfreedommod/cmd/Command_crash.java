@@ -6,11 +6,10 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
-import me.totalfreedom.totalfreedommod.rank.Rank;
 import net.kyori.adventure.text.Component;
 
 @Command(name = "crash", description = "Crashes the specified player", usage = "/crash <player>", aliases = {"fuckup"})
-@Permission(level = Rank.SUPER_ADMIN, permission = "tfm.admin.fuckup")
+@Permission(permission = "tfm.admin.fuckup")
 public class Command_crash extends FCommand
 {
     @Callback

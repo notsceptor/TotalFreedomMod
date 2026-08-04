@@ -14,7 +14,9 @@ import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.admin.AdminList;
 import me.totalfreedom.totalfreedommod.banning.PermBan;
 import me.totalfreedom.totalfreedommod.banning.PermbanList;
-import me.totalfreedom.totalfreedommod.rank.Rank;
+import me.totalfreedom.totalfreedommod.player.PlayerData;
+import me.totalfreedom.totalfreedommod.rank.CustomRank;
+import me.totalfreedom.totalfreedommod.rank.RankRole;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.JsonUtil;
 import me.totalfreedom.totalfreedommod.framework.PluginComponent;
@@ -25,6 +27,12 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
 {
 
     public static final int CURRENT_CONFIG_VERSION = 1;
+
+    /**
+     * Suffix shared by the retired console-only rank ids ({@code senior_console},
+     * {@code telnet_console}), matched so that any of them is remapped without naming each.
+     */
+    private static final String CONSOLE_RANK_SUFFIX = "_console";
 
     public ConfigConverter(TotalFreedomMod plugin)
     {
@@ -165,7 +173,12 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
     }
 
     /**
-     * Remap admins still assigned to deprecated {@code *_CONSOLE} legacy ranks.
+     * Remaps admins still assigned to one of the retired {@code *_console} ranks.
+     * <p>
+     * Console-only ranks existed so that a shared channel could be given standing of its own. That
+     * is now the job of the {@code host_senders:} binding, which the attributed console sender
+     * resolves per channel, so an admin holding one is remapped to the equivalent real rank rather
+     * than left pointing at a rank id the registry no longer knows.
      */
     public void convertAdminConsoleRanks()
     {
@@ -174,28 +187,106 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
             return;
         }
 
-        int migrated = 0;
-        for (Admin admin : plugin.al.getAllAdmins().values())
-        {
-            Rank rank = admin.getRank();
-            Rank newRank = null;
-            if (rank == Rank.SENIOR_CONSOLE)
-            {
-                newRank = Rank.SENIOR_ADMIN;
-            }
-            if (newRank != null)
-            {
-                admin.setRank(newRank);
-                migrated++;
-                FLog.info("Remapped admin '" + admin.getName() + "' from " + rank.name() + " to " + newRank.name());
-            }
-        }
+        final long migrated = plugin.al.getAllAdmins().values()
+                .stream()
+                .filter(admin -> admin.getRankId() != null)
+                .filter(admin -> admin.getRankId().endsWith(CONSOLE_RANK_SUFFIX))
+                .peek(admin -> FLog.info(String.format("Remapped admin '%s' from retired rank '%s' to '%s'.",
+                        admin.getName(), admin.getRankId(), seniorRankId())))
+                .peek(admin -> admin.setRankId(seniorRankId()))
+                .count();
 
         if (migrated > 0)
         {
             plugin.al.saveAsync();
-            FLog.info("Remapped " + migrated + " admin(s) from deprecated console ranks.");
+            FLog.info(String.format("Remapped %d admin(s) from retired console ranks.", migrated));
         }
+    }
+
+    /**
+     * Moves admins off the cosmetic ranks that are now titles.
+     * <p>
+     * Developer, Owner and Executive were ranks only because the old ladder had no other way to
+     * show them: each had to be seated above Senior Admin to display, which handed its holder every
+     * permission underneath. They are titles now, so a holder keeps the recognition without the
+     * ladder position, and their actual authority drops to the senior rank they were really
+     * exercising. Without this pass their stored rank id would no longer resolve and the registry
+     * would quietly seat them at the default admin rank instead.
+     */
+    public void convertCosmeticRankHolders()
+    {
+        if (plugin.al == null || plugin.rm == null || plugin.tm == null || plugin.pl == null)
+        {
+            return;
+        }
+
+        final String senior = seniorRankId();
+        if (senior == null)
+        {
+            return;
+        }
+
+        final long migrated = plugin.al.getAllAdmins().values()
+                .stream()
+                .filter(admin -> admin.getRankId() != null)
+                // A rank id that no longer names a rank but does name a title is exactly one of
+                // these; anything else unresolvable is left alone for an operator to look at.
+                .filter(admin -> plugin.rm.getCustomRank(admin.getRankId()) == null)
+                .filter(admin -> plugin.tm.hasTitle(admin.getRankId()))
+                .peek(admin -> grantTitleOffline(admin.getName(), admin.getRankId()))
+                .peek(admin -> FLog.info(String.format(
+                        "Moved admin '%s' from retired rank '%s' to the '%s' title, rank '%s'.",
+                        admin.getName(), admin.getRankId(), admin.getRankId(), senior)))
+                .peek(admin -> admin.setRankId(senior))
+                .count();
+
+        if (migrated > 0)
+        {
+            plugin.al.saveAsync();
+            FLog.info(String.format("Converted %d admin(s) from cosmetic ranks to titles.", migrated));
+        }
+    }
+
+    /**
+     * Records a title against a player profile without needing them online, since a migration runs
+     * at startup when nobody is.
+     */
+    private void grantTitleOffline(final String username, final String titleId)
+    {
+        final PlayerData data = plugin.pl.getData(username);
+
+        if (data != null && data.addTitle(titleId))
+        {
+            plugin.pl.saveData(data);
+        }
+    }
+
+    /**
+     * The rank a senior admin should hold, resolved as the least privileged rank that is granted
+     * senior standing. Derived from {@code ranks.json} rather than named, so a renamed or
+     * operator-defined senior rank is still found.
+     */
+    private String seniorRankId()
+    {
+        return plugin.rm == null
+                ? null
+                : plugin.rm.getRegistry()
+                           .requiredFor(AdminList.SENIOR_STATUS_NODE)
+                           .map(CustomRank::getId)
+                           .orElseGet(this::adminDefaultRankId);
+    }
+
+    /**
+     * The rank a plain admin should hold, taken from whichever rank fills that role.
+     */
+    private String adminDefaultRankId()
+    {
+        return plugin.rm == null
+                ? null
+                : plugin.rm.getRegistry()
+                           .byRole(RankRole.ADMIN_DEFAULT)
+                           .map(CustomRank::getId)
+                           .orElse(null);
     }
 
     private void convertSuperadmins(File oldFile)
@@ -226,22 +317,16 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
             }
 
             String username = asec.getString("last_login_name");
-            Rank rank;
-            if (asec.getBoolean("is_senior_admin"))
-            {
-                rank = Rank.SENIOR_ADMIN;
-            }
-            else
-            {
-                rank = Rank.SUPER_ADMIN;
-            }
+            final String rankId = asec.getBoolean("is_senior_admin")
+                    ? seniorRankId()
+                    : adminDefaultRankId();
             List<String> ips = asec.getStringList("ips");
             String loginMessage = asec.getString("custom_login_message");
             boolean active = asec.getBoolean("is_activated");
 
             Admin admin = new Admin(username);
             admin.setName(username);
-            admin.setRank(rank);
+            admin.setRankId(rankId);
             admin.addIps(ips);
             admin.setLoginMessage(loginMessage);
             admin.setActive(active);

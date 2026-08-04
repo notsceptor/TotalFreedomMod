@@ -13,7 +13,6 @@ import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
-import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FTask;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
@@ -81,15 +80,6 @@ public abstract class FCommand
         if (isConsole(sender))
         {
             throw new CommandFailException("This command can only be used by players.");
-        }
-    }
-
-    @Deprecated
-    protected void checkRank(CommandSender sender, Rank rank)
-    {
-        if (!plugin().rm.getRank(sender).isAtLeast(rank))
-        {
-            noPerms();
         }
     }
 

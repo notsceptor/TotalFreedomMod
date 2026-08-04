@@ -6,7 +6,6 @@ import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Permission;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Subcommand;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.fun.Landminer.Landmine;
-import me.totalfreedom.totalfreedommod.rank.Rank;
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 
 import org.bukkit.Material;
@@ -15,7 +14,7 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 
 @Command(name = "landmine", description = "Set a landmine trap.", usage = "/<command>")
-@Permission(level = Rank.OP, source = SourceType.ONLY_IN_GAME, permission = "tfm.fun.landmine")
+@Permission(source = SourceType.ONLY_IN_GAME, permission = "tfm.fun.landmine")
 public class Command_landmine extends FCommand
 {
     @Callback

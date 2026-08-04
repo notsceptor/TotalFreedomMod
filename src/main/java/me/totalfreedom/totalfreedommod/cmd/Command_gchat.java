@@ -4,13 +4,12 @@ import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Callback;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Command;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Greedy;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Permission;
-import me.totalfreedom.totalfreedommod.rank.Rank;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 @Command(name = "gchat", description = "Send a chat message as someone else.", usage = "/gchat <player> <message>")
-@Permission(permission = "tfm.admin.gchat", level = Rank.SUPER_ADMIN)
+@Permission(permission = "tfm.admin.gchat")
 public class Command_gchat extends FCommand
 {
     @Callback

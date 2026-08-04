@@ -5,7 +5,6 @@ import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Command;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Permission;
 
 import me.totalfreedom.totalfreedommod.player.FPlayer;
-import me.totalfreedom.totalfreedommod.rank.Rank;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.GameMode;
 import org.bukkit.command.CommandSender;
@@ -13,7 +12,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 @Command(name = "orbit", description = "POW!!! Right in the kisser! One of these days Alice, straight to the Moon!", usage = "/orbit <target>")
-@Permission(permission = "tfm.fun.orbit", level = Rank.SUPER_ADMIN)
+@Permission(permission = "tfm.fun.orbit")
 public class Command_orbit extends FCommand
 {
     @Callback

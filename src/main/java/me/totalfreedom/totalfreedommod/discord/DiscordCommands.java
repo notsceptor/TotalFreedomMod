@@ -94,7 +94,7 @@ public class DiscordCommands extends ListenerAdapter
 
         DiscordLinkJsonSync.writeSnapshot(plugin, repo);
 
-        event.reply("Linked as **" + admin.getName() + "** (" + admin.getRank().getName() + ").")
+        event.reply("Linked as **" + admin.getName() + "** (" + admin.getRankId() + ").")
                 .setEphemeral(true).queue();
         FLog.info("[Discord] Linked admin " + admin.getName() + " ↔ Discord user " + event.getUser().getId() + ".");
     }

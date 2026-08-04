@@ -1,6 +1,5 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
-import me.totalfreedom.totalfreedommod.rank.Rank;
 
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
@@ -11,7 +10,7 @@ import org.bukkit.entity.Entity;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 
 @Command(name = "aeclear", description = "Removes all area-of-effect clouds on the server.", usage = "/aeclear", aliases = {"aec"})
-@Permission(level = Rank.SUPER_ADMIN, permission = "tfm.admin.aeclear")
+@Permission(permission = "tfm.admin.aeclear")
 public class Command_aeclear extends FCommand
 {
     @Callback

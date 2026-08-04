@@ -5,14 +5,13 @@ import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Command;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Greedy;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Permission;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
-import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import net.kyori.adventure.text.Component;
 
 import org.bukkit.command.CommandSender;
 
 @Command(name = "realname", description = "Finds the real name of a nicknamed player", usage = "/<command> <nickname..>")
-@Permission(level = Rank.OP, permission = "tfm.player.realname")
+@Permission(permission = "tfm.player.realname")
 public class Command_realname extends FCommand
 {
     @Callback

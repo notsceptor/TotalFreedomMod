@@ -6,7 +6,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
-import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.world.WorldTime;
 import me.totalfreedom.totalfreedommod.world.WorldWeather;
 
@@ -44,7 +43,7 @@ public class Command_adminworld extends FCommand
 
     @Callback
     @Subcommand("guest add")
-    @Permission(level = Rank.SUPER_ADMIN, source = SourceType.ONLY_IN_GAME, permission = "tfm.world.adminworld")
+    @Permission(source = SourceType.ONLY_IN_GAME, permission = "tfm.world.adminworld.manage")
     public void addGuest(Player sender, Player target) 
     {
         if (plugin().wm.adminworld.addGuest(target, sender))
@@ -74,7 +73,7 @@ public class Command_adminworld extends FCommand
 
     @Callback
     @Subcommand("guest remove")
-    @Permission(level = Rank.SUPER_ADMIN, permission = "tfm.world.adminworld")
+    @Permission(permission = "tfm.world.adminworld.manage")
     public void removeGuest(CommandSender sender, Player target) 
     {
         if (plugin().wm.adminworld.removeGuest(target))
@@ -91,7 +90,7 @@ public class Command_adminworld extends FCommand
 
     @Callback
     @Subcommand("guest purge")
-    @Permission(level = Rank.SUPER_ADMIN, permission = "tfm.world.adminworld")
+    @Permission(permission = "tfm.world.adminworld.manage")
     public void purgeGuests(CommandSender sender)
     {
         plugin().wm.adminworld.purgeGuestList();
@@ -100,7 +99,7 @@ public class Command_adminworld extends FCommand
 
     @Callback
     @Subcommand("time")
-    @Permission(level = Rank.SUPER_ADMIN, permission = "tfm.world.adminworld")
+    @Permission(permission = "tfm.world.adminworld.manage")
     public void setTime(CommandSender sender, WorldTime time)
     {
         plugin().wm.adminworld.setTimeOfDay(time);
@@ -110,7 +109,7 @@ public class Command_adminworld extends FCommand
 
     @Callback
     @Subcommand("weather")
-    @Permission(level = Rank.SUPER_ADMIN, permission = "tfm.world.adminworld")
+    @Permission(permission = "tfm.world.adminworld.manage")
     public void setWeather(CommandSender sender, WorldWeather weather)
     {
         plugin().wm.adminworld.setWeatherMode(weather);

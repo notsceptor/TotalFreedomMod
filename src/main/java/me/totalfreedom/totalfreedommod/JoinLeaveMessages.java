@@ -44,9 +44,14 @@ public class JoinLeaveMessages extends FreedomService
         broadcast(player, "<gray><italic><player> has left the game.</italic></gray>");
     }
 
+    /**
+      * Whether this player's join and leave are worth announcing: staff, or anyone carrying an
+      * announceable title. Titles replaced the hardcoded developer list this used to consult.
+      */
     private boolean isAdminOrDeveloper(final Player player)
     {
-        return plugin.al.isAdmin(player) || FUtil.DEVELOPERS.contains(player.getName());
+        return plugin.al.isAdmin(player)
+               || (plugin.tm != null && plugin.tm.getDisplayTitle(player) != null);
     }
 
     /**

@@ -1,4 +1,4 @@
-package me.totalfreedom.totalfreedommod.rank;
+package me.totalfreedom.totalfreedommod.display;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;

@@ -6,7 +6,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
-import me.totalfreedom.totalfreedommod.rank.Rank;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
 @Command(
@@ -28,7 +27,7 @@ public class Command_survival extends FCommand
 
 	@Callback
 	@Subcommand("-a")
-	@Permission(permission = "tfm.admin.gamemode", level = Rank.SUPER_ADMIN)
+	@Permission(permission = "tfm.admin.gamemode")
 	public void changeGamemodeAll(CommandSender sender)
 	{
 		Bukkit.getOnlinePlayers().forEach(player -> player.setGameMode(GameMode.SURVIVAL));
@@ -36,7 +35,7 @@ public class Command_survival extends FCommand
 	}
 
 	@Callback
-	@Permission(permission = "tfm.admin.gamemode", level = Rank.SUPER_ADMIN)
+	@Permission(permission = "tfm.admin.gamemode")
 	public void changeGamemodeOther(CommandSender sender, Player target)
 	{
 		target.setGameMode(GameMode.SURVIVAL);
