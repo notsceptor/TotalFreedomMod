@@ -174,10 +174,6 @@ public class Title implements Displayable, Comparable<Title>
         cachedColoredLoginMessage = null;
     }
 
-    // ========================================================================
-    // Displayable Implementation
-    // ========================================================================
-
     @Override
     public String getName()
     {
@@ -243,10 +239,6 @@ public class Title implements Displayable, Comparable<Title>
         return cachedColoredLoginMessage;
     }
 
-    // ========================================================================
-    // Comparable Implementation
-    // ========================================================================
-
     /**
      * Orders by display weight, heaviest first, so the natural order is the order titles should be
      * preferred in when a player holds several.
@@ -280,11 +272,7 @@ public class Title implements Displayable, Comparable<Title>
     {
         return String.format("Title{id=%s, name=%s, weight=%d}", id, name, weight);
     }
-
-    // ========================================================================
-    // Accessors
-    // ========================================================================
-
+    
     public String getId()
     {
         return id;
