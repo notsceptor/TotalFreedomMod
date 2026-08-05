@@ -3,8 +3,8 @@ type: specs.openrewrite.org/v1beta/style
 name: me.totalfreedom.totalfreedommod.WildcardStyle
 styleConfigs:
   - org.openrewrite.java.style.ImportLayoutStyle:
-      classCountToUseStarImport: 3
-      nameCountToUseStarImport: 3
+      classCountToUseStarImport: 5
+      nameCountToUseStarImport: 5
       layout:
         # JDK
         - import java.*
