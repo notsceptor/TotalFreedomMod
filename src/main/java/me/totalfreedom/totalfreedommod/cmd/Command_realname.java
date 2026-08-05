@@ -1,8 +1,10 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
-import org.bukkit.command.CommandSender;
-import net.kyori.adventure.text.Component;
 import java.util.List;
+
+import org.bukkit.command.CommandSender;
+
+import net.kyori.adventure.text.Component;
 
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Callback;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Command;

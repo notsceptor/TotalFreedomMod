@@ -2,14 +2,15 @@ package me.totalfreedom.totalfreedommod.cmd;
 
 import java.util.List;
 
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
-import me.totalfreedom.totalfreedommod.banning.Ban;
-import me.totalfreedom.totalfreedommod.cmd.internal.FuzzyMatch;
-import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.Server;
 import org.bukkit.entity.Player;
+
+import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.totalfreedommod.banning.Ban;
+import me.totalfreedom.totalfreedommod.cmd.internal.FuzzyMatch;
+import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 
 
 /**

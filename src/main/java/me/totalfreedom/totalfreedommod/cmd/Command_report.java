@@ -1,8 +1,9 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import java.util.List;
+
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
-import java.util.List;
 
 import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;

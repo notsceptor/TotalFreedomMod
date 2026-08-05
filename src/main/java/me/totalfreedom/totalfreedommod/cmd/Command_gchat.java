@@ -1,9 +1,11 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import java.util.List;
+
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
-import java.util.List;
 
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Callback;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Command;
