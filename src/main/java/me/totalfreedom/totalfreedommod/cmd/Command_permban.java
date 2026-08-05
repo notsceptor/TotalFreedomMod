@@ -84,21 +84,19 @@ public class Command_permban extends FCommand
         final PlayerData data = BanCommandUtil.getData(plugin(), name, online);
         final String canonicalName = BanCommandUtil.getCanonicalName(name, online, data);
 
+        if (isProtectedAdminByName(sender, canonicalName))
+            return;
+
         final Set<String> ips = new LinkedHashSet<>(BanCommandUtil.getIps(online, data));
         for (String ip : extraIps.trim().split("\\s+"))
         {
             if (ip.isEmpty())
-            {
                 continue;
-            }
+
             if (isValidIpOrRange(ip))
-            {
                 ips.add(ip);
-            }
             else
-            {
                 msg(sender, "<red>Ignoring invalid IP/range: <ip>", Placeholder.unparsed("ip", ip));
-            }
         }
 
         UUID uuid = online != null ? online.getUniqueId() : FUtil.usernameToUuid(canonicalName);
@@ -108,13 +106,9 @@ public class Command_permban extends FCommand
         final boolean existed = permban != null;
 
         if (permban == null) // this caused a semantic issue with nullability. replaced with a proper null check instead of the cached boolean.
-        {
             permban = new PermBan(uuid, canonicalName, "Permbanned by " + sender.getName());
-        }
         else if (uuid != null && !permban.hasUuid())
-        {
             permban.setUuid(uuid);
-        }
 
         final int before = permban.getIps().size();
         permban.addIps(new ArrayList<>(ips));
@@ -151,9 +145,7 @@ public class Command_permban extends FCommand
         }
 
         if (online != null)
-        {
             kickPlayer(online, permbanKickMessage());
-        }
     }
 
     @Callback
@@ -177,10 +169,9 @@ public class Command_permban extends FCommand
         if (isValidIpOrRange(target))
         {
             final List<String> removed = plugin().pm.removePermbansByIp(target);
+
             if (removed.isEmpty())
-            {
                 msg(sender, "<red>No permbans matched the IP <target>.", Placeholder.unparsed("target", target));
-            }
             else
             {
                 adminAction(
@@ -214,9 +205,7 @@ public class Command_permban extends FCommand
     private void requireLocalConsole(CommandSender sender)
     {
         if (RemoteDispatchContext.isActive() || !sender.getName().equalsIgnoreCase("CONSOLE"))
-        {
             throw new CommandFailException("This command can only be used from the server panel console.");
-        }
     }
 
     private String permbanKickMessage()
@@ -230,13 +219,11 @@ public class Command_permban extends FCommand
     {
         final String[] parts = ip.split("\\.");
         if (parts.length != 4)
-        {
             return false;
-        }
 
         return Stream.of(parts)
-              .filter(part -> !part.equals("*"))
-              .allMatch(Command_permban::isValidOctet);
+                     .filter(part -> !part.equals("*"))
+                     .allMatch(Command_permban::isValidOctet);
     }
 
     private static boolean isValidOctet(String part)

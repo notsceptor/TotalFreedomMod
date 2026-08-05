@@ -27,7 +27,10 @@ public class Command_lockup extends FCommand
     {
         adminAction(sender, "<red>Locking up all players");
 
-        server().getOnlinePlayers().forEach(this::startLockup);
+        server().getOnlinePlayers()
+                .stream()
+                .filter(player -> !isAdmin(player))
+                .forEach(this::startLockup);
 
         msg(sender, "<gray>Locked up all players.");
     }
@@ -68,6 +71,9 @@ public class Command_lockup extends FCommand
 
         if (state.equalsIgnoreCase("on"))
         {
+            if (isProtectedAdmin(sender, player))
+                return;
+
             adminAction(sender, "<red>Locking up <player>", Placeholder.unparsed("player", player.getName()));
             startLockup(player);
             msg(sender, "<gray>Locked up <player>.", Placeholder.unparsed("player", player.getName()));
@@ -109,13 +115,9 @@ public class Command_lockup extends FCommand
                 FTask.run("Command_lockup/lockup", () ->
                 {
                     if (player.isOnline())
-                    {
                         player.openInventory(player.getInventory());
-                    }
                     else
-                    {
                         cancelLockup(playerdata);
-                    }
                 });
             }
         }.runTaskTimer(plugin(), 0L, 5L));

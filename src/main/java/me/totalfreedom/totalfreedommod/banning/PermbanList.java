@@ -126,28 +126,29 @@ public class PermbanList extends FreedomService
         final long fileModified = configFile.lastModified();
 
         enqueue(Mono.fromCallable(() ->
-                {
-                    final Long sqlUpdatedAt = repo.getMaxUpdatedAt();
-                    return sqlUpdatedAt == null || fileModified > sqlUpdatedAt;
-                })
-                .subscribeOn(Schedulers.boundedElastic())
-                .filter(Boolean::booleanValue)
-                .flatMapMany(ignored ->
-                {
-                    FLog.info(String.format("%s is newer than the database; re-importing %d permban(s) from it.",
-                            CONFIG_FILENAME, jsonPermbans.size()));
-                    return Flux.fromIterable(jsonPermbans.values())
-                            .concatMap(repo::save);
-                })
-                .then(Mono.fromRunnable(() -> plugin.dm.sync("PermbanList/applyReconciled",
-                        () -> applyReconciledPermbans(jsonPermbans.values()))))
-                .onErrorResume(ex ->
-                {
-                    FLog.warning(String.format("Failed to reconcile %s into the database: %s",
-                            CONFIG_FILENAME, ex.getMessage()));
-                    return Mono.empty();
-                })
-                .then());
+                    {
+                        final Long sqlUpdatedAt = repo.getMaxUpdatedAt();
+                        return sqlUpdatedAt == null || fileModified > sqlUpdatedAt;
+                    })
+                    .subscribeOn(Schedulers.boundedElastic())
+                    .filter(Boolean::booleanValue)
+                    .flatMapMany(ignored ->
+                    {
+                        FLog.info(String.format("%s is newer than the database; rebuilding it from the file's %d permban(s).",
+                                                CONFIG_FILENAME, jsonPermbans.size()));
+                        return repo.deleteAll()
+                                   .thenMany(Flux.fromIterable(jsonPermbans.values())
+                                                 .concatMap(repo::save));
+                    })
+                    .then(Mono.fromRunnable(() -> plugin.dm.sync("PermbanList/applyReconciled",
+                                            () -> applyReconciledPermbans(jsonPermbans.values()))))
+                    .onErrorResume(ex ->
+                    {
+                        FLog.warning(String.format("Failed to reconcile %s into the database: %s",
+                                                   CONFIG_FILENAME, ex.getMessage()));
+                        return Mono.empty();
+                    })
+                    .then());
     }
 
     private void applyReconciledPermbans(final Collection<PermBan> jsonPermbans)

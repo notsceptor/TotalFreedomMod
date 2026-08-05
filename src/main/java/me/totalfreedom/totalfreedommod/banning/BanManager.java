@@ -109,6 +109,9 @@ public class BanManager extends FreedomService
     /**
      * If bans.json was written more recently than the database's last update, re-import it into
      * SQL. The comparison and the re-import both ride the write queue off the main thread.
+     * <p>
+     * The import replaces the table rather than merging into it, so a ban deleted from the file by
+     * hand does not come back. An empty or unreadable file is ignored.
      */
     private void reconcileFromJsonIfNewer(final BanRepository repo)
     {
@@ -144,11 +147,12 @@ public class BanManager extends FreedomService
                 .filter(Boolean::booleanValue)
                 .flatMapMany(ignored ->
                 {
-                    FLog.info(String.format("bans.json is newer than the database; re-importing %d ban(s) from it.",
+                    FLog.info(String.format("bans.json is newer than the database; rebuilding it from the file's %d ban(s).",
                             jsonBans.size()));
-                    return Flux.fromIterable(jsonBans)
-                            .filter(Ban::isValid)
-                            .concatMap(repo::save);
+                    return repo.deleteAll()
+                               .thenMany(Flux.fromIterable(jsonBans)
+                                             .filter(Ban::isValid)
+                                             .concatMap(repo::save));
                 })
                 .then(Mono.fromRunnable(() -> plugin.dm.sync("BanManager/applyReconciled",
                         () -> applyReconciledBans(jsonBans))))

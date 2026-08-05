@@ -370,10 +370,11 @@ public class TitleManager extends FreedomService
                 .filter(Boolean::booleanValue)
                 .flatMapMany(ignored ->
                 {
-                    FLog.info(String.format("%s is newer than the database; re-importing %d title(s) from it.",
+                    FLog.info(String.format("%s is newer than the database; rebuilding it from the file's %d title(s).",
                             TITLES_FILENAME, jsonTitles.size()));
-                    return Flux.fromIterable(jsonTitles.values())
-                               .concatMap(repo::save);
+                    return repo.deleteAll()
+                               .thenMany(Flux.fromIterable(jsonTitles.values())
+                                             .concatMap(repo::save));
                 })
                 .then(Mono.fromRunnable(() -> plugin.dm.sync("TitleManager/applyReconciled",
                         () -> applyReconciledTitles(jsonTitles))))

@@ -23,11 +23,8 @@ public class Command_warn extends FCommand
             return;
         }
 
-        if (isAdmin(player))
-        {
-            msg(sender, "<gray>This command cannot be used on other admins.");
+        if (isProtectedAdmin(sender, player))
             return;
-        }
 
         adminAction(sender, "<red>Warning <player>", Placeholder.unparsed("player", player.getName()));
         MessageUtils.broadcast("<red>  Reason: <yellow><reason>", MessageUtils.parsed("reason", reason));

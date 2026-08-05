@@ -20,11 +20,8 @@ public class Command_kick extends FCommand
     @Callback
     public void kick(CommandSender sender, Player player, @Greedy String reason, @Switch("s") boolean silent)
     {
-        if (isAdmin(player))
-        {
-            msg(sender, "<red>This command cannot be used on other admins.");
+        if (isProtectedAdmin(sender, player))
             return;
-        }
 
         final String kickMessage = reason != null
                 ? "<red>You have been kicked from the server.\n<red>Kicked by: <gold><sender>\n<red>Reason: <gold><reason>"

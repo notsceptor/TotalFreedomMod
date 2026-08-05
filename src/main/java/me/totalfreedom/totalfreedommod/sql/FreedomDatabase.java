@@ -183,6 +183,11 @@ public class FreedomDatabase extends FreedomService
         }
 
         initialized = false;
+
+        // Cleared so a tfm reload queues the domains' swap callbacks again instead of running them immediately against a pool that is still being rebuilt. 
+        readyFired = false;
+        readyCallbacks.clear();
+
         FLog.info("Database shutdown complete");
     }
 

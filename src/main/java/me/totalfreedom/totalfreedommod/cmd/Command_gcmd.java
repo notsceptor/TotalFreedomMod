@@ -17,15 +17,12 @@ public class Command_gcmd extends FCommand
     {
         if (plugin().cb.isCommandBlocked(command, sender))
         {
-            msg(sender, "<red>Did you really think that was going to work?");
+            msg(sender, "<red>You cannot run blocked commands on another player.");
             return;
         }
 
-        if (isAdmin(player) && !plugin().rm.hasPermission(sender, "tfm.admin.senior.gcmd"))
-        {
-            msg(sender, "<red>This command can't be used on other admins.");
+        if (isProtectedAdmin(sender, player))
             return;
-        }
 
         msg(sender, "<gray>Sending command as <yellow><player><gray>: <white><command>",
                 Placeholder.unparsed("player", player.getName()),
@@ -33,14 +30,10 @@ public class Command_gcmd extends FCommand
 
         try
         {
-            if (server().getCommandMap().dispatch(player, command))
-            {
+            if (server().getCommandMap().dispatch(player, command)) 
                 msg(sender, "<green>Command sent.");
-            }
-            else
-            {
+            else 
                 msg(sender, "<red>Unknown error sending command.");
-            }
         }
         catch (Throwable ex)
         {

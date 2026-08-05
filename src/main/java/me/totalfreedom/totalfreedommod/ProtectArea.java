@@ -97,12 +97,12 @@ public class ProtectArea extends FreedomService
     {
         final ProtectedAreaRepository repo = plugin.dm.getProtectedAreaRepository();
         plugin.dm.readAsync("ProtectArea/loadFromSql", repo.loadAllAsync(),
-                loaded -> applyLoadedAreas(repo, loaded),
-                () ->
-                {
-                    usingSql = false;
-                    loadFromJsonOrLegacy();
-                });
+                            loaded -> applyLoadedAreas(repo, loaded),
+                            () ->
+                            {
+                                usingSql = false;
+                                loadFromJsonOrLegacy();
+                            });
     }
 
     private void applyLoadedAreas(final ProtectedAreaRepository repo, final List<ProtectedRegion> loaded)
@@ -192,31 +192,32 @@ public class ProtectArea extends FreedomService
         final long fileModified = dataFile.lastModified();
 
         writes.enqueue(Mono.fromCallable(() ->
-                {
-                    final Long sqlUpdatedAt = repo.getMaxUpdatedAt();
-                    return sqlUpdatedAt == null || fileModified > sqlUpdatedAt;
-                })
-                .subscribeOn(Schedulers.boundedElastic())
-                .filter(Boolean::booleanValue)
-                .flatMapMany(ignored ->
-                {
-                    FLog.info(String.format("%s is newer than the database; re-importing %d protected area(s) from it.",
-                            DATA_FILENAME, jsonAreas.size()));
-                    return Flux.fromIterable(jsonAreas)
-                            .concatMap(repo::save);
-                })
-                .then(Mono.fromRunnable(() -> plugin.dm.sync("ProtectArea/applyReconciled", () ->
-                {
-                    areas.clear();
-                    jsonAreas.forEach(region -> areas.put(region.getUuid(), region));
-                })))
-                .onErrorResume(ex ->
-                {
-                    FLog.warning(String.format("Failed to reconcile %s into the database: %s",
-                            DATA_FILENAME, ex.getMessage()));
-                    return Mono.empty();
-                })
-                .then());
+              {
+                  final Long sqlUpdatedAt = repo.getMaxUpdatedAt();
+                  return sqlUpdatedAt == null || fileModified > sqlUpdatedAt;
+              })
+              .subscribeOn(Schedulers.boundedElastic())
+              .filter(Boolean::booleanValue)
+              .flatMapMany(ignored ->
+              {
+                  FLog.info(String.format("%s is newer than the database; rebuilding it from the file's %d protected area(s).",
+                                          DATA_FILENAME, jsonAreas.size()));
+                  return repo.deleteAll()
+                             .thenMany(Flux.fromIterable(jsonAreas)
+                                           .concatMap(repo::save));
+              })
+              .then(Mono.fromRunnable(() -> plugin.dm.sync("ProtectArea/applyReconciled", () ->
+              {
+                  areas.clear();
+                  jsonAreas.forEach(region -> areas.put(region.getUuid(), region));
+              })))
+              .onErrorResume(ex ->
+              {
+                  FLog.warning(String.format("Failed to reconcile %s into the database: %s",
+                               DATA_FILENAME, ex.getMessage()));
+                  return Mono.empty();
+              })
+              .then());
     }
 
     @SuppressWarnings("unchecked")

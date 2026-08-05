@@ -29,12 +29,6 @@ import org.bukkit.entity.Player;
 
 @Command(name = "saconfig", description = "Manage admins.",
     usage = "/<command> <list | clean | reload | setrank <username> <rank> | <add | remove | info> <username>>")
-// The read-only subcommands sit at SUPER_ADMIN, so they cannot be gated behind a tfm.manage.*
-// node: RankManager#checkLegacyPermission maps that whole namespace to SENIOR_ADMIN for ranks
-// that hold no explicit grant, which vetoes the level declared here and hides the command from
-// super admins entirely. tfm.admin.* legacy-maps to SUPER_ADMIN and matches this gate. The
-// mutating handlers below keep tfm.manage.saconfig, which now differs from this node and so is
-// actually tested rather than skipped as a repeat of the parent.
 @Permission(permission = "tfm.admin.saconfig")
 public class Command_saconfig extends FCommand
 {

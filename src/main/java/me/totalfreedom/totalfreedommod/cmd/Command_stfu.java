@@ -87,11 +87,8 @@ public class Command_stfu extends FCommand
     {
         final FPlayer fplayer = fplayer(player);
 
-        if (isAdmin(player))
-        {
-            msg(sender, "<gray>This command cannot be used on other admins.");
+        if (isProtectedAdmin(sender, player))
             return;
-        }
 
         if (fplayer.isMuted())
         {
@@ -102,28 +99,20 @@ public class Command_stfu extends FCommand
         else
         {
             if (reason != null)
-            {
-                adminAction(   
-                            sender, "<red>Muting <player><newline>  Reason: <yellow><reason>",
+                adminAction(sender, "<red>Muting <player><newline>  Reason: <yellow><reason>",
                             Placeholder.unparsed("player", player.getName()),
-                            MessageUtils.parsed("reason", reason)
-                        );
-            }
+                            MessageUtils.parsed("reason", reason));
             else
-            {
-                adminAction(sender, "<red>Muting <player>", Placeholder.unparsed("player", player.getName()));
-            }
+                adminAction(sender, "<red>Muting <player>", 
+                            Placeholder.unparsed("player", player.getName()));
 
             fplayer.setMuted(true);
 
             if (reason != null)
-            {
-                msg(player, "<red>You have been muted. Reason: <yellow><reason>", MessageUtils.parsed("reason", reason));
-            }
+                msg(player, "<red>You have been muted. Reason: <yellow><reason>", 
+                    MessageUtils.parsed("reason", reason));
             else
-            {
                 msg(player, "<red>You have been muted.");
-            }
         }
     }
 }

@@ -10,7 +10,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
 
-@Permission(source = SourceType.ONLY_CONSOLE, permission = "tfm.admin.telnet.plugincontrol")
+@Permission(source = SourceType.ONLY_CONSOLE, permission = "tfm.admin.senior.plugincontrol")
 @Command(name = "plugincontrol", aliases = "plc", description = "Manage plugins", usage = "/<command> <<enable | disable | reload> <pluginname>> | list>")
 public class Command_plugincontrol extends FCommand
 {

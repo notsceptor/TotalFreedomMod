@@ -28,17 +28,25 @@ public class Command_banname extends FCommand
     @Callback
     public void banNameWithReason(CommandSender sender, String name, @Greedy String reason)
     {
+        if (isProtectedAdminByName(sender, name))
+            return;
+
         if (plugin().bm.getByUsername(name) != null)
         {
             msg(sender, "<gray><name> is already banned.", Placeholder.unparsed("name", name));
             return;
         }
+
+        if (reason == null || reason.isEmpty())
+            reason = "This username has been banned.";
+
         final Ban ban = Ban.forPlayerName(name, sender, null, reason);
 
         plugin().bm.addBan(ban);
 
         adminAction(sender, "<red>Banning the username <name>",
                 Placeholder.unparsed("name", name));
+
 
         final Player player = server().getPlayer(name);
         if (player != null)

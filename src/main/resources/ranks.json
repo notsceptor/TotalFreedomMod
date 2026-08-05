@@ -11,8 +11,7 @@
       "impostor"
     ],
     "permissions": [
-      "tfm.player.list",
-      "tfm.admin.overlord"
+      "tfm.player.list"
     ]
   },
   "non_op": {
@@ -56,8 +55,7 @@
       "tfm.fun.mp44",
       "tfm.fun.spawnmob",
       "tfm.fun.tossmob",
-      "tfm.server.whitelist",
-      "tfm.manage.saconfig"
+      "tfm.server.whitelist"
     ]
   },
   "super_admin": {
@@ -75,57 +73,48 @@
     "permissions": [
       "tfm.fun.*",
       "tfm.world.*",
+      "tfm.server.*",
       "tfm.admin.adminchat",
+      "tfm.admin.aeclear",
       "tfm.admin.announce",
+      "tfm.admin.autoclear",
+      "tfm.admin.autotp",
       "tfm.admin.ban",
       "tfm.admin.baninfo",
-      "tfm.admin.banlist",
       "tfm.admin.blockcmd",
-      "tfm.admin.blockredstone",
       "tfm.admin.bookspy",
       "tfm.admin.cage",
+      "tfm.admin.cleanchat",
       "tfm.admin.cmdspy",
       "tfm.admin.consolesay",
-      "tfm.admin.denick",
       "tfm.admin.deop",
+      "tfm.admin.discordlink",
       "tfm.admin.disguisetoggle",
       "tfm.admin.findip",
       "tfm.admin.freeze",
+      "tfm.admin.fuckup",
+      "tfm.admin.gamemode",
+      "tfm.admin.gchat",
       "tfm.admin.gcmd",
       "tfm.admin.invis",
       "tfm.admin.kick",
       "tfm.admin.mute",
       "tfm.admin.myadmin",
       "tfm.admin.nickclean",
-      "tfm.admin.opall",
-      "tfm.admin.opme",
       "tfm.admin.potspy",
       "tfm.admin.premium",
+      "tfm.admin.protectregion",
       "tfm.admin.purgeall",
       "tfm.admin.ro",
+      "tfm.admin.saconfig",
       "tfm.admin.say",
       "tfm.admin.signspy",
+      "tfm.admin.sqlstatus",
       "tfm.admin.strike",
       "tfm.admin.undisguiseall",
       "tfm.admin.warn",
       "tfm.admin.whohas",
-      "tfm.admin.wildcard",
-      "tfm.admin.gamemode",
-      "tfm.admin.protectregion",
-      "tfm.admin.aeclear",
-      "tfm.admin.autoclear",
-      "tfm.admin.autotp",
-      "tfm.admin.cleanchat",
-      "tfm.admin.discordlink",
-      "tfm.admin.fuckup",
-      "tfm.admin.gchat",
-      "tfm.admin.saconfig",
-      "tfm.admin.sqlstatus",
-      "tfm.server.reload",
-      "tfm.server.whitelist.manage",
-      "tfm.world.adminworld.manage",
-      "tfm.server.*",
-      "tfm.manage.saconfig"
+      "tfm.admin.wildcard"
     ]
   },
   "senior_admin": {
@@ -142,14 +131,10 @@
     "inherit": "super_admin",
     "permissions": [
       "tfm.admin.senior.*",
-      "tfm.admin.telnet.*",
       "tfm.manage.*",
-      "tfm.manage.ssh",
-      "tfm.manage.telnet",
       "tfm.admin.ban.perm",
       "tfm.admin.banlist.purge",
-      "tfm.ssh.totp",
-      "tfm.admin.senior.status"
+      "tfm.ssh.totp"
     ]
   }
 }

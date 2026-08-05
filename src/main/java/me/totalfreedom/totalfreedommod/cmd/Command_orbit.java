@@ -21,6 +21,9 @@ public class Command_orbit extends FCommand
         final FPlayer target = plugin().pl.getPlayer(player);
         if (!target.isOrbiting())
         {
+            if (isProtectedAdmin(sender, player))
+                return;
+
             player.setGameMode(GameMode.SURVIVAL);
             final double strength = 10.0;
             target.startOrbiting(strength);

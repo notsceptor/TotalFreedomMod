@@ -49,6 +49,9 @@ public abstract class FCommand
     public static final Component NOT_FROM_CONSOLE = Component.text("This command may not be used from the console.", NamedTextColor.GRAY);
     public static final Component PLAYER_NOT_FOUND = Component.text("Player not found!", NamedTextColor.GRAY);
 
+    // Eventually the above components will be converted to use this same MM string format.
+    public static final String ADMIN_PROTECTED_MESSAGE = "<red>This command cannot be used on other admins.";
+
     protected final TotalFreedomMod plugin()
     {
         return PluginProvider.get();
@@ -175,6 +178,55 @@ public abstract class FCommand
     protected boolean isAdmin(CommandSender sender)
     {
         return plugin().al.isAdmin(sender);
+    }
+
+    /**
+     * Whether {@code target} is an admin, and so out of reach of a disciplinary or destructive
+     * command. Tells {@code sender} why when it is, so a caller only has to return.
+     */
+    protected boolean isProtectedAdmin(final CommandSender sender, final Player target)
+    {
+        if (target == null || !plugin().al.isAdmin(target))
+            return false;
+
+        msg(sender, ADMIN_PROTECTED_MESSAGE);
+        return true;
+    }
+
+    /**
+     * The same test for the commands whose target is a bare name and may be offline or unknown.
+     */
+    protected boolean isProtectedAdminByName(final CommandSender sender, final String targetName)
+    {
+        if (targetName == null || targetName.isEmpty())
+            return false;
+
+        final Player online = server().getPlayerExact(targetName);
+        if (online != null)
+            return isProtectedAdmin(sender, online);
+
+        final Admin listed = plugin().al.getEntryByName(targetName);
+        if (listed == null || !listed.isActive())
+            return false;
+
+        msg(sender, ADMIN_PROTECTED_MESSAGE);
+        return true;
+    }
+
+    /**
+     * The same test for an address, so that an IP ban cannot reach an admin through one of theirs.
+     */
+    protected boolean isProtectedAdminByIp(final CommandSender sender, final String ip)
+    {
+        if (ip == null || ip.isEmpty())
+            return false;
+
+        final Admin listed = plugin().al.getEntryByIpFuzzy(ip);
+        if (listed == null || !listed.isActive())
+            return false;
+
+        msg(sender, ADMIN_PROTECTED_MESSAGE);
+        return true;
     }
 
     protected Admin getAdmin(CommandSender sender)

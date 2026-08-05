@@ -656,6 +656,10 @@ public class AdminList extends FreedomService
      * If admins.json was written more recently than the database's last update (e.g. edited
      * by hand, or restored from backup while SQL was unavailable), re-import it into SQL.
      * The comparison and the re-import both ride the write queue off the main thread.
+     * <p>
+     * The import replaces the table rather than merging into it, so an entry removed from the file
+     * by hand is removed from SQL too instead of reappearing on the next start. An empty or
+     * unreadable file is ignored, so a truncated snapshot cannot empty the table.
      */
     private void reconcileFromJsonIfNewer(final AdminRepository repo)
     {
@@ -691,11 +695,12 @@ public class AdminList extends FreedomService
                 .filter(Boolean::booleanValue)
                 .flatMapMany(ignored ->
                 {
-                    FLog.info(String.format("%s is newer than the database; re-importing %d admin(s) from it.",
+                    FLog.info(String.format("%s is newer than the database; rebuilding it from the file's %d admin(s).",
                             CONFIG_FILENAME, jsonAdmins.size()));
-                    return Flux.fromIterable(jsonAdmins.values())
-                            .filter(Admin::isValid)
-                            .concatMap(admin -> repo.save(resolveUuidFor(admin), admin));
+                    return repo.deleteAll()
+                               .thenMany(Flux.fromIterable(jsonAdmins.values())
+                                             .filter(Admin::isValid)
+                                             .concatMap(admin -> repo.save(resolveUuidFor(admin), admin)));
                 })
                 .then(Mono.fromRunnable(() -> plugin.dm.sync("AdminList/applyReconciled",
                         () -> applyReconciledAdmins(jsonAdmins))))

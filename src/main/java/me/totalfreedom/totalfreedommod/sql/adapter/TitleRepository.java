@@ -40,6 +40,8 @@ public interface TitleRepository
 
     boolean removePermission(String titleId, String permission) throws SQLException;
 
+    void deleteAllSync() throws SQLException;
+
     /**
      * Epoch millis of the most recently updated title row, or null if the table is empty.
      * Used to compare SQL freshness against the titles.json snapshot's last-modified time.
@@ -51,4 +53,6 @@ public interface TitleRepository
     Mono<Void> save(Title title);
 
     Mono<Boolean> deleteAsync(String id);
+
+    Mono<Void> deleteAll();
 }

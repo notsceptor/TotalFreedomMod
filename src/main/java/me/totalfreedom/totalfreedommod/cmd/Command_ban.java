@@ -50,6 +50,9 @@ public class Command_ban extends FCommand
 
         name = BanCommandUtil.getCanonicalName(name, player, data);
 
+        if (isProtectedAdminByName(sender, name))
+            return;
+
         if (plugin().bm.getByUsername(name) != null)
         {
             msg(sender, "<gray><player> is already banned.",

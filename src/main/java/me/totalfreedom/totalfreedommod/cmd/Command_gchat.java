@@ -27,11 +27,8 @@ public class Command_gchat extends FCommand
             return;
         }
 
-        if (isAdmin(player))
-        {
-            msg(sender, "<gray>This command cannot be used on other admins.");
+        if (isProtectedAdmin(sender, player))
             return;
-        }
 
         msg(sender, "<gray>Sending chat as <yellow><name><gray>: <white><message>",
                 Placeholder.unparsed("name", player.getName()),

@@ -45,6 +45,9 @@ public class Command_cage extends FCommand
     @Callback // /cage <player> <outer_mat> <inner_mat>   -   No support for switch here because why would you supply a -s and then define materials? would default to switch above anyways.
     public void cage(final CommandSender sender, final Player player, final Material outer, final Material inner)
     {
+        if (isProtectedAdmin(sender, player))
+            return;
+
         final CageData data = plugin().pl.getPlayer(player).getCageData();
         final Location loc = player.getLocation().clone().add(0, 1, 0);
 

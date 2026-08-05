@@ -22,8 +22,8 @@ public class Command_deafen extends FCommand
     private static Location randomOffset(Location a, double magnitude)
     {
         return a.clone().add(random.nextDouble(-magnitude, magnitude),
-                random.nextDouble(-magnitude, magnitude),
-                random.nextDouble(-magnitude, magnitude));
+                             random.nextDouble(-magnitude, magnitude),
+                             random.nextDouble(-magnitude, magnitude));
     }
 
     private static Sound getRandomSound()
@@ -47,13 +47,10 @@ public class Command_deafen extends FCommand
         server().getOnlinePlayers().forEach(this::playNoiseSequence);
     }
 
-    // cuz why not make it able to target one player?
     @Callback
     public void deafenPlayer(CommandSender sender, Player player)
     {
-        for (int x = 0; x <= server().getOnlinePlayers().size(); x++) // using player size since that's how the other method functions
-        {
+        for (int x = 0; x <= server().getOnlinePlayers().size(); x++)
             playNoiseSequence(player);
-        }
     }
 }

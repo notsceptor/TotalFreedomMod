@@ -13,6 +13,9 @@ public class Command_deop extends FCommand
     @Callback
     public void deop(CommandSender sender, OfflinePlayer player)
     {
+        if (isProtectedAdminByName(sender, player.getName()))
+            return;
+
         adminAction(sender, "<aqua>De-opping <player>", Placeholder.unparsed("player", player.getName()));
         player.setOp(false);
 

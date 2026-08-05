@@ -273,6 +273,19 @@ public class GenericTitleRepository implements TitleRepository
         return statementHandler.supplyMono(() -> delete(id));
     }
 
+    @Override
+    public void deleteAllSync() throws SQLException
+    {
+        statementHandler.executeUpdate(String.format("DELETE FROM %s", tblTitlePermissions));
+        statementHandler.executeUpdate(String.format("DELETE FROM %s", tblTitles));
+    }
+
+    @Override
+    public Mono<Void> deleteAll()
+    {
+        return statementHandler.runMono(this::deleteAllSync);
+    }
+
     private Title loadTitleFromRow(ResultSet rs) throws SQLException
     {
         Title title = new Title(rs.getString("id"));

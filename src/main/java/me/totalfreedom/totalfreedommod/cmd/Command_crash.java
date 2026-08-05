@@ -15,11 +15,8 @@ public class Command_crash extends FCommand
     @Callback
     public void crash(final CommandSender sender, final Player player)
     {
-        if (plugin().al.isAdmin(player))
-        {
-            msg(sender, "<gray>This command cannot be used on other admins.");
+        if (isProtectedAdmin(sender, player))
             return;
-        }
         
         player.spawnParticle(
                 Particle.ASH,

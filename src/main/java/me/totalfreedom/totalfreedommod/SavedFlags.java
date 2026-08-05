@@ -172,48 +172,45 @@ public class SavedFlags extends FreedomService
         final long fileModified = dataFile.lastModified();
 
         writes.enqueue(Mono.fromCallable(() ->
-                {
-                    final Long sqlUpdatedAt = repo.getMaxUpdatedAt();
-                    return sqlUpdatedAt == null || fileModified > sqlUpdatedAt;
-                })
-                .subscribeOn(Schedulers.boundedElastic())
-                .filter(Boolean::booleanValue)
-                .flatMapMany(ignored ->
-                {
-                    FLog.info(String.format("%s is newer than the database; re-importing %d flag(s) from it.",
-                            DATA_FILENAME, jsonFlags.size()));
-                    return Flux.fromIterable(jsonFlags.entrySet())
-                            .concatMap(entry -> repo.upsertAsync(entry.getKey(), entry.getValue()));
-                })
-                .then(Mono.fromRunnable(() -> plugin.dm.sync("SavedFlags/applyReconciled", () ->
-                {
-                    flags.clear();
-                    flags.putAll(jsonFlags);
-                })))
-                .onErrorResume(ex ->
-                {
-                    FLog.warning(String.format("Failed to reconcile %s into the database: %s",
-                            DATA_FILENAME, ex.getMessage()));
-                    return Mono.empty();
-                })
-                .then());
+              {
+                  final Long sqlUpdatedAt = repo.getMaxUpdatedAt();
+                  return sqlUpdatedAt == null || fileModified > sqlUpdatedAt;
+              })
+              .subscribeOn(Schedulers.boundedElastic())
+              .filter(Boolean::booleanValue)
+              .flatMapMany(ignored ->
+              {
+                  FLog.info(String.format("%s is newer than the database; rebuilding it from the file's %d flag(s).",
+                                          DATA_FILENAME, jsonFlags.size()));
+                  return repo.deleteAll()
+                             .thenMany(Flux.fromIterable(jsonFlags.entrySet())
+                                           .concatMap(entry -> repo.upsertAsync(entry.getKey(), entry.getValue())));
+              })
+              .then(Mono.fromRunnable(() -> plugin.dm.sync("SavedFlags/applyReconciled", () ->
+              {
+                  flags.clear();
+                  flags.putAll(jsonFlags);
+              })))
+              .onErrorResume(ex ->
+              {
+                  FLog.warning(String.format("Failed to reconcile %s into the database: %s",
+                                             DATA_FILENAME, ex.getMessage()));
+                  return Mono.empty();
+              })
+              .then());
     }
 
     private Map<String, Boolean> readJsonFlags(File file)
     {
         Map<String, Boolean> flags = new HashMap<>();
         if (!file.exists())
-        {
             return flags;
-        }
 
         try (FileReader reader = new FileReader(file))
         {
             Map<String, Boolean> loaded = JsonUtil.GSON.fromJson(reader, FLAGS_MAP_TYPE);
             if (loaded != null)
-            {
                 flags.putAll(loaded);
-            }
         }
         catch (Exception ex)
         {
@@ -277,12 +274,12 @@ public class SavedFlags extends FreedomService
         }
 
         writes.enqueue(plugin.dm.getSavedFlagRepository().upsertAsync(flag, value)
-                .onErrorResume(ex ->
-                {
-                    FLog.severe(String.format("Could not save flag '%s' to SQL: %s", flag, ex.getMessage()));
-                    return Mono.empty();
-                })
-                .then(writeJsonAsync()));
+              .onErrorResume(ex ->
+              {
+                  FLog.severe(String.format("Could not save flag '%s' to SQL: %s", flag, ex.getMessage()));
+                  return Mono.empty();
+              })
+              .then(writeJsonAsync()));
     }
 
 }

@@ -94,6 +94,9 @@ public class Command_tempban extends FCommand
         final PlayerData data = BanCommandUtil.getData(plugin(), name, player);
         final String canonicalName = BanCommandUtil.getCanonicalName(name, player, data);
 
+        if (isProtectedAdminByName(sender, canonicalName))
+            return;
+
         if (plugin().bm.getByUsername(canonicalName) != null)
         {
             msg(sender, "<gray><player> is already banned.", Placeholder.unparsed("player", canonicalName));
@@ -136,9 +139,8 @@ public class Command_tempban extends FCommand
                 .forEach(target ->
                 {
                     if (!silent)
-                    {
                         smitePlayer(target);
-                    }
+                    
                     target.kick(ban.bakeKickMessage());
                 });
     }

@@ -72,6 +72,9 @@ public class Command_freeze extends FCommand
     @Callback
     public void setFreezeForPlayer(CommandSender sender, Player player, @Resolve("Boolean") boolean value)
     {
+        if (value && isProtectedAdmin(sender, player))
+            return;
+
         plugin().pl.getPlayer(player).getFreezeData().setFrozen(value);
 
         msg(sender, "<gray><player> has been <state>.",

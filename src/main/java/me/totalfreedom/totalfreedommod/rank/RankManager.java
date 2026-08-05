@@ -114,13 +114,8 @@ public class RankManager extends FreedomService
     @Override
     protected void onStart()
     {
-        // Load custom ranks
         loadRanks();
 
-        // The console registry is built during onEnable, before any service starts, so its first
-        // read happened with no ranks in memory and every binding naming a custom rank was thrown
-        // away as unknown. Re-read it now that the ranks exist, which is also what lets the
-        // host-channel floor compare against real rank levels.
         if (plugin.csr != null)
         {
             plugin.csr.load();
@@ -300,6 +295,9 @@ public class RankManager extends FreedomService
     /**
      * If ranks.json was written more recently than the database's last update, re-import it into
      * SQL. The comparison and the re-import both ride the write queue off the main thread.
+     * <p>
+     * The import replaces the table rather than merging into it, so a rank deleted from the file is
+     * deleted from SQL as well. An empty or unreadable file is ignored.
      */
     private void reconcileFromJsonIfNewer(final RankRepository repo)
     {
@@ -327,28 +325,29 @@ public class RankManager extends FreedomService
         final long fileModified = ranksFile.lastModified();
 
         writes.enqueue(Mono.fromCallable(() ->
-                {
-                    final Long sqlUpdatedAt = repo.getMaxUpdatedAt();
-                    return sqlUpdatedAt == null || fileModified > sqlUpdatedAt;
-                })
-                .subscribeOn(Schedulers.boundedElastic())
-                .filter(Boolean::booleanValue)
-                .flatMapMany(ignored ->
-                {
-                    FLog.info(String.format("%s is newer than the database; re-importing %d rank(s) from it.",
-                            RANKS_FILENAME, jsonRanks.size()));
-                    return Flux.fromIterable(jsonRanks.values())
-                            .concatMap(repo::save);
-                })
-                .then(Mono.fromRunnable(() -> plugin.dm.sync("RankManager/applyReconciled",
-                        () -> applyReconciledRanks(jsonRanks))))
-                .onErrorResume(ex ->
-                {
-                    FLog.warning(String.format("Failed to reconcile %s into the database: %s",
-                            RANKS_FILENAME, ex.getMessage()));
-                    return Mono.empty();
-                })
-                .then());
+              {
+                  final Long sqlUpdatedAt = repo.getMaxUpdatedAt();
+                  return sqlUpdatedAt == null || fileModified > sqlUpdatedAt;
+              })
+              .subscribeOn(Schedulers.boundedElastic())
+              .filter(Boolean::booleanValue)
+              .flatMapMany(ignored ->
+              {
+                  FLog.info(String.format("%s is newer than the database; rebuilding it from the file's %d rank(s).",
+                                          RANKS_FILENAME, jsonRanks.size()));
+                  return repo.deleteAll()
+                             .thenMany(Flux.fromIterable(jsonRanks.values())
+                                            .concatMap(repo::save));
+              })
+              .then(Mono.fromRunnable(() -> plugin.dm.sync("RankManager/applyReconciled",
+                                      () -> applyReconciledRanks(jsonRanks))))
+              .onErrorResume(ex ->
+              {
+                  FLog.warning(String.format("Failed to reconcile %s into the database: %s",
+                                             RANKS_FILENAME, ex.getMessage()));
+                  return Mono.empty();
+              })
+              .then());
     }
 
     private void applyReconciledRanks(final Map<String, CustomRank> jsonRanks)
@@ -377,14 +376,15 @@ public class RankManager extends FreedomService
         final List<CustomRank> snapshot = new ArrayList<>(customRanks.values());
 
         writes.enqueue(Flux.fromIterable(snapshot)
-                .concatMap(rank -> repo.save(rank)
-                        .onErrorResume(ex ->
-                        {
-                            FLog.severe(String.format("Could not save rank %s to SQL: %s",
-                                    rank.getId(), ex.getMessage()));
-                            return Mono.empty();
-                        }))
-                .then(writeJsonAsync()));
+              .concatMap(rank -> repo.save(rank)
+                                     .onErrorResume(ex ->
+                                     {
+                                         FLog.severe(String.format("Could not save rank %s to SQL: %s",
+                                                                   rank.getId(), 
+                                                                   ex.getMessage()));
+                                         return Mono.empty();
+                                     }))
+              .then(writeJsonAsync()));
     }
 
     /**
@@ -399,15 +399,13 @@ public class RankManager extends FreedomService
     {
         final Map<String, CustomRank> snapshot = new LinkedHashMap<>(customRanks);
         return Mono.<Void>fromRunnable(() -> writeJson(snapshot))
-                .subscribeOn(Schedulers.boundedElastic());
+                   .subscribeOn(Schedulers.boundedElastic());
     }
 
     private void writeJson(final Map<String, CustomRank> snapshot)
     {
         if (ranksFile == null)
-        {
             ranksFile = new File(plugin.getDataFolder(), RANKS_FILENAME);
-        }
 
         try (FileWriter writer = new FileWriter(ranksFile))
         {
@@ -433,7 +431,8 @@ public class RankManager extends FreedomService
 
     private Set<String> collectPermissions(CustomRank rank, Set<String> visited)
     {
-        if (rank == null) return Set.of();
+        if (rank == null) 
+            return Set.of();
 
         if (visited.contains(rank.getId()))
         {
@@ -448,13 +447,9 @@ public class RankManager extends FreedomService
         {
             CustomRank parent = customRanks.get(rank.getInheritFrom().toLowerCase());
             if (parent == null)
-            {
                 FLog.warning("Rank '" + rank.getId() + "' inherits from non-existent rank: " + rank.getInheritFrom());
-            }
             else
-            {
                 perms.addAll(collectPermissions(parent, visited));
-            }
         }
 
         return perms;
@@ -463,9 +458,8 @@ public class RankManager extends FreedomService
     public CustomRank getCustomRank(String id)
     {
         if (id == null)
-        {
             return null;
-        }
+
         return customRanks.get(id.toLowerCase());
     }
 
@@ -473,16 +467,12 @@ public class RankManager extends FreedomService
     private CustomRank getAssignedAdminRank(Player player)
     {
         if (plugin.al.isAdminImpostor(player))
-        {
             return null;
-        }
 
         final Admin admin = plugin.al.getAdmin(player);
 
         if (admin == null || !admin.isActive())
-        {
             return null;
-        }
 
         return getCustomRank(admin.getRankId());
     }
@@ -492,31 +482,24 @@ public class RankManager extends FreedomService
         ScoreboardManager manager = server.getScoreboardManager();
 
         if (manager == null)
-        {
             return;
-        }
 
         final Scoreboard scoreboard = manager.getMainScoreboard();
         final Team currentTeam = scoreboard.getEntryTeam(player.getName());
         final CustomRank rank = getAssignedAdminRank(player);
 
-        // Only an admin rank earns its own team; everyone else shares the default one, so an
-        // unresolvable rank is an ordinary outcome here rather than something to substitute for.
         final boolean admin = rank != null && rank.isAdmin();
         final String teamName = admin ? createTeamName(rank) : DEFAULT_TEAM_NAME;
 
         if (currentTeam != null && !currentTeam.getName().equals(teamName))
-        {
             currentTeam.removeEntry(player.getName());
-        }
 
         Team team = scoreboard.getTeam(teamName);
 
         if (team == null)
-        {
             team = scoreboard.registerNewTeam(teamName);
-        }
 
+        // this npe warning can be ignored since boolean admin already validates that rank won't be null if true
         team.color(admin ? rank.getColor() : NamedTextColor.WHITE);
         team.prefix(Component.empty());
         team.addEntry(player.getName());
@@ -531,9 +514,7 @@ public class RankManager extends FreedomService
                 rank.getId().replaceAll("[^A-Za-z0-9_\\-]", "_"));
 
         if (name.length() > 16)
-        {
             name = name.substring(0, 16);
-        }
 
         return name;
     }
@@ -541,9 +522,7 @@ public class RankManager extends FreedomService
     public void updateAllPlayerTeams()
     {
         for (Player player : server.getOnlinePlayers())
-        {
             updatePlayerTeam(player);
-        }
     }
 
     /**
@@ -584,19 +563,18 @@ public class RankManager extends FreedomService
         if (removed == null)
             return false;
 
-        // saveRanks() only writes the ranks that survive, so without an explicit delete the row
-        // stays behind in SQL and the rank returns on the next load.
         if (usingSql && plugin.dm != null && plugin.dm.isInitialized())
         {
             writes.enqueue(plugin.dm.getRankRepository()
-                    .deleteAsync(removed.getId())
-                    .onErrorResume(ex ->
-                    {
-                        FLog.severe(String.format("Could not delete rank %s from SQL: %s",
-                                removed.getId(), ex.getMessage()));
-                        return Mono.empty();
-                    })
-                    .then());
+                  .deleteAsync(removed.getId())
+                  .onErrorResume(ex ->
+                  {
+                      FLog.severe(String.format("Could not delete rank %s from SQL: %s",
+                                                removed.getId(), 
+                                                ex.getMessage()));
+                      return Mono.empty();
+                  })
+                  .then());
         }
 
         resolveInheritance();
@@ -614,17 +592,11 @@ public class RankManager extends FreedomService
         return customRanks.containsKey(id.toLowerCase());
     }
 
-    // ========================================================================
-    // Permission System (Internal, NOT Bukkit-based)
-    // ========================================================================
-
     /**
      * Whether {@code sender} may exercise an internal TFM permission node.
      * <p>
-     * These are TFM's own nodes and are never registered with Bukkit: every player on a
-     * TotalFreedom server is opped, so a Bukkit node would grant itself. The answer is delegated to
-     * the {@link RankRegistry}, which resolves how this sender earned its rank and compares that
-     * against the tier the node requires, both read off {@code ranks.json}.
+     * These are TFM's own nodes and are never registered with Bukkit 
+     * because if we registered with Bukkit then OPs would have these nodes too.
      *
      * @param sender     the command sender
      * @param permission the internal node, for example {@code tfm.admin.ban}
@@ -641,10 +613,6 @@ public class RankManager extends FreedomService
     {
         return hasPermission(sender, "tfm.manage.ranks");
     }
-
-    // ========================================================================
-    // Chat Input Handler (Inner Class)
-    // ========================================================================
 
     /**
      * Get the chat input handler for interactive menus.
@@ -677,22 +645,17 @@ public class RankManager extends FreedomService
         {
             UUID uuid = player.getUniqueId();
 
-            // Cancel any existing pending input
             cancelInput(player);
 
-            // Send prompt
             player.sendMessage(Component.empty());
             player.sendMessage(prompt);
             player.sendMessage(Component.text("Type your response in chat, or type 'cancel' to abort.")
                     .color(NamedTextColor.GRAY).decorate(TextDecoration.ITALIC));
 
-            // Register pending input
             PendingInput pending = new PendingInput(callback, System.currentTimeMillis());
             pendingInputs.put(uuid, pending);
 
-            // Schedule timeout if specified
             if (timeoutSeconds > 0)
-            {
                 new BukkitRunnable()
                 {
                     @Override
@@ -703,14 +666,12 @@ public class RankManager extends FreedomService
                         {
                             pendingInputs.remove(uuid);
                             Player p = server.getPlayer(uuid);
+
                             if (p != null && p.isOnline())
-                            {
                                 p.sendMessage(Component.text("Input timed out.").color(NamedTextColor.RED));
-                            }
                         }
                     }
                 }.runTaskLater(plugin, timeoutSeconds * 20L);
-            }
         }
 
         /**
@@ -742,9 +703,7 @@ public class RankManager extends FreedomService
             PendingInput pending = pendingInputs.remove(uuid);
 
             if (pending == null)
-            {
                 return false;
-            }
 
             // Check for cancel
             if (message.equalsIgnoreCase("cancel"))
@@ -753,7 +712,6 @@ public class RankManager extends FreedomService
                 return true;
             }
 
-            // Invoke callback
             try
             {
                 pending.callback().accept(message);
@@ -783,32 +741,17 @@ public class RankManager extends FreedomService
         }
     }
 
-    // ========================================================================
-    // Chat Event Handler (for input capture)
-    // ========================================================================
-
     @EventHandler(priority = EventPriority.LOWEST)
     public void onPlayerChat(AsyncChatEvent event)
     {
         Player player = event.getPlayer();
 
-        // Check if this player has pending input
         if (chatInputHandler.hasPendingInput(player))
         {
-            // Extract plain text from the Component message
             final String message = PlainTextComponentSerializer.plainText().serialize(event.message());
 
-            // Process on main thread to avoid async issues
-            new BukkitRunnable()
-            {
-                @Override
-                public void run()
-                {
-                    chatInputHandler.processChat(player, message);
-                }
-            }.runTask(plugin);
+            FTask.run("chatInputHandler#processChat", () -> chatInputHandler.processChat(player, message));
 
-            // Cancel the chat event so the message isn't broadcast
             event.setCancelled(true);
         }
     }
@@ -826,15 +769,9 @@ public class RankManager extends FreedomService
             Team team = manager.getMainScoreboard().getEntryTeam(event.getPlayer().getName());
 
             if (team != null)
-            {
                 team.removeEntry(event.getPlayer().getName());
-            }
         }
     }
-
-    // ========================================================================
-    // Interactive Menu Builder (for /rankconfig)
-    // ========================================================================
 
     /**
      * Build the main rank configuration menu.
@@ -992,10 +929,6 @@ public class RankManager extends FreedomService
                 .append(Component.text("\n"));
     }
 
-    // ========================================================================
-    // Original RankManager Methods (preserved)
-    // ========================================================================
-
     private void startPersistentMonitor()
     {
         final int interval = ConfigEntry.AUTO_OP_MONITOR_INTERVAL.getInteger();
@@ -1021,15 +954,11 @@ public class RankManager extends FreedomService
                     {
                         // Skip admins and players who should not be OP
                         if (plugin.al.isAdmin(player) || plugin.al.isAdminImpostor(player))
-                        {
                             continue;
-                        }
 
                         // Re-OP players who lost OP status
                         if (!player.isOp())
-                        {
                             ensureOp(player);
-                        }
                     }
                 });
             }
@@ -1044,27 +973,20 @@ public class RankManager extends FreedomService
     private void ensureOp(Player player)
     {
         if (player == null || !player.isOnline())
-        {
             return;
-        }
+
 
         // Skip admins and impostors
         if (plugin.al.isAdmin(player) || plugin.al.isAdminImpostor(player))
-        {
             return;
-        }
 
         // Only ensure OP if auto-OP is enabled
         if (!ConfigEntry.AUTO_OP_ENABLED.getBoolean())
-        {
             return;
-        }
 
         // Set OP if not already set
         if (!player.isOp())
-        {
             player.setOp(true);
-        }
 
         // Aggressively refresh permissions immediately
         try
@@ -1079,7 +1001,6 @@ public class RankManager extends FreedomService
         // Schedule multiple delayed recalculations to catch plugins that cache late
         // This ensures WorldEdit, Essentials, etc. pick up the OP status
         for (long delay : new long[]{2L, 5L, 10L, 20L}) // 100ms, 250ms, 500ms, 1s
-        {
             new BukkitRunnable()
             {
                 @Override
@@ -1098,7 +1019,6 @@ public class RankManager extends FreedomService
                     }
                 }
             }.runTaskLater(plugin, delay);
-        }
     }
 
     /**

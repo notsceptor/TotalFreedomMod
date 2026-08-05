@@ -11,7 +11,12 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
-@Permission(source = SourceType.ONLY_CONSOLE, permission = "tfm.fun.doom")
+/**
+ * Every other disciplinary or destructive command refuses an admin target through
+ * {@link FCommand#isProtectedAdmin} or {@link FCommand#isProtectedAdminByName}. 
+ * This one is the way an admin is removed, so it carries no such guard and is fenced by reach instead at console only.
+ */
+@Permission(source = SourceType.ONLY_CONSOLE, permission = "tfm.admin.senior.doom")
 @Command(name = "doom", description = "For the bad admins", usage = "/doom <player>")
 public class Command_doom extends FCommand
 {

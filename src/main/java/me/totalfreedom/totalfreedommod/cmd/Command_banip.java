@@ -27,6 +27,16 @@ public class Command_banip extends FCommand
     @Callback
     public void banIpsWithReason(CommandSender sender, @Resolve(value = "IPs", strategy = "allowPlayers,all") List<InetAddress> addressList, @Greedy String reason)
     {
+        final boolean reachesAdmin = addressList.stream()
+                                                .map(InetAddress::getHostAddress)
+                                                .anyMatch(ip -> isProtectedAdminByIp(sender, ip));
+
+        if (reachesAdmin)
+        {
+            msg(sender, "<red>You cannot IP-ban another admin.");
+            return;
+        }
+
         adminAction(sender, "<red>Banning <count> address<plural:es:><include_reason:\" - Reason: <yellow><reason>\":\"\">",
                 Formatter.number("count", addressList.size()),
                 Formatter.booleanChoice("plural", addressList.size() != 1),
