@@ -3,6 +3,7 @@ type: specs.openrewrite.org/v1beta/style
 name: me.totalfreedom.totalfreedommod.WildcardStyle
 styleConfigs:
   - org.openrewrite.java.style.ImportLayoutStyle:
+      # anything lower than 5 will cause conflicts, 5 or higher is a good standard.
       classCountToUseStarImport: 5
       nameCountToUseStarImport: 5
       layout:
