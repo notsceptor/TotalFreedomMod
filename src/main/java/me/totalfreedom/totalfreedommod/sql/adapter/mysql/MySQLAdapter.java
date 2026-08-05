@@ -29,6 +29,7 @@ public class MySQLAdapter extends DatabaseAdapter
     private StrikeRepository strikeRepository;
     private DiscordLinkRepository discordLinkRepository;
     private RankRepository rankRepository;
+    private TitleRepository titleRepository;
     private ProtectedAreaRepository protectedAreaRepository;
     private SavedFlagRepository savedFlagRepository;
     private PlayerRepository playerRepository;
@@ -157,6 +158,8 @@ public class MySQLAdapter extends DatabaseAdapter
         createDiscordLinksTable();
         createRanksTable();
         createRankPermissionsTable();
+        createTitlesTable();
+        createTitlePermissionsTable();
         createProtectedAreasTable();
         createSavedFlagsTable();
         createPlayersTable();
@@ -326,15 +329,16 @@ public class MySQLAdapter extends DatabaseAdapter
                 `level` INT NOT NULL DEFAULT 0,
                 `color` VARCHAR(32) NOT NULL DEFAULT 'white',
                 `admin` TINYINT(1) NOT NULL DEFAULT 0,
-                `console_only` TINYINT(1) NOT NULL DEFAULT 0,
                 `prefix` VARCHAR(64),
                 `inherit_from` VARCHAR(64),
+                `roles` VARCHAR(255),
                 `updated_at` DATETIME NOT NULL DEFAULT NOW(),
                 INDEX `idx_ranks_level` (`level`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """;
         statementHandler.executeUpdate(sql);
         addColumnIfMissing("ranks", "updated_at", "DATETIME NOT NULL DEFAULT NOW()");
+        addColumnIfMissing("ranks", "roles", "VARCHAR(255)");
     }
 
     private void createRankPermissionsTable() throws SQLException
@@ -346,6 +350,38 @@ public class MySQLAdapter extends DatabaseAdapter
                 `permission` VARCHAR(128) NOT NULL,
                 UNIQUE KEY `uk_rank_permission` (`rank_id`, `permission`),
                 FOREIGN KEY (`rank_id`) REFERENCES `ranks`(`id`) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """;
+        statementHandler.executeUpdate(sql);
+    }
+
+    private void createTitlesTable() throws SQLException
+    {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS `titles` (
+                `id` VARCHAR(64) PRIMARY KEY,
+                `name` VARCHAR(64) NOT NULL,
+                `determiner` VARCHAR(8) NOT NULL DEFAULT 'a',
+                `abbreviation` VARCHAR(16),
+                `color` VARCHAR(32) NOT NULL DEFAULT 'white',
+                `prefix` VARCHAR(64),
+                `weight` INT NOT NULL DEFAULT 0,
+                `announce` TINYINT(1) NOT NULL DEFAULT 1,
+                `updated_at` DATETIME NOT NULL DEFAULT NOW()
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """;
+        statementHandler.executeUpdate(sql);
+    }
+
+    private void createTitlePermissionsTable() throws SQLException
+    {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS `title_permissions` (
+                `id` INT AUTO_INCREMENT PRIMARY KEY,
+                `title_id` VARCHAR(64) NOT NULL,
+                `permission` VARCHAR(128) NOT NULL,
+                UNIQUE KEY `uk_title_permission` (`title_id`, `permission`),
+                FOREIGN KEY (`title_id`) REFERENCES `titles`(`id`) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """;
         statementHandler.executeUpdate(sql);
@@ -407,6 +443,7 @@ public class MySQLAdapter extends DatabaseAdapter
             """;
         statementHandler.executeUpdate(sql);
         addColumnIfMissing("players", "updated_at", "DATETIME NOT NULL DEFAULT NOW()");
+        addColumnIfMissing("players", "titles", "TEXT");
         addColumnIfMissing("players", "potion_spy_mode", "VARCHAR(16) NOT NULL DEFAULT 'off'");
         addColumnIfMissing("players", "sign_spy_mode", "VARCHAR(16) NOT NULL DEFAULT 'off'");
         addColumnIfMissing("players", "book_spy_mode", "VARCHAR(16) NOT NULL DEFAULT 'off'");
@@ -495,6 +532,16 @@ public class MySQLAdapter extends DatabaseAdapter
             discordLinkRepository = new GenericDiscordLinkRepository(statementHandler, this);
         }
         return discordLinkRepository;
+    }
+
+    @Override
+    public TitleRepository getTitleRepository()
+    {
+        if (titleRepository == null)
+        {
+            titleRepository = new GenericTitleRepository(statementHandler, this);
+        }
+        return titleRepository;
     }
 
     @Override

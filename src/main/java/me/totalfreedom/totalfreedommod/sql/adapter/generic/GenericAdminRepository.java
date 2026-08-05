@@ -1,7 +1,6 @@
 package me.totalfreedom.totalfreedommod.sql.adapter.generic;
 
 import me.totalfreedom.totalfreedommod.admin.Admin;
-import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.sql.StatementHandler;
 import me.totalfreedom.totalfreedommod.sql.adapter.AdminRepository;
 import me.totalfreedom.totalfreedommod.sql.adapter.DatabaseAdapter;
@@ -70,11 +69,11 @@ public class GenericAdminRepository implements AdminRepository
         long adminId = statementHandler.executeUpdateReturnKey(sql,
                 uuid.toString(),
                 admin.getName(),
-                admin.getRank().toString(),
+                admin.getRankId(),
                 admin.isActive(),
                 FUtil.dateToString(admin.getLastLogin()),
                 admin.getLoginMessage(),
-                admin.getCustomRankId());
+                null);
 
         if (adminId < 0)
         {
@@ -287,11 +286,11 @@ public class GenericAdminRepository implements AdminRepository
 
         int rows = statementHandler.executeUpdate(sql,
                 admin.getName(),
-                admin.getRank().toString(),
+                admin.getRankId(),
                 admin.isActive(),
                 FUtil.dateToString(admin.getLastLogin()),
                 admin.getLoginMessage(),
-                admin.getCustomRankId(),
+                null,
                 uuid.toString());
 
         return rows > 0;
@@ -449,6 +448,22 @@ public class GenericAdminRepository implements AdminRepository
         return statementHandler.runMono(this::deleteAllSync);
     }
 
+    /**
+     * Picks the rank id out of the two columns admin rows may still carry.
+     * <p>
+     * {@code custom_rank} held the custom-assigned rank and took precedence over {@code rank},
+     * which held a fixed tier name, so it is preferred here as well. Rows are rewritten with the id
+     * in {@code rank} and {@code custom_rank} cleared, so this only matters until a row is next
+     * saved. A tier name lowercases into an id, which is the convention {@code ranks.json} uses.
+     */
+    private static String resolveRankId(final String customRank, final String legacyRank)
+    {
+        if (customRank != null && !customRank.isBlank())
+            return customRank.toLowerCase();
+
+        return legacyRank == null || legacyRank.isBlank() ? null : legacyRank.toLowerCase();
+    }
+
     private Admin loadAdminFromRow(ResultSet rs) throws SQLException
     {
         String username = rs.getString("username");
@@ -456,15 +471,13 @@ public class GenericAdminRepository implements AdminRepository
         boolean active = rs.getBoolean("active");
         String lastLoginStr = rs.getString("last_login");
         String loginMessage = rs.getString("login_message");
-        String customRankId = rs.getString("custom_rank");
 
         Admin admin = new Admin(username.toLowerCase());
         admin.setName(username);
-        admin.setRank(Rank.findRank(rankStr));
+        admin.setRankId(resolveRankId(rs.getString("custom_rank"), rankStr));
         admin.setActive(active);
         admin.setLastLogin(FUtil.stringToDate(lastLoginStr));
         admin.setLoginMessage(loginMessage);
-        admin.setCustomRankId(customRankId);
 
         UUID dbUuid = FUtil.parseUuid(rs.getString("uuid"));
         if (dbUuid != null)

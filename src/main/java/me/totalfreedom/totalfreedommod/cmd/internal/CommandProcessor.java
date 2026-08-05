@@ -732,7 +732,7 @@ public final class CommandProcessor
             CommandSourceStack source = ctx.getSource();
             CommandSender sender = PermissionGate.resolveSender(source.getSender());
 
-            if (!PermissionGate.test(plugin, sender, methodPermission, classPermission, true))
+            if (!PermissionGate.test(plugin, sender, methodPermission, true))
             {
                 return 0;
             }

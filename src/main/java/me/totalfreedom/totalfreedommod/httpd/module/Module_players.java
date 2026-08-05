@@ -42,15 +42,14 @@ public class Module_players extends HTTPDModule
         for (Admin admin : plugin.al.getActiveAdmins())
         {
             final String username = admin.getName();
-
-            switch (admin.getRank())
+            
+            if (plugin.al.grantsSeniorStatus(admin))
             {
-                case SUPER_ADMIN:
-                    superadmins.add(username);
-                    break;
-                case SENIOR_ADMIN:
-                    senioradmins.add(username);
-                    break;
+                senioradmins.add(username);
+            }
+            else
+            {
+                superadmins.add(username);
             }
         }
 

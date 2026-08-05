@@ -2,7 +2,6 @@ package me.totalfreedom.totalfreedommod.cmd;
 
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
-import me.totalfreedom.totalfreedommod.rank.Rank;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
@@ -11,7 +10,7 @@ import org.bukkit.GameRules;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.EntityType;
 
-@Permission(level = Rank.SUPER_ADMIN, permission = "tfm.server.moblimiter")
+@Permission(permission = "tfm.server.moblimiter")
 @Command(name = "moblimiter", description = "Control the MobLimiter.", usage = "/<command> <<on | off> | limit <limit> | <allow | block <type>>>")
 public class Command_moblimiter extends FCommand
 {

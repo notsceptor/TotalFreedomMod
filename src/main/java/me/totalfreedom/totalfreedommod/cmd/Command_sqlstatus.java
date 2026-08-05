@@ -1,7 +1,6 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
-import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.sql.ConnectionHandler.PoolStats;
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
@@ -9,7 +8,7 @@ import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.command.CommandSender;
 
 @Command(name = "sqlstatus", description = "Show database connection pool health.", usage = "/sqlstatus")
-@Permission(level = Rank.SENIOR_ADMIN, source = SourceType.BOTH, permission = "tfm.admin.sqlstatus")
+@Permission(source = SourceType.BOTH, permission = "tfm.admin.sqlstatus")
 public class Command_sqlstatus extends FCommand
 {
     @Callback

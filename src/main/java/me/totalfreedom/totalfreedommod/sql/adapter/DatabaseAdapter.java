@@ -90,6 +90,11 @@ public abstract class DatabaseAdapter
     public abstract RankRepository getRankRepository();
 
     /**
+     * Repository for titles, the flat capability grants that sit alongside ranks.
+     */
+    public abstract TitleRepository getTitleRepository();
+
+    /**
      * Get the protected area repository for this database type.
      */
     public abstract ProtectedAreaRepository getProtectedAreaRepository();

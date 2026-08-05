@@ -35,6 +35,7 @@ public class SQLiteAdapter extends DatabaseAdapter
     private StrikeRepository strikeRepository;
     private DiscordLinkRepository discordLinkRepository;
     private RankRepository rankRepository;
+    private TitleRepository titleRepository;
     private ProtectedAreaRepository protectedAreaRepository;
     private SavedFlagRepository savedFlagRepository;
     private PlayerRepository playerRepository;
@@ -166,6 +167,8 @@ public class SQLiteAdapter extends DatabaseAdapter
         createDiscordLinksTable();
         createRanksTable();
         createRankPermissionsTable();
+        createTitlesTable();
+        createTitlePermissionsTable();
         createProtectedAreasTable();
         createSavedFlagsTable();
         createPlayersTable();
@@ -339,14 +342,15 @@ public class SQLiteAdapter extends DatabaseAdapter
                 level INTEGER NOT NULL DEFAULT 0,
                 color TEXT NOT NULL DEFAULT 'white',
                 admin INTEGER NOT NULL DEFAULT 0,
-                console_only INTEGER NOT NULL DEFAULT 0,
                 prefix TEXT,
                 inherit_from TEXT,
+                roles TEXT,
                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
             """;
         statementHandler.executeUpdate(sql);
         addTimestampColumnIfMissing("ranks", "updated_at");
+        addColumnIfMissing("ranks", "roles", "TEXT");
         statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_ranks_level ON ranks(level)");
     }
 
@@ -359,6 +363,38 @@ public class SQLiteAdapter extends DatabaseAdapter
                 permission TEXT NOT NULL,
                 UNIQUE (rank_id, permission),
                 FOREIGN KEY (rank_id) REFERENCES ranks(id) ON DELETE CASCADE
+            )
+            """;
+        statementHandler.executeUpdate(sql);
+    }
+
+    private void createTitlesTable() throws SQLException
+    {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS titles (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                determiner TEXT NOT NULL DEFAULT 'a',
+                abbreviation TEXT,
+                color TEXT NOT NULL DEFAULT 'white',
+                prefix TEXT,
+                weight INTEGER NOT NULL DEFAULT 0,
+                announce INTEGER NOT NULL DEFAULT 1,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+            """;
+        statementHandler.executeUpdate(sql);
+    }
+
+    private void createTitlePermissionsTable() throws SQLException
+    {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS title_permissions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title_id TEXT NOT NULL,
+                permission TEXT NOT NULL,
+                UNIQUE (title_id, permission),
+                FOREIGN KEY (title_id) REFERENCES titles(id) ON DELETE CASCADE
             )
             """;
         statementHandler.executeUpdate(sql);
@@ -420,6 +456,7 @@ public class SQLiteAdapter extends DatabaseAdapter
             """;
         statementHandler.executeUpdate(sql);
         addTimestampColumnIfMissing("players", "updated_at");
+        addColumnIfMissing("players", "titles", "TEXT");
         addColumnIfMissing("players", "potion_spy_mode", "TEXT NOT NULL DEFAULT 'off'");
         addColumnIfMissing("players", "sign_spy_mode", "TEXT NOT NULL DEFAULT 'off'");
         addColumnIfMissing("players", "book_spy_mode", "TEXT NOT NULL DEFAULT 'off'");
@@ -533,6 +570,16 @@ public class SQLiteAdapter extends DatabaseAdapter
             discordLinkRepository = new GenericDiscordLinkRepository(statementHandler, this);
         }
         return discordLinkRepository;
+    }
+
+    @Override
+    public TitleRepository getTitleRepository()
+    {
+        if (titleRepository == null)
+        {
+            titleRepository = new GenericTitleRepository(statementHandler, this);
+        }
+        return titleRepository;
     }
 
     @Override

@@ -6,7 +6,6 @@ import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Callback;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Command;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Permission;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Subcommand;
-import me.totalfreedom.totalfreedommod.rank.Rank;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
@@ -17,7 +16,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffectType;
 
 @Command(name = "invis", description = "Shows (and optionally clears) invisisible players", usage = "/invis [clear]")
-@Permission(level = Rank.SUPER_ADMIN, permission = "tfm.admin.invis")
+@Permission(permission = "tfm.admin.invis")
 public class Command_invis extends FCommand
 {
     @Callback

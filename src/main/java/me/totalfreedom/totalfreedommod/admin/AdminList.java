@@ -22,7 +22,6 @@ import java.util.concurrent.TimeUnit;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
-import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.sql.PersistenceQueue;
 import me.totalfreedom.totalfreedommod.sql.adapter.AdminRepository;
 import me.totalfreedom.totalfreedommod.util.FLog;
@@ -44,6 +43,13 @@ public class AdminList extends FreedomService
 {
 
     public static final String CONFIG_FILENAME = "admins.json";
+
+    /**
+     * The node that marks a rank as senior. Senior standing is a capability granted by
+     * {@code ranks.json} rather than a fixed tier, so a defined rank can hold it and a
+     * rename or re-tier of the shipped ranks does not strand this check.
+     */
+    public static final String SENIOR_STATUS_NODE = "tfm.admin.senior.status";
 
     private static final Type ADMIN_MAP_TYPE = new TypeToken<Map<String, Admin>>() {}.getType();
 
@@ -219,15 +225,28 @@ public class AdminList extends FreedomService
         return admin != null && admin.isActive();
     }
 
+    /**
+     * Whether {@code sender} counts as a senior admin.
+     * <p>
+     * Asked as a capability rather than as a rank comparison, because no rank is named in code any
+     * more: whichever ranks {@code ranks.json} grants {@link #SENIOR_STATUS_NODE} to are the senior
+     * ones, including any custom definitions.
+     */
     public boolean isSeniorAdmin(CommandSender sender)
     {
-        Admin admin = getAdmin(sender);
-        if (admin == null)
-        {
-            return false;
-        }
+        return isAdmin(sender) && plugin.rm.hasPermission(sender, SENIOR_STATUS_NODE);
+    }
 
-        return admin.getRank().ordinal() >= Rank.SENIOR_ADMIN.ordinal();
+    /**
+     * The same test applied to a stored profile rather than to a live sender, for the cleanup pass
+     * that runs over admins who are not online to be asked.
+     */
+    public boolean grantsSeniorStatus(Admin admin)
+    {
+        return plugin.rm.getRegistry()
+                        .byId(admin.getRankId())
+                        .map(rank -> plugin.rm.getRegistry().satisfies(rank, SENIOR_STATUS_NODE))
+                        .orElse(false);
     }
 
     public Admin getAdmin(CommandSender sender)
@@ -537,7 +556,7 @@ public class AdminList extends FreedomService
         allAdmins.values()
                 .stream()
                 .filter(Admin::isActive)
-                .filter(admin -> !admin.getRank().isAtLeast(Rank.SENIOR_ADMIN))
+                .filter(admin -> !grantsSeniorStatus(admin))
                 // A record with no recorded login has nothing to age out against.
                 .filter(admin -> admin.getLastLogin() != null)
                 .filter(admin -> inactiveHours(admin) >= threshold)
@@ -715,11 +734,10 @@ public class AdminList extends FreedomService
             Admin fixed = new Admin(key);
             fixed.setUuid(admin.getUuid());
             fixed.setName(admin.getName());
-            fixed.setRank(admin.getRank());
+            fixed.setRankId(admin.getRankId());
             fixed.setActive(admin.isActive());
             fixed.setLastLogin(admin.getLastLogin());
             fixed.setLoginMessage(admin.getLoginMessage());
-            fixed.setCustomRankId(admin.getCustomRankId());
             fixed.addIps(admin.getIps());
             return fixed;
         }
@@ -925,11 +943,10 @@ public class AdminList extends FreedomService
         Admin copy = new Admin(admin.getConfigKey());
         copy.setUuid(admin.getUuid());
         copy.setName(admin.getName());
-        copy.setRank(admin.getRank());
+        copy.setRankId(admin.getRankId());
         copy.setActive(admin.isActive());
         copy.setLastLogin(admin.getLastLogin() == null ? null : new Date(admin.getLastLogin().getTime()));
         copy.setLoginMessage(admin.getLoginMessage());
-        copy.setCustomRankId(admin.getCustomRankId());
         copy.addIps(new ArrayList<>(admin.getIps()));
         return copy;
     }

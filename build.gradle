@@ -57,14 +57,14 @@ dependencies {
     // packets
     compileOnly 'com.github.retrooper:packetevents-spigot:2.12.1'
 
-    // discord stuff, TBR w/ Discord4J <3
-    compileOnly 'net.dv8tion:JDA:5.6.1'
-    
+    // discord stuff
+    compileOnly 'com.discord4j:discord4j-core:3.3.2'
+
     // ssh
     compileOnly 'org.apache.sshd:sshd-core:2.17.1'
-    
+
     // sql
-    compileOnly 'io.projectreactor:reactor-core:3.7.6'
+    compileOnly 'io.projectreactor:reactor-core:3.8.3'
     compileOnly 'org.postgresql:postgresql:42.7.7'
     compileOnly 'org.xerial:sqlite-jdbc:3.49.1.0'
     compileOnly 'com.mysql:mysql-connector-j:9.3.0'

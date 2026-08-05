@@ -1,6 +1,7 @@
 package me.totalfreedom.totalfreedommod.sql.adapter.generic;
 
 import me.totalfreedom.totalfreedommod.rank.CustomRank;
+import me.totalfreedom.totalfreedommod.rank.RankRole;
 import me.totalfreedom.totalfreedommod.sql.StatementHandler;
 import me.totalfreedom.totalfreedommod.sql.adapter.DatabaseAdapter;
 import me.totalfreedom.totalfreedommod.sql.adapter.RankRepository;
@@ -11,6 +12,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import reactor.core.publisher.Mono;
 
@@ -31,9 +33,9 @@ public class GenericRankRepository implements RankRepository
     private final String colLevel;
     private final String colColor;
     private final String colAdmin;
-    private final String colConsoleOnly;
     private final String colPrefix;
     private final String colInheritFrom;
+    private final String colRoles;
     private final String colRankId;
     private final String colPermission;
     private final String colUpdatedAt;
@@ -53,15 +55,15 @@ public class GenericRankRepository implements RankRepository
         this.colLevel = adapter.quoteIdentifier("level");
         this.colColor = adapter.quoteIdentifier("color");
         this.colAdmin = adapter.quoteIdentifier("admin");
-        this.colConsoleOnly = adapter.quoteIdentifier("console_only");
         this.colPrefix = adapter.quoteIdentifier("prefix");
         this.colInheritFrom = adapter.quoteIdentifier("inherit_from");
+        this.colRoles = adapter.quoteIdentifier("roles");
         this.colRankId = adapter.quoteIdentifier("rank_id");
         this.colPermission = adapter.quoteIdentifier("permission");
         this.colUpdatedAt = adapter.quoteIdentifier("updated_at");
         this.selectColumns = String.format("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s",
-                colId, colName, colDeterminer, colAbbreviation, colLevel, colColor, colAdmin, colConsoleOnly,
-                colPrefix, colInheritFrom);
+                colId, colName, colDeterminer, colAbbreviation, colLevel, colColor, colAdmin,
+                colPrefix, colInheritFrom, colRoles);
     }
 
     @Override
@@ -78,9 +80,9 @@ public class GenericRankRepository implements RankRepository
                 rank.getLevel(),
                 serializeColor(rank.getColor()),
                 rank.isAdmin(),
-                rank.isConsoleOnly(),
                 rank.getPrefix(),
-                rank.getInheritFrom());
+                rank.getInheritFrom(),
+                serializeRoles(rank.getRoles()));
 
         insertPermissions(rank.getId(), rank.getPermissions());
     }
@@ -191,8 +193,8 @@ public class GenericRankRepository implements RankRepository
     public boolean update(CustomRank rank) throws SQLException
     {
         String sql = String.format("UPDATE %s SET %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = %s WHERE %s = ?",
-                tblRanks, colName, colDeterminer, colAbbreviation, colLevel, colColor, colAdmin, colConsoleOnly,
-                colPrefix, colInheritFrom, colUpdatedAt, adapter.currentTimestamp(), colId);
+                tblRanks, colName, colDeterminer, colAbbreviation, colLevel, colColor, colAdmin,
+                colPrefix, colInheritFrom, colRoles, colUpdatedAt, adapter.currentTimestamp(), colId);
 
         int rows = statementHandler.executeUpdate(sql,
                 rank.getName(),
@@ -201,9 +203,9 @@ public class GenericRankRepository implements RankRepository
                 rank.getLevel(),
                 serializeColor(rank.getColor()),
                 rank.isAdmin(),
-                rank.isConsoleOnly(),
                 rank.getPrefix(),
                 rank.getInheritFrom(),
+                serializeRoles(rank.getRoles()),
                 rank.getId());
 
         return rows > 0;
@@ -300,10 +302,40 @@ public class GenericRankRepository implements RankRepository
         rank.setLevel(rs.getInt("level"));
         rank.setColor(parseColor(rs.getString("color")));
         rank.setAdmin(rs.getBoolean("admin"));
-        rank.setConsoleOnly(rs.getBoolean("console_only"));
         rank.setPrefix(rs.getString("prefix"));
         rank.setInheritFrom(rs.getString("inherit_from"));
+        rank.setRoles(parseRoles(rs.getString("roles")));
         return rank;
+    }
+
+    /**
+     * Roles are stored as a comma-separated list in one column rather than as a child table: the
+     * set is tiny, closed, and always read with the rank it belongs to, so a join would cost more
+     * than it saves.
+     */
+    private static String serializeRoles(Set<RankRole> roles)
+    {
+        return roles == null || roles.isEmpty()
+                ? null
+                : roles.stream()
+                       .map(RankRole::getId)
+                       .collect(Collectors.joining(","));
+    }
+
+    /**
+     * Reads roles back, ignoring any name this build does not know so that a database written by a
+     * newer version still loads.
+     */
+    private static Set<RankRole> parseRoles(String stored)
+    {
+        if (stored == null || stored.isBlank())
+            return EnumSet.noneOf(RankRole.class);
+
+        return Arrays.stream(stored.split(","))
+                     .map(RankRole::fromId)
+                     .filter(Optional::isPresent)
+                     .map(Optional::get)
+                     .collect(Collectors.toCollection(() -> EnumSet.noneOf(RankRole.class)));
     }
 
     private static String serializeColor(NamedTextColor color)

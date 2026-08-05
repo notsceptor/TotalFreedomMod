@@ -5,12 +5,11 @@ import java.util.List;
 import java.util.Objects;
 
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
-import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.ssh.AttributedConsoleSender;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.command.CommandSender;
 
-@Permission(level = Rank.SUPER_ADMIN, permission = "tfm.admin.wildcard")
+@Permission(permission = "tfm.admin.wildcard")
 @Command(
         name = "wildcard",
         description = "Run any command on all users, username placeholder = ?.", 

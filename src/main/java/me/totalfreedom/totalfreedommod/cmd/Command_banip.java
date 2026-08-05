@@ -11,10 +11,9 @@ import org.bukkit.entity.Player;
 
 import me.totalfreedom.totalfreedommod.banning.Ban;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
-import me.totalfreedom.totalfreedommod.rank.Rank;
 
 @Command(name = "banip", description = "Bans an IP address or all known IP addresses for a player.", usage = "/banip <player|ip> [reason]")
-@Permission(level = Rank.SUPER_ADMIN, permission = "tfm.admin.ban")
+@Permission(permission = "tfm.admin.ban")
 public class Command_banip extends FCommand 
 {
     

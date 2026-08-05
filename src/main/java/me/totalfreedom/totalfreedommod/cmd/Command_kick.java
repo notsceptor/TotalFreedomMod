@@ -2,13 +2,12 @@ package me.totalfreedom.totalfreedommod.cmd;
 
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
-import me.totalfreedom.totalfreedommod.rank.Rank;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-@Permission(level = Rank.SUPER_ADMIN, permission = "tfm.admin.kick")
+@Permission(permission = "tfm.admin.kick")
 @Command(name = "kick", aliases = "k", description = "Kick a player.", usage = "/<command> [-s] <player> [reason]")
 public class Command_kick extends FCommand
 {

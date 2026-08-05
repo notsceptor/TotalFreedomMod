@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Set;
 
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
-import me.totalfreedom.totalfreedommod.rank.Rank;
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
@@ -15,7 +14,7 @@ import org.bukkit.block.Block;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-@Permission(level = Rank.SUPER_ADMIN, permission = "tfm.admin.ro")
+@Permission(permission = "tfm.admin.ro")
 @Command(name = "ro", description = "Remove all blocks of a certain type in the radius of certain players.", usage = "/<command> <blocks> [radius] [players]")
 public class Command_ro extends FCommand
 {

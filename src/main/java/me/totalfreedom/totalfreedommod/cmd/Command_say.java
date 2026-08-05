@@ -4,7 +4,6 @@ import org.bukkit.command.CommandSender;
 
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
-import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.ChatMentionUtil;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
@@ -12,7 +11,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
 @Command(name = "say", description = "Broadcasts the given message as the console, includes sender name.", usage = "/say <message>")
-@Permission(permission = "tfm.admin.say", level = Rank.SUPER_ADMIN)
+@Permission(permission = "tfm.admin.say")
 public class Command_say extends FCommand
 {
     @Callback

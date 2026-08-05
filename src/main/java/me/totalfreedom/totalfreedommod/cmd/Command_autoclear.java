@@ -6,10 +6,9 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
-import me.totalfreedom.totalfreedommod.rank.Rank;
 
 @Command(name = "autoclear", description = "Toggle whether or not a player has their inventory automatically cleared when they join.", usage = "/autoclear <player>")
-@Permission(permission = "tfm.admin.autoclear", level = Rank.SUPER_ADMIN)
+@Permission(permission = "tfm.admin.autoclear")
 public class Command_autoclear extends FCommand
 {
 

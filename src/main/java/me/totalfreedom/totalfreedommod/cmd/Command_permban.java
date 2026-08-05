@@ -15,13 +15,12 @@ import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchContext;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
-import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
 @Command(name = "permban", description = "Manage permanently banned players and IPs.", usage = "/permban <add <name> [ip...] | remove <name|ip> | reload>")
-@Permission(permission = "tfm.admin.ban.perm", level = Rank.SUPER_ADMIN, source = SourceType.ONLY_CONSOLE)
+@Permission(permission = "tfm.admin.ban.perm", source = SourceType.ONLY_CONSOLE)
 public class Command_permban extends FCommand
 {
     @Callback

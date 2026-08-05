@@ -9,10 +9,9 @@ import org.bukkit.entity.Player;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.player.SpyMode;
-import me.totalfreedom.totalfreedommod.rank.Rank;
 
 @Command(name = "bookspy", description = "Spy on book edits", usage = "/bookspy [ops | admins | all | off]", aliases = {"bspy"})
-@Permission(permission = "tfm.admin.bookspy", level = Rank.SUPER_ADMIN, source = SourceType.ONLY_IN_GAME)
+@Permission(permission = "tfm.admin.bookspy", source = SourceType.ONLY_IN_GAME)
 public class Command_bookspy extends FCommand
 {
 	@Callback

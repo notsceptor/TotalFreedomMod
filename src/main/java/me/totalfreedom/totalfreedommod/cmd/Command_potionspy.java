@@ -9,10 +9,9 @@ import org.bukkit.entity.Player;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.player.SpyMode;
-import me.totalfreedom.totalfreedommod.rank.Rank;
 
 @Command(name = "potionspy", description = "Spy on potion usage", usage = "/potionspy [ops | admins | all | off]", aliases = {"potspy"})
-@Permission(permission = "tfm.admin.potspy", level = Rank.SUPER_ADMIN, source = SourceType.ONLY_IN_GAME)
+@Permission(permission = "tfm.admin.potspy", source = SourceType.ONLY_IN_GAME)
 public class Command_potionspy extends FCommand
 {
     @Callback

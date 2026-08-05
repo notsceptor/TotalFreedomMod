@@ -8,11 +8,10 @@ import org.bukkit.entity.Player;
 import me.totalfreedom.totalfreedommod.caging.CageData;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
-import me.totalfreedom.totalfreedommod.rank.Rank;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
 @Command(name = "cage", description = "Place a cage around someone.", usage = "/cage (-s) <player> [<outer_mat> <inner_mat>] | purge")
-@Permission(permission = "tfm.admin.cage", level = Rank.SUPER_ADMIN)
+@Permission(permission = "tfm.admin.cage")
 public class Command_cage extends FCommand
 {
     @Callback // /cage [-s] <player> | Will auto-toggle, but switch -s can be used to guarantee uncaging.

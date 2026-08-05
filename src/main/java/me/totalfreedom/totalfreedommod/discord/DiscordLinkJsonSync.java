@@ -18,8 +18,6 @@ import reactor.core.publisher.Mono;
 
 /**
  * JSON write-through + startup reconciliation for admin-uuid to Discord-user-id links.
- * There is no in-memory manager for this domain (DiscordCommands talks to the repository
- * directly), so this holds the snapshot file logic on its own.
  */
 final class DiscordLinkJsonSync
 {
@@ -81,23 +79,23 @@ final class DiscordLinkJsonSync
         final long fileModified = file.lastModified();
 
         WRITES.enqueue(repo.getMaxUpdatedAtAsync()
-                .map(sqlUpdatedAt -> fileModified > sqlUpdatedAt)
-                .defaultIfEmpty(Boolean.TRUE)
-                .filter(Boolean::booleanValue)
-                .flatMap(ignored ->
-                {
-                    FLog.info(String.format("%s is newer than the database; re-importing %d discord link(s) from it.",
-                            DATA_FILENAME, jsonLinks.size()));
-                    return Flux.fromIterable(jsonLinks.entrySet())
-                            .concatMap(entry -> repo.relinkAsync(UUID.fromString(entry.getKey()), entry.getValue()))
-                            .then();
-                })
-                .onErrorResume(ex ->
-                {
-                    FLog.warning(String.format("Failed to reconcile %s into the database: %s",
-                            DATA_FILENAME, ex.getMessage()));
-                    return Mono.empty();
-                })
-                .then());
+              .map(sqlUpdatedAt -> fileModified > sqlUpdatedAt)
+              .defaultIfEmpty(Boolean.TRUE)
+              .filter(Boolean::booleanValue)
+              .flatMap(ignored ->
+              {
+                  FLog.info(String.format("%s is newer than the database; re-importing %d discord link(s) from it.",
+                                          DATA_FILENAME, jsonLinks.size()));
+                  return Flux.fromIterable(jsonLinks.entrySet())
+                             .concatMap(entry -> repo.relinkAsync(UUID.fromString(entry.getKey()), entry.getValue()))
+                             .then();
+              })
+              .onErrorResume(ex ->
+              {
+                  FLog.warning(String.format("Failed to reconcile %s into the database: %s",
+                                             DATA_FILENAME, ex.getMessage()));
+                  return Mono.empty();
+              })
+              .then());
     }
 }

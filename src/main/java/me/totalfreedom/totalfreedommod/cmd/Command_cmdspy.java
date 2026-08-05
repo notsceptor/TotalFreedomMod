@@ -8,10 +8,9 @@ import org.bukkit.entity.Player;
 
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.player.SpyMode;
-import me.totalfreedom.totalfreedommod.rank.Rank;
 
 @Command(name = "cmdspy", description = "Spy on commands", usage = "/cmdspy [ops | admins | all | off]", aliases = {"commandspy", "cspy"})
-@Permission(permission = "tfm.admin.cmdspy", source = SourceType.ONLY_IN_GAME, level = Rank.SUPER_ADMIN)
+@Permission(permission = "tfm.admin.cmdspy", source = SourceType.ONLY_IN_GAME)
 public class Command_cmdspy extends FCommand
 {
     // doing this to show ajax why i don't like using var keyword :)

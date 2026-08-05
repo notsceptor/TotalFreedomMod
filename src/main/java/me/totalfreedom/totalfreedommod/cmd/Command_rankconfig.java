@@ -9,7 +9,7 @@ import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.cmd.internal.FuzzyMatch;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.rank.CustomRank;
-import me.totalfreedom.totalfreedommod.rank.Rank;
+import me.totalfreedom.totalfreedommod.rank.RankRole;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
@@ -19,7 +19,7 @@ import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
     usage = "/rankconfig [list | create <id> | edit <rank> | delete <rank> | set <rank> <property> <value> | setrank <player> <rank> | reload | save]",
     aliases = {"rankconf", "rankcfg"}
 )
-@Permission(permission = "tfm.manage.ranks", level = Rank.SENIOR_ADMIN)
+@Permission(permission = "tfm.manage.ranks")
 public class Command_rankconfig extends FCommand
 {
     @Callback
@@ -125,7 +125,6 @@ public class Command_rankconfig extends FCommand
             case DETERMINER -> target.setDeterminer(value);
             case COLOR -> target.setColor(parseColor(value));
             case ADMIN -> target.setAdmin(isTruthy(value));
-            case CONSOLE -> target.setConsoleOnly(isTruthy(value));
             case ADDPERM -> target.addPermission(value);
             case REMPERM -> target.removePermission(value);
             case LEVEL ->
@@ -195,9 +194,11 @@ public class Command_rankconfig extends FCommand
                 return;
             }
 
-            admin.setCustomRankId(null);
+            admin.setRankId(plugin().rm.getRegistry().byRole(RankRole.ADMIN_DEFAULT)
+                                       .map(CustomRank::getId)
+                                       .orElse(null));
             plugin().al.saveAsync();
-            msg(sender, "<green>Cleared custom rank for <player>", Placeholder.unparsed("player", target.getName()));
+            msg(sender, "<green>Reset <player> to the baseline admin rank.", Placeholder.unparsed("player", target.getName()));
             return;
         }
 
@@ -216,7 +217,7 @@ public class Command_rankconfig extends FCommand
             return;
         }
 
-        admin.setCustomRankId(rankId);
+        admin.setRankId(rankId);
         plugin().al.saveAsync();
 
         adminAction(
@@ -305,6 +306,6 @@ public class Command_rankconfig extends FCommand
 
     private enum Property
     {
-        NAME, ABBREVIATION, LEVEL, COLOR, DETERMINER, ADMIN, CONSOLE, PREFIX, INHERIT, ADDPERM, REMPERM
+        NAME, ABBREVIATION, LEVEL, COLOR, DETERMINER, ADMIN, PREFIX, INHERIT, ADDPERM, REMPERM
     }
 }

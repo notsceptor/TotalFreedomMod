@@ -9,7 +9,6 @@ import java.time.Duration;
 import java.util.List;
 
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
-import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
@@ -17,7 +16,7 @@ import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-@Permission(level = Rank.SUPER_ADMIN, source = SourceType.BOTH, permission = "tfm.admin.premium")
+@Permission(source = SourceType.BOTH, permission = "tfm.admin.premium")
 @Command(name = "premium", description = "Validates if a given account is premium.", usage = "/premium <player>", aliases = "prem")
 public class Command_premium extends FCommand
 {

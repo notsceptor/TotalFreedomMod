@@ -6,7 +6,7 @@ import java.util.List;
 
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
-import me.totalfreedom.totalfreedommod.rank.Displayable;
+import me.totalfreedom.totalfreedommod.display.Displayable;
 import me.totalfreedom.totalfreedommod.util.*;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickCallback;

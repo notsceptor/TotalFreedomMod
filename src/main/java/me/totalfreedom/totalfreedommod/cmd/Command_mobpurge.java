@@ -14,12 +14,11 @@ import org.bukkit.entity.Slime;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
-import me.totalfreedom.totalfreedommod.rank.Rank;
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
 @Command(name = "mobpurge", description = "Purge all mobs in all worlds.", usage = "/mobpurge [world] [chunkX chunkZ | batchSize]", aliases = {"mp"})
-@Permission(permission = "tfm.server.mobpurge", level = Rank.SUPER_ADMIN)
+@Permission(permission = "tfm.server.mobpurge")
 public class Command_mobpurge extends FCommand
 {
     public static final int DEFAULT_BATCH_SIZE = 200;

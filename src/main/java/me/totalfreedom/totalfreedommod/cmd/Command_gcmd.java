@@ -4,13 +4,12 @@ import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Callback;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Command;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Greedy;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Permission;
-import me.totalfreedom.totalfreedommod.rank.Rank;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 @Command(name = "gcmd", description = "Send a command as someone else.", usage = "/gcmd <player> <command>")
-@Permission(permission = "tfm.admin.gcmd", level = Rank.SUPER_ADMIN)
+@Permission(permission = "tfm.admin.gcmd")
 public class Command_gcmd extends FCommand
 {
     @Callback
@@ -22,7 +21,7 @@ public class Command_gcmd extends FCommand
             return;
         }
 
-        if (isAdmin(player) && !plugin().rm.getRank(sender).isAtLeast(Rank.SENIOR_ADMIN))
+        if (isAdmin(player) && !plugin().rm.hasPermission(sender, "tfm.admin.senior.gcmd"))
         {
             msg(sender, "<red>This command can't be used on other admins.");
             return;

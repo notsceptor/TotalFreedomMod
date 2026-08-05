@@ -47,6 +47,7 @@ import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.player.PlayerList;
 import me.totalfreedom.totalfreedommod.rank.ConsoleSenderRegistry;
 import me.totalfreedom.totalfreedommod.rank.RankManager;
+import me.totalfreedom.totalfreedommod.title.TitleManager;
 import me.totalfreedom.totalfreedommod.sql.FreedomDatabase;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
@@ -75,6 +76,7 @@ public class TotalFreedomMod extends JavaPlugin
     public WorldManager wm; // WorldManager - Manages world operations
     public AdminList al; // AdminList - Manages admin list and permissions
     public RankManager rm; // RankManager - Handles player ranks and display
+    public TitleManager tm; // TitleManager - Flat, non-inheriting capability grants shown alongside ranks
     public ConsoleSenderRegistry csr; // ConsoleSenderRegistry - Maps console senders to appropriate rank
     public CommandLoader cmdl; // CmdLoader - Loads and registers Brigadier commands 
     public CommandBlocker cb; // CommandBlocker - Blocks specific commands
@@ -193,6 +195,10 @@ public class TotalFreedomMod extends JavaPlugin
         configConverter.convertAdminConsoleRanks();
 
         rm = services.registerService(RankManager.class);
+        tm = services.registerService(TitleManager.class);
+
+        // Runs after both registries exist: it reads ranks and titles to decide what to move.
+        configConverter.convertCosmeticRankHolders();
 
         // Console sender whitelist. This first read only resolves bindings that name a legacy
         // rank, since registerService constructs RankManager without starting it and no custom

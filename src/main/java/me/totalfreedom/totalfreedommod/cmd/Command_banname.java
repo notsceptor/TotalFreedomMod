@@ -8,10 +8,9 @@ import me.totalfreedom.totalfreedommod.banning.Ban;
 import java.util.List;
 
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
-import me.totalfreedom.totalfreedommod.rank.Rank;
 
 @Command(name = "banname", description = "Bans the specified name.", usage = "/banname <name> [reason]")
-@Permission(level = Rank.SUPER_ADMIN, permission = "tfm.admin.ban")
+@Permission(permission = "tfm.admin.ban")
 public class Command_banname extends FCommand
 {
     @Completer(value = "", position = 0)

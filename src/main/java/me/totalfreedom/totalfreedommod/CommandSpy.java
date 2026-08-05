@@ -1,8 +1,8 @@
 package me.totalfreedom.totalfreedommod;
 
+import me.totalfreedom.totalfreedommod.display.Displayable;
 import me.totalfreedom.totalfreedommod.player.SpyMode;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
-import me.totalfreedom.totalfreedommod.rank.Displayable;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
@@ -64,9 +64,6 @@ public class CommandSpy extends FreedomService
             String prefix = AdventureUtil.componentToPlainText(display.getColoredTag()).trim();
             if (prefix.isEmpty())
             {
-                // A rank is free to report no tag at all; fall back to the empty string rather than
-                // letting a null escape into the isEmpty() below, which would throw once per command
-                // and bury the console in "Could not pass event PlayerCommandPreprocessEvent" traces.
                 final String tag = display.getTag();
                 prefix = tag != null ? tag : "";
             }

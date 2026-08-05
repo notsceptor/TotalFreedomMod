@@ -8,7 +8,6 @@ import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Command;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Permission;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Subcommand;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
-import me.totalfreedom.totalfreedommod.rank.Rank;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
@@ -17,7 +16,7 @@ import net.kyori.adventure.text.JoinConfiguration;
 import org.bukkit.entity.Player;
 
 @Command(name = "nicknyan", description = "Essentials Interface Command - Nyanify your nickname.", usage = "/<command> <<nick> | off>")
-@Permission(level = Rank.OP, source = SourceType.ONLY_IN_GAME, permission = "tfm.player.nicknyan")
+@Permission(source = SourceType.ONLY_IN_GAME, permission = "tfm.player.nicknyan")
 public class Command_nicknyan extends FCommand
 {
     @Callback
