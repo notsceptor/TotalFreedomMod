@@ -5,6 +5,7 @@ import me.totalfreedom.totalfreedommod.player.PlayerData;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import reactor.core.publisher.Mono;
 
@@ -27,7 +28,7 @@ public interface PlayerRepository
 
     Map<String, PlayerData> loadAll() throws SQLException;
 
-    PlayerData findByUsername(String username) throws SQLException;
+    Optional<PlayerData> findByUsername(String username) throws SQLException;
 
     boolean exists(String username) throws SQLException;
 
