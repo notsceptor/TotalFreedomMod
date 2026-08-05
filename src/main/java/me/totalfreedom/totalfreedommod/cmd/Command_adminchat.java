@@ -3,7 +3,6 @@ package me.totalfreedom.totalfreedommod.cmd;
 import java.util.List;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
-import me.totalfreedom.totalfreedommod.rank.Rank;
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;

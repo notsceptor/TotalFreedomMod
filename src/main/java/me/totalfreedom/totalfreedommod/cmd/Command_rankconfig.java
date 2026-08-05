@@ -200,7 +200,7 @@ public class Command_rankconfig extends FCommand
         return switch (property)
         {
             case COLOR -> FuzzyMatch.filter(COLOR_NAMES, partial);
-            case ADMIN, CONSOLE -> FuzzyMatch.filter(List.of("true", "false"), partial);
+            case ADMIN -> FuzzyMatch.filter(List.of("true", "false"), partial);
             case INHERIT -> FuzzyMatch.filter(inheritCandidates(priorArgs.get(0)), partial);
             case REMPERM -> FuzzyMatch.filter(heldPermissions(priorArgs.get(0)), partial);
             default -> List.of();
