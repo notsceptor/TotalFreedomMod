@@ -442,6 +442,7 @@ public class SQLiteAdapter extends DatabaseAdapter
                 first_join_unix INTEGER NOT NULL DEFAULT 0,
                 last_join_unix INTEGER NOT NULL DEFAULT 0,
                 potion_spy INTEGER NOT NULL DEFAULT 0,
+                sign_spy INTEGER NOT NULL DEFAULT 0,
                 command_spy_mode TEXT NOT NULL DEFAULT 'off',
                 muted INTEGER NOT NULL DEFAULT 0,
                 frozen INTEGER NOT NULL DEFAULT 0,
@@ -455,6 +456,7 @@ public class SQLiteAdapter extends DatabaseAdapter
         statementHandler.executeUpdate(sql);
         addTimestampColumnIfMissing("players", "updated_at");
         addColumnIfMissing("players", "titles", "TEXT");
+        addColumnIfMissing("players", "sign_spy", "INTEGER NOT NULL DEFAULT 0");
     }
 
     private void createPlayerIpsTable() throws SQLException

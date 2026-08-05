@@ -29,6 +29,7 @@ public class GenericPlayerRepository implements PlayerRepository
     private final String colFirstJoin;
     private final String colLastJoin;
     private final String colPotionSpy;
+    private final String colSignSpy;
     private final String colCommandSpyMode;
     private final String colMuted;
     private final String colFrozen;
@@ -54,6 +55,7 @@ public class GenericPlayerRepository implements PlayerRepository
         this.colFirstJoin = adapter.quoteIdentifier("first_join_unix");
         this.colLastJoin = adapter.quoteIdentifier("last_join_unix");
         this.colPotionSpy = adapter.quoteIdentifier("potion_spy");
+        this.colSignSpy = adapter.quoteIdentifier("sign_spy");
         this.colCommandSpyMode = adapter.quoteIdentifier("command_spy_mode");
         this.colMuted = adapter.quoteIdentifier("muted");
         this.colFrozen = adapter.quoteIdentifier("frozen");
@@ -66,16 +68,16 @@ public class GenericPlayerRepository implements PlayerRepository
         this.colPlayerUsername = adapter.quoteIdentifier("username");
         this.colIp = adapter.quoteIdentifier("ip");
         this.colUpdatedAt = adapter.quoteIdentifier("updated_at");
-        this.selectColumns = String.format("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s",
-                colUsername, colFirstJoin, colLastJoin, colPotionSpy, colCommandSpyMode, colMuted, colFrozen,
-                colCommandsBlocked, colStrikes, colSavedTag, colTitles)
+        this.selectColumns = String.format("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s",
+                colUsername, colFirstJoin, colLastJoin, colPotionSpy, colSignSpy, colCommandSpyMode, colMuted,
+                colFrozen, colCommandsBlocked, colStrikes, colSavedTag, colTitles)
                 + ", " + colNickname;
     }
 
     @Override
     public void insert(PlayerData data) throws SQLException
     {
-        String sql = String.format("INSERT INTO %s (%s, %s) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, %s)",
+        String sql = String.format("INSERT INTO %s (%s, %s) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, %s)",
                 tblPlayers, selectColumns, colUpdatedAt, adapter.currentTimestamp());
 
         statementHandler.executeUpdate(sql,
@@ -83,6 +85,7 @@ public class GenericPlayerRepository implements PlayerRepository
                 data.getFirstJoinUnix(),
                 data.getLastJoinUnix(),
                 data.isPotionSpy(),
+                data.isSignSpy(),
                 data.getCommandSpyMode().getName(),
                 data.isMuted(),
                 data.isFrozen(),
@@ -194,14 +197,16 @@ public class GenericPlayerRepository implements PlayerRepository
     @Override
     public boolean update(PlayerData data) throws SQLException
     {
-        String sql = String.format("UPDATE %s SET %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = %s WHERE %s = ?",
-                tblPlayers, colFirstJoin, colLastJoin, colPotionSpy, colCommandSpyMode, colMuted, colFrozen,
-                colCommandsBlocked, colStrikes, colSavedTag, colTitles, colUpdatedAt, adapter.currentTimestamp(), colUsername);
+        String sql = String.format("UPDATE %s SET %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = %s WHERE %s = ?",
+                tblPlayers, colFirstJoin, colLastJoin, colPotionSpy, colSignSpy, colCommandSpyMode, colMuted,
+                colFrozen, colCommandsBlocked, colStrikes, colSavedTag, colTitles, colUpdatedAt,
+                adapter.currentTimestamp(), colUsername);
 
         int rows = statementHandler.executeUpdate(sql,
                 data.getFirstJoinUnix(),
                 data.getLastJoinUnix(),
                 data.isPotionSpy(),
+                data.isSignSpy(),
                 data.getCommandSpyMode().getName(),
                 data.isMuted(),
                 data.isFrozen(),
@@ -299,6 +304,7 @@ public class GenericPlayerRepository implements PlayerRepository
         data.setFirstJoinUnix(rs.getLong("first_join_unix"));
         data.setLastJoinUnix(rs.getLong("last_join_unix"));
         data.setPotionSpy(rs.getBoolean("potion_spy"));
+        data.setSignSpy(rs.getBoolean("sign_spy"));
         data.setCommandSpyMode(CommandSpyMode.fromString(rs.getString("command_spy_mode")));
         data.setMuted(rs.getBoolean("muted"));
         data.setFrozen(rs.getBoolean("frozen"));

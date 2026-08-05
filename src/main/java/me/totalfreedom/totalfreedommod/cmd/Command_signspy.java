@@ -4,11 +4,10 @@ import org.bukkit.entity.Player;
 
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
-import me.totalfreedom.totalfreedommod.rank.Rank;
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 
 @Command(name = "signspy", description = "Spy on sign edits", usage = "/signspy", aliases = {"sspy"})
-@Permission(permission = "tfm.admin.signspy", level = Rank.SUPER_ADMIN, source = SourceType.ONLY_IN_GAME)
+@Permission(permission = "tfm.admin.signspy", source = SourceType.ONLY_IN_GAME)
 public class Command_signspy extends FCommand
 {
     @Callback
