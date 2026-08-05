@@ -1,17 +1,20 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
 import java.util.List;
+
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Callback;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Command;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Completer;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Permission;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Subcommand;
 import me.totalfreedom.totalfreedommod.title.Title;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
-import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 
 /**
  * Grants, revokes and inspects titles.
@@ -21,10 +24,10 @@ import org.bukkit.entity.Player;
  * strictly larger privilege than holding one.
  */
 @Command(
-    name = "title",
-    description = "View and manage player titles.",
-    usage = "/title [list | info <title> | of <player> | grant <player> <title> | revoke <player> <title>]",
-    aliases = {"titles"}
+        name = "title",
+        description = "View and manage player titles.",
+        usage = "/title [list | info <title> | of <player> | grant <player> <title> | revoke <player> <title>]",
+        aliases = {"titles"}
 )
 @Permission(permission = "tfm.player.titles")
 public class Command_title extends FCommand

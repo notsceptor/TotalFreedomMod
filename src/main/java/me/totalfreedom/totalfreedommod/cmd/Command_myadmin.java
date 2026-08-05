@@ -3,10 +3,12 @@ package me.totalfreedom.totalfreedommod.cmd;
 import java.net.InetAddress;
 import java.util.List;
 
+import org.bukkit.entity.Player;
+
+import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
+
 import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
-import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
-import org.bukkit.entity.Player;
 
 @Permission(source = SourceType.ONLY_IN_GAME, permission = "tfm.admin.myadmin")
 @Command(name = "myadmin", description = "Manage my admin entry", usage = "/myadmin <clearips | clearip <ip> | setlogin <message> | clearlogin>")

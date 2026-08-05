@@ -5,14 +5,15 @@ import org.bukkit.GameMode;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
+import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
+
 @Command(
-    name = "creative", 
-    description = "Quickly change your own gamemode to creative, or define someone's username to change theirs.", 
-    usage = "/creative <-a | [partialname]>", 
-    aliases = {"gmc"}
+        name = "creative",
+        description = "Quickly change your own gamemode to creative, or define someone's username to change theirs.",
+        usage = "/creative <-a | [partialname]>",
+        aliases = {"gmc"}
 )
 @Permission(permission = "tfm.player.creative")
 public class Command_creative extends FCommand

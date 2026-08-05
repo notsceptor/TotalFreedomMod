@@ -1,15 +1,15 @@
 package me.totalfreedom.totalfreedommod.sql.adapter.generic;
 
-import me.totalfreedom.totalfreedommod.sql.StatementHandler;
-import me.totalfreedom.totalfreedommod.sql.adapter.DatabaseAdapter;
-import me.totalfreedom.totalfreedommod.sql.adapter.MigrationRepository;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
 import reactor.core.publisher.Mono;
+
+import me.totalfreedom.totalfreedommod.sql.StatementHandler;
+import me.totalfreedom.totalfreedommod.sql.adapter.DatabaseAdapter;
+import me.totalfreedom.totalfreedommod.sql.adapter.MigrationRepository;
 
 /**
  * All dialect differences are resolved through the {@link DatabaseAdapter} passed in.

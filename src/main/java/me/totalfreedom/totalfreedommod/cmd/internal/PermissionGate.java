@@ -1,15 +1,17 @@
 package me.totalfreedom.totalfreedommod.cmd.internal;
 
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.cmd.SourceType;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Permission;
 import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchContext;
 import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchSession;
 import me.totalfreedom.totalfreedommod.ssh.AttributedConsoleSender;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 
 /**
  * Enforces {@link Permission} declarations.

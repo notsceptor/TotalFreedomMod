@@ -2,10 +2,11 @@ package me.totalfreedom.totalfreedommod.cmd;
 
 import org.bukkit.command.CommandSender;
 
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchContext;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
 @Command(name = "consolesay", description = "Send a chat message with chat formatting over SSH.", usage = "/<command> <message>", aliases = {"csay"})
 @Permission(source = SourceType.ONLY_CONSOLE, permission = "tfm.admin.consolesay")

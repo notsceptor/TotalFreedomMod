@@ -4,9 +4,10 @@ import java.net.InetAddress;
 
 import org.bukkit.command.CommandSender;
 
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
 @Command(name = "unbanip", description = "Unbans an IP address.", usage = "/unbanip <ip>")
 @Permission(permission = "tfm.admin.ban")

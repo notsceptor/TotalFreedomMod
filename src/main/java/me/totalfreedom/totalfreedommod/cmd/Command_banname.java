@@ -1,12 +1,13 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+import java.util.List;
+
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import me.totalfreedom.totalfreedommod.banning.Ban;
-import java.util.List;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
+import me.totalfreedom.totalfreedommod.banning.Ban;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 
 @Command(name = "banname", description = "Bans the specified name.", usage = "/banname <name> [reason]")

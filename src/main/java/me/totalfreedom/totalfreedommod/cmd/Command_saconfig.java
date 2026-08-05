@@ -11,6 +11,13 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.bukkit.Bukkit;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+
+import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+
 import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.cmd.internal.FuzzyMatch;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Callback;
@@ -21,14 +28,8 @@ import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Subcommand;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.rank.CustomRank;
 
-import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
-import org.bukkit.Bukkit;
-import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
-
 @Command(name = "saconfig", description = "Manage admins.",
-    usage = "/<command> <list | clean | reload | setrank <username> <rank> | <add | remove | info> <username>>")
+        usage = "/<command> <list | clean | reload | setrank <username> <rank> | <add | remove | info> <username>>")
 @Permission(permission = "tfm.admin.saconfig")
 public class Command_saconfig extends FCommand
 {

@@ -1,26 +1,5 @@
 package me.totalfreedom.totalfreedommod.sql;
 
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
-import me.totalfreedom.totalfreedommod.ProtectArea.ProtectedRegion;
-import me.totalfreedom.totalfreedommod.ProtectArea.ProtectedRegion.CantFindWorldException;
-import me.totalfreedom.totalfreedommod.admin.Admin;
-import me.totalfreedom.totalfreedommod.banning.Ban;
-import me.totalfreedom.totalfreedommod.banning.PermBan;
-import me.totalfreedom.totalfreedommod.player.PlayerData;
-import me.totalfreedom.totalfreedommod.rank.CustomRank;
-import me.totalfreedom.totalfreedommod.sql.adapter.AdminRepository;
-import me.totalfreedom.totalfreedommod.sql.adapter.BanRepository;
-import me.totalfreedom.totalfreedommod.sql.adapter.PermbanRepository;
-import me.totalfreedom.totalfreedommod.sql.adapter.PlayerRepository;
-import me.totalfreedom.totalfreedommod.sql.adapter.ProtectedAreaRepository;
-import me.totalfreedom.totalfreedommod.sql.adapter.MigrationRepository;
-import me.totalfreedom.totalfreedommod.sql.adapter.RankRepository;
-import me.totalfreedom.totalfreedommod.sql.adapter.SavedFlagRepository;
-import me.totalfreedom.totalfreedommod.util.FLog;
-import me.totalfreedom.totalfreedommod.util.FUtil;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.YamlConfiguration;
-
 import java.io.File;
 import java.sql.SQLException;
 import java.util.List;
@@ -29,8 +8,23 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.YamlConfiguration;
+
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
+
+import me.totalfreedom.totalfreedommod.ProtectArea.ProtectedRegion;
+import me.totalfreedom.totalfreedommod.ProtectArea.ProtectedRegion.CantFindWorldException;
+import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.totalfreedommod.admin.Admin;
+import me.totalfreedom.totalfreedommod.banning.Ban;
+import me.totalfreedom.totalfreedommod.banning.PermBan;
+import me.totalfreedom.totalfreedommod.player.PlayerData;
+import me.totalfreedom.totalfreedommod.rank.CustomRank;
+import me.totalfreedom.totalfreedommod.sql.adapter.*;
+import me.totalfreedom.totalfreedommod.util.FLog;
+import me.totalfreedom.totalfreedommod.util.FUtil;
 
 /**
  * Service for migrating data from YAML files to SQL database.

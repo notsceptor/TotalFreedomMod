@@ -1,10 +1,5 @@
 package me.totalfreedom.totalfreedommod.sql.adapter.generic;
 
-import me.totalfreedom.totalfreedommod.banning.PermBan;
-import me.totalfreedom.totalfreedommod.sql.StatementHandler;
-import me.totalfreedom.totalfreedommod.sql.adapter.DatabaseAdapter;
-import me.totalfreedom.totalfreedommod.sql.adapter.PermbanRepository;
-
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -12,6 +7,11 @@ import java.sql.Timestamp;
 import java.util.*;
 
 import reactor.core.publisher.Mono;
+
+import me.totalfreedom.totalfreedommod.banning.PermBan;
+import me.totalfreedom.totalfreedommod.sql.StatementHandler;
+import me.totalfreedom.totalfreedommod.sql.adapter.DatabaseAdapter;
+import me.totalfreedom.totalfreedommod.sql.adapter.PermbanRepository;
 
 /**
  * All dialect differences are resolved through the {@link DatabaseAdapter} passed in.

@@ -1,17 +1,18 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import org.bukkit.Material;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
+import org.bukkit.entity.Player;
+
+import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
+
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Callback;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Command;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Permission;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Subcommand;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.fun.Landminer.Landmine;
-import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
-
-import org.bukkit.Material;
-import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
-import org.bukkit.entity.Player;
 
 @Command(name = "landmine", description = "Set a landmine trap.", usage = "/<command>")
 @Permission(source = SourceType.ONLY_IN_GAME, permission = "tfm.fun.landmine")

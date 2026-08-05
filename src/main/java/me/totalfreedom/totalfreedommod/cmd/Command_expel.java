@@ -1,19 +1,21 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Callback;
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Command;
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Permission;
-import me.totalfreedom.totalfreedommod.util.FUtil;
+import java.util.List;
+
+import org.bukkit.Location;
+import org.bukkit.entity.Player;
+import org.bukkit.util.Vector;
+
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.JoinConfiguration;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
-import org.bukkit.Location;
-import org.bukkit.entity.Player;
-import org.bukkit.util.Vector;
 
-import java.util.List;
+import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Callback;
+import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Command;
+import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Permission;
+import me.totalfreedom.totalfreedommod.util.FUtil;
 
 @Command(name = "expel", description = "Push people away from you.", usage = "/expel [radius] [strength]")
 @Permission(permission = "tfm.fun.expel", source = SourceType.ONLY_IN_GAME)

@@ -1,15 +1,15 @@
 package me.totalfreedom.totalfreedommod.sql;
 
+import java.io.File;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.util.Map;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
-import java.io.File;
-
-import org.jetbrains.annotations.NotNull;
 
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Handles SQL database configuration properties.

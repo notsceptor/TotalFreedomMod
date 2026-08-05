@@ -4,16 +4,6 @@ import java.time.Duration;
 import java.util.*;
 
 import io.papermc.paper.math.Position;
-import me.totalfreedom.totalfreedommod.player.PlayerData;
-import me.totalfreedom.totalfreedommod.display.Displayable;
-import me.totalfreedom.totalfreedommod.util.AdventureUtil;
-import me.totalfreedom.totalfreedommod.util.FTask;
-import me.totalfreedom.totalfreedommod.util.FUtil;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.event.ClickCallback;
-import net.kyori.adventure.text.event.ClickEvent;
-import net.kyori.adventure.text.event.HoverEvent;
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.*;
 import org.bukkit.block.Sign;
 import org.bukkit.block.TileState;
@@ -26,6 +16,18 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickCallback;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.format.NamedTextColor;
+
+import me.totalfreedom.totalfreedommod.display.Displayable;
+import me.totalfreedom.totalfreedommod.player.PlayerData;
+import me.totalfreedom.totalfreedommod.util.AdventureUtil;
+import me.totalfreedom.totalfreedommod.util.FTask;
+import me.totalfreedom.totalfreedommod.util.FUtil;
 
 public class SignSpy extends FreedomService
 {

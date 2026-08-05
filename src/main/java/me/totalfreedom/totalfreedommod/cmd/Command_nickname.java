@@ -9,12 +9,6 @@ import java.util.stream.Stream;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import me.totalfreedom.totalfreedommod.PluginProvider;
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
-import me.totalfreedom.totalfreedommod.player.PlayerData;
-import me.totalfreedom.totalfreedommod.rank.CustomRank;
-import me.totalfreedom.totalfreedommod.util.AdventureUtil;
-import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.Style;
@@ -22,11 +16,18 @@ import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
+import me.totalfreedom.totalfreedommod.PluginProvider;
+import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
+import me.totalfreedom.totalfreedommod.player.PlayerData;
+import me.totalfreedom.totalfreedommod.rank.CustomRank;
+import me.totalfreedom.totalfreedommod.util.AdventureUtil;
+import me.totalfreedom.totalfreedommod.util.FUtil;
+
 @Command(
-    name = "nickname",
-    description = "Manages player nicknames",
-    usage = "/nickname <<nickname..> | set <player> <nickname..> | clean | clear [player] | clearall>",
-    aliases = {"nick"}
+        name = "nickname",
+        description = "Manages player nicknames",
+        usage = "/nickname <<nickname..> | set <player> <nickname..> | clean | clear [player] | clearall>",
+        aliases = {"nick"}
 )
 @Permission(permission = "tfm.player.nickname")
 public class Command_nickname extends FCommand

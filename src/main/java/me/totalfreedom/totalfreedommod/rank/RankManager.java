@@ -1,7 +1,5 @@
 package me.totalfreedom.totalfreedommod.rank;
 
-import com.google.common.collect.Maps;
-import com.google.gson.reflect.TypeToken;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -18,28 +16,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
-import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
-import me.totalfreedom.totalfreedommod.admin.Admin;
-import me.totalfreedom.totalfreedommod.config.ConfigEntry;
-import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchContext;
-import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchSession;
-import me.totalfreedom.totalfreedommod.display.Displayable;
-import me.totalfreedom.totalfreedommod.player.FPlayer;
-import me.totalfreedom.totalfreedommod.sql.PersistenceQueue;
-import me.totalfreedom.totalfreedommod.sql.adapter.RankRepository;
-import me.totalfreedom.totalfreedommod.util.AdventureUtil;
-import me.totalfreedom.totalfreedommod.util.FLog;
-import me.totalfreedom.totalfreedommod.util.FTask;
-import me.totalfreedom.totalfreedommod.util.FUtil;
-import me.totalfreedom.totalfreedommod.util.JsonUtil;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.event.ClickEvent;
-import net.kyori.adventure.text.event.HoverEvent;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextDecoration;
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+
 import io.papermc.paper.event.player.AsyncChatEvent;
 import org.bukkit.GameMode;
 import org.bukkit.command.BlockCommandSender;
@@ -58,9 +35,33 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.ScoreboardManager;
 import org.bukkit.scoreboard.Team;
+
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
+
+import me.totalfreedom.totalfreedommod.FreedomService;
+import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.totalfreedommod.admin.Admin;
+import me.totalfreedom.totalfreedommod.config.ConfigEntry;
+import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchContext;
+import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchSession;
+import me.totalfreedom.totalfreedommod.display.Displayable;
+import me.totalfreedom.totalfreedommod.player.FPlayer;
+import me.totalfreedom.totalfreedommod.sql.PersistenceQueue;
+import me.totalfreedom.totalfreedommod.sql.adapter.RankRepository;
+import me.totalfreedom.totalfreedommod.util.*;
+
+import com.google.common.collect.Maps;
+import com.google.gson.reflect.TypeToken;
 
 public class RankManager extends FreedomService
 {

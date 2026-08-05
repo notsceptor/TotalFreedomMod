@@ -1,32 +1,25 @@
 package me.totalfreedom.totalfreedommod;
 
-import me.totalfreedom.totalfreedommod.fun.Trailer;
-import me.totalfreedom.totalfreedommod.tablist.TabList;
-import me.totalfreedom.totalfreedommod.world.CleanroomChunkGenerator;
 import java.io.File;
 import java.io.InputStream;
 import java.util.Properties;
+
+import org.bukkit.generator.ChunkGenerator;
+import org.bukkit.plugin.java.JavaPlugin;
+
 import me.totalfreedom.totalfreedommod.admin.AdminList;
 import me.totalfreedom.totalfreedommod.banning.BanManager;
 import me.totalfreedom.totalfreedommod.banning.PermbanList;
 import me.totalfreedom.totalfreedommod.banning.StrikeList;
-import me.totalfreedom.totalfreedommod.blocking.BlockBlocker;
-import me.totalfreedom.totalfreedommod.blocking.EventBlocker;
-import me.totalfreedom.totalfreedommod.blocking.InteractBlocker;
-import me.totalfreedom.totalfreedommod.blocking.MobBlocker;
-import me.totalfreedom.totalfreedommod.blocking.PotionBlocker;
+import me.totalfreedom.totalfreedommod.blocking.*;
 import me.totalfreedom.totalfreedommod.blocking.command.CommandBlocker;
-import me.totalfreedom.totalfreedommod.blocking.sweep.SweepScheduler;
-import me.totalfreedom.totalfreedommod.blocking.entity.EntityNameValidator;
-import me.totalfreedom.totalfreedommod.blocking.entity.EntitySizeGuard;
-import me.totalfreedom.totalfreedommod.blocking.entity.TextDisplayGuard;
-import me.totalfreedom.totalfreedommod.blocking.entity.ProjectileGuard;
-import me.totalfreedom.totalfreedommod.blocking.entity.WaypointGuard;
+import me.totalfreedom.totalfreedommod.blocking.entity.*;
 import me.totalfreedom.totalfreedommod.blocking.item.ConsoleSpamFilter;
-import me.totalfreedom.totalfreedommod.blocking.packet.CrashPacketService;
 import me.totalfreedom.totalfreedommod.blocking.item.ItemValidator;
+import me.totalfreedom.totalfreedommod.blocking.packet.CrashPacketService;
 import me.totalfreedom.totalfreedommod.blocking.sign.SignValidator;
 import me.totalfreedom.totalfreedommod.blocking.spawner.SpawnerValidator;
+import me.totalfreedom.totalfreedommod.blocking.sweep.SweepScheduler;
 import me.totalfreedom.totalfreedommod.bridge.CoreProtectBridge;
 import me.totalfreedom.totalfreedommod.bridge.EssentialsBridge;
 import me.totalfreedom.totalfreedommod.bridge.LibsDisguisesBridge;
@@ -36,26 +29,23 @@ import me.totalfreedom.totalfreedommod.cmd.CommandLoader;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.config.MainConfig;
 import me.totalfreedom.totalfreedommod.discord.DiscordBridge;
+import me.totalfreedom.totalfreedommod.framework.ServiceManager;
 import me.totalfreedom.totalfreedommod.freeze.Freezer;
-import me.totalfreedom.totalfreedommod.fun.ItemFun;
-import me.totalfreedom.totalfreedommod.fun.Jumppads;
-import me.totalfreedom.totalfreedommod.fun.Landminer;
-import me.totalfreedom.totalfreedommod.fun.MP44;
+import me.totalfreedom.totalfreedommod.fun.*;
 import me.totalfreedom.totalfreedommod.httpd.HTTPDaemon;
-import me.totalfreedom.totalfreedommod.ssh.SshDaemon;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.player.PlayerList;
 import me.totalfreedom.totalfreedommod.rank.ConsoleSenderRegistry;
 import me.totalfreedom.totalfreedommod.rank.RankManager;
-import me.totalfreedom.totalfreedommod.title.TitleManager;
 import me.totalfreedom.totalfreedommod.sql.FreedomDatabase;
+import me.totalfreedom.totalfreedommod.ssh.SshDaemon;
+import me.totalfreedom.totalfreedommod.tablist.TabList;
+import me.totalfreedom.totalfreedommod.title.TitleManager;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import me.totalfreedom.totalfreedommod.util.MethodTimer;
-import me.totalfreedom.totalfreedommod.framework.ServiceManager;
+import me.totalfreedom.totalfreedommod.world.CleanroomChunkGenerator;
 import me.totalfreedom.totalfreedommod.world.WorldManager;
-import org.bukkit.generator.ChunkGenerator;
-import org.bukkit.plugin.java.JavaPlugin;
 
 public class TotalFreedomMod extends JavaPlugin
 {

@@ -1,14 +1,17 @@
 package me.totalfreedom.totalfreedommod.admin;
 
-import com.google.common.collect.Lists;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
+
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.entity.Player;
+
 import me.totalfreedom.totalfreedommod.util.ConfigInterfaces.ConfigLoadable;
 import me.totalfreedom.totalfreedommod.util.ConfigInterfaces.Validatable;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.entity.Player;
+
+import com.google.common.collect.Lists;
 
 public class Admin implements ConfigLoadable, Validatable
 {

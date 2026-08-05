@@ -1,14 +1,16 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Callback;
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Command;
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Permission;
-import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Location;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.CreatureSpawnEvent;
+
+import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+
+import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Callback;
+import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Command;
+import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Permission;
 
 @Command(name = "spawnmob", description = "Spawns any mob.", usage = "/spawnmob <type> [amount]")
 @Permission(permission = "tfm.fun.spawnmob", source = SourceType.ONLY_IN_GAME)

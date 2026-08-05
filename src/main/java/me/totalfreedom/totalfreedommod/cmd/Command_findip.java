@@ -3,9 +3,10 @@ package me.totalfreedom.totalfreedommod.cmd;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+
+import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 
 @Command(name = "findip", description = "Shows all IPs registered to a player.", usage = "/findip [player]", aliases = {"ips", "ip"})
 @Permission(permission = "tfm.admin.findip")

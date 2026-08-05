@@ -2,10 +2,11 @@ package me.totalfreedom.totalfreedommod.cmd;
 
 import org.bukkit.entity.Player;
 
-import me.totalfreedom.totalfreedommod.admin.Admin;
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+
+import me.totalfreedom.totalfreedommod.admin.Admin;
+import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 
 @Command(name = "link", description = "Generate a one-time code for admins to link their Discord account.", usage = "/link")
 @Permission(permission = "tfm.admin.discordlink", source = SourceType.ONLY_IN_GAME)

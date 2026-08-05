@@ -1,8 +1,5 @@
 package me.totalfreedom.totalfreedommod;
 
-import com.google.common.collect.Lists;
-import com.google.common.io.Files;
-import com.google.gson.reflect.TypeToken;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -10,18 +7,24 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.YamlConfiguration;
+
 import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.admin.AdminList;
 import me.totalfreedom.totalfreedommod.banning.PermBan;
 import me.totalfreedom.totalfreedommod.banning.PermbanList;
+import me.totalfreedom.totalfreedommod.framework.PluginComponent;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.rank.CustomRank;
 import me.totalfreedom.totalfreedommod.rank.RankRole;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.JsonUtil;
-import me.totalfreedom.totalfreedommod.framework.PluginComponent;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.YamlConfiguration;
+
+import com.google.common.collect.Lists;
+import com.google.common.io.Files;
+import com.google.gson.reflect.TypeToken;
 
 public class ConfigConverter extends PluginComponent<TotalFreedomMod>
 {

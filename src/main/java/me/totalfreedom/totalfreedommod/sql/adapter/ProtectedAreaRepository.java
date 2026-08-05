@@ -1,12 +1,12 @@
 package me.totalfreedom.totalfreedommod.sql.adapter;
 
-import me.totalfreedom.totalfreedommod.ProtectArea.ProtectedRegion;
-
 import java.sql.SQLException;
 import java.util.List;
 import java.util.UUID;
 
 import reactor.core.publisher.Mono;
+
+import me.totalfreedom.totalfreedommod.ProtectArea.ProtectedRegion;
 
 /**
  * Repository interface for ProtectedRegion data.

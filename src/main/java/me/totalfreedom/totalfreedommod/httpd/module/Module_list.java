@@ -1,10 +1,12 @@
 package me.totalfreedom.totalfreedommod.httpd.module;
 
 import java.util.Collection;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
-import me.totalfreedom.totalfreedommod.httpd.NanoHTTPD;
+
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+
+import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.totalfreedommod.httpd.NanoHTTPD;
 
 public class Module_list extends HTTPDModule
 {

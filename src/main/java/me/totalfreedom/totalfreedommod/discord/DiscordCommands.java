@@ -9,13 +9,14 @@ import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
 import discord4j.core.object.command.ApplicationCommandInteractionOption;
 import discord4j.core.object.command.ApplicationCommandInteractionOptionValue;
 import discord4j.core.spec.InteractionApplicationCommandCallbackSpec;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
+
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.sql.adapter.DiscordLinkRepository;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.PlayerListUtil;
-import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
 /**
  * Slash command handlers for {@code /list}, {@code /link}, {@code /unlink}.

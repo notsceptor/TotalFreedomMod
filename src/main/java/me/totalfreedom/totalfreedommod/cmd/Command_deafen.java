@@ -1,14 +1,15 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
+import java.util.List;
+import java.util.Random;
+
 import org.bukkit.Location;
 import org.bukkit.Registry;
 import org.bukkit.Sound;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import java.util.List;
-import java.util.Random;
+import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 
 @Permission(permission = "tfm.admin.senior.deafen")
 @Command(name = "deafen", description = "Make some noise.", usage = "/<command>")

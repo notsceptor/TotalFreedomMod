@@ -1,30 +1,18 @@
 package me.totalfreedom.totalfreedommod.sql;
 
-import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
-import me.totalfreedom.totalfreedommod.sql.SQLProperties.DatabaseType;
-import me.totalfreedom.totalfreedommod.sql.adapter.AdapterFactory;
-import me.totalfreedom.totalfreedommod.sql.adapter.AdminRepository;
-import me.totalfreedom.totalfreedommod.sql.adapter.BanRepository;
-import me.totalfreedom.totalfreedommod.sql.adapter.DatabaseAdapter;
-import me.totalfreedom.totalfreedommod.sql.adapter.DiscordLinkRepository;
-import me.totalfreedom.totalfreedommod.sql.adapter.MigrationRepository;
-import me.totalfreedom.totalfreedommod.sql.adapter.PermbanRepository;
-import me.totalfreedom.totalfreedommod.sql.adapter.PlayerRepository;
-import me.totalfreedom.totalfreedommod.sql.adapter.ProtectedAreaRepository;
-import me.totalfreedom.totalfreedommod.sql.adapter.RankRepository;
-import me.totalfreedom.totalfreedommod.sql.adapter.TitleRepository;
-import me.totalfreedom.totalfreedommod.sql.adapter.SavedFlagRepository;
-import me.totalfreedom.totalfreedommod.sql.adapter.StrikeRepository;
-import me.totalfreedom.totalfreedommod.util.FLog;
-import me.totalfreedom.totalfreedommod.util.FTask;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
+
+import me.totalfreedom.totalfreedommod.FreedomService;
+import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.totalfreedommod.sql.SQLProperties.DatabaseType;
+import me.totalfreedom.totalfreedommod.sql.adapter.*;
+import me.totalfreedom.totalfreedommod.util.FLog;
+import me.totalfreedom.totalfreedommod.util.FTask;
 
 /**
  * Central database management service.

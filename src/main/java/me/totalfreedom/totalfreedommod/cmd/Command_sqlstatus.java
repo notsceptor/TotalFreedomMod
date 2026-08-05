@@ -1,11 +1,12 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
-import me.totalfreedom.totalfreedommod.sql.ConnectionHandler.PoolStats;
+import org.bukkit.command.CommandSender;
+
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
-import org.bukkit.command.CommandSender;
+import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
+import me.totalfreedom.totalfreedommod.sql.ConnectionHandler.PoolStats;
 
 @Command(name = "sqlstatus", description = "Show database connection pool health.", usage = "/sqlstatus")
 @Permission(source = SourceType.BOTH, permission = "tfm.admin.sqlstatus")

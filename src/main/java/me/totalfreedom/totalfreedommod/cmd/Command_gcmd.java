@@ -1,12 +1,14 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Callback;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Command;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Greedy;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Permission;
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
-import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 
 @Command(name = "gcmd", description = "Send a command as someone else.", usage = "/gcmd <player> <command>")
 @Permission(permission = "tfm.admin.gcmd")

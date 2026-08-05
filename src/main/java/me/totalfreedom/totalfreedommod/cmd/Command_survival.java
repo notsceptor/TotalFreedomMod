@@ -5,14 +5,15 @@ import org.bukkit.GameMode;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
+import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
+
 @Command(
-    name = "survival", 
-    description = "Quickly change your own gamemode to survival, or define someone's username to change theirs.", 
-    usage = "/survival <-a | [player]>", 
-    aliases = {"gms"}
+        name = "survival",
+        description = "Quickly change your own gamemode to survival, or define someone's username to change theirs.",
+        usage = "/survival <-a | [player]>",
+        aliases = {"gms"}
 )
 @Permission(permission = "tfm.player.survival")
 public class Command_survival extends FCommand

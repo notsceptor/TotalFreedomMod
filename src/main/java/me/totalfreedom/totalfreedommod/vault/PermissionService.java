@@ -1,10 +1,12 @@
 package me.totalfreedom.totalfreedommod.vault;
 
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
-import me.totalfreedom.totalfreedommod.rank.CustomRank;
-import net.milkbowl.vault.permission.Permission;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
+
+import net.milkbowl.vault.permission.Permission;
+
+import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.totalfreedommod.rank.CustomRank;
 
 
 public class PermissionService extends Permission {

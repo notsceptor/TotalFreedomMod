@@ -1,6 +1,7 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
 import org.bukkit.command.CommandSender;
+
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 
 @Command(name = "stop", description = "Kicks everyone and stops the server.", usage = "/stop")

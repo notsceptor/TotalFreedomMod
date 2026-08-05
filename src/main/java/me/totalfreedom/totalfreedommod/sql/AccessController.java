@@ -5,10 +5,10 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
-import me.totalfreedom.totalfreedommod.util.FLog;
-
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
+
+import me.totalfreedom.totalfreedommod.util.FLog;
 
 /**
  * This is a fair, non-blocking access controller that ensures our queries on the connection pool

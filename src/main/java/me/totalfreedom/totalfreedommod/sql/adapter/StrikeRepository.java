@@ -2,8 +2,10 @@ package me.totalfreedom.totalfreedommod.sql.adapter;
 
 import java.sql.SQLException;
 import java.util.Map;
-import me.totalfreedom.totalfreedommod.banning.StrikeRecord;
+
 import reactor.core.publisher.Mono;
+
+import me.totalfreedom.totalfreedommod.banning.StrikeRecord;
 
 public interface StrikeRepository
 {

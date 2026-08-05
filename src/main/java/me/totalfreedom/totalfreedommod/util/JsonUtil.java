@@ -1,16 +1,12 @@
 package me.totalfreedom.totalfreedommod.util;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonDeserializer;
-import com.google.gson.JsonPrimitive;
-import com.google.gson.JsonSerializer;
+import java.util.Date;
+import java.util.UUID;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 
-import java.util.Date;
-import java.util.UUID;
+import com.google.gson.*;
 
 /**
  * Shared Gson instance for the plugin's JSON-backed persistence (SQL write-through

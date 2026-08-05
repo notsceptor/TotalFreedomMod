@@ -4,15 +4,17 @@ import java.util.Comparator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
+
+import org.bukkit.command.BlockCommandSender;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+import org.bukkit.entity.minecart.CommandMinecart;
+
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchContext;
 import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchSession;
-import org.bukkit.command.BlockCommandSender;
-import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
-import org.bukkit.entity.minecart.CommandMinecart;
 
 /**
  * The single place that answers "what rank is this?" and "what rank does this permission need?".

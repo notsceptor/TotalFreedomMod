@@ -1,7 +1,5 @@
 package me.totalfreedom.totalfreedommod.title;
 
-import com.google.common.collect.Maps;
-import com.google.gson.reflect.TypeToken;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -16,6 +14,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
+
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.display.Displayable;
@@ -25,11 +31,9 @@ import me.totalfreedom.totalfreedommod.sql.adapter.TitleRepository;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.JsonUtil;
-import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
+
+import com.google.common.collect.Maps;
+import com.google.gson.reflect.TypeToken;
 
 /**
  * Owns the title registry and answers what a player's titles let them do and how they are shown.

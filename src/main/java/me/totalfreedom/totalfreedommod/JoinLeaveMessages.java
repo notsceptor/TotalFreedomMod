@@ -1,14 +1,16 @@
 package me.totalfreedom.totalfreedommod;
 
-import me.totalfreedom.totalfreedommod.cmd.MessageUtils;
-import me.totalfreedom.totalfreedommod.util.FUtil;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+
+import me.totalfreedom.totalfreedommod.cmd.MessageUtils;
+import me.totalfreedom.totalfreedommod.util.FUtil;
 
 public class JoinLeaveMessages extends FreedomService
 {

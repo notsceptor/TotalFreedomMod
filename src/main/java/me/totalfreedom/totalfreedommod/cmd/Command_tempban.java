@@ -5,6 +5,12 @@ import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+
+import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+
 import me.totalfreedom.totalfreedommod.banning.Ban;
 import me.totalfreedom.totalfreedommod.cmd.internal.FuzzyMatch;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
@@ -13,15 +19,9 @@ import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 
-import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
-
-import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
-
 @Command(name = "tempban", aliases = {"tban", "noob"},
-    description = "Temporarily bans an online or previously known player.",
-    usage = "/<command> [-s] [-rb] <player> [duration] [reason]")
+        description = "Temporarily bans an online or previously known player.",
+        usage = "/<command> [-s] [-rb] <player> [duration] [reason]")
 @Permission(permission = "tfm.admin.ban")
 public class Command_tempban extends FCommand
 {

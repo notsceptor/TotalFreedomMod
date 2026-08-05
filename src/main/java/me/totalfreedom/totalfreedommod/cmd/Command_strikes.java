@@ -1,12 +1,13 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
-import me.totalfreedom.totalfreedommod.player.PlayerData;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
-import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
+import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
+import me.totalfreedom.totalfreedommod.player.PlayerData;
 
 @Permission(permission = "tfm.admin.strike")
 @Command(name = "strikes", aliases = "strike", description = "Manages the strikes for a player.", usage = "/<command> <add | remove | clear> <player>")

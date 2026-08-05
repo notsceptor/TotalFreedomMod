@@ -1,10 +1,5 @@
 package me.totalfreedom.totalfreedommod.sql.adapter.generic;
 
-import me.totalfreedom.totalfreedommod.banning.StrikeRecord;
-import me.totalfreedom.totalfreedommod.sql.StatementHandler;
-import me.totalfreedom.totalfreedommod.sql.adapter.DatabaseAdapter;
-import me.totalfreedom.totalfreedommod.sql.adapter.StrikeRepository;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -12,6 +7,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 import reactor.core.publisher.Mono;
+
+import me.totalfreedom.totalfreedommod.banning.StrikeRecord;
+import me.totalfreedom.totalfreedommod.sql.StatementHandler;
+import me.totalfreedom.totalfreedommod.sql.adapter.DatabaseAdapter;
+import me.totalfreedom.totalfreedommod.sql.adapter.StrikeRepository;
 
 /**
  * All dialect differences are resolved through the {@link DatabaseAdapter} passed in.

@@ -2,9 +2,9 @@ package me.totalfreedom.totalfreedommod.sql;
 
 import java.time.Duration;
 
-import me.totalfreedom.totalfreedommod.util.FLog;
-
 import reactor.core.publisher.Mono;
+
+import me.totalfreedom.totalfreedommod.util.FLog;
 
 /**
  * Serialises one domain's persistence work onto a single ordered chain. Each queued unit runs

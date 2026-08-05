@@ -1,9 +1,5 @@
 package me.totalfreedom.totalfreedommod;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
-
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -12,11 +8,15 @@ import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.bukkit.util.FileUtil;
+
 import me.totalfreedom.totalfreedommod.framework.PluginComponent;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 
-import org.bukkit.util.FileUtil;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 
 public class BackupManager extends PluginComponent<TotalFreedomMod>
 {

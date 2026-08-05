@@ -9,6 +9,10 @@ import java.util.stream.Stream;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+
 import me.totalfreedom.totalfreedommod.PluginProvider;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
@@ -16,9 +20,6 @@ import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.rank.CustomRank;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
 @Command(name = "tag", description = "Sets yourself a prefix", usage = "/tag [-s[ave]] <set <tag..> | list | off | clear <player> | clearall>")
 @Permission(permission = "tfm.player.tag")

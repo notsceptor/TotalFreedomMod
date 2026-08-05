@@ -5,19 +5,20 @@ import java.util.List;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+
 import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.cmd.internal.FuzzyMatch;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.rank.CustomRank;
 import me.totalfreedom.totalfreedommod.rank.RankRole;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
 @Command(
-    name = "rankconfig",
-    description = "Configure custom ranks.",
-    usage = "/rankconfig [list | create <id> | edit <rank> | delete <rank> | set <rank> <property> <value> | setrank <player> <rank> | reload | save]",
-    aliases = {"rankconf", "rankcfg"}
+        name = "rankconfig",
+        description = "Configure custom ranks.",
+        usage = "/rankconfig [list | create <id> | edit <rank> | delete <rank> | set <rank> <property> <value> | setrank <player> <rank> | reload | save]",
+        aliases = {"rankconf", "rankcfg"}
 )
 @Permission(permission = "tfm.manage.ranks")
 public class Command_rankconfig extends FCommand

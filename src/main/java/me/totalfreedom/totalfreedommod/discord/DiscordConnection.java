@@ -8,14 +8,15 @@ import java.util.function.Function;
 
 import discord4j.core.DiscordClient;
 import discord4j.core.GatewayDiscordClient;
-import discord4j.gateway.intent.IntentSet;
 import discord4j.gateway.intent.Intent;
-import me.totalfreedom.totalfreedommod.config.ConfigEntry;
-import me.totalfreedom.totalfreedommod.util.FLog;
+import discord4j.gateway.intent.IntentSet;
 import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import reactor.util.retry.Retry;
+
+import me.totalfreedom.totalfreedommod.config.ConfigEntry;
+import me.totalfreedom.totalfreedommod.util.FLog;
 
 /**
  * Owns the bridge's gateway connection and its reconnect budget.

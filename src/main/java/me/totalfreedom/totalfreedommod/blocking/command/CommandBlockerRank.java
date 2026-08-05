@@ -1,9 +1,10 @@
 package me.totalfreedom.totalfreedommod.blocking.command;
 
-import me.totalfreedom.totalfreedommod.PluginProvider;
-import me.totalfreedom.totalfreedommod.admin.Admin;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+
+import me.totalfreedom.totalfreedommod.PluginProvider;
+import me.totalfreedom.totalfreedommod.admin.Admin;
 
 public enum CommandBlockerRank
 {

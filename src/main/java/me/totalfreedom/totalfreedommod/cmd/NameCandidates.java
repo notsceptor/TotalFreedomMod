@@ -2,14 +2,14 @@ package me.totalfreedom.totalfreedommod.cmd;
 
 import java.util.List;
 
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
-import me.totalfreedom.totalfreedommod.banning.Ban;
-import me.totalfreedom.totalfreedommod.cmd.internal.FuzzyMatch;
-
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.Server;
 import org.bukkit.entity.Player;
+
+import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.totalfreedommod.banning.Ban;
+import me.totalfreedom.totalfreedommod.cmd.internal.FuzzyMatch;
 
 /**
  * Shared tab-completion sources for commands that take a player name as a plain {@code String}.

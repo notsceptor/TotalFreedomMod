@@ -1,10 +1,11 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 

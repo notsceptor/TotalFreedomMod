@@ -1,12 +1,5 @@
 package me.totalfreedom.totalfreedommod.sql.adapter.generic;
 
-import me.totalfreedom.totalfreedommod.rank.CustomRank;
-import me.totalfreedom.totalfreedommod.rank.RankRole;
-import me.totalfreedom.totalfreedommod.sql.StatementHandler;
-import me.totalfreedom.totalfreedommod.sql.adapter.DatabaseAdapter;
-import me.totalfreedom.totalfreedommod.sql.adapter.RankRepository;
-import net.kyori.adventure.text.format.NamedTextColor;
-
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -14,7 +7,15 @@ import java.sql.Timestamp;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import net.kyori.adventure.text.format.NamedTextColor;
+
 import reactor.core.publisher.Mono;
+
+import me.totalfreedom.totalfreedommod.rank.CustomRank;
+import me.totalfreedom.totalfreedommod.rank.RankRole;
+import me.totalfreedom.totalfreedommod.sql.StatementHandler;
+import me.totalfreedom.totalfreedommod.sql.adapter.DatabaseAdapter;
+import me.totalfreedom.totalfreedommod.sql.adapter.RankRepository;
 
 /**
  * All dialect differences are resolved through the {@link DatabaseAdapter} passed in.

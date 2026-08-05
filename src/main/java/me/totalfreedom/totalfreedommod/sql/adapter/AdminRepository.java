@@ -1,7 +1,5 @@
 package me.totalfreedom.totalfreedommod.sql.adapter;
 
-import me.totalfreedom.totalfreedommod.admin.Admin;
-
 import java.sql.SQLException;
 import java.util.Date;
 import java.util.List;
@@ -9,6 +7,8 @@ import java.util.Map;
 import java.util.UUID;
 
 import reactor.core.publisher.Mono;
+
+import me.totalfreedom.totalfreedommod.admin.Admin;
 
 /**
  * Abstract repository interface for Admin data.

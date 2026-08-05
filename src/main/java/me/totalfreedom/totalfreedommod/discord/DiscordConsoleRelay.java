@@ -6,12 +6,18 @@ import java.util.Deque;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.bukkit.Bukkit;
+import org.bukkit.scheduler.BukkitTask;
+
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.object.emoji.Emoji;
 import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.User;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
+
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
@@ -20,12 +26,9 @@ import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchSession;
 import me.totalfreedom.totalfreedommod.util.CallbackLogAppender;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FTask;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.Logger;
-import org.bukkit.Bukkit;
-import org.bukkit.scheduler.BukkitTask;
-import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
 /**
  * Streams server log output into the Discord console channel and dispatches

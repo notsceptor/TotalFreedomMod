@@ -6,10 +6,11 @@ import java.util.Set;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+
 import me.totalfreedom.totalfreedommod.banning.Ban;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
 @Command(name = "unban", description = "Unbans an online or offline player and linked IP addresses.", usage = "/unban [-s] [-r] <player>")
 @Permission(permission = "tfm.admin.ban")

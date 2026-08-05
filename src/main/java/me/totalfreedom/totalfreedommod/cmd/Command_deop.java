@@ -3,8 +3,9 @@ package me.totalfreedom.totalfreedommod.cmd;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+
+import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 
 @Command(name = "deop", description = "Deop a player.", usage = "/deop <player>")
 @Permission(permission = "tfm.admin.deop")

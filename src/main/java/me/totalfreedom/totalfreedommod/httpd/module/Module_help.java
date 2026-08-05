@@ -1,6 +1,5 @@
 package me.totalfreedom.totalfreedommod.httpd.module;
 
-import com.google.common.collect.Lists;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -9,22 +8,24 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandMap;
+import org.bukkit.command.PluginIdentifiableCommand;
+import org.bukkit.command.SimpleCommandMap;
+
+import me.totalfreedom.totalfreedommod.PluginProvider;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.cmd.CommandRegistry;
 import me.totalfreedom.totalfreedommod.cmd.FCommand;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Permission;
 import me.totalfreedom.totalfreedommod.display.Displayable;
+import me.totalfreedom.totalfreedommod.httpd.NanoHTTPD;
 import me.totalfreedom.totalfreedommod.rank.CustomRank;
-import me.totalfreedom.totalfreedommod.PluginProvider;
+
+import com.google.common.collect.Lists;
 
 import static me.totalfreedom.totalfreedommod.httpd.HTMLGenerationTools.heading;
 import static me.totalfreedom.totalfreedommod.httpd.HTMLGenerationTools.paragraph;
-import me.totalfreedom.totalfreedommod.httpd.NanoHTTPD;
-
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandMap;
-import org.bukkit.command.PluginIdentifiableCommand;
-import org.bukkit.command.SimpleCommandMap;
 
 public class Module_help extends HTTPDModule
 {

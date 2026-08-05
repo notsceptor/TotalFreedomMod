@@ -1,16 +1,16 @@
 package me.totalfreedom.totalfreedommod.sql.adapter.sqlite;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.sql.ConnectionHandler;
 import me.totalfreedom.totalfreedommod.sql.StatementHandler;
 import me.totalfreedom.totalfreedommod.sql.adapter.*;
 import me.totalfreedom.totalfreedommod.sql.adapter.generic.*;
 import me.totalfreedom.totalfreedommod.util.FLog;
-
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * SQLite-specific database adapter.

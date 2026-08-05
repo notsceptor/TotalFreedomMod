@@ -4,12 +4,14 @@ import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Set;
 
-import me.totalfreedom.totalfreedommod.display.Displayable;
-import me.totalfreedom.totalfreedommod.util.AdventureUtil;
+import org.bukkit.configuration.ConfigurationSection;
+
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
-import org.bukkit.configuration.ConfigurationSection;
+
+import me.totalfreedom.totalfreedommod.display.Displayable;
+import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 
 /**
  * Represents a configurable rank in the TFM permission system.

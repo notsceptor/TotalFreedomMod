@@ -1,22 +1,25 @@
 package me.totalfreedom.totalfreedommod.player;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+
+import org.bukkit.Bukkit;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.entity.Player;
+
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+
 import me.totalfreedom.totalfreedommod.PluginProvider;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.ConfigInterfaces.ConfigLoadable;
 import me.totalfreedom.totalfreedommod.util.ConfigInterfaces.Validatable;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 
-import org.bukkit.Bukkit;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.entity.Player;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 public class PlayerData implements ConfigLoadable, Validatable
 {

@@ -1,11 +1,12 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
-import me.totalfreedom.totalfreedommod.config.ConfigEntry;
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
-
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+
+import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
+import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 
 @Permission(permission = "tfm.admin.kick")
 @Command(name = "kick", aliases = "k", description = "Kick a player.", usage = "/<command> [-s] <player> [reason]")

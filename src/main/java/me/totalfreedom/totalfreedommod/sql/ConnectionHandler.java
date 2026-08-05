@@ -3,19 +3,18 @@ package me.totalfreedom.totalfreedommod.sql;
 import java.sql.Connection;
 import java.sql.SQLException;
 
-import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.jetbrains.annotations.NotNull;
-
-import com.zaxxer.hikari.HikariConfig;
-import com.zaxxer.hikari.HikariDataSource;
-import com.zaxxer.hikari.HikariPoolMXBean;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.sql.SQLProperties.DatabaseType;
 import me.totalfreedom.totalfreedommod.util.FLog;
 
-import reactor.core.scheduler.Scheduler;
-import reactor.core.scheduler.Schedulers;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+import com.zaxxer.hikari.HikariPoolMXBean;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Contains the HikariCP connection pool for the configured database.

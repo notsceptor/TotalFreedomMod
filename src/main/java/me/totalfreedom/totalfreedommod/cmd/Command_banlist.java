@@ -4,9 +4,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeSet;
 
+import org.bukkit.command.CommandSender;
+
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
-import org.bukkit.command.CommandSender;
 
 import me.totalfreedom.totalfreedommod.banning.Ban;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;

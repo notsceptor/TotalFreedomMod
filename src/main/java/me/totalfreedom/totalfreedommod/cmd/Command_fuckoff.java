@@ -1,9 +1,10 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
+import org.bukkit.entity.Player;
+
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 
-import org.bukkit.entity.Player;
+import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 
 @Permission(source = SourceType.ONLY_IN_GAME, permission = "tfm.admin.senior.fuckoff")
 @Command(name = "fuckoff", description = "You'll never even see it coming.", usage = "/fuckoff <on [radius (default=25)] | off>")

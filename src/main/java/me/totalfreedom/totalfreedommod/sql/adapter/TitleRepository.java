@@ -3,8 +3,10 @@ package me.totalfreedom.totalfreedommod.sql.adapter;
 import java.sql.SQLException;
 import java.util.Map;
 import java.util.Set;
-import me.totalfreedom.totalfreedommod.title.Title;
+
 import reactor.core.publisher.Mono;
+
+import me.totalfreedom.totalfreedommod.title.Title;
 
 /**
  * Repository interface for {@link Title} data.

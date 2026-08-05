@@ -1,6 +1,5 @@
 package me.totalfreedom.totalfreedommod.banning;
 
-import com.google.common.collect.Lists;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
@@ -9,15 +8,20 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+
+import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.entity.Player;
+
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.ConfigInterfaces.ConfigLoadable;
 import me.totalfreedom.totalfreedommod.util.ConfigInterfaces.Validatable;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import org.bukkit.command.CommandSender;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.entity.Player;
+
+import com.google.common.collect.Lists;
 
 public class Ban implements ConfigLoadable, Validatable
 {

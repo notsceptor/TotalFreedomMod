@@ -10,9 +10,10 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import net.kyori.adventure.text.Component;
+
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-import net.kyori.adventure.text.Component;
 
 @Command(name = "cookie", description = "For those who have no friends.", usage = "/cookie")
 @Permission(permission = "tfm.fun.cookie")

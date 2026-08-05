@@ -8,12 +8,15 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+
+import net.kyori.adventure.text.format.NamedTextColor;
+
+import reactor.core.publisher.Mono;
+
 import me.totalfreedom.totalfreedommod.sql.StatementHandler;
 import me.totalfreedom.totalfreedommod.sql.adapter.DatabaseAdapter;
 import me.totalfreedom.totalfreedommod.sql.adapter.TitleRepository;
 import me.totalfreedom.totalfreedommod.title.Title;
-import net.kyori.adventure.text.format.NamedTextColor;
-import reactor.core.publisher.Mono;
 
 /**
  * All dialect differences are resolved through the {@link DatabaseAdapter} passed in.

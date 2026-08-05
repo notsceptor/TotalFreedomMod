@@ -1,12 +1,5 @@
 package me.totalfreedom.totalfreedommod.sql.adapter.generic;
 
-import me.totalfreedom.totalfreedommod.ProtectArea.ProtectedRegion;
-import me.totalfreedom.totalfreedommod.ProtectArea.ProtectedRegion.CantFindWorldException;
-import me.totalfreedom.totalfreedommod.sql.StatementHandler;
-import me.totalfreedom.totalfreedommod.sql.adapter.DatabaseAdapter;
-import me.totalfreedom.totalfreedommod.sql.adapter.ProtectedAreaRepository;
-import me.totalfreedom.totalfreedommod.util.FLog;
-
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -16,6 +9,13 @@ import java.util.List;
 import java.util.UUID;
 
 import reactor.core.publisher.Mono;
+
+import me.totalfreedom.totalfreedommod.ProtectArea.ProtectedRegion;
+import me.totalfreedom.totalfreedommod.ProtectArea.ProtectedRegion.CantFindWorldException;
+import me.totalfreedom.totalfreedommod.sql.StatementHandler;
+import me.totalfreedom.totalfreedommod.sql.adapter.DatabaseAdapter;
+import me.totalfreedom.totalfreedommod.sql.adapter.ProtectedAreaRepository;
+import me.totalfreedom.totalfreedommod.util.FLog;
 
 /**
  * All dialect differences are resolved through the {@link DatabaseAdapter} passed in.

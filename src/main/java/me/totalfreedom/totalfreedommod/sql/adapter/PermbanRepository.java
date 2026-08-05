@@ -1,12 +1,12 @@
 package me.totalfreedom.totalfreedommod.sql.adapter;
 
-import me.totalfreedom.totalfreedommod.banning.PermBan;
-
 import java.sql.SQLException;
 import java.util.List;
 import java.util.UUID;
 
 import reactor.core.publisher.Mono;
+
+import me.totalfreedom.totalfreedommod.banning.PermBan;
 
 /**
  * Repository interface for Permban data.

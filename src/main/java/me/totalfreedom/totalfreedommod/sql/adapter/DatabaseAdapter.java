@@ -1,10 +1,10 @@
 package me.totalfreedom.totalfreedommod.sql.adapter;
 
+import java.sql.SQLException;
+
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.sql.ConnectionHandler;
 import me.totalfreedom.totalfreedommod.sql.StatementHandler;
-
-import java.sql.SQLException;
 
 /**
  * Abstract base class for database adapters.

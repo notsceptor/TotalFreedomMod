@@ -1,5 +1,9 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import org.bukkit.command.CommandSender;
+
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Callback;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Command;
@@ -8,8 +12,6 @@ import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Subcommand;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.discord.DiscordBridge;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
-import org.bukkit.command.CommandSender;
 
 /*
  * See https://github.com/TotalFreedom/License - This file may not be edited or removed.

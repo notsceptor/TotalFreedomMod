@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
+
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.appender.AbstractAppender;

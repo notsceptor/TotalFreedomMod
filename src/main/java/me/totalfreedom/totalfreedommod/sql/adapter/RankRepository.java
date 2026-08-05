@@ -1,12 +1,12 @@
 package me.totalfreedom.totalfreedommod.sql.adapter;
 
-import me.totalfreedom.totalfreedommod.rank.CustomRank;
-
 import java.sql.SQLException;
 import java.util.Map;
 import java.util.Set;
 
 import reactor.core.publisher.Mono;
+
+import me.totalfreedom.totalfreedommod.rank.CustomRank;
 
 /**
  * Repository interface for CustomRank data.

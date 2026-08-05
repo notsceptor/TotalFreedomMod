@@ -3,8 +3,10 @@ package me.totalfreedom.totalfreedommod.config;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import me.totalfreedom.totalfreedommod.PluginProvider;
+
 import org.bukkit.configuration.ConfigurationSection;
+
+import me.totalfreedom.totalfreedommod.PluginProvider;
 
 public enum ConfigEntry
 {

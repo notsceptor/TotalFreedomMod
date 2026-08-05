@@ -2,8 +2,9 @@ package me.totalfreedom.totalfreedommod.cmd;
 
 import org.bukkit.entity.Player;
 
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+
+import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 
 @Command(name = "spawn", description = "Teleport to the server spawn.", usage = "/spawn [player]")
 @Permission(permission = "tfm.player.spawn", source = SourceType.ONLY_IN_GAME)

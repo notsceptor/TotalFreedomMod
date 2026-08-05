@@ -1,13 +1,15 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
-import me.totalfreedom.totalfreedommod.fun.Jumppads;
+import java.util.stream.Stream;
+
+import org.bukkit.command.CommandSender;
+
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
-import org.bukkit.command.CommandSender;
-import java.util.stream.Stream;
+import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
+import me.totalfreedom.totalfreedommod.fun.Jumppads;
 
 @Permission(source = SourceType.BOTH, permission = "tfm.fun.jumppads")
 @Command(name = "jumppads", description = "Manage jumppads", usage = "/<command> <<on | off> | info | mode <mode> | strength <strength>>", aliases = "launchpads,jp")

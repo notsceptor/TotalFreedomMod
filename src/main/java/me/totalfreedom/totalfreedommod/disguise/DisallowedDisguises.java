@@ -3,11 +3,13 @@ package me.totalfreedom.totalfreedommod.disguise;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import org.bukkit.entity.EntityType;
+
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
-import org.bukkit.entity.EntityType;
 
 /**
  * Manages forbidden disguise types and global disguise state.
