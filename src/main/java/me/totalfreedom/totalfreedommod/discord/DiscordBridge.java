@@ -1,13 +1,17 @@
 package me.totalfreedom.totalfreedommod.discord;
 
 import io.papermc.paper.event.player.AsyncChatEvent;
+import java.security.SecureRandom;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
+import me.totalfreedom.totalfreedommod.discord.acquisition.DiscordAcquisition;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FTask;
 import net.dv8tion.jda.api.JDA;
@@ -24,35 +28,69 @@ import net.dv8tion.jda.api.utils.cache.CacheFlag;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
 
+import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Built-in Discord bridge (owns the JDA instance, chat/console relay and slash-command listeners).
+ * Built-in Discord bridge: owns the JDA client, the chat/console relays and the slash-command
+ * listeners.
+ * <p>
+ * The connection itself is owned by {@link DiscordAcquisition}, which guarantees this server holds
+ * at most one gateway session on the token and that a failed start never leaves an orphan
+ * connected. Startup runs off the main thread, so a slow or unreachable Discord no longer blocks
+ * server boot the way {@code awaitReady()} on the main thread used to.
+ * <p>
+ * The live connection is published as one immutable {@link DiscordSession} behind a volatile
+ * field. Readers on gateway and scheduler threads take a snapshot and either use a whole
+ * connection or find none, and reconnecting swaps the lot in a single assignment.
+ *
+ * @see DiscordConnectionSupervisor
  */
 public class DiscordBridge extends FreedomService
 {
 
     public static volatile boolean reloading = false;
 
-    private JDA jda;
-    private Guild guild;
-    private TextChannel publicChannel;
-    private TextChannel adminchatChannel;
-    private TextChannel consoleChannel;
-
-    private DiscordChatRelay chatRelay;
-    private DiscordAdminchatRelay adminchatRelay;
-    private DiscordConsoleRelay consoleRelay;
-    private DiscordCommands commands;
+    private static final SecureRandom CODE_RANDOM = new SecureRandom();
+    private static final String CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    private static final int CODE_LENGTH = 8;
 
     private final Map<String, PendingLink> pendingLinks = new ConcurrentHashMap<>();
-    private int linkCodeTtlSeconds;
+
+    private final DiscordAcquisition acquisition = new DiscordAcquisition();
+
+    /**
+     * Held for the duration of one connect attempt. The initial attempt and a supervisor retry can
+     * overlap, and the acquisition layer would refuse the second anyway; this keeps it from
+     * getting that far and logging a refusal for something benign.
+     */
+    private final AtomicBoolean connecting = new AtomicBoolean();
+
+    /**
+     * The live connection, or {@code null} when disconnected. Volatile because it is written by
+     * the connect task and read from JDA's gateway threads and the console flush task.
+     */
+    private volatile DiscordSession session;
+
+    private volatile DiscordConnectionSupervisor supervisor;
+    private volatile boolean started;
+
+    // Written by the connect task, read from JDA's gateway threads and the server main thread.
+    private volatile DiscordChatRelay chatRelay;
+    private volatile DiscordAdminchatRelay adminchatRelay;
+    private volatile DiscordConsoleRelay consoleRelay;
+    private volatile DiscordCommands commands;
+
+    private volatile BukkitTask cleanupTask;
+    private volatile int linkCodeTtlSeconds;
+    private volatile boolean startedWhileReloading;
 
     public DiscordBridge(TotalFreedomMod plugin)
     {
@@ -62,141 +100,220 @@ public class DiscordBridge extends FreedomService
     @Override
     protected void onStart()
     {
-        final boolean wasReloading = reloading;
+        startedWhileReloading = reloading;
 
         if (!Boolean.TRUE.equals(ConfigEntry.DISCORD_ENABLED.getBoolean()))
-        {
             return;
-        }
 
-        String token = ConfigEntry.DISCORD_TOKEN.getString();
-        if (token == null || token.isBlank())
+        if (isBlank(ConfigEntry.DISCORD_TOKEN.getString()))
         {
             FLog.warning("[Discord] discord.enabled is true but discord.token is empty; bridge will not start.");
             return;
         }
-        String guildId = ConfigEntry.DISCORD_GUILD_ID.getString();
-        if (guildId == null || guildId.isBlank())
+        if (isBlank(ConfigEntry.DISCORD_GUILD_ID.getString()))
         {
             FLog.warning("[Discord] discord.guild_id is empty; bridge will not start.");
             return;
         }
 
-        Integer ttl = ConfigEntry.DISCORD_LINK_CODE_TTL.getInteger();
+        final Integer ttl = ConfigEntry.DISCORD_LINK_CODE_TTL.getInteger();
         linkCodeTtlSeconds = ttl == null || ttl <= 0 ? 300 : ttl;
+        started = true;
+
+        supervisor = new DiscordConnectionSupervisor(plugin, this::connect, this::teardownConnection);
+
+        cleanupTask = plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin,
+                FTask.guard("DiscordBridge/cleanupPendingLinks", this::cleanupPendingLinks),
+                20L * 60L, 20L * 60L);
+
+        runAsync("DiscordBridge/connect", this::connect);
+    }
+
+    @Override
+    protected void onStop()
+    {
+        started = false;
+        cancel(cleanupTask);
+        cleanupTask = null;
+
+        final DiscordConnectionSupervisor currentSupervisor = supervisor;
+        if (currentSupervisor != null)
+            currentSupervisor.beginIntentionalShutdown();
+
+        if (consoleRelay != null)
+            consoleRelay.detachAppender();
+
+        if (chatRelay != null && !reloading && currentPublicChannel().isPresent())
+        {
+            chatRelay.sendSystemMessageToDiscordNow(getConfiguredMessage(ConfigEntry.DISCORD_SERVER_SHUTDOWN_MESSAGE),
+                    5L, TimeUnit.SECONDS);
+        }
+
+        teardownConnection();
+
+        supervisor = null;
+        pendingLinks.clear();
+    }
+
+    // ============================================
+    // Connection lifecycle
+    // ============================================
+
+    /**
+     * One connect attempt: open the gateway through the acquisition layer, resolve the guild and
+     * channels, and publish the session. Runs off the main thread.
+     * <p>
+     * Cleanup of a half-opened client is the acquisition layer's job, and the supervisor releases
+     * whatever a failed attempt left behind before it retries, so the failure path here only has
+     * to report the attempt.
+     */
+    private void connect()
+    {
+        final DiscordConnectionSupervisor currentSupervisor = supervisor;
+
+        if (!started || currentSupervisor == null || currentSupervisor.hasGivenUp())
+            return;
+
+        if (session != null || !connecting.compareAndSet(false, true))
+            return;
 
         try
         {
-            jda = JDABuilder.createDefault(token)
-                    .enableIntents(GatewayIntent.GUILD_MESSAGES,
-                            GatewayIntent.MESSAGE_CONTENT,
-                            GatewayIntent.DIRECT_MESSAGES)
-                    .disableCache(CacheFlag.VOICE_STATE, CacheFlag.EMOJI, CacheFlag.STICKER,
-                            CacheFlag.SCHEDULED_EVENTS, CacheFlag.ACTIVITY,
-                            CacheFlag.CLIENT_STATUS, CacheFlag.ONLINE_STATUS)
-                    .setMemberCachePolicy(MemberCachePolicy.NONE)
-                    .addEventListeners(new ReadyListener(guildId))
-                    .build();
+            final Optional<JDA> opened = acquisition.acquire(() -> buildClient(currentSupervisor));
+            if (opened.isEmpty())
+                return;
 
-            jda.awaitReady();
+            final JDA client = opened.get();
+            final String guildId = ConfigEntry.DISCORD_GUILD_ID.getString();
+            final Guild guild = client.getGuildById(guildId);
+            if (guild == null)
+            {
+                acquisition.release();
+                currentSupervisor.reportFailure(String.format("bot is not a member of guild %s", guildId));
+                return;
+            }
+
+            publishSession(new DiscordSession(client, guild,
+                    resolveChannel(guild, ConfigEntry.DISCORD_PUBLIC_CHANNEL_ID.getString(), "public_channel_id"),
+                    resolveChannel(guild, ConfigEntry.DISCORD_ADMINCHAT_CHANNEL_ID.getString(), "adminchat_channel_id"),
+                    resolveChannel(guild, ConfigEntry.DISCORD_CONSOLE_CHANNEL_ID.getString(), "console_channel_id")),
+                    currentSupervisor);
         }
-        catch (Exception ex)
+        catch (Throwable thrown)
         {
-            FLog.severe("[Discord] Failed to start JDA client: " + ex.getMessage());
-            FLog.severe(ex);
-            jda = null;
+            currentSupervisor.reportFailure(String.format("connect failed: %s",
+                    DiscordConnectionSupervisor.describeFailure(thrown)));
+        }
+        finally
+        {
+            connecting.set(false);
+        }
+    }
+
+    /**
+     * The supervisor is attached here, before {@code build()} opens the gateway, so there is no
+     * point in the client's life at which a drop can go unseen: a connection that dies during the
+     * readiness wait, or in the moments between it and the session being published, still produces
+     * a shutdown event with the supervisor listening. Closes the bridge performs itself do not
+     * reach it, because the acquisition layer detaches listeners before closing anything.
+     */
+    private JDA buildClient(final DiscordConnectionSupervisor currentSupervisor)
+    {
+        return JDABuilder.createDefault(ConfigEntry.DISCORD_TOKEN.getString())
+                .enableIntents(GatewayIntent.GUILD_MESSAGES,
+                        GatewayIntent.MESSAGE_CONTENT,
+                        GatewayIntent.DIRECT_MESSAGES)
+                .disableCache(CacheFlag.VOICE_STATE, CacheFlag.EMOJI, CacheFlag.STICKER,
+                        CacheFlag.SCHEDULED_EVENTS, CacheFlag.ACTIVITY,
+                        CacheFlag.CLIENT_STATUS, CacheFlag.ONLINE_STATUS)
+                .setMemberCachePolicy(MemberCachePolicy.NONE)
+                .addEventListeners(new ReadyListener(), currentSupervisor)
+                .build();
+    }
+
+    /**
+     * Attach the relays to a freshly opened connection and make it visible to the rest of the
+     * plugin. Ordering matters: the session is published before the console appender starts, so
+     * the first flush already has somewhere to send.
+     */
+    private void publishSession(final DiscordSession opened, final DiscordConnectionSupervisor currentSupervisor)
+    {
+        if (!started)
+        {
+            acquisition.release();
             return;
         }
-
-        guild = jda.getGuildById(guildId);
-        if (guild == null)
-        {
-            FLog.warning("[Discord] Bot is not a member of guild " + guildId + "; bridge will not start.");
-            shutdownJdaQuietly();
-            return;
-        }
-
-        publicChannel = resolveChannel(ConfigEntry.DISCORD_PUBLIC_CHANNEL_ID.getString(), "public_channel_id");
-        adminchatChannel = resolveChannel(ConfigEntry.DISCORD_ADMINCHAT_CHANNEL_ID.getString(), "adminchat_channel_id");
-        consoleChannel = resolveChannel(ConfigEntry.DISCORD_CONSOLE_CHANNEL_ID.getString(), "console_channel_id");
 
         commands = new DiscordCommands(plugin, this);
         chatRelay = new DiscordChatRelay(plugin, this);
         adminchatRelay = new DiscordAdminchatRelay(plugin, this);
         consoleRelay = new DiscordConsoleRelay(plugin, this);
 
-        jda.addEventListener(commands, chatRelay, adminchatRelay, consoleRelay);
+        session = opened;
+        // Only the relays here; the supervisor has been attached since buildClient().
+        opened.jda().addEventListener(commands, chatRelay, adminchatRelay, consoleRelay);
 
-        guild.updateCommands().addCommands(
+        opened.guild().updateCommands().addCommands(
                 Commands.slash("list", "Show a list of players on the server."),
                 Commands.slash("link", "Link your Minecraft account by entering a code from the in-game /link command.")
                         .addOption(OptionType.STRING, "code", "The 8-character code shown in-game.", true),
                 Commands.slash("unlink", "Unlink your Minecraft account from your current Discord account.")
         ).queue(
-                ok -> FLog.info("[Discord] Registered slash commands on guild " + guild.getName() + "."),
-                err -> FLog.warning("[Discord] Failed to register slash commands: " + err.getMessage())
+                ok -> FLog.info(String.format("[Discord] Registered slash commands on guild %s.", opened.guild().getName())),
+                err -> FLog.warning(String.format("[Discord] Failed to register slash commands: %s", err.getMessage()))
         );
 
         consoleRelay.attachAppender();
+        currentSupervisor.reportConnected();
 
-        // Periodic cleanup of expired pending link codes.
-        plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin,
-                FTask.guard("DiscordBridge/cleanupPendingLinks", this::cleanupPendingLinks),
-                20L * 60L, 20L * 60L);
+        FLog.info(String.format("[Discord] Bridge ready. Guild: %s | %s",
+                opened.guild().getName(), opened.describeChannels()));
 
-        plugin.getServer().getScheduler().runTask(plugin, () ->
-        {
-            if (chatRelay != null && publicChannel != null)
-            {
-                ConfigEntry entry = wasReloading
-                        ? ConfigEntry.DISCORD_PLUGIN_RELOAD_MESSAGE
-                        : ConfigEntry.DISCORD_SERVER_STARTUP_MESSAGE;
-                chatRelay.sendSystemMessageToDiscord(getConfiguredMessage(entry));
-            }
-        });
+        final ConfigEntry greeting = startedWhileReloading
+                ? ConfigEntry.DISCORD_PLUGIN_RELOAD_MESSAGE
+                : ConfigEntry.DISCORD_SERVER_STARTUP_MESSAGE;
+        startedWhileReloading = false;
 
-        FLog.info("[Discord] Bridge ready. Guild: " + guild.getName()
-                + " | public: " + (publicChannel == null ? "(none)" : publicChannel.getName())
-                + " | adminchat: " + (adminchatChannel == null ? "(none)" : adminchatChannel.getName())
-                + " | console: " + (consoleChannel == null ? "(none)" : consoleChannel.getName()));
+        if (opened.publicChannel().isPresent())
+            chatRelay.sendSystemMessageToDiscord(getConfiguredMessage(greeting));
     }
 
-    @Override
-    protected void onStop()
+    /**
+     * Take the live connection down and detach everything hanging off it. Safe to call when
+     * nothing is connected, and safe to call repeatedly.
+     * <p>
+     * Blocks for as long as the acquisition layer takes to close the client, so callers reaching
+     * here from a gateway event have to hop off that thread first.
+     */
+    private void teardownConnection()
     {
+        session = null;
+
         if (consoleRelay != null)
         {
             consoleRelay.detachAppender();
+            consoleRelay = null;
         }
-
-        if (chatRelay != null && publicChannel != null && !reloading)
-        {
-            chatRelay.sendSystemMessageToDiscordNow(getConfiguredMessage(ConfigEntry.DISCORD_SERVER_SHUTDOWN_MESSAGE),
-                    5L, TimeUnit.SECONDS);
-        }
-
-        shutdownJdaQuietly();
 
         chatRelay = null;
         adminchatRelay = null;
-        consoleRelay = null;
         commands = null;
-        publicChannel = null;
-        adminchatChannel = null;
-        consoleChannel = null;
-        guild = null;
 
-        pendingLinks.clear();
+        acquisition.release();
     }
+
+    // ============================================
+    // Relay entry points
+    // ============================================
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onAsyncChat(AsyncChatEvent event)
     {
-        if (chatRelay == null || publicChannel == null)
-        {
+        final DiscordChatRelay relay = chatRelay;
+        if (relay == null || currentPublicChannel().isEmpty())
             return;
-        }
-        Player player = event.getPlayer();
+
+        final Player player = event.getPlayer();
         Component rendered;
         try
         {
@@ -204,64 +321,45 @@ public class DiscordBridge extends FreedomService
         }
         catch (Exception ex)
         {
-            FLog.warning("[Discord] Chat renderer threw, falling back to plain: " + ex.getMessage());
+            FLog.warning(String.format("[Discord] Chat renderer threw, falling back to plain: %s", ex.getMessage()));
             rendered = Component.text(player.getName() + ": ").append(event.message());
         }
-        chatRelay.sendMessageToDiscord(rendered);
+        relay.sendMessageToDiscord(rendered);
     }
 
     public void sendBroadcastMessage(String senderName, String message, ConfigEntry configEntry)
     {
-        if (chatRelay == null || publicChannel == null)
-        {
-            return;
-        }
-
-        String template = getConfiguredMessage(configEntry);
+        final String template = getConfiguredMessage(configEntry);
         if (template == null)
-        {
             return;
-        }
 
-        String msg = template.replace("{sender}", senderName)
-                .replace("{message}", message);
-
-        chatRelay.sendSystemMessageToDiscord(msg);
+        sendToPublicRelay(template.replace("{sender}", senderName).replace("{message}", message));
     }
 
     public void sendActionMessage(String senderName, String playerName, String reason, ConfigEntry configEntry)
     {
-        if (chatRelay == null || publicChannel == null)
-        {
-            return;
-        }
-
-        String template = getConfiguredMessage(configEntry);
+        final String template = getConfiguredMessage(configEntry);
         if (template == null)
-        {
             return;
-        }
 
-        String message = template.replace("{sender}", senderName == null ? "CONSOLE" : senderName)
+        sendToPublicRelay(template.replace("{sender}", senderName == null ? "CONSOLE" : senderName)
                 .replace("{player}", playerName == null ? "null" : playerName)
-                .replace("{reason}", reason == null || reason.isBlank() ? "No reason provided." : reason);
-
-        chatRelay.sendSystemMessageToDiscord(message);
+                .replace("{reason}", reason == null || reason.isBlank() ? "No reason provided." : reason));
     }
 
     public void relayAdminchatMessage(CommandSender sender, Component tag, Component message)
     {
-        if (adminchatRelay == null || adminchatChannel == null)
-        {
+        final DiscordAdminchatRelay relay = adminchatRelay;
+        if (relay == null || currentAdminchatChannel().isEmpty())
             return;
-        }
-        Component rendered = sender instanceof Player
+
+        final Component rendered = sender instanceof Player
                 ? tag.append(Component.text(" " + sender.getName() + ": ")).append(message)
                 : Component.text(sender.getName() + " ")
                 .append(tag)
                 .append(Component.text(": "))
                 .append(message);
-        adminchatRelay.sendMessageToDiscord(rendered);
+        relay.sendMessageToDiscord(rendered);
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -276,115 +374,74 @@ public class DiscordBridge extends FreedomService
         sendPlayerStatusMessage(event.getPlayer().getName(), ConfigEntry.DISCORD_PLAYER_LEAVE_MESSAGE);
     }
 
-    private void sendPlayerStatusMessage(String playerName, ConfigEntry configEntry)
-    {
-        if (chatRelay == null || publicChannel == null)
-        {
-            return;
-        }
-
-        String template = getConfiguredMessage(configEntry);
-        if (template == null)
-        {
-            return;
-        }
-
-        chatRelay.sendSystemMessageToDiscord(template.replace("{player}", playerName));
-    }
-
     public void relayLoginMessage(Component message)
     {
         if (message == null)
-        {
             return;
-        }
-        if (chatRelay == null || publicChannel == null)
-        {
-            return;
-        }
-        String rendered = DiscordMarkdown.render(message);
+
+        final String rendered = DiscordMarkdown.render(message);
         if (rendered.isBlank())
-        {
             return;
-        }
-        chatRelay.sendSystemMessageToDiscord(rendered);
+
+        sendToPublicRelay(rendered);
     }
 
-    private String getConfiguredMessage(ConfigEntry configEntry)
+    // ============================================
+    // Connection accessors
+    // ============================================
+
+    /**
+     * The live connection, absent while disconnected.
+     */
+    public Optional<DiscordSession> getSession()
     {
-        String message = configEntry.getString();
-        return message == null || message.isBlank() ? null : message;
+        return Optional.ofNullable(session);
     }
 
-    private TextChannel resolveChannel(String id, String configKey)
+    public Optional<TextChannel> currentPublicChannel()
     {
-        if (id == null || id.isBlank())
-        {
-            return null;
-        }
-        TextChannel channel = guild.getTextChannelById(id);
-        if (channel == null)
-        {
-            FLog.warning("[Discord] " + configKey + " '" + id + "' is not a text channel in " + guild.getName() + ".");
-        }
-        return channel;
+        return getSession().flatMap(DiscordSession::publicChannel);
     }
 
-    private void shutdownJdaQuietly()
+    public Optional<TextChannel> currentAdminchatChannel()
     {
-        if (jda == null)
-        {
+        return getSession().flatMap(DiscordSession::adminchatChannel);
+    }
+
+    public Optional<TextChannel> currentConsoleChannel()
+    {
+        return getSession().flatMap(DiscordSession::consoleChannel);
+    }
+
+    /**
+     * Report a send failure that means the client underneath us is gone, so the supervisor can
+     * spend a reconnect attempt on it rather than waiting for a gateway event that will not come.
+     */
+    public void reportTransportFailure(final String context, final Throwable thrown)
+    {
+        final DiscordConnectionSupervisor currentSupervisor = supervisor;
+        if (currentSupervisor == null)
             return;
-        }
-        try
-        {
-            jda.shutdown();
-            if (!jda.awaitShutdown(java.time.Duration.ofSeconds(10)))
-            {
-                jda.shutdownNow();
-            }
-        }
-        catch (Exception ex)
-        {
-            FLog.warning("[Discord] Error during JDA shutdown: " + ex.getMessage());
-        }
-        finally
-        {
-            jda = null;
-        }
-    }
 
-    public JDA getJda()
-    {
-        return jda;
-    }
-
-    public TextChannel getPublicChannel()
-    {
-        return publicChannel;
-    }
-
-    public TextChannel getAdminchatChannel()
-    {
-        return adminchatChannel;
-    }
-
-    public TextChannel getConsoleChannel()
-    {
-        return consoleChannel;
+        currentSupervisor.reportFailure(String.format("%s: %s", context,
+                DiscordConnectionSupervisor.describeFailure(thrown)));
     }
 
     public boolean isReady()
     {
-        return jda != null && guild != null;
+        return session != null;
     }
+
+    // ============================================
+    // Account linking
+    // ============================================
 
     /**
      * Register a pending link code. Returns the generated code.
      */
     public String createPendingLink(UUID adminUuid)
     {
-        long expiryMs = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(linkCodeTtlSeconds);
+        final long expiryMs = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(linkCodeTtlSeconds);
         String code;
         do
         {
@@ -395,25 +452,19 @@ public class DiscordBridge extends FreedomService
     }
 
     /**
-     * Consume {@code code}: returns the admin UUID it was registered for and
-     * removes the entry. Returns null if the code is unknown or expired.
+     * Consume {@code code}: returns the admin UUID it was registered for and removes the entry.
+     * Returns empty if the code is unknown or expired.
      */
-    public UUID consumePendingLink(String code)
+    public Optional<UUID> consumePendingLink(String code)
     {
         if (code == null)
-        {
-            return null;
-        }
-        PendingLink link = pendingLinks.remove(code.toUpperCase());
-        if (link == null)
-        {
-            return null;
-        }
-        if (link.expiresAtMs() < System.currentTimeMillis())
-        {
-            return null;
-        }
-        return link.adminUuid();
+            return Optional.empty();
+
+        final PendingLink link = pendingLinks.remove(code.toUpperCase());
+        if (link == null || link.expiresAtMs() < System.currentTimeMillis())
+            return Optional.empty();
+
+        return Optional.of(link.adminUuid());
     }
 
     public int getLinkCodeTtlSeconds()
@@ -421,22 +472,81 @@ public class DiscordBridge extends FreedomService
         return linkCodeTtlSeconds;
     }
 
+    // ============================================
+    // Helpers
+    // ============================================
+
+    private void sendPlayerStatusMessage(String playerName, ConfigEntry configEntry)
+    {
+        final String template = getConfiguredMessage(configEntry);
+        if (template == null)
+            return;
+
+        sendToPublicRelay(template.replace("{player}", playerName));
+    }
+
+    private void sendToPublicRelay(final String message)
+    {
+        final DiscordChatRelay relay = chatRelay;
+        if (relay == null || message == null || currentPublicChannel().isEmpty())
+            return;
+
+        relay.sendSystemMessageToDiscord(message);
+    }
+
+    private String getConfiguredMessage(ConfigEntry configEntry)
+    {
+        final String message = configEntry.getString();
+        return isBlank(message) ? null : message;
+    }
+
+    private Optional<TextChannel> resolveChannel(final Guild guild, final String id, final String configKey)
+    {
+        if (isBlank(id))
+            return Optional.empty();
+
+        final TextChannel channel = guild.getTextChannelById(id);
+        if (channel == null)
+        {
+            FLog.warning(String.format("[Discord] %s '%s' is not a text channel in %s.",
+                    configKey, id, guild.getName()));
+        }
+        return Optional.ofNullable(channel);
+    }
+
+    private void runAsync(final String label, final Runnable body)
+    {
+        if (!plugin.isEnabled())
+            return;
+
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, FTask.guard(label, body));
+    }
+
     private void cleanupPendingLinks()
     {
-        long now = System.currentTimeMillis();
-        pendingLinks.entrySet().removeIf(e -> e.getValue().expiresAtMs() < now);
+        final long now = System.currentTimeMillis();
+        pendingLinks.entrySet().removeIf(entry -> entry.getValue().expiresAtMs() < now);
+    }
+
+    private static void cancel(final BukkitTask task)
+    {
+        if (task != null)
+            task.cancel();
+    }
+
+    private static boolean isBlank(final String value)
+    {
+        return value == null || value.isBlank();
     }
 
     private static String generateCode()
     {
-        final String alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-        java.util.Random r = new java.util.Random();
-        StringBuilder sb = new StringBuilder(8);
-        for (int i = 0; i < 8; i++)
+        final StringBuilder builder = new StringBuilder(CODE_LENGTH);
+        for (int i = 0; i < CODE_LENGTH; i++)
         {
-            sb.append(alphabet.charAt(r.nextInt(alphabet.length())));
+            builder.append(CODE_ALPHABET.charAt(CODE_RANDOM.nextInt(CODE_ALPHABET.length())));
         }
-        return sb.toString();
+        return builder.toString();
     }
 
     private record PendingLink(UUID adminUuid, long expiresAtMs)
@@ -445,19 +555,11 @@ public class DiscordBridge extends FreedomService
 
     private static final class ReadyListener extends ListenerAdapter
     {
-        private final String guildId;
-
-        ReadyListener(String guildId)
-        {
-            this.guildId = guildId;
-        }
-
         @Override
         public void onReady(@NotNull ReadyEvent event)
         {
-            FLog.info("[Discord] JDA gateway ready. Bot: "
-                    + event.getJDA().getSelfUser().getName()
-                    + " | configured guild id: " + guildId);
+            FLog.info(String.format("[Discord] JDA gateway ready. Bot: %s",
+                    event.getJDA().getSelfUser().getName()));
         }
     }
 }

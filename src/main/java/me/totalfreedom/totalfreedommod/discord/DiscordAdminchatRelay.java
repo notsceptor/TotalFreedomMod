@@ -13,7 +13,7 @@ public class DiscordAdminchatRelay extends AbstractDiscordChatRelay
 {
     public DiscordAdminchatRelay(TotalFreedomMod plugin, DiscordBridge bridge)
     {
-        super(bridge.getAdminchatChannel(),
+        super(bridge::currentAdminchatChannel,
             ConfigEntry.DISCORD_ADMINCHAT_CHANNEL_FORMAT.getString(),
             ConfigEntry.DISCORD_ADMINCHAT_FORMAT.getString(),
             component -> {

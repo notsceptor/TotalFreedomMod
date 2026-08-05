@@ -662,8 +662,21 @@ discord:
   # Console-channel log flush interval, in milliseconds (ms).
   console_flush: 1500
 
+  # Maximum console lines held while waiting to be flushed. Past this the oldest are dropped and
+  # the next message says how many were lost, so a log burst cannot grow the queue without bound.
+  console_queue_limit: 2000
+
   # How long an in-game /link code remains valid before expiring, in seconds.
   link_code_ttl: 300
+
+  # Recovery after the gateway drops.
+  reconnect:
+    # Seconds between reconnect attempts.
+    interval_seconds: 30
+
+    # Consecutive failed attempts before the bridge gives up and stays down until the server is
+    # restarted. Reset by any successful connection.
+    max_attempts: 5
 
   # Messages posted to the public relay for server and player events.
   messages:
