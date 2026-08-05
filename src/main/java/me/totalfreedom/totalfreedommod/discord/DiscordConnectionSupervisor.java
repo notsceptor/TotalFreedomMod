@@ -35,28 +35,40 @@ public final class DiscordConnectionSupervisor extends ListenerAdapter
 
     private final TotalFreedomMod plugin;
     private final Runnable attemptConnect;
-    private final Runnable onGiveUp;
+    private final Runnable onConnectionLost;
     private final int maxAttempts;
     private final long retryTicks;
     private final int retrySeconds;
 
     private final AtomicInteger consecutiveFailures = new AtomicInteger();
     private final AtomicBoolean retryPending = new AtomicBoolean();
+
+    /**
+     * Whether the connection the bridge currently holds has already had a failure counted against
+     * it. One disconnect can be noticed by more than one party at once, and without this it would
+     * cost an attempt per witness rather than per disconnect. Cleared as the next attempt begins,
+     * which is what makes the budget count attempts rather than reports.
+     */
+    private final AtomicBoolean failureCounted = new AtomicBoolean();
+
     private final AtomicBoolean givenUp = new AtomicBoolean();
     private final AtomicBoolean stopping = new AtomicBoolean();
 
     /**
-     * @param attemptConnect performs exactly one connection attempt; runs off the main thread and
-     *                       is expected to call back into {@link #reportConnected()} or
-     *                       {@link #reportFailure(String, Throwable)}
-     * @param onGiveUp       tears the bridge down for good once the budget is spent
+     * @param attemptConnect   performs exactly one connection attempt; runs off the main thread
+     *                         and is expected to call back into {@link #reportConnected()} or
+     *                         {@link #reportFailure(String)}
+     * @param onConnectionLost releases whatever the previous attempt published or opened. Called
+     *                         on every reported failure, not just the terminal one, so a retry
+     *                         never runs against a stale session. Always invoked off the
+     *                         reporting thread, so it is safe to block here.
      */
     public DiscordConnectionSupervisor(final TotalFreedomMod plugin, final Runnable attemptConnect,
-            final Runnable onGiveUp)
+            final Runnable onConnectionLost)
     {
         this.plugin = plugin;
         this.attemptConnect = attemptConnect;
-        this.onGiveUp = onGiveUp;
+        this.onConnectionLost = onConnectionLost;
         this.maxAttempts = Math.max(1, ConfigEntry.DISCORD_RECONNECT_MAX_ATTEMPTS.getInteger(5));
         this.retrySeconds = Math.max(MIN_INTERVAL_SECONDS,
                 ConfigEntry.DISCORD_RECONNECT_INTERVAL_SECONDS.getInteger(30));
@@ -96,14 +108,24 @@ public final class DiscordConnectionSupervisor extends ListenerAdapter
     {
         final int spent = consecutiveFailures.getAndSet(0);
         retryPending.set(false);
+        failureCounted.set(false);
 
         if (spent > 0)
             FLog.info(String.format("[Discord] Reconnected after %d failed attempt(s).", spent));
     }
 
     /**
-     * An attempt failed, or a live connection dropped. Queues the next attempt, or gives up if
-     * this failure spent the last of the budget.
+     * An attempt failed, or a live connection dropped. Always hops onto an async task first: this
+     * can be called from one of JDA's own threads (via {@link #onShutdown}) or the main thread
+     * (via a relay's rejected-send report), and {@code onConnectionLost} can block for several
+     * seconds releasing the old connection. Once on that task, releases the old connection, then
+     * either queues the next attempt or gives up if this failure spent the last of the budget.
+     * <p>
+     * Only the first report against a given connection is acted on, so a single disconnect costs a
+     * single attempt however many parties noticed it. The cases that overlap in practice are a
+     * gateway close arriving while a relay send is already in flight against the same dead client,
+     * and a connection that dies during the readiness wait, where the shutdown event and the throw
+     * out of the connect attempt describe the same event.
      *
      * @param reason already-formatted description, see {@link #describeFailure(Throwable)}
      */
@@ -112,16 +134,33 @@ public final class DiscordConnectionSupervisor extends ListenerAdapter
         if (stopping.get() || givenUp.get())
             return;
 
-        final int attempt = consecutiveFailures.incrementAndGet();
-        if (attempt >= maxAttempts)
-        {
-            giveUp(reason, attempt);
+        if (!plugin.isEnabled())
             return;
-        }
 
-        FLog.warning(String.format("[Discord] Connection failure %d/%d (%s); retrying in %ds.",
-                attempt, maxAttempts, reason, retrySeconds));
-        scheduleRetry();
+        if (!failureCounted.compareAndSet(false, true))
+            return;
+
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, FTask.guard("DiscordConnectionSupervisor/reportFailure", () ->
+        {
+            if (stopping.get() || givenUp.get())
+                return;
+
+            // Whatever connect() published, or was mid-publishing, is no longer usable. Release it
+            // before deciding retry vs. give-up, so neither path ever runs, or leaves the bridge
+            // parked, against a stale session or a still-HELD acquisition slot.
+            onConnectionLost.run();
+
+            final int attempt = consecutiveFailures.incrementAndGet();
+            if (attempt >= maxAttempts)
+            {
+                giveUp(reason, attempt);
+                return;
+            }
+
+            FLog.warning(String.format("[Discord] Connection failure %d/%d (%s); retrying in %ds.",
+                    attempt, maxAttempts, reason, retrySeconds));
+            scheduleRetry();
+        }));
     }
 
     /**
@@ -142,8 +181,10 @@ public final class DiscordConnectionSupervisor extends ListenerAdapter
     }
 
     /**
-     * Fires when JDA has fully stopped. Anything reaching here that we did not ask for is a
-     * connection we lost, including the close codes JDA declines to reconnect from.
+     * Fires when JDA has fully stopped. This listener is attached from the moment the client is
+     * built and detached by the acquisition layer before any close the bridge asks for, so anything
+     * reaching here is a connection we lost rather than one we closed, including the close codes
+     * JDA declines to reconnect from.
      */
     @Override
     public void onShutdown(@NotNull final ShutdownEvent event)
@@ -159,8 +200,8 @@ public final class DiscordConnectionSupervisor extends ListenerAdapter
 
     private void scheduleRetry()
     {
-        // One attempt in flight at a time: a drop can be reported by the gateway thread and by a
-        // failing send at the same moment, and both would otherwise queue their own retry.
+        // One attempt in flight at a time. reportFailure() already collapses simultaneous reports
+        // of the same drop, so this is a backstop for any other route into a retry.
         if (!retryPending.compareAndSet(false, true))
             return;
 
@@ -177,6 +218,10 @@ public final class DiscordConnectionSupervisor extends ListenerAdapter
             if (stopping.get() || givenUp.get())
                 return;
 
+            // The connection this failure was counted against is gone, and the attempt below gets
+            // to spend one of its own. Cleared before the attempt runs, not after, because that
+            // attempt can fail synchronously.
+            failureCounted.set(false);
             attemptConnect.run();
         }), retryTicks);
     }
@@ -189,6 +234,6 @@ public final class DiscordConnectionSupervisor extends ListenerAdapter
         FLog.severe(String.format("[Discord] Giving up after %d consecutive failed connection attempts %ds apart. "
                 + "Last failure: %s. The bridge stays down until the server is restarted; the rest of the plugin is "
                 + "unaffected.", attempt, retrySeconds, reason));
-        onGiveUp.run();
+        // onConnectionLost already ran at the top of reportFailure(); nothing left to release.
     }
 }

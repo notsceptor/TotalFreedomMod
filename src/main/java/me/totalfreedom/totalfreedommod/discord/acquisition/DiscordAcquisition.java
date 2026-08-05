@@ -1,6 +1,7 @@
 package me.totalfreedom.totalfreedommod.discord.acquisition;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -29,7 +30,9 @@ import net.dv8tion.jda.api.JDA;
  *   <li>the client reference is captured the instant {@code build()} returns, before anything that
  *       can throw, so a failed acquisition always has something to shut down;</li>
  *   <li>a failed acquisition shuts that client down and returns to idle, leaking nothing;</li>
- *   <li>{@link #release} shuts the held client down exactly once, whoever calls it.</li>
+ *   <li>{@link #release} shuts the held client down exactly once, whoever calls it;</li>
+ *   <li>every close performed here detaches the client's listeners first, so a close this layer
+ *       performed is never mistaken for a connection that dropped on its own.</li>
  * </ul>
  */
 public final class DiscordAcquisition
@@ -145,6 +148,8 @@ public final class DiscordAcquisition
         if (held == null)
             return;
 
+        detachListeners(held);
+
         try
         {
             held.shutdown();
@@ -162,6 +167,34 @@ public final class DiscordAcquisition
         catch (Exception ex)
         {
             FLog.warning(String.format("[Discord] Error while closing the gateway: %s", ex.getMessage()));
+        }
+    }
+
+    /**
+     * Drop everything listening on {@code client} before it is closed, so the shutdown event that
+     * follows reaches nobody.
+     * <p>
+     * Every close this class performs is deliberate: a caller releasing the connection, or cleanup
+     * after an attempt that failed. The supervisor treats a shutdown it observes as a connection
+     * that dropped on its own and spends a reconnect attempt on it, and none of these are that.
+     * Detaching here rather than at each call site is what lets the supervisor stay attached from
+     * the moment the client is built, with no window where a genuine drop goes unseen.
+     * <p>
+     * Failing to detach only costs a duplicate failure report, so it must not stop the shutdown
+     * below from running.
+     */
+    private static void detachListeners(final JDA client)
+    {
+        try
+        {
+            final List<Object> listeners = client.getRegisteredListeners();
+            if (!listeners.isEmpty())
+                client.removeEventListener(listeners.toArray());
+        }
+        catch (Exception ex)
+        {
+            FLog.warning(String.format("[Discord] Could not detach listeners before closing the gateway: %s",
+                    ex.getMessage()));
         }
     }
 }

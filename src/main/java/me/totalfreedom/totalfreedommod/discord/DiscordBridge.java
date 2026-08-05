@@ -163,8 +163,9 @@ public class DiscordBridge extends FreedomService
      * One connect attempt: open the gateway through the acquisition layer, resolve the guild and
      * channels, and publish the session. Runs off the main thread.
      * <p>
-     * Cleanup of a half-opened client is the acquisition layer's job, so the failure path here
-     * only has to report the attempt.
+     * Cleanup of a half-opened client is the acquisition layer's job, and the supervisor releases
+     * whatever a failed attempt left behind before it retries, so the failure path here only has
+     * to report the attempt.
      */
     private void connect()
     {
@@ -209,6 +210,13 @@ public class DiscordBridge extends FreedomService
         }
     }
 
+    /**
+     * The supervisor is attached here, before {@code build()} opens the gateway, so there is no
+     * point in the client's life at which a drop can go unseen: a connection that dies during the
+     * readiness wait, or in the moments between it and the session being published, still produces
+     * a shutdown event with the supervisor listening. Closes the bridge performs itself do not
+     * reach it, because the acquisition layer detaches listeners before closing anything.
+     */
     private JDA buildClient(final DiscordConnectionSupervisor currentSupervisor)
     {
         return JDABuilder.createDefault(ConfigEntry.DISCORD_TOKEN.getString())
@@ -242,6 +250,7 @@ public class DiscordBridge extends FreedomService
         consoleRelay = new DiscordConsoleRelay(plugin, this);
 
         session = opened;
+        // Only the relays here; the supervisor has been attached since buildClient().
         opened.jda().addEventListener(commands, chatRelay, adminchatRelay, consoleRelay);
 
         opened.guild().updateCommands().addCommands(
@@ -271,7 +280,10 @@ public class DiscordBridge extends FreedomService
 
     /**
      * Take the live connection down and detach everything hanging off it. Safe to call when
-     * nothing is connected.
+     * nothing is connected, and safe to call repeatedly.
+     * <p>
+     * Blocks for as long as the acquisition layer takes to close the client, so callers reaching
+     * here from a gateway event have to hop off that thread first.
      */
     private void teardownConnection()
     {
