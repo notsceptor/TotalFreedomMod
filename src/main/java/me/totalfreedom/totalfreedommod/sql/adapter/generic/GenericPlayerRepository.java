@@ -1,6 +1,6 @@
 package me.totalfreedom.totalfreedommod.sql.adapter.generic;
 
-import me.totalfreedom.totalfreedommod.player.CommandSpyMode;
+import me.totalfreedom.totalfreedommod.player.SpyMode;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.sql.StatementHandler;
 import me.totalfreedom.totalfreedommod.sql.adapter.DatabaseAdapter;
@@ -28,9 +28,10 @@ public class GenericPlayerRepository implements PlayerRepository
     private final String colUsername;
     private final String colFirstJoin;
     private final String colLastJoin;
-    private final String colPotionSpy;
-    private final String colSignSpy;
+    private final String colPotionSpyMode;
     private final String colCommandSpyMode;
+    private final String colSignSpyMode;
+    private final String colBookSpyMode;
     private final String colMuted;
     private final String colFrozen;
     private final String colCommandsBlocked;
@@ -54,9 +55,10 @@ public class GenericPlayerRepository implements PlayerRepository
         this.colUsername = adapter.quoteIdentifier("username");
         this.colFirstJoin = adapter.quoteIdentifier("first_join_unix");
         this.colLastJoin = adapter.quoteIdentifier("last_join_unix");
-        this.colPotionSpy = adapter.quoteIdentifier("potion_spy");
-        this.colSignSpy = adapter.quoteIdentifier("sign_spy");
+        this.colPotionSpyMode = adapter.quoteIdentifier("potion_spy_mode");
         this.colCommandSpyMode = adapter.quoteIdentifier("command_spy_mode");
+        this.colSignSpyMode = adapter.quoteIdentifier("sign_spy_mode");
+        this.colBookSpyMode = adapter.quoteIdentifier("book_spy_mode");
         this.colMuted = adapter.quoteIdentifier("muted");
         this.colFrozen = adapter.quoteIdentifier("frozen");
         this.colCommandsBlocked = adapter.quoteIdentifier("commands_blocked");
@@ -68,25 +70,26 @@ public class GenericPlayerRepository implements PlayerRepository
         this.colPlayerUsername = adapter.quoteIdentifier("username");
         this.colIp = adapter.quoteIdentifier("ip");
         this.colUpdatedAt = adapter.quoteIdentifier("updated_at");
-        this.selectColumns = String.format("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s",
-                colUsername, colFirstJoin, colLastJoin, colPotionSpy, colSignSpy, colCommandSpyMode, colMuted,
-                colFrozen, colCommandsBlocked, colStrikes, colSavedTag, colTitles)
+        this.selectColumns = String.format("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s",
+                colUsername, colFirstJoin, colLastJoin, colPotionSpyMode, colCommandSpyMode, colSignSpyMode,
+                colBookSpyMode, colMuted, colFrozen, colCommandsBlocked, colStrikes, colSavedTag, colTitles)
                 + ", " + colNickname;
     }
 
     @Override
     public void insert(PlayerData data) throws SQLException
     {
-        String sql = String.format("INSERT INTO %s (%s, %s) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, %s)",
+        String sql = String.format("INSERT INTO %s (%s, %s) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, %s)",
                 tblPlayers, selectColumns, colUpdatedAt, adapter.currentTimestamp());
 
         statementHandler.executeUpdate(sql,
                 data.getUsername(),
                 data.getFirstJoinUnix(),
                 data.getLastJoinUnix(),
-                data.isPotionSpy(),
-                data.isSignSpy(),
+                data.getPotionSpyMode().getName(),
                 data.getCommandSpyMode().getName(),
+                data.getSignSpyMode().getName(),
+                data.getBookSpyMode().getName(),
                 data.isMuted(),
                 data.isFrozen(),
                 data.isCommandsBlocked(),
@@ -151,20 +154,26 @@ public class GenericPlayerRepository implements PlayerRepository
     }
 
     @Override
-    public PlayerData findByUsername(String username) throws SQLException
+    public Optional<PlayerData> findByUsername(String username) throws SQLException
     {
+        PlayerData data = null;
         String sql = String.format("SELECT %s FROM %s WHERE %s = ?", selectColumns, tblPlayers, colUsername);
         try (PreparedStatement stmt = statementHandler.prepareStatement(sql, username);
              ResultSet rs = stmt.executeQuery())
         {
             if (rs.next())
             {
-                PlayerData data = loadPlayerFromRow(rs);
-                getIps(data.getUsername()).forEach(data::addIp);
-                return data;
+                data = loadPlayerFromRow(rs);
             }
         }
-        return null;
+
+        if (data == null)
+        {
+            return Optional.empty();
+        }
+
+        getIps(data.getUsername()).forEach(data::addIp);
+        return Optional.of(data);
     }
 
     @Override
@@ -197,17 +206,18 @@ public class GenericPlayerRepository implements PlayerRepository
     @Override
     public boolean update(PlayerData data) throws SQLException
     {
-        String sql = String.format("UPDATE %s SET %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = %s WHERE %s = ?",
-                tblPlayers, colFirstJoin, colLastJoin, colPotionSpy, colSignSpy, colCommandSpyMode, colMuted,
-                colFrozen, colCommandsBlocked, colStrikes, colSavedTag, colTitles, colUpdatedAt,
-                adapter.currentTimestamp(), colUsername);
+        String sql = String.format("UPDATE %s SET %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = %s WHERE %s = ?",
+                tblPlayers, colFirstJoin, colLastJoin, colPotionSpyMode, colCommandSpyMode, colSignSpyMode,
+                colBookSpyMode, colMuted, colFrozen, colCommandsBlocked, colStrikes, colSavedTag, colTitles,
+                colUpdatedAt, adapter.currentTimestamp(), colUsername);
 
         int rows = statementHandler.executeUpdate(sql,
                 data.getFirstJoinUnix(),
                 data.getLastJoinUnix(),
-                data.isPotionSpy(),
-                data.isSignSpy(),
+                data.getPotionSpyMode().getName(),
                 data.getCommandSpyMode().getName(),
+                data.getSignSpyMode().getName(),
+                data.getBookSpyMode().getName(),
                 data.isMuted(),
                 data.isFrozen(),
                 data.isCommandsBlocked(),
@@ -303,9 +313,10 @@ public class GenericPlayerRepository implements PlayerRepository
         PlayerData data = new PlayerData(rs.getString("username"));
         data.setFirstJoinUnix(rs.getLong("first_join_unix"));
         data.setLastJoinUnix(rs.getLong("last_join_unix"));
-        data.setPotionSpy(rs.getBoolean("potion_spy"));
-        data.setSignSpy(rs.getBoolean("sign_spy"));
-        data.setCommandSpyMode(CommandSpyMode.fromString(rs.getString("command_spy_mode")));
+        data.setPotionSpyMode(SpyMode.fromStorage(rs.getString("potion_spy_mode")));
+        data.setCommandSpyMode(SpyMode.fromStorage(rs.getString("command_spy_mode")));
+        data.setSignSpyMode(SpyMode.fromStorage(rs.getString("sign_spy_mode")));
+        data.setBookSpyMode(SpyMode.fromStorage(rs.getString("book_spy_mode")));
         data.setMuted(rs.getBoolean("muted"));
         data.setFrozen(rs.getBoolean("frozen"));
         data.setCommandsBlocked(rs.getBoolean("commands_blocked"));

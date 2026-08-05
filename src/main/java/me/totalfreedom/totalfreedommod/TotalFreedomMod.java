@@ -107,6 +107,7 @@ public class TotalFreedomMod extends JavaPlugin
     public CommandSpy cs; // CommandSpy - Logs and monitors command usage
     public PotionSpy ps; // PotionSpy - Logs and monitors potion usage
     public SignSpy ss; // SignSpy - Logs and monitors sign edits
+    public BookSpy bs; // BookSpy - Logs and monitors book edits
     public Cager ca; // Cager - Creates cages around players
     public Freezer fm; // Freezer - Freezes players in place
     public Orbiter or; // Orbiter - Makes players orbit around a point
@@ -247,6 +248,7 @@ public class TotalFreedomMod extends JavaPlugin
         cs = services.registerService(CommandSpy.class);
         ps = services.registerService(PotionSpy.class);
         ss = services.registerService(SignSpy.class);
+        bs = services.registerService(BookSpy.class);
         ca = services.registerService(Cager.class);
         fm = services.registerService(Freezer.class);
         or = services.registerService(Orbiter.class);

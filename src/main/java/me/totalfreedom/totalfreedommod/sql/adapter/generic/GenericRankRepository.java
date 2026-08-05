@@ -142,18 +142,24 @@ public class GenericRankRepository implements RankRepository
     @Override
     public CustomRank findById(String id) throws SQLException
     {
+        CustomRank rank = null;
         String sql = String.format("SELECT %s FROM %s WHERE %s = ?", selectColumns, tblRanks, colId);
         try (PreparedStatement stmt = statementHandler.prepareStatement(sql, id);
              ResultSet rs = stmt.executeQuery())
         {
             if (rs.next())
             {
-                CustomRank rank = loadRankFromRow(rs);
-                getPermissions(rank.getId()).forEach(rank::addPermission);
-                return rank;
+                rank = loadRankFromRow(rs);
             }
         }
-        return null;
+
+        if (rank == null)
+        {
+            return null;
+        }
+
+        getPermissions(rank.getId()).forEach(rank::addPermission);
+        return rank;
     }
 
     @Override

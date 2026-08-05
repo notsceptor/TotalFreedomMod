@@ -84,7 +84,7 @@ public class FPlayer
     @Getter
     @Setter
     private boolean superadminIdVerified = false;
-    private CommandSpyMode commandSpyMode = CommandSpyMode.OFF;
+    private SpyMode commandSpyMode = SpyMode.OFF;
     private boolean joinLeaveMessagesEnabled = true;
     private Component tag = null;
     private String tagInternal = null;
@@ -436,22 +436,22 @@ public class FPlayer
 
     public void setCommandSpy(boolean enabled)
     {
-        this.commandSpyMode = enabled ? CommandSpyMode.ALL : CommandSpyMode.OFF;
+        this.commandSpyMode = enabled ? SpyMode.ALL : SpyMode.OFF;
     }
 
     public boolean cmdspyEnabled()
     {
-        return commandSpyMode != CommandSpyMode.OFF;
+        return commandSpyMode != SpyMode.OFF;
     }
 
-    public CommandSpyMode getCommandSpyMode()
+    public SpyMode getCommandSpyMode()
     {
         return commandSpyMode;
     }
 
-    public void setCommandSpyMode(CommandSpyMode commandSpyMode)
+    public void setCommandSpyMode(SpyMode commandSpyMode)
     {
-        this.commandSpyMode = commandSpyMode == null ? CommandSpyMode.OFF : commandSpyMode;
+        this.commandSpyMode = commandSpyMode == null ? SpyMode.OFF : commandSpyMode;
     }
 
     public boolean joinLeaveMessagesEnabled()

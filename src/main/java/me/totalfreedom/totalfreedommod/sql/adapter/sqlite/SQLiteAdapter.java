@@ -441,9 +441,10 @@ public class SQLiteAdapter extends DatabaseAdapter
                 username TEXT PRIMARY KEY,
                 first_join_unix INTEGER NOT NULL DEFAULT 0,
                 last_join_unix INTEGER NOT NULL DEFAULT 0,
-                potion_spy INTEGER NOT NULL DEFAULT 0,
-                sign_spy INTEGER NOT NULL DEFAULT 0,
+                potion_spy_mode TEXT NOT NULL DEFAULT 'off',
                 command_spy_mode TEXT NOT NULL DEFAULT 'off',
+                sign_spy_mode TEXT NOT NULL DEFAULT 'off',
+                book_spy_mode TEXT NOT NULL DEFAULT 'off',
                 muted INTEGER NOT NULL DEFAULT 0,
                 frozen INTEGER NOT NULL DEFAULT 0,
                 commands_blocked INTEGER NOT NULL DEFAULT 0,
@@ -456,7 +457,9 @@ public class SQLiteAdapter extends DatabaseAdapter
         statementHandler.executeUpdate(sql);
         addTimestampColumnIfMissing("players", "updated_at");
         addColumnIfMissing("players", "titles", "TEXT");
-        addColumnIfMissing("players", "sign_spy", "INTEGER NOT NULL DEFAULT 0");
+        addColumnIfMissing("players", "potion_spy_mode", "TEXT NOT NULL DEFAULT 'off'");
+        addColumnIfMissing("players", "sign_spy_mode", "TEXT NOT NULL DEFAULT 'off'");
+        addColumnIfMissing("players", "book_spy_mode", "TEXT NOT NULL DEFAULT 'off'");
     }
 
     private void createPlayerIpsTable() throws SQLException

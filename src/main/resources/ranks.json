@@ -82,6 +82,7 @@
       "tfm.admin.banlist",
       "tfm.admin.blockcmd",
       "tfm.admin.blockredstone",
+      "tfm.admin.bookspy",
       "tfm.admin.cage",
       "tfm.admin.cmdspy",
       "tfm.admin.consolesay",
