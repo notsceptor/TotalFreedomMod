@@ -103,6 +103,7 @@
       "tfm.admin.purgeall",
       "tfm.admin.ro",
       "tfm.admin.say",
+      "tfm.admin.signspy",
       "tfm.admin.strike",
       "tfm.admin.undisguiseall",
       "tfm.admin.warn",

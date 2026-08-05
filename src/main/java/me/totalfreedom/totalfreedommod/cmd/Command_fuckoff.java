@@ -1,7 +1,6 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
-import me.totalfreedom.totalfreedommod.player.FPlayer;
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 
 import org.bukkit.entity.Player;
@@ -11,29 +10,38 @@ import org.bukkit.entity.Player;
 public class Command_fuckoff extends FCommand
 {
 
+    private static final double DEFAULT_RADIUS = 25.0;
+    private static final double MIN_RADIUS = 1.0;
+    private static final double MAX_RADIUS = 50.0;
+
     @Callback
-    public boolean fuckoff(Player sender, final @Resolve("Double") double radius)
+    @Subcommand("on")
+    public void enableDefaultRadius(final Player sender)
     {
+        enable(sender, DEFAULT_RADIUS);
+    }
 
-        FPlayer player = fplayer(sender);
-        double clamp = Math.clamp(radius, 0.0, 50.0);
+    @Callback
+    @Subcommand("on")
+    public void enableWithRadius(final Player sender, final @Resolve("Double") double radius)
+    {
+        enable(sender, radius);
+    }
 
-        if (radius <= 0)
-        {
-            plugin().fo.disable(sender);
-        }
-        else
-        {
-            plugin().fo.enable(sender, clamp);
-        }
+    @Callback
+    @Subcommand("off")
+    public void disable(final Player sender)
+    {
+        plugin().fo.disable(sender);
+        msg(sender, "<gray>Fuckoff disabled.");
+    }
 
-        msg(
-            sender, 
-            "<gray>Fuckoff <choice:enabled. Radius: \"<radius>\":disabled>.", 
-            Formatter.booleanChoice("choice", player.isFuckOff()),
-            Formatter.number("radius", clamp)
-        );
+    private void enable(final Player sender, final double radius)
+    {
+        final double clamped = Math.clamp(radius, MIN_RADIUS, MAX_RADIUS);
 
-        return true;
+        plugin().fo.enable(sender, clamped);
+
+        msg(sender, "<gray>Fuckoff enabled with radius <radius>.", Formatter.number("radius", clamped));
     }
 }

@@ -28,6 +28,7 @@ public class PlayerData implements ConfigLoadable, Validatable
     private long firstJoinUnix;
     private long lastJoinUnix;
     private boolean potionSpy;
+    private boolean signSpy;
     private CommandSpyMode commandSpyMode = CommandSpyMode.OFF;
     private boolean muted;
     private boolean frozen;
@@ -157,6 +158,7 @@ public class PlayerData implements ConfigLoadable, Validatable
         this.firstJoinUnix = cs.getLong("first_join", 0);
         this.lastJoinUnix = cs.getLong("last_join", 0);
         this.potionSpy = cs.getBoolean("potion_spy", false);
+        this.signSpy = cs.getBoolean("sign_spy", false);
         final boolean legacyCommandSpy = cs.getBoolean("command_spy", false);
         this.commandSpyMode = CommandSpyMode.fromString(cs.getString("command_spy_mode", legacyCommandSpy ? "ops" : "off"));
         this.muted = cs.getBoolean("muted", false);
@@ -196,6 +198,16 @@ public class PlayerData implements ConfigLoadable, Validatable
     public void setCommandSpyMode(CommandSpyMode commandSpyMode)
     {
         this.commandSpyMode = commandSpyMode == null ? CommandSpyMode.OFF : commandSpyMode;
+    }
+
+    public boolean isSignSpy()
+    {
+        return signSpy;
+    }
+
+    public void setSignSpy(final boolean signSpy)
+    {
+        this.signSpy = signSpy;
     }
 
     public boolean isJoinLeaveMessagesEnabled()
