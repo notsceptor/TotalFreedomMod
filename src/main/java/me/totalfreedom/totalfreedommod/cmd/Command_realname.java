@@ -1,11 +1,12 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
 import org.bukkit.command.CommandSender;
-
 import net.kyori.adventure.text.Component;
+import java.util.List;
 
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Callback;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Command;
+import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Completer;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Greedy;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Permission;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
@@ -15,6 +16,12 @@ import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 @Permission(permission = "tfm.player.realname")
 public class Command_realname extends FCommand
 {
+    @Completer(value = "", position = 0, scope = Completer.Scope.ARGUMENT)
+    public List<String> completeNickname(CommandSender sender, String partial)
+    {
+        return NameCandidates.onlineNicknames(plugin(), server(), partial);
+    }
+
     @Callback
     public void realname(CommandSender sender, @Greedy String nickname)
     {

@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import java.util.List;
+
 import org.bukkit.command.CommandSender;
 
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
@@ -8,6 +10,12 @@ import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 @Permission(permission = "tfm.admin.announce")
 public class Command_announce extends FCommand 
 {
+    @Completer(value = "", position = 0)
+    public List<String> completeContent(CommandSender sender, String partial)
+    {
+        return NameCandidates.onlineTyped(server(), partial);
+    }
+
     @Callback
     public void broadcast(CommandSender sender, @Greedy String content)
     {

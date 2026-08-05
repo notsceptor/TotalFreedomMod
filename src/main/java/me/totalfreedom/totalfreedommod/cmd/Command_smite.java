@@ -1,19 +1,22 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import java.util.List;
+import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Callback;
+import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Command;
+import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Completer;
+import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Greedy;
+import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Permission;
+import me.totalfreedom.totalfreedommod.config.ConfigEntry;
+import me.totalfreedom.totalfreedommod.rank.Rank;
+import me.totalfreedom.totalfreedommod.util.FUtil;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Callback;
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Command;
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Greedy;
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Permission;
-import me.totalfreedom.totalfreedommod.config.ConfigEntry;
-import me.totalfreedom.totalfreedommod.util.FUtil;
 
 @Command(name = "smite", description = "Someone being a little bitch? Smite them down...", usage = "/smite <player> [reason]")
 @Permission(permission = "tfm.fun.smite")
@@ -23,6 +26,12 @@ public class Command_smite extends FCommand
     public void smiteNoReason(CommandSender sender, Player player)
     {
         smite(sender, player, null);
+    }
+
+    @Completer(value = "", position = 1)
+    public List<String> completeReason(CommandSender sender, String partial)
+    {
+        return NameCandidates.onlineTyped(server(), partial);
     }
 
     @Callback
