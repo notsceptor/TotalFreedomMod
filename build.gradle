@@ -1,6 +1,7 @@
 plugins {
     id 'java'
     id 'com.gorylenko.gradle-git-properties' version '2.5.7'
+    id 'org.openrewrite.rewrite' version '7.38.0'
 }
 
 group = 'me.totalfreedom'
@@ -10,6 +11,14 @@ java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(25)
     }
+}
+
+rewrite {
+    activeRecipe(
+        "org.openrewrite.java.RemoveUnusedImports",
+        "org.openrewrite.java.OrderImports"
+    )
+    activeStyle("me.totalfreedom.totalfreedommod.WildcardStyle")
 }
 
 repositories {
