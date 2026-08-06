@@ -18,6 +18,8 @@ import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FTask;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.format.NamedTextColor;
+
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.bukkit.Chunk;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -717,8 +719,10 @@ public class ItemValidator extends FreedomService
         {
             block.setType(Material.AIR, false);
         }
-        catch (Throwable ignored)
+        catch (Throwable th) // because we ignored this, we don't see why the itemvalidator spams the logs.
         {
+            FLog.severe(ExceptionUtils.getRootCauseMessage(th));
+            return; // Returning here so it doesn't enter a recursive loop of spamming logs with nonsense. Instead, we will spam the logs with actual errors.
         }
         recordDetection(verdict, context + " [block destroyed]");
         FLog.warning("[ItemValidator] Destroyed container block at " + FUtil.formatLocation(block.getLocation())
