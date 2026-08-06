@@ -375,6 +375,12 @@ public class GenericPermbanRepository implements PermbanRepository
     }
 
     @Override
+    public Mono<Boolean> deleteByIpAsync(String ip)
+    {
+        return statementHandler.supplyMono(() -> deleteByIp(ip));
+    }
+
+    @Override
     public Mono<Integer> save(PermBan permban)
     {
         return statementHandler.supplyMono(() -> {

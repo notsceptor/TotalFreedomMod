@@ -166,6 +166,11 @@ public interface PermbanRepository
     Mono<List<PermBan>> findAll();
 
     /**
+     * Delete every permban carrying {@code ip}, off the main thread.
+     */
+    Mono<Boolean> deleteByIpAsync(String ip);
+
+    /**
      * Delete all permbans asynchronously.
      */
     Mono<Void> deleteAll();

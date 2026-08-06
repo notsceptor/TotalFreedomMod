@@ -6,13 +6,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -153,10 +148,31 @@ public class BanManager extends FreedomService
                 {
                     FLog.info(String.format("bans.json is newer than the database; rebuilding it from the file's %d ban(s).",
                                             jsonBans.size()));
-                    return repo.deleteAll()
-                               .thenMany(Flux.fromIterable(jsonBans)
-                                             .filter(Ban::isValid)
-                                             .concatMap(repo::save))
+                    final Set<UUID> keepUuids = jsonBans.stream()
+                                                        .map(Ban::getUuid)
+                                                        .filter(Objects::nonNull)
+                                                        .collect(Collectors.toSet());
+                    final Set<String> keepIps = jsonBans.stream()
+                                                        .flatMap(ban -> ban.getIps().stream())
+                                                        .collect(Collectors.toSet());
+                    return repo.loadAllAsync()
+                               .flatMapMany(existing ->
+                               {
+                                    final Set<String> existingIps = existing.stream()
+                                                                            .filter(row -> row.getUuid() == null)
+                                                                            .flatMap(row -> row.getIps().stream())
+                                                                            .collect(Collectors.toSet());
+                                    return Flux.fromIterable(jsonBans)
+                                               .filter(Ban::isValid)
+                                               .filter(ban -> ban.getUuid() != null
+                                                              || ban.getIps().stream().noneMatch(existingIps::contains))
+                                               .concatMap(repo::save)
+                                               .thenMany(Flux.fromIterable(existing)
+                                                             .filter(row -> !isKept(row, keepUuids, keepIps))
+                                                             .concatMap(stale -> stale.getUuid() != null 
+                                                                                 ? repo.deleteAsync(stale.getUuid())
+                                                                                 : repo.deleteByIpAsync(stale.getIps().get(0))));
+                               })
                                .then(Mono.<Void>fromRunnable(() -> plugin.dm.sync("BanManager/applyReconciled",
                                                              () -> applyReconciledBans(jsonBans))));
                 })
@@ -166,6 +182,22 @@ public class BanManager extends FreedomService
                     return Mono.empty();
                 })
                 .then());
+    }
+
+    /**
+    * Whether a row in the database is still described by the snapshot. A ban with
+    * no uuid is an IP ban, so it is matched on its addresses instead. A row with
+    * neither is left alone, since there is no key by which to remove it safely.
+    */
+    private static boolean isKept(final Ban existing, final Set<UUID> keepUuids, final Set<String> keepIps)
+    {
+        if (existing.getUuid() != null)
+            return keepUuids.contains(existing.getUuid());
+
+        if (existing.getIps().isEmpty())
+            return true;
+
+        return existing.getIps().stream().anyMatch(keepIps::contains);
     }
 
     private void applyReconciledBans(final List<Ban> jsonBans)

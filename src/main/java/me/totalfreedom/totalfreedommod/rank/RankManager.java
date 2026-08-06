@@ -337,9 +337,12 @@ public class RankManager extends FreedomService
               {
                 FLog.info(String.format("%s is newer than the database; rebuilding it from the file's %d rank(s).",
                                         RANKS_FILENAME, jsonRanks.size()));
-                return repo.deleteAll()
-                           .thenMany(Flux.fromIterable(jsonRanks.values())
-                                         .concatMap(repo::save))
+                return Flux.fromIterable(jsonRanks.values())
+                           .concatMap(repo::save)
+                           .then(repo.loadAllAsync())
+                           .flatMapMany(existing -> Flux.fromIterable(existing.keySet()))
+                           .filter(id -> !jsonRanks.containsKey(id))
+                           .concatMap(repo::deleteAsync)
                            .then(Mono.<Void>fromRunnable(() -> plugin.dm.sync("RankManager/applyReconciled",
                                                          () -> applyReconciledRanks(jsonRanks))));
               })

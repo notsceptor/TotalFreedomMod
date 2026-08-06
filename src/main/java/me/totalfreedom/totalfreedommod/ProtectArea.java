@@ -3,6 +3,7 @@ package me.totalfreedom.totalfreedommod;
 import java.io.*;
 import java.lang.reflect.Type;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -203,9 +204,16 @@ public class ProtectArea extends FreedomService
               {
                 FLog.info(String.format("%s is newer than the database; rebuilding it from the file's %d protected area(s).",
                                         DATA_FILENAME, jsonAreas.size()));
-                return repo.deleteAll()
-                           .thenMany(Flux.fromIterable(jsonAreas)
-                                         .concatMap(repo::save))
+                final Set<UUID> keep = jsonAreas.stream()
+                                                .map(ProtectedRegion::getUuid)
+                                                .collect(Collectors.toSet());
+                return Flux.fromIterable(jsonAreas)
+                           .concatMap(repo::save)
+                           .then(repo.loadAllAsync())
+                           .flatMapMany(Flux::fromIterable)
+                           .map(ProtectedRegion::getUuid)
+                           .filter(uuid -> !keep.contains(uuid))
+                           .concatMap(repo::deleteAsync)
                            .then(Mono.<Void>fromRunnable(() -> plugin.dm.sync("ProtectArea/applyReconciled",
                                                          () ->
                                                          {

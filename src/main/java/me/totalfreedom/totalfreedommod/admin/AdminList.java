@@ -703,11 +703,15 @@ public class AdminList extends FreedomService
                 {
                     FLog.info(String.format("%s is newer than the database; rebuilding it from the file's %d admin(s).",
                                             CONFIG_FILENAME, jsonAdmins.size()));
-                    return repo.deleteAll()
-                               .thenMany(Flux.fromIterable(jsonAdmins.values())
-                                             .filter(Admin::isValid)
-                                             .concatMap(admin -> repo.save(resolveUuidFor(admin), copyAdmin(admin))))
-                               .then(Mono.<Void>fromRunnable(() -> plugin.dm.sync("AdminList/applyReconciled", 
+                    return Flux.fromIterable(jsonAdmins.values())
+                               .filter(Admin::isValid)
+                               .concatMap(admin -> repo.save(resolveUuidFor(admin), copyAdmin(admin)))
+                               .then(repo.findAll())
+                               .flatMapMany(Flux::fromIterable)
+                               .filter(existing -> existing.getUuid() != null
+                                                   && !jsonAdmins.containsKey(existing.getName().toLowerCase()))
+                               .concatMap(stale -> repo.deleteByUuid(stale.getUuid()))
+                               .then(Mono.<Void>fromRunnable(() -> plugin.dm.sync("AdminList/applyReconciled",
                                                              () -> applyReconciledAdmins(jsonAdmins))));
                 })
                 .onErrorResume(ex ->

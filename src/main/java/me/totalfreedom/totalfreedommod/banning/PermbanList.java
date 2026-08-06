@@ -5,12 +5,8 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -141,9 +137,21 @@ public class PermbanList extends FreedomService
                     {
                         FLog.info(String.format("%s is newer than the database; rebuilding it from the file's %d permban(s).",
                                                 CONFIG_FILENAME, jsonPermbans.size()));
-                        return repo.deleteAll()
-                                   .thenMany(Flux.fromIterable(jsonPermbans.values())
-                                                 .concatMap(repo::save))
+                        final Set<UUID> keepUuids = jsonPermbans.values().stream()
+                                                                .map(PermBan::getUuid)
+                                                                .filter(Objects::nonNull)
+                                                                .collect(Collectors.toSet());
+                        final Set<String> keepIps = jsonPermbans.values().stream()
+                                                                .flatMap(permban -> permban.getIps().stream())
+                                                                .collect(Collectors.toSet());
+                        return Flux.fromIterable(jsonPermbans.values())
+                                   .concatMap(repo::save)
+                                   .then(repo.loadAllAsync())
+                                   .flatMapMany(Flux::fromIterable)
+                                   .filter(existing -> !isKept(existing, keepUuids, keepIps))
+                                   .concatMap(stale -> stale.getUuid() != null
+                                                       ? repo.deleteAsync(stale.getUuid())
+                                                       : repo.deleteByIpAsync(stale.getIps().get(0)))
                                    .then(Mono.<Void>fromRunnable(() -> plugin.dm.sync("PermbanList/applyReconciled",
                                                                  () -> applyReconciledPermbans(jsonPermbans.values()))));
                     })
@@ -154,6 +162,22 @@ public class PermbanList extends FreedomService
                         return Mono.empty();
                     })
                     .then());
+    }
+
+    /**
+    * Whether a row in the database is still described by the snapshot. A permban with
+    * no uuid is an IP permban, so it is matched on its addresses instead. A row with
+    * neither is left alone, since there is no key to remove it safely.
+    */
+    private static boolean isKept(final PermBan existing, final Set<UUID> keepUuids, final Set<String> keepIps)
+    {
+        if (existing.getUuid() != null)
+            return keepUuids.contains(existing.getUuid());
+
+        if (existing.getIps().isEmpty())
+            return true;
+
+        return existing.getIps().stream().anyMatch(keepIps::contains);
     }
 
     private void applyReconciledPermbans(final Collection<PermBan> jsonPermbans)
@@ -175,10 +199,14 @@ public class PermbanList extends FreedomService
 
         source.forEach(permban ->
         {
-            final String name = permban.getUsername().toLowerCase().trim();
-            permbannedNames.add(name);
+            final String name = permban.hasUsername() ? permban.getUsername().toLowerCase().trim()
+                                                      : null;
+            if (name != null)
+            {
+                permbannedNames.add(name);
+                permbansByName.put(name, permban);
+            }
             permbannedIps.addAll(permban.getIps());
-            permbansByName.put(name, permban);
         });
     }
 

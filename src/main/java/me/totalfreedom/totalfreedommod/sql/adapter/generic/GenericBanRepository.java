@@ -446,6 +446,12 @@ public class GenericBanRepository implements BanRepository
     }
 
     @Override
+    public Mono<Boolean> deleteByIpAsync(String ip)
+    {
+        return statementHandler.supplyMono(() -> deleteByIp(ip));
+    }
+
+    @Override
     public Mono<Integer> save(Ban ban)
     {
         return statementHandler.supplyMono(() -> {
