@@ -170,8 +170,8 @@ public class BanManager extends FreedomService
                                                .thenMany(Flux.fromIterable(existing)
                                                              .filter(row -> !isKept(row, keepUuids, keepIps))
                                                              .concatMap(stale -> stale.getUuid() != null 
-                                                                                 ? repo.deleteAsync(stale.getUuid())
-                                                                                 : repo.deleteByIpAsync(stale.getIps().get(0))));
+                                                                                ? repo.deleteAsync(stale.getUuid())
+                                                                                : repo.deleteByIpAsync(stale.getIps().get(0))));
                                })
                                .then(Mono.<Void>fromRunnable(() -> plugin.dm.sync("BanManager/applyReconciled",
                                                              () -> applyReconciledBans(jsonBans))));

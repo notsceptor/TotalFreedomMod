@@ -183,9 +183,12 @@ public class StrikeList extends FreedomService
                     {
                         FLog.info(String.format("strikes.json is newer than the database; rebuilding it from the file's %d strike record(s).",
                                                 jsonStrikes.size()));
-                        return repo.deleteAll()
-                                   .thenMany(Flux.fromIterable(jsonStrikes.values())
-                                                 .concatMap(repo::upsertAsync))
+                        return repo.loadAllAsync()
+                                   .flatMapMany(existing -> Flux.fromIterable(jsonStrikes.values())
+                                                                .concatMap(repo::upsertAsync)
+                                                                .thenMany(Flux.fromIterable(existing.keySet())
+                                                                              .filter(ip -> !jsonStrikes.containsKey(ip))
+                                                                              .concatMap(repo::deleteByIpAsync)))
                                    .then(Mono.<Void>fromRunnable(() -> plugin.dm.sync("StrikeList/applyReconciled",
                                                                  () ->
                                                                  {
