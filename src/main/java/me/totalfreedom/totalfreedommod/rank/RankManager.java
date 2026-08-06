@@ -116,6 +116,7 @@ public class RankManager extends FreedomService
     protected void onStart()
     {
         loadRanks();
+        plugin.dm.whenReady(this::loadRanks);
 
         if (plugin.csr != null)
         {

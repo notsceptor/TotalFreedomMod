@@ -319,6 +319,7 @@ public class GenericRankRepository implements RankRepository
         return roles == null || roles.isEmpty()
                 ? null
                 : roles.stream()
+                       .filter(Objects::nonNull)
                        .map(RankRole::getId)
                        .collect(Collectors.joining(","));
     }
