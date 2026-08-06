@@ -149,17 +149,17 @@ public class BanManager extends FreedomService
                 })
                 .subscribeOn(Schedulers.boundedElastic())
                 .filter(Boolean::booleanValue)
-                .flatMapMany(ignored ->
+                .flatMap(ignored ->
                 {
                     FLog.info(String.format("bans.json is newer than the database; rebuilding it from the file's %d ban(s).",
-                            jsonBans.size()));
+                                            jsonBans.size()));
                     return repo.deleteAll()
                                .thenMany(Flux.fromIterable(jsonBans)
                                              .filter(Ban::isValid)
-                                             .concatMap(repo::save));
+                                             .concatMap(repo::save))
+                               .then(Mono.<Void>fromRunnable(() -> plugin.dm.sync("BanManager/applyReconciled",
+                                                             () -> applyReconciledBans(jsonBans))));
                 })
-                .then(Mono.fromRunnable(() -> plugin.dm.sync("BanManager/applyReconciled",
-                        () -> applyReconciledBans(jsonBans))))
                 .onErrorResume(ex ->
                 {
                     FLog.warning(String.format("Failed to reconcile bans.json into the database: %s", ex.getMessage()));

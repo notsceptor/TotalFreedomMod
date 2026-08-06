@@ -199,19 +199,20 @@ public class ProtectArea extends FreedomService
               })
               .subscribeOn(Schedulers.boundedElastic())
               .filter(Boolean::booleanValue)
-              .flatMapMany(ignored ->
+              .flatMap(ignored ->
               {
-                  FLog.info(String.format("%s is newer than the database; rebuilding it from the file's %d protected area(s).",
-                                          DATA_FILENAME, jsonAreas.size()));
-                  return repo.deleteAll()
-                             .thenMany(Flux.fromIterable(jsonAreas)
-                                           .concatMap(repo::save));
+                FLog.info(String.format("%s is newer than the database; rebuilding it from the file's %d protected area(s).",
+                                        DATA_FILENAME, jsonAreas.size()));
+                return repo.deleteAll()
+                           .thenMany(Flux.fromIterable(jsonAreas)
+                                         .concatMap(repo::save))
+                           .then(Mono.<Void>fromRunnable(() -> plugin.dm.sync("ProtectArea/applyReconciled",
+                                                         () ->
+                                                         {
+                                                            areas.clear();
+                                                            jsonAreas.forEach(region -> areas.put(region.getUuid(), region));
+                                                         })));
               })
-              .then(Mono.fromRunnable(() -> plugin.dm.sync("ProtectArea/applyReconciled", () ->
-              {
-                  areas.clear();
-                  jsonAreas.forEach(region -> areas.put(region.getUuid(), region));
-              })))
               .onErrorResume(ex ->
               {
                   FLog.warning(String.format("Failed to reconcile %s into the database: %s",

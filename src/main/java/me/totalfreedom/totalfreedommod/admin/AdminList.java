@@ -707,8 +707,8 @@ public class AdminList extends FreedomService
                                .thenMany(Flux.fromIterable(jsonAdmins.values())
                                              .filter(Admin::isValid)
                                              .concatMap(admin -> repo.save(resolveUuidFor(admin), copyAdmin(admin))))
-                               .then(Mono.<Void>fromRunnable(() -> plugin.dm.sync("AdminList/applyReconciled", () ->
-                                                                                  applyReconciledAdmins(jsonAdmins))));
+                               .then(Mono.<Void>fromRunnable(() -> plugin.dm.sync("AdminList/applyReconciled", 
+                                                             () -> applyReconciledAdmins(jsonAdmins))));
                 })
                 .onErrorResume(ex ->
                 {

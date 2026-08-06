@@ -177,19 +177,20 @@ public class SavedFlags extends FreedomService
               })
               .subscribeOn(Schedulers.boundedElastic())
               .filter(Boolean::booleanValue)
-              .flatMapMany(ignored ->
+              .flatMap(ignored ->
               {
-                  FLog.info(String.format("%s is newer than the database; rebuilding it from the file's %d flag(s).",
-                                          DATA_FILENAME, jsonFlags.size()));
-                  return repo.deleteAll()
-                             .thenMany(Flux.fromIterable(jsonFlags.entrySet())
-                                           .concatMap(entry -> repo.upsertAsync(entry.getKey(), entry.getValue())));
+                FLog.info(String.format("%s is newer than the database; rebuilding it from the file's %d flag(s).",
+                                        DATA_FILENAME, jsonFlags.size()));
+                return repo.deleteAll()
+                           .thenMany(Flux.fromIterable(jsonFlags.entrySet())
+                                         .concatMap(entry -> repo.upsertAsync(entry.getKey(), entry.getValue())))
+                           .then(Mono.<Void>fromRunnable(() -> plugin.dm.sync("SavedFlags/applyReconciled",
+                                                         () ->
+                                                         {
+                                                            flags.clear();
+                                                            flags.putAll(jsonFlags);
+                                                         })));
               })
-              .then(Mono.fromRunnable(() -> plugin.dm.sync("SavedFlags/applyReconciled", () ->
-              {
-                  flags.clear();
-                  flags.putAll(jsonFlags);
-              })))
               .onErrorResume(ex ->
               {
                   FLog.warning(String.format("Failed to reconcile %s into the database: %s",

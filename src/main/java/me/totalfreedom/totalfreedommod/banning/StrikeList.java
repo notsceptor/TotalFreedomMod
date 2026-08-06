@@ -179,19 +179,20 @@ public class StrikeList extends FreedomService
                     })
                     .subscribeOn(Schedulers.boundedElastic())
                     .filter(Boolean::booleanValue)
-                    .flatMapMany(ignored ->
+                    .flatMap(ignored ->
                     {
-                        FLog.info(String.format("strikes.json is newer than the database; rebuilding it from the file's %d strike record(s).", 
+                        FLog.info(String.format("strikes.json is newer than the database; rebuilding it from the file's %d strike record(s).",
                                                 jsonStrikes.size()));
                         return repo.deleteAll()
                                    .thenMany(Flux.fromIterable(jsonStrikes.values())
-                                                 .concatMap(repo::upsertAsync));
+                                                 .concatMap(repo::upsertAsync))
+                                   .then(Mono.<Void>fromRunnable(() -> plugin.dm.sync("StrikeList/applyReconciled",
+                                                                 () ->
+                                                                 {
+                                                                    strikes.clear();
+                                                                    strikes.putAll(jsonStrikes);
+                                                                 })));
                     })
-                    .then(Mono.fromRunnable(() -> plugin.dm.sync("StrikeList/applyReconciled", () ->
-                    {
-                        strikes.clear();
-                        strikes.putAll(jsonStrikes);
-                    })))
                     .onErrorResume(ex ->
                     {
                         FLog.warning(String.format("Failed to reconcile strikes.json into the database: %s",

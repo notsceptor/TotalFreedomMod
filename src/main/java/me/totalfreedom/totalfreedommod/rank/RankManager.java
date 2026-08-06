@@ -332,16 +332,16 @@ public class RankManager extends FreedomService
               })
               .subscribeOn(Schedulers.boundedElastic())
               .filter(Boolean::booleanValue)
-              .flatMapMany(ignored ->
+              .flatMap(ignored ->
               {
-                  FLog.info(String.format("%s is newer than the database; rebuilding it from the file's %d rank(s).",
-                                          RANKS_FILENAME, jsonRanks.size()));
-                  return repo.deleteAll()
-                             .thenMany(Flux.fromIterable(jsonRanks.values())
-                                            .concatMap(repo::save));
+                FLog.info(String.format("%s is newer than the database; rebuilding it from the file's %d rank(s).",
+                                        RANKS_FILENAME, jsonRanks.size()));
+                return repo.deleteAll()
+                           .thenMany(Flux.fromIterable(jsonRanks.values())
+                                         .concatMap(repo::save))
+                           .then(Mono.<Void>fromRunnable(() -> plugin.dm.sync("RankManager/applyReconciled",
+                                                         () -> applyReconciledRanks(jsonRanks))));
               })
-              .then(Mono.fromRunnable(() -> plugin.dm.sync("RankManager/applyReconciled",
-                                      () -> applyReconciledRanks(jsonRanks))))
               .onErrorResume(ex ->
               {
                   FLog.warning(String.format("Failed to reconcile %s into the database: %s",
