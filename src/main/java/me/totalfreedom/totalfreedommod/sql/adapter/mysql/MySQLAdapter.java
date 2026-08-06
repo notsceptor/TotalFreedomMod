@@ -435,6 +435,7 @@ public class MySQLAdapter extends DatabaseAdapter
                 `muted` TINYINT(1) NOT NULL DEFAULT 0,
                 `frozen` TINYINT(1) NOT NULL DEFAULT 0,
                 `commands_blocked` TINYINT(1) NOT NULL DEFAULT 0,
+                `join_leave_messages` TINYINT(1) NOT NULL DEFAULT 1,
                 `strikes` INT NOT NULL DEFAULT 0,
                 `saved_tag` TEXT,
                 `nickname` TEXT,
@@ -447,6 +448,7 @@ public class MySQLAdapter extends DatabaseAdapter
         addColumnIfMissing("players", "potion_spy_mode", "VARCHAR(16) NOT NULL DEFAULT 'off'");
         addColumnIfMissing("players", "sign_spy_mode", "VARCHAR(16) NOT NULL DEFAULT 'off'");
         addColumnIfMissing("players", "book_spy_mode", "VARCHAR(16) NOT NULL DEFAULT 'off'");
+        addColumnIfMissing("players", "join_leave_messages", "TINYINT(1) NOT NULL DEFAULT 1");
     }
 
     private void createPlayerIpsTable() throws SQLException
