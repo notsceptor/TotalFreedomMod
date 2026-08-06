@@ -18,6 +18,7 @@ import me.totalfreedom.totalfreedommod.sql.adapter.SavedFlagRepository;
 public class GenericSavedFlagRepository implements SavedFlagRepository
 {
     private final StatementHandler statementHandler;
+    private final DatabaseAdapter adapter;
 
     private final String tblSavedFlags;
     private final String colFlagName;
@@ -30,6 +31,7 @@ public class GenericSavedFlagRepository implements SavedFlagRepository
     public GenericSavedFlagRepository(StatementHandler statementHandler, DatabaseAdapter adapter)
     {
         this.statementHandler = statementHandler;
+        this.adapter = adapter;
 
         this.tblSavedFlags = adapter.quoteIdentifier("saved_flags");
         this.colFlagName = adapter.quoteIdentifier("flag_name");
@@ -83,8 +85,7 @@ public class GenericSavedFlagRepository implements SavedFlagRepository
         {
             if (rs.next())
             {
-                Timestamp ts = rs.getTimestamp(1);
-                return ts != null ? ts.getTime() : null;
+                return adapter.readTimestamp(rs, 1);
             }
         }
         return null;

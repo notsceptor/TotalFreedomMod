@@ -19,6 +19,7 @@ import me.totalfreedom.totalfreedommod.sql.adapter.StrikeRepository;
 public class GenericStrikeRepository implements StrikeRepository
 {
     private final StatementHandler statementHandler;
+    private final DatabaseAdapter adapter;
 
     private final String tblStrikes;
     private final String colIp;
@@ -32,6 +33,7 @@ public class GenericStrikeRepository implements StrikeRepository
     public GenericStrikeRepository(StatementHandler statementHandler, DatabaseAdapter adapter)
     {
         this.statementHandler = statementHandler;
+        this.adapter = adapter;
 
         this.tblStrikes = adapter.quoteIdentifier("strikes");
         this.colIp = adapter.quoteIdentifier("ip");
@@ -93,8 +95,7 @@ public class GenericStrikeRepository implements StrikeRepository
         {
             if (rs.next())
             {
-                Timestamp ts = rs.getTimestamp(1);
-                return ts != null ? ts.getTime() : null;
+                return adapter.readTimestamp(rs, 1);
             }
         }
         return null;
