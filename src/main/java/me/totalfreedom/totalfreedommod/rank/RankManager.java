@@ -199,9 +199,25 @@ public class RankManager extends FreedomService
         customRanks.putAll(loaded);
         resolveInheritance();
         updateAllPlayerTeams();
+        refreshConsoleBindings();
         FLog.info(String.format("Loaded %d custom ranks from SQL database.", customRanks.size()));
 
         reconcileFromJsonIfNewer(repo);
+    }
+
+    /**
+     * Re-resolve the console whitelist against the rank set that is now in memory.
+     * <p>
+     * The first read happens before this service starts, when no custom ranks are loaded,
+     * so bindings that name one are skipped with a warning. {@code onStart} rereads it
+     * once the JSON ranks are in, but the swap to SQL and the snapshot reconcile both
+     * land later and asynchronously, and until now neither told the registry that the
+     * ranks had changed.
+     */
+    private void refreshConsoleBindings()
+    {
+        if (plugin.csr != null)
+            plugin.csr.load();
     }
 
     private void loadFromJsonOrDefaults()
@@ -364,6 +380,7 @@ public class RankManager extends FreedomService
         customRanks.putAll(jsonRanks);
         resolveInheritance();
         updateAllPlayerTeams();
+        refreshConsoleBindings();
     }
 
 
