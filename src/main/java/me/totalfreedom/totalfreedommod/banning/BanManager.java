@@ -148,33 +148,8 @@ public class BanManager extends FreedomService
                 {
                     FLog.info(String.format("bans.json is newer than the database; rebuilding it from the file's %d ban(s).",
                                             jsonBans.size()));
-                    final Set<UUID> keepUuids = jsonBans.stream()
-                                                        .map(Ban::getUuid)
-                                                        .filter(Objects::nonNull)
-                                                        .collect(Collectors.toSet());
-                    final Set<String> keepIps = jsonBans.stream()
-                                                        .flatMap(ban -> ban.getIps().stream())
-                                                        .collect(Collectors.toSet());
-                    return repo.loadAllAsync()
-                               .flatMapMany(existing ->
-                               {
-                                    final Set<String> existingIps = existing.stream()
-                                                                            .filter(row -> row.getUuid() == null)
-                                                                            .flatMap(row -> row.getIps().stream())
-                                                                            .collect(Collectors.toSet());
-                                    return Flux.fromIterable(jsonBans)
-                                               .filter(Ban::isValid)
-                                               .filter(ban -> ban.getUuid() != null
-                                                              || ban.getIps().stream().noneMatch(existingIps::contains))
-                                               .concatMap(repo::save)
-                                               .thenMany(Flux.fromIterable(existing)
-                                                             .filter(row -> !isKept(row, keepUuids, keepIps))
-                                                             .concatMap(stale -> stale.getUuid() != null 
-                                                                                ? repo.deleteAsync(stale.getUuid())
-                                                                                : repo.deleteByIpAsync(stale.getIps().get(0))));
-                               })
-                               .then(Mono.<Void>fromRunnable(() -> plugin.dm.sync("BanManager/applyReconciled",
-                                                             () -> applyReconciledBans(jsonBans))));
+                    return syncToSql(repo, jsonBans).then(Mono.<Void>fromRunnable(() -> plugin.dm.sync("BanManager/applyReconciled",
+                                                                                  () -> applyReconciledBans(jsonBans))));
                 })
                 .onErrorResume(ex ->
                 {
@@ -198,6 +173,44 @@ public class BanManager extends FreedomService
             return true;
 
         return existing.getIps().stream().anyMatch(keepIps::contains);
+    }
+
+    /**
+     * Make the database match {@code desired}: write every record, then delete
+     * only the rows it no longer describes. The table is never emptied first,
+     * so a failed write leaves the existing rows untouched. A ban with no uuid
+     * is an IP ban, so it is matched and removed by address.
+     */
+    private Mono<Void> syncToSql(final BanRepository repo, final Collection<Ban> desired)
+    {
+        final Set<UUID> keepUuids = desired.stream()
+                                           .map(Ban::getUuid)
+                                           .filter(Objects::nonNull)
+                                           .collect(Collectors.toSet());
+        final Set<String> keepIps = desired.stream()
+                                           .flatMap(ban -> ban.getIps().stream())
+                                           .collect(Collectors.toSet());
+
+        return repo.loadAllAsync()
+                   .flatMapMany(existing ->
+                   {
+                    final Set<String> existingIps = existing.stream()
+                                                            .filter(row -> row.getUuid() == null)
+                                                            .flatMap(row -> row.getIps().stream())
+                                                            .collect(Collectors.toSet());
+
+                    return Flux.fromIterable(desired)
+                               .filter(Ban::isValid)
+                               .filter(ban -> ban.getUuid() != null
+                                              || ban.getIps().stream().noneMatch(existingIps::contains))
+                               .concatMap(repo::save)
+                               .thenMany(Flux.fromIterable(existing)
+                                             .filter(row -> !isKept(row, keepUuids, keepIps))
+                                             .concatMap(stale -> stale.getUuid() != null
+                                                                 ? repo.deleteAsync(stale.getUuid())
+                                                                 : repo.deleteByIpAsync(stale.getIps().get(0))));
+                   })
+                   .then();
     }
 
     private void applyReconciledBans(final List<Ban> jsonBans)
@@ -353,19 +366,12 @@ public class BanManager extends FreedomService
 
         final BanRepository repo = plugin.dm.getBanRepository();
 
-        enqueue(repo.deleteAll()
+        enqueue(syncToSql(repo, snapshot)
                 .onErrorResume(ex ->
                 {
-                    FLog.warning("Failed to clear bans before rewrite: " + ex.getMessage());
+                    FLog.warning("Failed to write bans to SQL: " + ex.getMessage());
                     return Mono.empty();
                 })
-                .thenMany(Flux.fromIterable(snapshot)
-                        .concatMap(ban -> repo.save(ban)
-                                .onErrorResume(ex ->
-                                {
-                                    FLog.warning("Failed to save ban to SQL: " + ex.getMessage());
-                                    return Mono.<Integer>empty();
-                                })))
                 .then(writeJsonAsync(snapshot)));
     }
 
@@ -418,6 +424,10 @@ public class BanManager extends FreedomService
             delete = Mono.fromCallable(() -> repo.deleteByUsername(ban.getUsername()))
                     .subscribeOn(Schedulers.boundedElastic());
         }
+        else if (ban.hasIps())
+        {
+            delete = repo.deleteByIpAsync(ban.getIps().get(0));
+        }
         else
         {
             delete = Mono.just(Boolean.FALSE);
@@ -444,11 +454,7 @@ public class BanManager extends FreedomService
         try
         {
             BanRepository repo = plugin.dm.getBanRepository();
-            repo.deleteAll().block();
-            for (Ban ban : snapshot)
-            {
-                repo.save(ban).block();
-            }
+            syncToSql(repo, snapshot).block();
             FLog.debug("Saved " + snapshot.size() + " bans to SQL database");
             writeAllToJson(snapshot);
         }
