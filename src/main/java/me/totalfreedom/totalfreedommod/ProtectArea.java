@@ -31,9 +31,7 @@ import me.totalfreedom.totalfreedommod.ProtectArea.ProtectedRegion.CantFindWorld
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.sql.PersistenceQueue;
 import me.totalfreedom.totalfreedommod.sql.adapter.ProtectedAreaRepository;
-import me.totalfreedom.totalfreedommod.util.FLog;
-import me.totalfreedom.totalfreedommod.util.FTask;
-import me.totalfreedom.totalfreedommod.util.JsonUtil;
+import me.totalfreedom.totalfreedommod.util.*;
 
 import com.google.common.collect.Maps;
 import com.google.gson.reflect.TypeToken;
@@ -196,7 +194,7 @@ public class ProtectArea extends FreedomService
         writes.enqueue(Mono.fromCallable(() ->
               {
                   final Long sqlUpdatedAt = repo.getMaxUpdatedAt();
-                  return sqlUpdatedAt == null || fileModified > sqlUpdatedAt;
+                  return FUtil.isSnapshotNewer(fileModified, sqlUpdatedAt);
               })
               .subscribeOn(Schedulers.boundedElastic())
               .filter(Boolean::booleanValue)

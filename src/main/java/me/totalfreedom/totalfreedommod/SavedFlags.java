@@ -17,6 +17,7 @@ import me.totalfreedom.totalfreedommod.sql.PersistenceQueue;
 import me.totalfreedom.totalfreedommod.sql.adapter.SavedFlagRepository;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.JsonUtil;
+import me.totalfreedom.totalfreedommod.util.FUtil;
 
 import com.google.gson.reflect.TypeToken;
 
@@ -173,7 +174,7 @@ public class SavedFlags extends FreedomService
         writes.enqueue(Mono.fromCallable(() ->
               {
                   final Long sqlUpdatedAt = repo.getMaxUpdatedAt();
-                  return sqlUpdatedAt == null || fileModified > sqlUpdatedAt;
+                  return FUtil.isSnapshotNewer(fileModified, sqlUpdatedAt);
               })
               .subscribeOn(Schedulers.boundedElastic())
               .filter(Boolean::booleanValue)

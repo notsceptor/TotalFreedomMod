@@ -329,7 +329,7 @@ public class RankManager extends FreedomService
         writes.enqueue(Mono.fromCallable(() ->
               {
                   final Long sqlUpdatedAt = repo.getMaxUpdatedAt();
-                  return sqlUpdatedAt == null || fileModified > sqlUpdatedAt;
+                  return FUtil.isSnapshotNewer(fileModified, sqlUpdatedAt);
               })
               .subscribeOn(Schedulers.boundedElastic())
               .filter(Boolean::booleanValue)

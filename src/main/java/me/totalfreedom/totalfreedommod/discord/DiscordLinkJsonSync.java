@@ -15,6 +15,7 @@ import me.totalfreedom.totalfreedommod.sql.PersistenceQueue;
 import me.totalfreedom.totalfreedommod.sql.adapter.DiscordLinkRepository;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.JsonUtil;
+import me.totalfreedom.totalfreedommod.util.FUtil;
 
 import com.google.gson.reflect.TypeToken;
 
@@ -81,7 +82,7 @@ final class DiscordLinkJsonSync
         final long fileModified = file.lastModified();
 
         WRITES.enqueue(repo.getMaxUpdatedAtAsync()
-              .map(sqlUpdatedAt -> fileModified > sqlUpdatedAt)
+              .map(sqlUpdatedAt -> FUtil.isSnapshotNewer(fileModified, sqlUpdatedAt))
               .defaultIfEmpty(Boolean.TRUE)
               .filter(Boolean::booleanValue)
               .flatMap(ignored ->
