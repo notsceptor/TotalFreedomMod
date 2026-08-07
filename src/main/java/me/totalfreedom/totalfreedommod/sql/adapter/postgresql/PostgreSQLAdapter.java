@@ -434,6 +434,7 @@ public class PostgreSQLAdapter extends DatabaseAdapter
                 "muted" BOOLEAN NOT NULL DEFAULT FALSE,
                 "frozen" BOOLEAN NOT NULL DEFAULT FALSE,
                 "commands_blocked" BOOLEAN NOT NULL DEFAULT FALSE,
+                "join_leave_messages" BOOLEAN NOT NULL DEFAULT TRUE,
                 "strikes" INTEGER NOT NULL DEFAULT 0,
                 "saved_tag" TEXT,
                 "nickname" TEXT,
@@ -446,6 +447,7 @@ public class PostgreSQLAdapter extends DatabaseAdapter
         statementHandler.executeUpdate("ALTER TABLE \"players\" ADD COLUMN IF NOT EXISTS \"potion_spy_mode\" VARCHAR(16) NOT NULL DEFAULT 'off'");
         statementHandler.executeUpdate("ALTER TABLE \"players\" ADD COLUMN IF NOT EXISTS \"sign_spy_mode\" VARCHAR(16) NOT NULL DEFAULT 'off'");
         statementHandler.executeUpdate("ALTER TABLE \"players\" ADD COLUMN IF NOT EXISTS \"book_spy_mode\" VARCHAR(16) NOT NULL DEFAULT 'off'");
+        statementHandler.executeUpdate("ALTER TABLE \"players\" ADD COLUMN IF NOT EXISTS \"join_leave_messages\" BOOLEAN NOT NULL DEFAULT TRUE");
     }
 
     private void createPlayerIpsTable() throws SQLException

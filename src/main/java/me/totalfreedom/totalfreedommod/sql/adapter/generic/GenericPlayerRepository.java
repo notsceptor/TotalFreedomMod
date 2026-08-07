@@ -35,6 +35,7 @@ public class GenericPlayerRepository implements PlayerRepository
     private final String colMuted;
     private final String colFrozen;
     private final String colCommandsBlocked;
+    private final String colJoinLeaveMessages;
     private final String colStrikes;
     private final String colSavedTag;
     private final String colTitles;
@@ -62,6 +63,7 @@ public class GenericPlayerRepository implements PlayerRepository
         this.colMuted = adapter.quoteIdentifier("muted");
         this.colFrozen = adapter.quoteIdentifier("frozen");
         this.colCommandsBlocked = adapter.quoteIdentifier("commands_blocked");
+        this.colJoinLeaveMessages = adapter.quoteIdentifier("join_leave_messages");
         this.colStrikes = adapter.quoteIdentifier("strikes");
         this.colSavedTag = adapter.quoteIdentifier("saved_tag");
         this.colTitles = adapter.quoteIdentifier("titles");
@@ -70,16 +72,16 @@ public class GenericPlayerRepository implements PlayerRepository
         this.colPlayerUsername = adapter.quoteIdentifier("username");
         this.colIp = adapter.quoteIdentifier("ip");
         this.colUpdatedAt = adapter.quoteIdentifier("updated_at");
-        this.selectColumns = String.format("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s",
+        this.selectColumns = String.format("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s",
                 colUsername, colFirstJoin, colLastJoin, colPotionSpyMode, colCommandSpyMode, colSignSpyMode,
-                colBookSpyMode, colMuted, colFrozen, colCommandsBlocked, colStrikes, colSavedTag, colTitles)
-                + ", " + colNickname;
+                colBookSpyMode, colMuted, colFrozen, colCommandsBlocked, colJoinLeaveMessages, colStrikes,
+                colSavedTag, colTitles) + ", " + colNickname;
     }
 
     @Override
     public void insert(PlayerData data) throws SQLException
     {
-        String sql = String.format("INSERT INTO %s (%s, %s) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, %s)",
+        String sql = String.format("INSERT INTO %s (%s, %s) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, %s)",
                 tblPlayers, selectColumns, colUpdatedAt, adapter.currentTimestamp());
 
         statementHandler.executeUpdate(sql,
@@ -93,6 +95,7 @@ public class GenericPlayerRepository implements PlayerRepository
                 data.isMuted(),
                 data.isFrozen(),
                 data.isCommandsBlocked(),
+                data.isJoinLeaveMessagesEnabled(),
                 data.getStrikes(),
                 data.getSavedTag(),
                 serializeTitles(data),
@@ -206,9 +209,9 @@ public class GenericPlayerRepository implements PlayerRepository
     @Override
     public boolean update(PlayerData data) throws SQLException
     {
-        String sql = String.format("UPDATE %s SET %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = %s WHERE %s = ?",
+        String sql = String.format("UPDATE %s SET %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = %s WHERE %s = ?",
                 tblPlayers, colFirstJoin, colLastJoin, colPotionSpyMode, colCommandSpyMode, colSignSpyMode,
-                colBookSpyMode, colMuted, colFrozen, colCommandsBlocked, colStrikes, colSavedTag, colTitles,
+                colBookSpyMode, colMuted, colFrozen, colCommandsBlocked, colJoinLeaveMessages, colStrikes, colSavedTag, colTitles,
                 colUpdatedAt, adapter.currentTimestamp(), colUsername);
 
         int rows = statementHandler.executeUpdate(sql,
@@ -221,6 +224,7 @@ public class GenericPlayerRepository implements PlayerRepository
                 data.isMuted(),
                 data.isFrozen(),
                 data.isCommandsBlocked(),
+                data.isJoinLeaveMessagesEnabled(),
                 data.getStrikes(),
                 data.getSavedTag(),
                 serializeTitles(data),
@@ -320,6 +324,7 @@ public class GenericPlayerRepository implements PlayerRepository
         data.setMuted(rs.getBoolean("muted"));
         data.setFrozen(rs.getBoolean("frozen"));
         data.setCommandsBlocked(rs.getBoolean("commands_blocked"));
+        data.setJoinLeaveMessagesEnabled(rs.getBoolean("join_leave_messages"));
         data.setStrikes(rs.getInt("strikes"));
         data.setSavedTag(rs.getString("saved_tag"));
         data.setTitles(parseTitles(rs.getString("titles")));

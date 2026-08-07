@@ -448,6 +448,7 @@ public class SQLiteAdapter extends DatabaseAdapter
                 muted INTEGER NOT NULL DEFAULT 0,
                 frozen INTEGER NOT NULL DEFAULT 0,
                 commands_blocked INTEGER NOT NULL DEFAULT 0,
+                join_leave_messages INTEGER NOT NULL DEFAULT 1,
                 strikes INTEGER NOT NULL DEFAULT 0,
                 saved_tag TEXT,
                 nickname TEXT,
@@ -460,6 +461,7 @@ public class SQLiteAdapter extends DatabaseAdapter
         addColumnIfMissing("players", "potion_spy_mode", "TEXT NOT NULL DEFAULT 'off'");
         addColumnIfMissing("players", "sign_spy_mode", "TEXT NOT NULL DEFAULT 'off'");
         addColumnIfMissing("players", "book_spy_mode", "TEXT NOT NULL DEFAULT 'off'");
+        addColumnIfMissing("players", "join_leave_messages", "INTEGER NOT NULL DEFAULT 1");
     }
 
     private void createPlayerIpsTable() throws SQLException
