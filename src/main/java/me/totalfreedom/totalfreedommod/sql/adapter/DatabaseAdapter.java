@@ -1,6 +1,8 @@
 package me.totalfreedom.totalfreedommod.sql.adapter;
 
 import java.sql.SQLException;
+import java.sql.ResultSet;
+import java.sql.Timestamp;
 
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.sql.ConnectionHandler;
@@ -203,6 +205,17 @@ public abstract class DatabaseAdapter
      * PostgreSQL: CURRENT_TIMESTAMP
      */
     public abstract String currentTimestamp();
+
+    /**
+     * Reads a timestamp column as epoch millis. Overridden where the dialect's
+     * stored value is not in the JVM's own timezone.
+     */
+    public Long readTimestamp(final ResultSet rs, final int index) throws SQLException
+    {
+        final Timestamp ts = rs.getTimestamp(index);
+
+        return ts != null ? ts.getTime() : null;
+    }
 
     /**
      * Get the bind-parameter placeholder for a value being written into a native

@@ -251,8 +251,7 @@ public class GenericTitleRepository implements TitleRepository
         {
             if (rs.next())
             {
-                Timestamp ts = rs.getTimestamp(1);
-                return ts != null ? ts.getTime() : null;
+                return adapter.readTimestamp(rs, 1);
             }
         }
         return null;

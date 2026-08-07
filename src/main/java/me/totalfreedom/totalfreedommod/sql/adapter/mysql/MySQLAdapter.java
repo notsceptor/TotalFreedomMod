@@ -261,7 +261,7 @@ public class MySQLAdapter extends DatabaseAdapter
             CREATE TABLE IF NOT EXISTS `permbans` (
                 `id` INT AUTO_INCREMENT PRIMARY KEY,
                 `uuid` VARCHAR(36),
-                `username` VARCHAR(16),
+                `username` VARCHAR(16) NOT NULL,
                 `reason` TEXT,
                 `updated_at` DATETIME NOT NULL DEFAULT NOW(),
                 INDEX `idx_permbans_uuid` (`uuid`),

@@ -23,6 +23,7 @@ import me.totalfreedom.totalfreedommod.sql.PersistenceQueue;
 import me.totalfreedom.totalfreedommod.sql.adapter.StrikeRepository;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.JsonUtil;
+import me.totalfreedom.totalfreedommod.util.FUtil;
 
 import com.google.common.collect.Maps;
 import com.google.gson.reflect.TypeToken;
@@ -168,30 +169,37 @@ public class StrikeList extends FreedomService
         }
 
         if (jsonStrikes.isEmpty())
+        {
+            enqueue(writeJsonAsync());
             return;
+        }
 
         final long fileModified = configFile.lastModified();
 
         enqueue(Mono.fromCallable(() ->
                     {
                         final Long sqlUpdatedAt = repo.getMaxUpdatedAt();
-                        return sqlUpdatedAt == null || fileModified > sqlUpdatedAt;
+                        return FUtil.isSnapshotNewer(fileModified, sqlUpdatedAt);
                     })
                     .subscribeOn(Schedulers.boundedElastic())
                     .filter(Boolean::booleanValue)
-                    .flatMapMany(ignored ->
+                    .flatMap(ignored ->
                     {
-                        FLog.info(String.format("strikes.json is newer than the database; rebuilding it from the file's %d strike record(s).", 
+                        FLog.info(String.format("strikes.json is newer than the database; rebuilding it from the file's %d strike record(s).",
                                                 jsonStrikes.size()));
-                        return repo.deleteAll()
-                                   .thenMany(Flux.fromIterable(jsonStrikes.values())
-                                                 .concatMap(repo::upsertAsync));
+                        return repo.loadAllAsync()
+                                   .flatMapMany(existing -> Flux.fromIterable(jsonStrikes.values())
+                                                                .concatMap(repo::upsertAsync)
+                                                                .thenMany(Flux.fromIterable(existing.keySet())
+                                                                              .filter(ip -> !jsonStrikes.containsKey(ip))
+                                                                              .concatMap(repo::deleteByIpAsync)))
+                                   .then(Mono.<Void>fromRunnable(() -> plugin.dm.sync("StrikeList/applyReconciled",
+                                                                 () ->
+                                                                 {
+                                                                    strikes.clear();
+                                                                    strikes.putAll(jsonStrikes);
+                                                                 })));
                     })
-                    .then(Mono.fromRunnable(() -> plugin.dm.sync("StrikeList/applyReconciled", () ->
-                    {
-                        strikes.clear();
-                        strikes.putAll(jsonStrikes);
-                    })))
                     .onErrorResume(ex ->
                     {
                         FLog.warning(String.format("Failed to reconcile strikes.json into the database: %s",

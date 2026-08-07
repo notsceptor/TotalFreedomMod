@@ -344,8 +344,7 @@ public class GenericPermbanRepository implements PermbanRepository
         {
             if (rs.next())
             {
-                Timestamp ts = rs.getTimestamp(1);
-                return ts != null ? ts.getTime() : null;
+                return adapter.readTimestamp(rs, 1);
             }
         }
         return null;
@@ -373,6 +372,12 @@ public class GenericPermbanRepository implements PermbanRepository
     public Mono<Boolean> deleteAsync(UUID uuid)
     {
         return statementHandler.supplyMono(() -> delete(uuid));
+    }
+
+    @Override
+    public Mono<Boolean> deleteByIpAsync(String ip)
+    {
+        return statementHandler.supplyMono(() -> deleteByIp(ip));
     }
 
     @Override

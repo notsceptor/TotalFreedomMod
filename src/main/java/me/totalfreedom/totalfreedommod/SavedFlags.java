@@ -17,6 +17,7 @@ import me.totalfreedom.totalfreedommod.sql.PersistenceQueue;
 import me.totalfreedom.totalfreedommod.sql.adapter.SavedFlagRepository;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.JsonUtil;
+import me.totalfreedom.totalfreedommod.util.FUtil;
 
 import com.google.gson.reflect.TypeToken;
 
@@ -166,30 +167,37 @@ public class SavedFlags extends FreedomService
 
         final Map<String, Boolean> jsonFlags = readJsonFlags(dataFile);
         if (jsonFlags.isEmpty())
+        {
+            writes.enqueue(writeJsonAsync());
             return;
+        }
 
         final long fileModified = dataFile.lastModified();
 
         writes.enqueue(Mono.fromCallable(() ->
               {
                   final Long sqlUpdatedAt = repo.getMaxUpdatedAt();
-                  return sqlUpdatedAt == null || fileModified > sqlUpdatedAt;
+                  return FUtil.isSnapshotNewer(fileModified, sqlUpdatedAt);
               })
               .subscribeOn(Schedulers.boundedElastic())
               .filter(Boolean::booleanValue)
-              .flatMapMany(ignored ->
+              .flatMap(ignored ->
               {
-                  FLog.info(String.format("%s is newer than the database; rebuilding it from the file's %d flag(s).",
-                                          DATA_FILENAME, jsonFlags.size()));
-                  return repo.deleteAll()
-                             .thenMany(Flux.fromIterable(jsonFlags.entrySet())
-                                           .concatMap(entry -> repo.upsertAsync(entry.getKey(), entry.getValue())));
+                FLog.info(String.format("%s is newer than the database; rebuilding it from the file's %d flag(s).",
+                                        DATA_FILENAME, jsonFlags.size()));
+                return repo.loadAllAsync()
+                           .flatMapMany(existing -> Flux.fromIterable(jsonFlags.entrySet())
+                                                        .concatMap(entry -> repo.upsertAsync(entry.getKey(), entry.getValue()))
+                                                        .thenMany(Flux.fromIterable(existing.keySet())
+                                                        .filter(flag -> !jsonFlags.containsKey(flag))
+                                                        .concatMap(repo::deleteAsync)))
+                           .then(Mono.<Void>fromRunnable(() -> plugin.dm.sync("SavedFlags/applyReconciled",
+                                                         () -> 
+                                                         {
+                                                            flags.clear();
+                                                            flags.putAll(jsonFlags);
+                                                         })));
               })
-              .then(Mono.fromRunnable(() -> plugin.dm.sync("SavedFlags/applyReconciled", () ->
-              {
-                  flags.clear();
-                  flags.putAll(jsonFlags);
-              })))
               .onErrorResume(ex ->
               {
                   FLog.warning(String.format("Failed to reconcile %s into the database: %s",

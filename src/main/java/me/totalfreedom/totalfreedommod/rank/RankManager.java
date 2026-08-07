@@ -116,6 +116,7 @@ public class RankManager extends FreedomService
     protected void onStart()
     {
         loadRanks();
+        plugin.dm.whenReady(this::loadRanks);
 
         if (plugin.csr != null)
         {
@@ -198,9 +199,25 @@ public class RankManager extends FreedomService
         customRanks.putAll(loaded);
         resolveInheritance();
         updateAllPlayerTeams();
+        refreshConsoleBindings();
         FLog.info(String.format("Loaded %d custom ranks from SQL database.", customRanks.size()));
 
         reconcileFromJsonIfNewer(repo);
+    }
+
+    /**
+     * Re-resolve the console whitelist against the rank set that is now in memory.
+     * <p>
+     * The first read happens before this service starts, when no custom ranks are loaded,
+     * so bindings that name one are skipped with a warning. {@code onStart} rereads it
+     * once the JSON ranks are in, but the swap to SQL and the snapshot reconcile both
+     * land later and asynchronously, and until now neither told the registry that the
+     * ranks had changed.
+     */
+    private void refreshConsoleBindings()
+    {
+        if (plugin.csr != null)
+            plugin.csr.load();
     }
 
     private void loadFromJsonOrDefaults()
@@ -321,27 +338,33 @@ public class RankManager extends FreedomService
         }
 
         if (jsonRanks.isEmpty())
+        {
+            writes.enqueue(writeJsonAsync());
             return;
+        }
 
         final long fileModified = ranksFile.lastModified();
 
         writes.enqueue(Mono.fromCallable(() ->
               {
                   final Long sqlUpdatedAt = repo.getMaxUpdatedAt();
-                  return sqlUpdatedAt == null || fileModified > sqlUpdatedAt;
+                  return FUtil.isSnapshotNewer(fileModified, sqlUpdatedAt);
               })
               .subscribeOn(Schedulers.boundedElastic())
               .filter(Boolean::booleanValue)
-              .flatMapMany(ignored ->
+              .flatMap(ignored ->
               {
-                  FLog.info(String.format("%s is newer than the database; rebuilding it from the file's %d rank(s).",
-                                          RANKS_FILENAME, jsonRanks.size()));
-                  return repo.deleteAll()
-                             .thenMany(Flux.fromIterable(jsonRanks.values())
-                                            .concatMap(repo::save));
+                FLog.info(String.format("%s is newer than the database; rebuilding it from the file's %d rank(s).",
+                                        RANKS_FILENAME, jsonRanks.size()));
+                return Flux.fromIterable(jsonRanks.values())
+                           .concatMap(repo::save)
+                           .then(repo.loadAllAsync())
+                           .flatMapMany(existing -> Flux.fromIterable(existing.keySet()))
+                           .filter(id -> !jsonRanks.containsKey(id))
+                           .concatMap(repo::deleteAsync)
+                           .then(Mono.<Void>fromRunnable(() -> plugin.dm.sync("RankManager/applyReconciled",
+                                                         () -> applyReconciledRanks(jsonRanks))));
               })
-              .then(Mono.fromRunnable(() -> plugin.dm.sync("RankManager/applyReconciled",
-                                      () -> applyReconciledRanks(jsonRanks))))
               .onErrorResume(ex ->
               {
                   FLog.warning(String.format("Failed to reconcile %s into the database: %s",
@@ -357,6 +380,7 @@ public class RankManager extends FreedomService
         customRanks.putAll(jsonRanks);
         resolveInheritance();
         updateAllPlayerTeams();
+        refreshConsoleBindings();
     }
 
 

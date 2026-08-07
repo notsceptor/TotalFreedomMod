@@ -286,6 +286,26 @@ public class FUtil
         }
     }
 
+    /**
+     * The resolution at which the databases store timestamps. SQLite and MySQL both keep whole seconds,
+     * so anything finer than this is an artifact of truncation rather than a real difference.
+     */
+    private static final long TIMESTAMP_RESOLUTION_MS = 1000L;
+
+    /**
+     * Whether a JSON snapshot should be treated as newer than the database it mirrors.
+     * <p>
+     * A write-through save writes its row and then its snapshot, so the file is always a few
+     * milliseconds later than the row, and the stored timestamp is truncated to the second on
+     * top of that. Comparing them directly therefore reports "newer" after almost every save,
+     * which would rebuild the whole domain on each startup. Only a gap wider than the storage
+     * resolution means the file was actually edited or restored behind the plugin's back.
+     */
+    public static boolean isSnapshotNewer(final long fileModified, final Long sqlUpdatedAt)
+    {
+        return sqlUpdatedAt == null || fileModified > sqlUpdatedAt + TIMESTAMP_RESOLUTION_MS;
+    }
+
     public static boolean fuzzyIpMatch(String a, String b, int octets)
     {
         boolean match = true;

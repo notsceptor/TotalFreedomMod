@@ -19,6 +19,7 @@ import me.totalfreedom.totalfreedommod.sql.adapter.DiscordLinkRepository;
 public class GenericDiscordLinkRepository implements DiscordLinkRepository
 {
     private final StatementHandler statementHandler;
+    private final DatabaseAdapter adapter;
 
     private final String insertSql;
     private final String selectDiscordIdSql;
@@ -31,6 +32,7 @@ public class GenericDiscordLinkRepository implements DiscordLinkRepository
     public GenericDiscordLinkRepository(StatementHandler statementHandler, DatabaseAdapter adapter)
     {
         this.statementHandler = statementHandler;
+        this.adapter = adapter;
 
         String tblDiscordLinks = adapter.quoteIdentifier("discord_links");
         String colAdminUuid = adapter.quoteIdentifier("admin_uuid");
@@ -111,8 +113,7 @@ public class GenericDiscordLinkRepository implements DiscordLinkRepository
         {
             if (rs.next())
             {
-                Timestamp ts = rs.getTimestamp(1);
-                return ts != null ? ts.getTime() : null;
+                return adapter.readTimestamp(rs, 1);
             }
         }
         return null;

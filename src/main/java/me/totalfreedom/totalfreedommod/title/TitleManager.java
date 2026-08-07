@@ -28,9 +28,7 @@ import me.totalfreedom.totalfreedommod.display.Displayable;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.sql.PersistenceQueue;
 import me.totalfreedom.totalfreedommod.sql.adapter.TitleRepository;
-import me.totalfreedom.totalfreedommod.util.AdventureUtil;
-import me.totalfreedom.totalfreedommod.util.FLog;
-import me.totalfreedom.totalfreedommod.util.JsonUtil;
+import me.totalfreedom.totalfreedommod.util.*;
 
 import com.google.common.collect.Maps;
 import com.google.gson.reflect.TypeToken;
@@ -361,14 +359,17 @@ public class TitleManager extends FreedomService
         }
 
         if (jsonTitles.isEmpty())
+        {
+            writes.enqueue(writeJsonAsync());
             return;
+        }
 
         final long fileModified = titlesFile.lastModified();
 
         writes.enqueue(Mono.fromCallable(() ->
                 {
                     final Long sqlUpdatedAt = repo.getMaxUpdatedAt();
-                    return sqlUpdatedAt == null || fileModified > sqlUpdatedAt;
+                    return FUtil.isSnapshotNewer(fileModified, sqlUpdatedAt);
                 })
                 .subscribeOn(Schedulers.boundedElastic())
                 .filter(Boolean::booleanValue)

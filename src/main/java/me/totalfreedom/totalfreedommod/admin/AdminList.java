@@ -32,6 +32,8 @@ import reactor.core.scheduler.Schedulers;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
+import me.totalfreedom.totalfreedommod.rank.CustomRank;
+import me.totalfreedom.totalfreedommod.rank.RankRole;
 import me.totalfreedom.totalfreedommod.sql.PersistenceQueue;
 import me.totalfreedom.totalfreedommod.sql.adapter.AdminRepository;
 import me.totalfreedom.totalfreedommod.util.FLog;
@@ -686,28 +688,37 @@ public class AdminList extends FreedomService
         }
 
         if (jsonAdmins.isEmpty())
+        {
+            // An empty snapshot described nothing, but SQL may hold rows it should be covering.
+            // Refresh it rather than leaving the fallback with no admins.
+            enqueue(writeJsonAsync(serialiseAdmins()));
             return;
+        }
 
         final long fileModified = configFile.lastModified();
 
         enqueue(Mono.fromCallable(() ->
                 {
                     final Long sqlUpdatedAt = repo.getMaxUpdatedAt();
-                    return sqlUpdatedAt == null || fileModified > sqlUpdatedAt;
+                    return FUtil.isSnapshotNewer(fileModified, sqlUpdatedAt);
                 })
                 .subscribeOn(Schedulers.boundedElastic())
                 .filter(Boolean::booleanValue)
-                .flatMapMany(ignored ->
+                .flatMap(ignored ->
                 {
                     FLog.info(String.format("%s is newer than the database; rebuilding it from the file's %d admin(s).",
-                            CONFIG_FILENAME, jsonAdmins.size()));
-                    return repo.deleteAll()
-                               .thenMany(Flux.fromIterable(jsonAdmins.values())
-                                             .filter(Admin::isValid)
-                                             .concatMap(admin -> repo.save(resolveUuidFor(admin), admin)));
+                                            CONFIG_FILENAME, jsonAdmins.size()));
+                    return Flux.fromIterable(jsonAdmins.values())
+                               .filter(Admin::isValid)
+                               .concatMap(admin -> repo.save(resolveUuidFor(admin), copyAdmin(admin)))
+                               .then(repo.findAll())
+                               .flatMapMany(Flux::fromIterable)
+                               .filter(existing -> existing.getUuid() != null
+                                                   && !jsonAdmins.containsKey(existing.getName().toLowerCase()))
+                               .concatMap(stale -> repo.deleteByUuid(stale.getUuid()))
+                               .then(Mono.<Void>fromRunnable(() -> plugin.dm.sync("AdminList/applyReconciled",
+                                                             () -> applyReconciledAdmins(jsonAdmins))));
                 })
-                .then(Mono.fromRunnable(() -> plugin.dm.sync("AdminList/applyReconciled",
-                        () -> applyReconciledAdmins(jsonAdmins))))
                 .onErrorResume(ex ->
                 {
                     FLog.warning(String.format("Failed to reconcile %s into the database: %s",
@@ -952,12 +963,27 @@ public class AdminList extends FreedomService
         Admin copy = new Admin(admin.getConfigKey());
         copy.setUuid(admin.getUuid());
         copy.setName(admin.getName());
-        copy.setRankId(admin.getRankId());
+        copy.setRankId(effectiveRankId(admin));
         copy.setActive(admin.isActive());
         copy.setLastLogin(admin.getLastLogin() == null ? null : new Date(admin.getLastLogin().getTime()));
         copy.setLoginMessage(admin.getLoginMessage());
         copy.addIps(new ArrayList<>(admin.getIps()));
         return copy;
+    }
+
+    /**
+     * The rank id to store for an admin. An unset id means "whatever fills the default admin role",
+     * which a NOT NULL column cannot express, so the role is resolved to a concrete id at write time.
+     */
+    private String effectiveRankId(final Admin admin)
+    {
+        if (admin.getRankId() != null)
+            return admin.getRankId();
+
+        return plugin.rm.getRegistry()
+                        .byRole(RankRole.ADMIN_DEFAULT)
+                        .map(CustomRank::getId)
+                        .orElse(null);
     }
 
     /**

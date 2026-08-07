@@ -262,8 +262,7 @@ public class GenericRankRepository implements RankRepository
         {
             if (rs.next())
             {
-                Timestamp ts = rs.getTimestamp(1);
-                return ts != null ? ts.getTime() : null;
+                return adapter.readTimestamp(rs, 1);
             }
         }
         return null;
@@ -319,6 +318,7 @@ public class GenericRankRepository implements RankRepository
         return roles == null || roles.isEmpty()
                 ? null
                 : roles.stream()
+                       .filter(Objects::nonNull)
                        .map(RankRole::getId)
                        .collect(Collectors.joining(","));
     }

@@ -193,6 +193,11 @@ public interface BanRepository
     Mono<Boolean> deleteByUuid(UUID uuid);
 
     /**
+     * Delete every ban carrying {@code ip}, off the main thread.
+     */
+    Mono<Boolean> deleteByIpAsync(String ip);
+
+    /**
      * Delete all bans asynchronously.
      */
     Mono<Void> deleteAll();

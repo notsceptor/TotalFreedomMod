@@ -6,6 +6,8 @@ import java.util.UUID;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 
+import me.totalfreedom.totalfreedommod.rank.RankRole;
+
 import com.google.gson.*;
 
 /**
@@ -32,6 +34,10 @@ public final class JsonUtil
                     new JsonPrimitive(AdventureUtil.componentToLegacy(src)))
             .registerTypeAdapter(Component.class, (JsonDeserializer<Component>) (json, type, ctx) ->
                     AdventureUtil.legacyToComponent(json.getAsString()))
+            .registerTypeAdapter(RankRole.class, (JsonSerializer<RankRole>) (src, type, ctx) ->
+                    new JsonPrimitive(src.getId()))
+            .registerTypeAdapter(RankRole.class, (JsonDeserializer<RankRole>) (json, type, ctx) ->
+                    RankRole.fromId(json.getAsString()).orElse(null))
             .create();
 
     private JsonUtil()

@@ -3,6 +3,7 @@ package me.totalfreedom.totalfreedommod;
 import java.io.*;
 import java.lang.reflect.Type;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -30,9 +31,7 @@ import me.totalfreedom.totalfreedommod.ProtectArea.ProtectedRegion.CantFindWorld
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.sql.PersistenceQueue;
 import me.totalfreedom.totalfreedommod.sql.adapter.ProtectedAreaRepository;
-import me.totalfreedom.totalfreedommod.util.FLog;
-import me.totalfreedom.totalfreedommod.util.FTask;
-import me.totalfreedom.totalfreedommod.util.JsonUtil;
+import me.totalfreedom.totalfreedommod.util.*;
 
 import com.google.common.collect.Maps;
 import com.google.gson.reflect.TypeToken;
@@ -188,30 +187,41 @@ public class ProtectArea extends FreedomService
         }
 
         if (jsonAreas.isEmpty())
+        {
+            writes.enqueue(writeJsonAsync());
             return;
+        }
 
         final long fileModified = dataFile.lastModified();
 
         writes.enqueue(Mono.fromCallable(() ->
               {
                   final Long sqlUpdatedAt = repo.getMaxUpdatedAt();
-                  return sqlUpdatedAt == null || fileModified > sqlUpdatedAt;
+                  return FUtil.isSnapshotNewer(fileModified, sqlUpdatedAt);
               })
               .subscribeOn(Schedulers.boundedElastic())
               .filter(Boolean::booleanValue)
-              .flatMapMany(ignored ->
+              .flatMap(ignored ->
               {
-                  FLog.info(String.format("%s is newer than the database; rebuilding it from the file's %d protected area(s).",
-                                          DATA_FILENAME, jsonAreas.size()));
-                  return repo.deleteAll()
-                             .thenMany(Flux.fromIterable(jsonAreas)
-                                           .concatMap(repo::save));
+                FLog.info(String.format("%s is newer than the database; rebuilding it from the file's %d protected area(s).",
+                                        DATA_FILENAME, jsonAreas.size()));
+                final Set<UUID> keep = jsonAreas.stream()
+                                                .map(ProtectedRegion::getUuid)
+                                                .collect(Collectors.toSet());
+                return Flux.fromIterable(jsonAreas)
+                           .concatMap(repo::save)
+                           .then(repo.loadAllAsync())
+                           .flatMapMany(Flux::fromIterable)
+                           .map(ProtectedRegion::getUuid)
+                           .filter(uuid -> !keep.contains(uuid))
+                           .concatMap(repo::deleteAsync)
+                           .then(Mono.<Void>fromRunnable(() -> plugin.dm.sync("ProtectArea/applyReconciled",
+                                                         () ->
+                                                         {
+                                                            areas.clear();
+                                                            jsonAreas.forEach(region -> areas.put(region.getUuid(), region));
+                                                         })));
               })
-              .then(Mono.fromRunnable(() -> plugin.dm.sync("ProtectArea/applyReconciled", () ->
-              {
-                  areas.clear();
-                  jsonAreas.forEach(region -> areas.put(region.getUuid(), region));
-              })))
               .onErrorResume(ex ->
               {
                   FLog.warning(String.format("Failed to reconcile %s into the database: %s",

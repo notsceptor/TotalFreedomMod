@@ -2,6 +2,9 @@ package me.totalfreedom.totalfreedommod.sql.adapter.sqlite;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.Calendar;
+import java.util.TimeZone;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -115,6 +118,20 @@ public class SQLiteAdapter extends DatabaseAdapter
     {
         return "CURRENT_TIMESTAMP";
     }
+
+    /**
+     * SQLite writes CURRENT_TIMESTAMP as UTC text with no zone, which the driver
+     * would otherwise read in the JVM's timezone and place hours away from when
+     * the row was actually written.
+     */
+    @Override
+    public Long readTimestamp(final ResultSet rs, final int index) throws SQLException
+    {
+        final Timestamp ts = rs.getTimestamp(index, Calendar.getInstance(TimeZone.getTimeZone("UTC")));
+
+        return ts != null ? ts.getTime() : null;
+    }
+
 
     @Override
     public String timestampParamPlaceholder()
@@ -267,13 +284,16 @@ public class SQLiteAdapter extends DatabaseAdapter
         statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_ban_ips_ip ON ban_ips(ip)");
     }
 
+    /**
+     * A permban is always keyed by username, ensure it's not null.
+     */
     private void createPermbansTable() throws SQLException
     {
         String sql = """
             CREATE TABLE IF NOT EXISTS permbans (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 uuid TEXT,
-                username TEXT,
+                username TEXT NOT NULL,
                 reason TEXT,
                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             )

@@ -308,10 +308,8 @@ public class PlayerList extends FreedomService
         try
         {
             Long sqlUpdatedAt = repo.getUpdatedAt(username);
-            if (sqlUpdatedAt != null && jsonFile.lastModified() <= sqlUpdatedAt)
-            {
+            if (!FUtil.isSnapshotNewer(jsonFile.lastModified(), sqlUpdatedAt))
                 return;
-            }
 
             PlayerData jsonData = readJsonPlayer(username);
             if (jsonData == null || !jsonData.isValid())

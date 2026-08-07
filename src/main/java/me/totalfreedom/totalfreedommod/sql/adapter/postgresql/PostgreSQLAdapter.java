@@ -120,7 +120,7 @@ public class PostgreSQLAdapter extends DatabaseAdapter
     @Override
     public String caseInsensitiveEquals(String columnRef, String paramPlaceholder)
     {
-        return String.format("%s ILIKE %s", columnRef, paramPlaceholder);
+        return String.format("LOWER(%s) = LOWER(%s)", columnRef, paramPlaceholder);
     }
 
     @Override
@@ -262,7 +262,7 @@ public class PostgreSQLAdapter extends DatabaseAdapter
             CREATE TABLE IF NOT EXISTS "permbans" (
                 "id" SERIAL PRIMARY KEY,
                 "uuid" VARCHAR(36),
-                "username" VARCHAR(16),
+                "username" VARCHAR(16) NOT NULL,
                 "reason" TEXT,
                 "updated_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
