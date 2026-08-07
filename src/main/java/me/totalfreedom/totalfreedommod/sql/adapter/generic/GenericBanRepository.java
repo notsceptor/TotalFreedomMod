@@ -454,15 +454,66 @@ public class GenericBanRepository implements BanRepository
     @Override
     public Mono<Integer> save(Ban ban)
     {
-        return statementHandler.supplyMono(() -> {
-            if (ban.getUuid() != null && getBanId(ban.getUuid()) > 0)
-            {
-                update(ban);
-                return getBanId(ban.getUuid());
-            }
-            return insert(ban);
+        return statementHandler.supplyMono(() -> 
+        {
+            final int existing = findBanId(ban);
+            if (existing <= 0)
+                return insert(ban);
+
+            updateById(existing, ban);
+            syncIps(existing, ban.getIps());
+            return existing;
         });
     }
+
+     private int findBanId(final Ban ban) throws SQLException
+     {
+        if (ban.getUuid() != null)
+            return getBanId(ban.getUuid());
+
+        if (ban.hasUsername())
+            return getBanIdByUsername(ban.getUsername());
+
+        for (final String ip : ban.getIps())
+        {
+            final int id = getBanIdByIp(ip);
+            if (id > 0)
+                return id;
+        }
+
+        return -1;
+     }
+
+     private int getBanIdByIp(final String ip) throws SQLException
+     {
+        String sql = String.format(
+            "SELECT b.%s FROM %s b INNER JOIN %s i ON b.%s = i.%s WHERE i.%s = ? AND b.%s IS NULL AND b.%s IS NULL",
+            colId, tblBans, tblBanIps, colId, colBanId, colIp, colUuid, colUsername);
+
+        try (PreparedStatement stmt = statementHandler.prepareStatement(sql, ip);
+             ResultSet rs = stmt.executeQuery())
+        {
+            if (rs.next())
+                return rs.getInt(1);
+        }
+
+        return -1;
+     }
+
+     private boolean updateById(final int banId, final Ban ban) throws SQLException
+     {
+        String sql = String.format("UPDATE %s SET %s = ?, %s = ?, %s = ?, %s = ?, %s = %s, %s = %s WHERE %s = ?",
+                                   tblBans, colUsername, colBannedBy, colBannedByUuid, colReason, colExpireAt,
+                                   adapter.timestampParamPlaceholder(), colUpdatedAt, adapter.currentTimestamp(), colId);
+
+        return statementHandler.executeUpdate(sql,
+                ban.getUsername(),
+                ban.getBannedBy(),
+                ban.getBannedByUuid() != null ? ban.getBannedByUuid().toString() : null,
+                ban.getReason(),
+                ban.getExpireAt() != null ? FUtil.dateToString(ban.getExpireAt()) : null,
+                banId) > 0;
+     }
 
     @Override
     public Mono<List<Ban>> findAll()

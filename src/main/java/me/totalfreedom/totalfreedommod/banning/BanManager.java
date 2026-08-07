@@ -194,15 +194,8 @@ public class BanManager extends FreedomService
         return repo.loadAllAsync()
                    .flatMapMany(existing ->
                    {
-                    final Set<String> existingIps = existing.stream()
-                                                            .filter(row -> row.getUuid() == null)
-                                                            .flatMap(row -> row.getIps().stream())
-                                                            .collect(Collectors.toSet());
-
                     return Flux.fromIterable(desired)
                                .filter(Ban::isValid)
-                               .filter(ban -> ban.getUuid() != null
-                                              || ban.getIps().stream().noneMatch(existingIps::contains))
                                .concatMap(repo::save)
                                .thenMany(Flux.fromIterable(existing)
                                              .filter(row -> !isKept(row, keepUuids, keepIps))
