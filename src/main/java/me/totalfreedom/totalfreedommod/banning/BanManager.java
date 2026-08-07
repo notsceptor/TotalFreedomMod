@@ -133,7 +133,10 @@ public class BanManager extends FreedomService
         }
 
         if (jsonBans.isEmpty())
+        {
+            enqueue(writeJsonAsync(new ArrayList<>(bans)));
             return;
+        }
 
         final long fileModified = configFile.lastModified();
 

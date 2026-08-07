@@ -359,7 +359,10 @@ public class TitleManager extends FreedomService
         }
 
         if (jsonTitles.isEmpty())
+        {
+            writes.enqueue(writeJsonAsync());
             return;
+        }
 
         final long fileModified = titlesFile.lastModified();
 

@@ -187,7 +187,10 @@ public class ProtectArea extends FreedomService
         }
 
         if (jsonAreas.isEmpty())
+        {
+            writes.enqueue(writeJsonAsync());
             return;
+        }
 
         final long fileModified = dataFile.lastModified();
 

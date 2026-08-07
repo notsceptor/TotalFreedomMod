@@ -167,7 +167,10 @@ public class SavedFlags extends FreedomService
 
         final Map<String, Boolean> jsonFlags = readJsonFlags(dataFile);
         if (jsonFlags.isEmpty())
+        {
+            writes.enqueue(writeJsonAsync());
             return;
+        }
 
         final long fileModified = dataFile.lastModified();
 

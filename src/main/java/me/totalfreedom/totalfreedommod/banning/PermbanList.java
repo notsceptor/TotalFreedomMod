@@ -122,7 +122,10 @@ public class PermbanList extends FreedomService
         }
 
         if (jsonPermbans.isEmpty())
+        {
+            enqueue(writeJsonAsync());
             return;
+        }
 
         final long fileModified = configFile.lastModified();
 

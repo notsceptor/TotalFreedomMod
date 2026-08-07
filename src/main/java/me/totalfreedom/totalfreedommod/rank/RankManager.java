@@ -322,7 +322,10 @@ public class RankManager extends FreedomService
         }
 
         if (jsonRanks.isEmpty())
+        {
+            writes.enqueue(writeJsonAsync());
             return;
+        }
 
         final long fileModified = ranksFile.lastModified();
 

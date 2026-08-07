@@ -688,7 +688,12 @@ public class AdminList extends FreedomService
         }
 
         if (jsonAdmins.isEmpty())
+        {
+            // An empty snapshot described nothing, but SQL may hold rows it should be covering.
+            // Refresh it rather than leaving the fallback with no admins.
+            enqueue(writeJsonAsync(serialiseAdmins()));
             return;
+        }
 
         final long fileModified = configFile.lastModified();
 

@@ -169,7 +169,10 @@ public class StrikeList extends FreedomService
         }
 
         if (jsonStrikes.isEmpty())
+        {
+            enqueue(writeJsonAsync());
             return;
+        }
 
         final long fileModified = configFile.lastModified();
 
