@@ -1,6 +1,7 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
 import java.util.List;
+import java.util.Set;
 
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -117,6 +118,12 @@ public class Command_title extends FCommand
     @Permission(permission = "tfm.manage.titles")
     public void grant(CommandSender sender, Player target, String titleId)
     {
+        if (sender instanceof Player granter && granter.getUniqueId().equals(target.getUniqueId()))
+        {
+            msg(sender, "<red>You cannot grant yourself a title.");
+            return;
+        }
+        
         final Title title = plugin().tm.getTitle(titleId);
 
         if (title == null)
@@ -167,9 +174,20 @@ public class Command_title extends FCommand
     }
 
     @Completer(value = "grant", position = 1)
-    public List<String> completeGrant(CommandSender sender, String partial)
+    public List<String> completeGrant(CommandSender sender, String partial, List<String> priorArgs)
     {
-        return matching(plugin().tm.getTitleIds(), partial);
+        final Player target = server().getPlayerExact(priorArgs.get(0));
+
+        if (target == null)
+            return List.of();
+
+        final Set<String> held = plugin().tm.getHeldTitleIds(target);
+        final List<String> grantable = plugin().tm.getTitleIds()
+                                                  .stream()
+                                                  .filter(id -> !held.contains(id))
+                                                  .toList();
+
+        return matching(grantable, partial);
     }
 
     /**
@@ -177,9 +195,11 @@ public class Command_title extends FCommand
      * be revoked rather than every title that exists.
      */
     @Completer(value = "revoke", position = 1)
-    public List<String> completeRevoke(CommandSender sender, String partial)
+    public List<String> completeRevoke(CommandSender sender, String partial, List<String> priorArgs)
     {
-        return matching(plugin().tm.getTitleIds(), partial);
+        final Player target = server().getPlayerExact(priorArgs.get(0));
+
+        return target == null ? List.of() : matching(plugin().tm.getHeldTitleIds(target), partial);
     }
 
     private static List<String> matching(Iterable<String> candidates, String partial)
