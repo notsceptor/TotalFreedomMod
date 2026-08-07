@@ -120,7 +120,7 @@ public class PostgreSQLAdapter extends DatabaseAdapter
     @Override
     public String caseInsensitiveEquals(String columnRef, String paramPlaceholder)
     {
-        return String.format("%s ILIKE %s", columnRef, paramPlaceholder);
+        return String.format("LOWER(%s) = LOWER(%s)", columnRef, paramPlaceholder);
     }
 
     @Override

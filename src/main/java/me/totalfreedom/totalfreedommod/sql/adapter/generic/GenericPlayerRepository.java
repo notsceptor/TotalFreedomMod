@@ -160,7 +160,8 @@ public class GenericPlayerRepository implements PlayerRepository
     public Optional<PlayerData> findByUsername(String username) throws SQLException
     {
         PlayerData data = null;
-        String sql = String.format("SELECT %s FROM %s WHERE %s = ?", selectColumns, tblPlayers, colUsername);
+        String sql = String.format("SELECT %s FROM %s WHERE %s", selectColumns, tblPlayers,
+                                   adapter.caseInsensitiveEquals(colUsername, "?"));
         try (PreparedStatement stmt = statementHandler.prepareStatement(sql, username);
              ResultSet rs = stmt.executeQuery())
         {
@@ -182,7 +183,8 @@ public class GenericPlayerRepository implements PlayerRepository
     @Override
     public boolean exists(String username) throws SQLException
     {
-        String sql = String.format("SELECT COUNT(*) FROM %s WHERE %s = ?", tblPlayers, colUsername);
+        String sql = String.format("SELECT COUNT (*) FROM %s WHERE %s", tblPlayers,
+                                   adapter.caseInsensitiveEquals(colUsername, "?"));
         try (PreparedStatement stmt = statementHandler.prepareStatement(sql, username);
              ResultSet rs = stmt.executeQuery())
         {
@@ -194,7 +196,8 @@ public class GenericPlayerRepository implements PlayerRepository
     public List<String> getIps(String username) throws SQLException
     {
         List<String> ips = new ArrayList<>();
-        String sql = String.format("SELECT %s FROM %s WHERE %s = ? ORDER BY %s ASC", colIp, tblPlayerIps, colPlayerUsername, colId);
+        String sql = String.format("SELECT %s FROM %s WHERE %s ORDER BY %s ASC", colIp, tblPlayerIps,
+                                   adapter.caseInsensitiveEquals(colPlayerUsername, "?"), colId);
         try (PreparedStatement stmt = statementHandler.prepareStatement(sql, username);
              ResultSet rs = stmt.executeQuery())
         {
@@ -231,7 +234,8 @@ public class GenericPlayerRepository implements PlayerRepository
                 data.getUsername());
 
         statementHandler.executeUpdate(
-                String.format("UPDATE %s SET %s = ? WHERE %s = ?", tblPlayers, colNickname, colUsername),
+                String.format("UPDATE %s SET %s = ? WHERE %s", tblPlayers, colNickname,
+                              adapter.caseInsensitiveEquals(colPlayerUsername, "?")),
                 serializeNickname(data), data.getUsername());
 
         return rows > 0;
@@ -240,7 +244,8 @@ public class GenericPlayerRepository implements PlayerRepository
     @Override
     public void syncIps(String username, List<String> ips) throws SQLException
     {
-        statementHandler.executeUpdate(String.format("DELETE FROM %s WHERE %s = ?", tblPlayerIps, colPlayerUsername), username);
+        statementHandler.executeUpdate(String.format("DELETE FROM %s WHERE %s", tblPlayerIps,
+                                                     adapter.caseInsensitiveEquals(colPlayerUsername, "?")), username);
         insertIps(username, ips);
     }
 
@@ -261,7 +266,8 @@ public class GenericPlayerRepository implements PlayerRepository
     @Override
     public boolean delete(String username) throws SQLException
     {
-        String sql = String.format("DELETE FROM %s WHERE %s = ?", tblPlayers, colUsername);
+        String sql = String.format("DELETE FROM %s WHERE %s", tblPlayers,
+                                   adapter.caseInsensitiveEquals(colUsername, "?"));
         return statementHandler.executeUpdate(sql, username) > 0;
     }
 
@@ -275,7 +281,8 @@ public class GenericPlayerRepository implements PlayerRepository
     @Override
     public Long getUpdatedAt(String username) throws SQLException
     {
-        String sql = String.format("SELECT %s FROM %s WHERE %s = ?", colUpdatedAt, tblPlayers, colUsername);
+        String sql = String.format("SELECT %s FROM %s WHERE %s", colUpdatedAt, tblPlayers,
+                                   adapter.caseInsensitiveEquals(colUsername, "?"));
         try (PreparedStatement stmt = statementHandler.prepareStatement(sql, username);
              ResultSet rs = stmt.executeQuery())
         {
