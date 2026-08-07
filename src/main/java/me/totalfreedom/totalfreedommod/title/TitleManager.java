@@ -73,6 +73,7 @@ public class TitleManager extends FreedomService
     protected void onStart()
     {
         loadTitles();
+        plugin.dm.whenReady(this::loadTitles);
     }
 
     @Override
@@ -373,16 +374,16 @@ public class TitleManager extends FreedomService
                 })
                 .subscribeOn(Schedulers.boundedElastic())
                 .filter(Boolean::booleanValue)
-                .flatMapMany(ignored ->
+                .flatMap(ignored ->
                 {
                     FLog.info(String.format("%s is newer than the database; rebuilding it from the file's %d title(s).",
-                            TITLES_FILENAME, jsonTitles.size()));
+                                            TITLES_FILENAME, jsonTitles.size()));
                     return repo.deleteAll()
                                .thenMany(Flux.fromIterable(jsonTitles.values())
-                                             .concatMap(repo::save));
+                                             .concatMap(repo::save))
+                               .then(Mono.<Void>fromRunnable(() -> plugin.dm.sync("TitleManager/applyReconciled",
+                                                             () -> applyReconciledTitles(jsonTitles))));
                 })
-                .then(Mono.fromRunnable(() -> plugin.dm.sync("TitleManager/applyReconciled",
-                        () -> applyReconciledTitles(jsonTitles))))
                 .onErrorResume(ex ->
                 {
                     FLog.warning(String.format("Failed to reconcile %s into the database: %s",
