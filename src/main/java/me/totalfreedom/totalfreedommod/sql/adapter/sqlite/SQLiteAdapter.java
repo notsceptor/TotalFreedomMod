@@ -284,13 +284,16 @@ public class SQLiteAdapter extends DatabaseAdapter
         statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_ban_ips_ip ON ban_ips(ip)");
     }
 
+    /**
+     * A permban is always keyed by username, ensure it's not null.
+     */
     private void createPermbansTable() throws SQLException
     {
         String sql = """
             CREATE TABLE IF NOT EXISTS permbans (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 uuid TEXT,
-                username TEXT,
+                username TEXT NOT NULL,
                 reason TEXT,
                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
