@@ -1399,6 +1399,73 @@ public class ItemValidator extends FreedomService
         recordDetection(v, "dispense at " + FUtil.formatLocation(event.getBlock().getLocation()));
     }
 
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onCursedEntityDataUse(PlayerInteractEvent event)
+    {
+        if (!enabled())
+        {
+            return;
+        }
+        final Action action = event.getAction();
+        if (action != Action.RIGHT_CLICK_AIR && action != Action.RIGHT_CLICK_BLOCK)
+        {
+            return;
+        }
+        final ItemStack item = event.getItem();
+        // Only entity/bucket data can carry a spoofed entity id
+        if (item == null || !RawNbtInspector.hasEntityOrBucketData(item))
+        {
+            return;
+        }
+        final ItemScanner.Verdict verdict = scanWithBudget(item, CLICK_SCAN_BUDGET_NANOS);
+        if (!verdict.isCursed())
+        {
+            return;
+        }
+        event.setCancelled(true);
+        clearHand(event.getPlayer(), event.getHand());
+        recordDetection(verdict, "use by " + event.getPlayer().getName());
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onCursedEntityDataUseOnEntity(PlayerInteractEntityEvent event)
+    {
+        if (!enabled())
+        {
+            return;
+        }
+        final Player player = event.getPlayer();
+        final EquipmentSlot hand = event.getHand();
+        final ItemStack item = hand == EquipmentSlot.OFF_HAND
+                               ? player.getInventory().getItemInOffHand()
+                               : player.getInventory().getItemInMainHand();
+        if (item == null || !RawNbtInspector.hasEntityOrBucketData(item))
+        {
+            return;
+        }
+        final ItemScanner.Verdict verdict = scanWithBudget(item, CLICK_SCAN_BUDGET_NANOS);
+        if (!verdict.isCursed())
+        {
+            return;
+        }
+        event.setCancelled(true);
+        clearHand(player, hand);
+        recordDetection(verdict, "use-on-entity by " + player.getName());
+    }
+
+    private void clearHand(Player player, EquipmentSlot hand)
+    {
+        if (hand == EquipmentSlot.OFF_HAND)
+        {
+            player.getInventory().setItemInOffHand(null);
+        }
+        else
+        {
+            player.getInventory().setItemInMainHand(null);
+        }
+        player.updateInventory();
+        FUtil.playerMsg(player, "A cursed item was removed.", NamedTextColor.RED);
+    }
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onSpoofedOwnerInteract(PlayerInteractEvent event)
