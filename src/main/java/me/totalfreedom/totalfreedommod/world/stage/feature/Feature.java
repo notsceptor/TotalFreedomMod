@@ -20,17 +20,4 @@ import me.totalfreedom.totalfreedommod.world.profile.FeatureDetail;
 public interface Feature<D extends FeatureDetail>
 {
     void place(ChunkContext context, LimitedRegion region, D detail, int x, int y, int z);
-
-    /**
-     * Interpolates between two points. Written the precise way, {@code from*(1-t) + to*t}, so that
-     * a progress of exactly 1 returns exactly {@code to}. The shorter {@code from + t*(to-from)}
-     * rounds twice and can miss the far endpoint by an ulp.
-     * <p>
-     * Nothing today loops far enough to reach 1, but this is shared, and the next feature to use it
-     * should not have to loop a particular way to stay correct.
-     */
-    default double lerp(final double progress, final double from, final double to)
-    {
-        return from * (1.0D - progress) + to * progress;
-    }
 }
