@@ -5,6 +5,7 @@ import java.util.Random;
 import org.bukkit.Material;
 import org.bukkit.generator.LimitedRegion;
 
+import me.totalfreedom.totalfreedommod.util.FUtil;
 import me.totalfreedom.totalfreedommod.world.base.ChunkContext;
 import me.totalfreedom.totalfreedommod.world.profile.FeatureDetail;
 
@@ -48,9 +49,9 @@ public final class OreFeature implements Feature<FeatureDetail.Ore>
         {
             final double progress = step / (double) size;
 
-            final double centreX = lerp(progress, fromX, toX);
-            final double centreY = lerp(progress, fromY, toY);
-            final double centreZ = lerp(progress, fromZ, toZ);
+            final double centreX = FUtil.lerp(progress, fromX, toX);
+            final double centreY = FUtil.lerp(progress, fromY, toY);
+            final double centreZ = FUtil.lerp(progress, fromZ, toZ);
 
             // Swells to its widest halfway along and tapers back at both ends, so the vein has
             // pointed tips instead of blunt ones. The +1 keeps the thinnest step at least a block.
