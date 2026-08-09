@@ -21,7 +21,7 @@ public interface Carver
      * <p>
      * Reading the context's terrain height is fine, and tightening the threshold as you get near it
      * blends cave mouths into the hillside. Do not read the column top, though; that is worked out
-     * by calling this method, so you will deadlock.
+     * by calling this method, so you will recurse into yourself until the stack overflows.
      */
     boolean isCarved(ChunkContext context, int worldX, int y, int worldZ);
 
