@@ -35,7 +35,7 @@ public final class DensityGenerator implements Generator
     }
 
     @Override
-    public int surfaceHeight(final ChunkContext context, final int worldX, final int worldZ)
+    public int surfaceHeight(final int worldX, final int worldZ)
     {
 
     }
