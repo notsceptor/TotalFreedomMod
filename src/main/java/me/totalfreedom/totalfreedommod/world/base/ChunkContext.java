@@ -124,7 +124,7 @@ public final class ChunkContext
         final Generator generator = this.stages.generator();
 
         IntStream.range(0, 256)
-                 .forEach(i -> heights[i] = generator.surfaceHeight(this, this.worldX(i & 0xF), this.worldZ(i >> 4)));
+                 .forEach(i -> heights[i] = generator.surfaceHeight(this.worldX(i & 0xF), this.worldZ(i >> 4)));
 
         return heights;
     }

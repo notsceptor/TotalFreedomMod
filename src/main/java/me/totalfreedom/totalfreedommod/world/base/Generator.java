@@ -25,10 +25,12 @@ public interface Generator
     void generateBase(ChunkContext context, ChunkGenerator.ChunkData data);
 
     /**
-     * Terrain height at a world position, before carving. Pure, no chunk access.
+     * Terrain height at a world position, before carving. Pure, no chunk access, and no context: the
+     * spawn finder calls this at world creation, before any chunk exists to build one from.
      * <p>
-     * Backs getBaseHeight, the spawn finder, and the context's column heights. Must agree with what
+     * Backs getBaseHeight, the spawn finder, and the context's own column heights, which is why an
+     * implementation must not read those back through a context. Must agree with what
      * {@link #generateBase} writes or spawn lands in mid-air.
      */
-    int surfaceHeight(ChunkContext context, int worldX, int worldZ);
+    int surfaceHeight(int worldX, int worldZ);
 }
