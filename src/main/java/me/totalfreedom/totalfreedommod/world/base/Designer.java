@@ -21,7 +21,10 @@ public interface Designer
     void surface(ChunkContext context, ChunkGenerator.ChunkData data);
 
     /**
-     * Writes the bedrock floor, and a roof if the world wants one. Runs under generateBedrock.
+     * Writes the bedrock layer. Runs under generateBedrock.
+     * <p>
+     * How much to write comes from the profile's bedrock mode: a floor, a floor and a roof, or
+     * nothing at all for a world made of floating islands.
      * <p>
      * The {@link Carver} runs after this and will happily eat bedrock, so keep its
      * {@link Carver#minY()} above this layer.

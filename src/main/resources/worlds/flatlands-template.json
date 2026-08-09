@@ -1,0 +1,31 @@
+{
+  "shape": {
+    "mode": "flat",
+    "bounds": { "minY": 0, "maxY": 320 },
+    "layers": "1|bedrock|59|stone|3|dirt|1|grass_block"
+  },
+
+  "palette": {
+    "materials": {
+      "defaultBlock": "stone",
+      "fluidBlock": "water",
+      "bedrockBlock": "bedrock",
+      "bedrock": "FLOOR"
+    }
+  },
+
+  "features": [],
+
+  "world": {
+    "environment": "normal",
+    "generateStructures": false,
+    "keepSpawnLoaded": false,
+    "vanilla": {
+      "surface": false,
+      "caves": false,
+      "decorations": false,
+      "mobs": false,
+      "structures": false
+    }
+  }
+}

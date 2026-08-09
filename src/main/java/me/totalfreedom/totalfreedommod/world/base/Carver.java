@@ -29,8 +29,8 @@ public interface Carver
      * Lowest y this carver touches, inclusive. Read once per chunk and checked outside the block
      * loop, so a deep carver costs nothing in the columns above it. Must be constant.
      * <p>
-     * Return {@link Integer#MAX_VALUE} here and {@link Integer#MIN_VALUE} from {@link #maxY()} for
-     * a no-op carver.
+     * A world with no caves has no carver at all, so there is never a reason to report a range that
+     * cannot match.
      */
     int minY();
 
