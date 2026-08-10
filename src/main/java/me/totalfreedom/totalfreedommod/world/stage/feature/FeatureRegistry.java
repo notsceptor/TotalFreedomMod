@@ -19,6 +19,7 @@ public final class FeatureRegistry
     private final LakeFeature lake = new LakeFeature();
     private final BoulderFeature boulder = new BoulderFeature();
     private final TreeFeature tree = new TreeFeature();
+    private final NaturalTreeFeature naturalTree = new NaturalTreeFeature();
 
     public void place(final ChunkContext context,
                       final LimitedRegion region,
@@ -34,6 +35,7 @@ public final class FeatureRegistry
             case FeatureDetail.Lake d -> this.lake.place(context, region, d, x, y, z);
             case FeatureDetail.Boulder d -> this.boulder.place(context, region, d, x, y, z);
             case FeatureDetail.Tree d -> this.tree.place(context, region, d, x, y, z);
+            case FeatureDetail.NaturalTree d -> this.naturalTree.place(context, region, d, x, y, z);
         }
     }
 }

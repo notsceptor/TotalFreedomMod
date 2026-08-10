@@ -1,23 +1,14 @@
 package me.totalfreedom.totalfreedommod.world.stage.feature;
 
-import java.security.InvalidParameterException;
-import java.util.HashMap;
-import java.util.Map;
-
 import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.Tag;
-import org.bukkit.TreeType;
-import org.bukkit.block.BlockType;
 import org.bukkit.generator.LimitedRegion;
 
 import me.totalfreedom.totalfreedommod.world.base.ChunkContext;
 import me.totalfreedom.totalfreedommod.world.profile.FeatureDetail;
-import me.totalfreedom.totalfreedommod.world.profile.FeatureSpec;
 
 /**
- * Grows a tree. The spec's block names the sapling, and the sapling picks the species, so
- * oak_sapling grows an oak and spruce_sapling grows a spruce.
+ * Grows one exact tree species, regardless of the biome it lands in. Use {@link NaturalTreeFeature}
+ * instead for a biome-appropriate mix.
  * <p>
  * Hands off to LimitedRegion#generateTree, which knows every vanilla tree shape and handles the
  * canopy crossing a chunk border.
@@ -32,5 +23,6 @@ public final class TreeFeature implements Feature<FeatureDetail.Tree>
                       final int y,
                       final int z)
     {
+        region.generateTree(new Location(null, x, y, z), context.getRandom(), detail.type());
     }
 }

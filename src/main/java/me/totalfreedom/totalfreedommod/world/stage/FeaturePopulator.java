@@ -3,19 +3,20 @@ package me.totalfreedom.totalfreedommod.world.stage;
 import java.util.List;
 import java.util.Random;
 
-import org.bukkit.block.Biome;
 import org.bukkit.generator.LimitedRegion;
 
 import me.totalfreedom.totalfreedommod.world.base.ChunkContext;
 import me.totalfreedom.totalfreedommod.world.base.Populator;
 import me.totalfreedom.totalfreedommod.world.profile.Anchor;
 import me.totalfreedom.totalfreedommod.world.profile.FeatureSpec;
-import me.totalfreedom.totalfreedommod.world.profile.Palette;
 import me.totalfreedom.totalfreedommod.world.stage.feature.FeatureRegistry;
 
 /**
  * Rolls each feature in the profile against the chunk and hands off the hits. This only decides
  * what gets placed and where; the features do the placing.
+ * <p>
+ * TODO: roll() must resolve each column's band via {@code palette().resolveBand()}. A column whose
+ * band has its own {@code features()} list should roll only that list, not this.specs.
  */
 public final class FeaturePopulator implements Populator
 {
@@ -48,7 +49,7 @@ public final class FeaturePopulator implements Populator
             final int worldX = context.worldX(localX);
             final int worldZ = context.worldZ(localZ);
 
-            if (!spec.appliesTo(this.biomeAt(context, worldX, worldZ)))
+            if (!spec.appliesTo(context.getProfile().palette().resolveBiome(worldX, worldZ)))
                 continue;
 
             final int y = spec.detail().anchor() == Anchor.SURFACE
@@ -60,26 +61,5 @@ public final class FeaturePopulator implements Populator
 
             this.registry.place(context, data, spec.detail(), worldX, y, worldZ);
         }
-    }
-
-    /**
-     * Same temperature/humidity lookup {@link me.totalfreedom.totalfreedommod.world.adapter.ProfileBiomeProvider}
-     * uses. Duplicated rather than shared, since that class does not expose it as a static helper.
-     */
-    private Biome biomeAt(final ChunkContext context, final int worldX, final int worldZ)
-    {
-        final Palette palette = context.getProfile().palette();
-        final Palette.Climate climate = palette.climate();
-        final int sampleX = (int) (worldX * climate.scale());
-        final int sampleZ = (int) (worldZ * climate.scale());
-        final double temperature = climate.temperature().sample(sampleX, sampleZ);
-        final double humidity = climate.humidity().sample(sampleX, sampleZ);
-
-        return palette.biomes()
-                      .stream()
-                      .filter(band -> band.matches(temperature, humidity))
-                      .findFirst()
-                      .map(Palette.BiomeBand::biome)
-                      .orElse(palette.fallback());
     }
 }

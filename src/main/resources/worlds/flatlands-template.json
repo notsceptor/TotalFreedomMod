@@ -11,7 +11,16 @@
       "fluidBlock": "water",
       "bedrockBlock": "bedrock",
       "bedrock": "FLOOR"
-    }
+    },
+    "surface": [
+      { "depthFrom": 0, "block": "grass_block" }
+    ],
+    "climate": {
+      "temperature": { "type": "simplex", "octaves": 1, "frequency": 0.001, "persistence": 0.5, "lacunarity": 2.0, "ridged": false },
+      "humidity":    { "type": "simplex", "octaves": 1, "frequency": 0.001, "persistence": 0.5, "lacunarity": 2.0, "ridged": false },
+      "scale": 1.0
+    },
+    "fallback": "plains"
   },
 
   "features": [],
