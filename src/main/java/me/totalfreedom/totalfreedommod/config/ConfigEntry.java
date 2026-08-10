@@ -108,7 +108,6 @@ public enum ConfigEntry
     //
     LANDMINES_ENABLED(Boolean.class, "landmines_enabled"),
     TOSSMOB_ENABLED(Boolean.class, "tossmob_enabled"),
-    AUTOKICK_ENABLED(Boolean.class, "autokick.enabled"),
     MP44_ENABLED(Boolean.class, "mp44_enabled"),
     JUMPPAD_MODE(String.class, "jumppad.mode"),
     //
@@ -220,9 +219,6 @@ public enum ConfigEntry
     AUTOEJECT_STRIKE_ONE_TIMEOUT(Integer.class, "autoeject.strike_one.timeout"),
     AUTOEJECT_STRIKE_TWO_TIMEOUT(Integer.class, "autoeject.strike_two.timeout"),
     AUTOEJECT_STRIKE_THREE_TIMEOUT(Integer.class, "autoeject.strike_three.timeout"),
-    //
-    AUTOKICK_THRESHOLD(Double.class, "autokick.threshold"),
-    AUTOKICK_TIME(Integer.class, "autokick.time"),
     //
     AUTO_OP_ENABLED(Boolean.class, "auto_op.enabled"),
     AUTO_OP_PERSISTENT_MONITOR(Boolean.class, "auto_op.persistent_monitor"),
