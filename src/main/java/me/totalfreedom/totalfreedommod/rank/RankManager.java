@@ -84,7 +84,7 @@ public class RankManager extends FreedomService
     /**
      * File for storing custom ranks.
      */
-    private File ranksFile;
+    private File ranksFile = new File(plugin.getDataFolder(), RANKS_FILENAME);
 
     private final PersistenceQueue writes = new PersistenceQueue("rank");
 
@@ -158,8 +158,6 @@ public class RankManager extends FreedomService
      */
     public void loadRanks()
     {
-        ranksFile = new File(plugin.getDataFolder(), RANKS_FILENAME);
-
         if (plugin.dm != null && plugin.dm.isInitialized())
         {
             loadFromSqlAsync();
@@ -429,9 +427,6 @@ public class RankManager extends FreedomService
 
     private void writeJson(final Map<String, CustomRank> snapshot)
     {
-        if (ranksFile == null)
-            ranksFile = new File(plugin.getDataFolder(), RANKS_FILENAME);
-
         try (FileWriter writer = new FileWriter(ranksFile))
         {
             JsonUtil.GSON.toJson(snapshot, RANK_MAP_TYPE, writer);
