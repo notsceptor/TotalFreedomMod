@@ -57,11 +57,6 @@ public class Cager extends FreedomService
     @EventHandler
     public void onPlayerMove(PlayerMoveEvent event)
     {
-        if (!event.hasChangedPosition())
-        {
-            return;
-        }
-
         FPlayer player = plugin.pl.getPlayer(event.getPlayer());
         CageData cage = player.getCageData();
 

@@ -455,9 +455,6 @@ autoeject:
 freecam_trigger_count: 10
 explosive_radius: 4.0
 
-# Show all attempted commands in the log, will result in duplicate log messages
-preprocess_log: true
-
 # Disable certain events
 disable:
   night: true
@@ -874,16 +871,6 @@ ssh:
 
   # Port used by the one-time QR code setup page served by /sshtotp.
   qr_port: 8765
-
-# Inactivity Auto-Kick (Requires Essentials)
-autokick:
-  enabled: true
-
-  # Percentage of server player capacity used at which players will be automatically kicked for being inactive. Range: 0.0 - 1.0
-  threshold: 0.9
-
-  # Time, in seconds, after which a player should be kicked when inactive
-  time: 120
 
 # Auto-Op - Automatically op players who join without op
 auto_op:
