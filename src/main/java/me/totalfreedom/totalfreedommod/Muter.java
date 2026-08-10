@@ -113,14 +113,6 @@ public class Muter extends FreedomService
         {
             player.sendMessage(Component.text("That command is blocked while you are muted.", NamedTextColor.RED));
             event.setCancelled(true);
-            return;
-        }
-
-        // TODO: Should this go here?
-        if (ConfigEntry.ENABLE_PREPROCESS_LOG.getBoolean())
-        {
-            FLog.info(String.format("[PREPROCESS_COMMAND] %s(%s): %s", player.getName(), AdventureUtil.stripColor(player.displayName().toString()), message), true);
         }
     }
-
 }
