@@ -59,6 +59,11 @@ public class PlayerList extends FreedomService
 
     public File getConfigFolder()
     {
+        if (!configFolder.exists())
+        {
+            configFolder.mkdirs();
+        }
+
         return configFolder;
     }
 
@@ -124,6 +129,7 @@ public class PlayerList extends FreedomService
                 {
                     FLog.severe(String.format("Could not save player data for %s to SQL: %s",
                             data.getUsername(), ex.getMessage()));
+                    FLog.severe(ex);
                     return Mono.empty();
                 })
                 .then(writeJsonAsync(data)));
@@ -145,6 +151,7 @@ public class PlayerList extends FreedomService
         catch (IOException ex)
         {
             FLog.severe("Could not save player data for " + data.getUsername());
+            FLog.severe(ex);
         }
     }
 
