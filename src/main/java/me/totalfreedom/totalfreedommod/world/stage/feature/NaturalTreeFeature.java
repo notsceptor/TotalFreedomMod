@@ -15,9 +15,12 @@ import me.totalfreedom.totalfreedommod.world.base.ChunkContext;
 import me.totalfreedom.totalfreedommod.world.profile.FeatureDetail;
 
 /**
- * Grows whichever tree the placement site's actual biome would naturally produce, weighted the way
- * vanilla mixes them; nine spruce to one tall spruce in a taiga, mostly oak with a scattering of
- * birch in a forest, and so on.
+ * Grows whichever tree the placement site's actual biome would naturally produce, weighted to
+ * approximate the vanilla mix for that biome; nine spruce to one tall spruce in a taiga, mostly oak
+ * with a scattering of birch in a forest, and so on. "Approximate" is doing real work in that
+ * sentence though: the table below is hand-tuned against Bukkit's {@link TreeType} set, not pulled
+ * from Mojang's actual configured feature system, and nobody's checked it species-for-species
+ * against a specific game version.
  * <p>
  * Reads the biome from the region rather than the feature spec's own biome filter, since a spec can
  * span several biomes with different mixes.

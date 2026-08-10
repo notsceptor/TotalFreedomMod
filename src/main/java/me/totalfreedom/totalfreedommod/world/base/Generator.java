@@ -17,8 +17,9 @@ public interface Generator
      * Writes the chunk. Runs under generateNoise.
      * <p>
      * ChunkData takes local x/z (0-15) and absolute y. Use setRegion for runs of the same block up
-     * a column, and sample noise on a grid and interpolate between the samples; a chunk is 98,304
-     * blocks, so sampling every one of them is not an option.
+     * a column, and sample noise on a grid and interpolate between the samples; a chunk can hold
+     * hundreds of thousands of block positions depending on the world's own bounds, so sampling
+     * every one of them is not an option.
      * <p>
      * Off the main thread. Only the context's WorldInfo is safe to touch, never World or entities.
      */

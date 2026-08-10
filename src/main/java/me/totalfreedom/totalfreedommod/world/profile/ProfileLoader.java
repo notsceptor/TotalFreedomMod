@@ -16,9 +16,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
@@ -35,12 +37,19 @@ import me.totalfreedom.totalfreedommod.util.FLog;
  * <p>
  * Only reads and parses JSON, so it is safe off the main thread. Turning that JSON into a profile
  * is {@link ProfileParser}, which is not.
+ * <p>
+ * Every world name passed in is checked against {@link #VALID_WORLD_NAME} before it touches a
+ * {@link File}, so nothing here trusts a caller to have already constrained it. A world name with a
+ * path separator or ".." would otherwise be able to read or write outside the worlds directory.
  */
 public final class ProfileLoader
 {
     private static final String WORLDS_DIRECTORY = "worlds";
     private static final String BIOMES_DIRECTORY = "biomes";
     private static final String JSON_EXTENSION = ".json";
+
+    /** No path separators or "..", so a world name can never resolve outside {@link #directory}. */
+    private static final Pattern VALID_WORLD_NAME = Pattern.compile("[A-Za-z0-9_-]+");
 
     private final TotalFreedomMod plugin;
     private final File directory;
@@ -62,10 +71,15 @@ public final class ProfileLoader
     /**
      * One world's raw JSON, off disk. Empty if it has no file, which is not an error.
      *
-     * @throws ProfileException if the file exists but is not readable JSON
+     * @throws ProfileException         if the file exists but is not readable JSON
+     * @throws IllegalArgumentException if worldName is not a valid world name; callers taking a
+     *                                  world name from an admin or a command must validate it
+     *                                  before it reaches here, since this is the boundary that
+     *                                  decides which file on disk gets touched
      */
     public Optional<JsonObject> read(final String worldName) throws ProfileException
     {
+        requireValidWorldName(worldName);
         final File file = new File(this.directory, worldName + JSON_EXTENSION);
 
         if (!file.isFile())
@@ -113,9 +127,11 @@ public final class ProfileLoader
      *
      * @param templateName one of {@link #templates()}
      * @param worldName    the world to create, which becomes the file name
+     * @throws IllegalArgumentException if worldName is not a valid world name
      */
     public boolean copyTemplate(final String templateName, final String worldName)
     {
+        requireValidWorldName(worldName);
         final File target = new File(this.directory, worldName + JSON_EXTENSION);
 
         if (target.exists())
@@ -139,6 +155,13 @@ public final class ProfileLoader
         }
     }
 
+    /** @throws IllegalArgumentException if worldName contains anything but letters, digits, underscores, or hyphens */
+    private static void requireValidWorldName(final String worldName)
+    {
+        if (worldName == null || !VALID_WORLD_NAME.matcher(worldName).matches())
+            throw new IllegalArgumentException("invalid world name \"" + worldName + "\"");
+    }
+
     /** Direct .json children of a data-folder directory, extension stripped. Never recurses. */
     private static Set<String> namesOf(final File directory)
     {
@@ -158,9 +181,14 @@ public final class ProfileLoader
     {
         try (final Reader reader = new FileReader(file))
         {
-            return JsonParser.parseReader(reader).getAsJsonObject();
+            final JsonElement root = JsonParser.parseReader(reader);
+
+            if (!root.isJsonObject())
+                throw new ProfileException(path, List.of(new ProfileError(path, "expected an object")));
+
+            return root.getAsJsonObject();
         }
-        catch (final IOException | JsonSyntaxException | IllegalStateException ex)
+        catch (final IOException | JsonSyntaxException ex)
         {
             throw new ProfileException(path, List.of(new ProfileError(path, ex.getMessage())));
         }

@@ -3,7 +3,7 @@ package me.totalfreedom.totalfreedommod.world.profile;
 import java.util.Optional;
 
 /**
- * A world's vertical limits and water line. Clamped against WorldInfo when the profile parses.
+ * A world's configured vertical limits and water line.
  * <p>
  * An empty seaLevel means the world has no sea at all, which is what the end and flat worlds want.
  * There is no "sea level 0 means off" rule to remember.

@@ -10,6 +10,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
 import org.bukkit.Material;
@@ -36,8 +37,11 @@ import me.totalfreedom.totalfreedommod.world.noise.NoiseType;
  * Collect every problem before giving up, so one run of the server tells an admin everything wrong
  * with the file. Stopping at the first error means fixing typos one server restart at a time.
  * <p>
- * Main thread only, since block and biome names are looked up here. Reading the file is not, so do
- * that first and hand the parsed JSON in.
+ * Treated as main thread only, though honestly that's more a project convention than a real API
+ * requirement; {@link Material#valueOf} and {@link Biome#valueOf} are just enum lookups and don't
+ * actually need the main thread. Keeping every Bukkit-facing lookup on one thread just means nobody
+ * has to double check that assumption later as this file grows. Reading the file itself is not
+ * bound the same way, so do that first and hand in the parsed JSON.
  * <p>
  * A {@link FeatureSpec}'s own {@code "type"} key is the variant discriminator, so no
  * {@link FeatureDetail} variant's fields may reuse that name.
@@ -118,7 +122,7 @@ public final class ProfileParser
 
         final Optional<Shape> shape = switch (mode.get().toLowerCase(Locale.ROOT))
         {
-            case "flat" -> parseFlatShape(node.get(), path, errors);
+            case "flat" -> parseFlatShape(node.get(), path, errors, bounds.get());
             case "heightmap" -> parseHeightmapShape(node.get(), path, errors);
             case "density" -> parseDensityShape(node.get(), path, errors);
             default ->
@@ -156,7 +160,8 @@ public final class ProfileParser
         }
     }
 
-    private static Optional<Shape> parseFlatShape(final JsonObject shapeNode, final String path, final List<ProfileError> errors)
+    private static Optional<Shape> parseFlatShape(final JsonObject shapeNode, final String path, final List<ProfileError> errors,
+                                                   final Bounds bounds)
     {
         final Optional<String> spec = requireString(shapeNode, "layers", path, errors);
         if (spec.isEmpty())
@@ -164,7 +169,17 @@ public final class ProfileParser
 
         try
         {
-            return Optional.of(new Shape.Flat(LayerStack.parse(spec.get())));
+            final LayerStack layers = LayerStack.parse(spec.get());
+            final int available = bounds.maxY() - bounds.minY();
+
+            if (layers.totalHeight() > available)
+            {
+                errors.add(new ProfileError(childPath(path, "layers"), "total layer height (" + layers.totalHeight()
+                    + ") exceeds the world's own bounds (" + available + " blocks, Y=" + bounds.minY() + " to Y=" + bounds.maxY() + ")"));
+                return Optional.empty();
+            }
+
+            return Optional.of(new Shape.Flat(layers));
         }
         catch (final IllegalArgumentException ex)
         {
@@ -185,8 +200,9 @@ public final class ProfileParser
         final Optional<Shape.Caves> caves = hasCaves ? parseCaves(shapeNode, path, errors) : Optional.empty();
 
         final boolean hasRegions = hasKey(shapeNode, "regions");
-        final Optional<Shape.Regions<Shape.Terrain>> regions =
-            parseRegions(shapeNode, path, errors, (node, p) -> parseShapeTerrain(node, p, errors));
+        final Optional<Shape.Regions<Shape.Terrain>> regions = hasRegions
+            ? parseRegions(shapeNode, path, errors, (node, p) -> parseShapeTerrain(node, p, errors))
+            : Optional.empty();
 
         if (terrain.isEmpty() || (hasRiver && river.isEmpty()) || (hasCaves && caves.isEmpty()) || (hasRegions && regions.isEmpty()))
             return Optional.empty();
@@ -203,8 +219,9 @@ public final class ProfileParser
         final Optional<Shape.Caves> caves = hasCaves ? parseCaves(shapeNode, path, errors) : Optional.empty();
 
         final boolean hasRegions = hasKey(shapeNode, "regions");
-        final Optional<Shape.Regions<Shape.DensityLayer>> regions =
-            parseRegions(shapeNode, path, errors, (node, p) -> parseDensityLayer(node, p, errors));
+        final Optional<Shape.Regions<Shape.DensityLayer>> regions = hasRegions
+            ? parseRegions(shapeNode, path, errors, (node, p) -> parseDensityLayer(node, p, errors))
+            : Optional.empty();
 
         if (terrain.isEmpty() || (hasCaves && caves.isEmpty()) || (hasRegions && regions.isEmpty()))
             return Optional.empty();
@@ -353,7 +370,15 @@ public final class ProfileParser
         if (!valid[0])
             return Optional.empty();
 
-        return Optional.of(new Shape.Regions<>(selector.get(), blendWidth.get(), regions));
+        try
+        {
+            return Optional.of(new Shape.Regions<>(selector.get(), blendWidth.get(), regions));
+        }
+        catch (final IllegalArgumentException ex)
+        {
+            errors.add(new ProfileError(path, ex.getMessage()));
+            return Optional.empty();
+        }
     }
 
     private static Optional<NoiseProfile> parseNoiseProfile(final JsonObject node, final String path, final List<ProfileError> errors)
@@ -368,7 +393,15 @@ public final class ProfileParser
         if (type.isEmpty() || octaves.isEmpty() || frequency.isEmpty() || persistence.isEmpty() || lacunarity.isEmpty() || ridged.isEmpty())
             return Optional.empty();
 
-        return Optional.of(new NoiseProfile(type.get(), octaves.get(), frequency.get(), persistence.get(), lacunarity.get(), ridged.get()));
+        try
+        {
+            return Optional.of(new NoiseProfile(type.get(), octaves.get(), frequency.get(), persistence.get(), lacunarity.get(), ridged.get()));
+        }
+        catch (final IllegalArgumentException ex)
+        {
+            errors.add(new ProfileError(path, ex.getMessage()));
+            return Optional.empty();
+        }
     }
 
     private static Optional<Spline> parseSpline(final JsonObject node, final String path, final List<ProfileError> errors)
@@ -482,10 +515,18 @@ public final class ProfileParser
         if (temperature.isEmpty() || humidity.isEmpty() || scale.isEmpty())
             return Optional.empty();
 
-        final NoiseField temperatureField = NoiseField.of(temperature.get(), seed, "climate-temperature");
-        final NoiseField humidityField = NoiseField.of(humidity.get(), seed, "climate-humidity");
+        try
+        {
+            final NoiseField temperatureField = NoiseField.of(temperature.get(), seed, "climate-temperature");
+            final NoiseField humidityField = NoiseField.of(humidity.get(), seed, "climate-humidity");
 
-        return Optional.of(new Palette.Climate(temperatureField, humidityField, scale.get()));
+            return Optional.of(new Palette.Climate(temperatureField, humidityField, scale.get()));
+        }
+        catch (final IllegalArgumentException ex)
+        {
+            errors.add(new ProfileError(path, ex.getMessage()));
+            return Optional.empty();
+        }
     }
 
     private static List<Palette.BiomeBand> parseBiomeBands(final JsonArray array, final String path, final List<ProfileError> errors,
@@ -744,25 +785,33 @@ public final class ProfileParser
             {
                 final Optional<BlockData> block = requireBlock(node, "block", path, errors);
                 final Optional<Integer> size = requireInt(node, "size", path, errors);
-                yield (block.isEmpty() || size.isEmpty()) ? Optional.empty() : Optional.of(new FeatureDetail.Ore(block.get(), size.get()));
+                yield (block.isEmpty() || size.isEmpty())
+                    ? Optional.empty()
+                    : buildDetail(path, errors, () -> new FeatureDetail.Ore(block.get(), size.get()));
             }
             case "patch" ->
             {
                 final Optional<BlockData> block = requireBlock(node, "block", path, errors);
                 final Optional<Integer> spread = requireInt(node, "size", path, errors);
-                yield (block.isEmpty() || spread.isEmpty()) ? Optional.empty() : Optional.of(new FeatureDetail.Patch(block.get(), spread.get()));
+                yield (block.isEmpty() || spread.isEmpty())
+                    ? Optional.empty()
+                    : buildDetail(path, errors, () -> new FeatureDetail.Patch(block.get(), spread.get()));
             }
             case "lake" ->
             {
                 final Optional<BlockData> fluid = requireBlock(node, "block", path, errors);
                 final Optional<Integer> radius = requireInt(node, "size", path, errors);
-                yield (fluid.isEmpty() || radius.isEmpty()) ? Optional.empty() : Optional.of(new FeatureDetail.Lake(fluid.get(), radius.get()));
+                yield (fluid.isEmpty() || radius.isEmpty())
+                    ? Optional.empty()
+                    : buildDetail(path, errors, () -> new FeatureDetail.Lake(fluid.get(), radius.get()));
             }
             case "boulder" ->
             {
                 final Optional<BlockData> block = requireBlock(node, "block", path, errors);
                 final Optional<Integer> radius = requireInt(node, "size", path, errors);
-                yield (block.isEmpty() || radius.isEmpty()) ? Optional.empty() : Optional.of(new FeatureDetail.Boulder(block.get(), radius.get()));
+                yield (block.isEmpty() || radius.isEmpty())
+                    ? Optional.empty()
+                    : buildDetail(path, errors, () -> new FeatureDetail.Boulder(block.get(), radius.get()));
             }
             case "tree" ->
             {
@@ -780,6 +829,21 @@ public final class ProfileParser
                 yield Optional.empty();
             }
         };
+    }
+
+    /** Runs a feature detail's constructor, turning the IllegalArgumentException its validation may throw into a ProfileError. */
+    private static Optional<FeatureDetail> buildDetail(final String path, final List<ProfileError> errors,
+                                                        final Supplier<FeatureDetail> constructor)
+    {
+        try
+        {
+            return Optional.of(constructor.get());
+        }
+        catch (final IllegalArgumentException ex)
+        {
+            errors.add(new ProfileError(path, ex.getMessage()));
+            return Optional.empty();
+        }
     }
 
     private static Optional<WorldSettings> parseWorldSettings(final JsonObject root, final List<ProfileError> errors)

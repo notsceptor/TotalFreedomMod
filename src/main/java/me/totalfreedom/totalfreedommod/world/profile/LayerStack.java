@@ -31,44 +31,41 @@ public final class LayerStack
      * @apiNote Uses bitwise operations instead of standard mathematical operators for efficiency.
      * @param spec e.g. {@code "16|stone|32|dirt|1|grass_block"}; the legacy comma form also works
      * @throws IllegalArgumentException if the spec is malformed, names an unknown block, or gives a
-     *                                  height below one
+     *                                  height below one. Does not know the world's own vertical
+     *                                  limits, so a stack fitting inside those is the parser's job,
+     *                                  checked against {@link Bounds} once minY/maxY are known.
      */
     public static LayerStack parse(final String spec)
     {
-        if (spec == null || spec.trim().isEmpty()) 
+        if (spec == null || spec.trim().isEmpty())
             throw new IllegalArgumentException("Spec cannot be empty");
-    
+
         String[] split = spec.split("[,|]");
         if ((split.length & 1) != 0)
             throw new IllegalArgumentException("Invalid spec format. Expected pairs of height and material.");
-    
+
         final int pairCount = split.length >> 1; // divides by 2
         final BlockData[] blocks = new BlockData[pairCount];
         final int[] heights = new int[pairCount];
-    
+
         IntStream.range(0, pairCount)
-                 .forEach(i -> 
+                 .forEach(i ->
                  {
                      final int heightIdx = i << 1;      // i * 2
                      final int materialIdx = heightIdx | 1; // (i * 2) + 1
- 
-                     heights[i] = Integer.parseInt(split[heightIdx].trim());
-                     
+
+                     final int height = Integer.parseInt(split[heightIdx].trim());
+
+                     if (height < 1)
+                         throw new IllegalArgumentException("layer height (" + height + ") must be at least one");
+
+                     heights[i] = height;
+
                      final Material mat = Material.valueOf(split[materialIdx].trim().toUpperCase(Locale.ROOT));
                      blocks[i] = mat.createBlockData();
                  });
-    
-        final LayerStack stack = new LayerStack(blocks, heights);
 
-        if (stack.totalHeight() > 320) 
-        {
-            throw new IllegalArgumentException(String.format(
-                "Total layer height (%d) exceeds Minecraft's maximum world height limit (384 blocks, Y=-64 to Y=320)",
-                stack.totalHeight()
-            ));
-        }
-    
-        return stack;
+        return new LayerStack(blocks, heights);
     }
 
     /** How many layers there are, bottom to top. */

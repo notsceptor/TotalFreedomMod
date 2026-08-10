@@ -7,7 +7,9 @@ package me.totalfreedom.totalfreedommod.world.noise;
  * here. The seed comes from the field's role name mixed with the world seed when the profile
  * parses.
  *
- * @throws IllegalArgumentException if octaves is below one, or frequency is not positive
+ * @throws IllegalArgumentException if octaves is below one or above {@value #MAX_OCTAVES}, if
+ *                                   frequency is not positive and finite, or if persistence or
+ *                                   lacunarity is not finite
  */
 public record NoiseProfile(NoiseType type,
                            int octaves,
@@ -16,8 +18,21 @@ public record NoiseProfile(NoiseType type,
                            double lacunarity,
                            boolean ridged)
 {
+    /** Above this, an OctaveGenerator's own per-octave cost stops being worth what it buys. */
+    private static final int MAX_OCTAVES = 16;
+
     public NoiseProfile
     {
+        if (octaves < 1 || octaves > MAX_OCTAVES)
+            throw new IllegalArgumentException("octaves (" + octaves + ") must fall within 1 to " + MAX_OCTAVES);
 
+        if (!(frequency > 0.0D) || Double.isInfinite(frequency))
+            throw new IllegalArgumentException("frequency (" + frequency + ") must be positive and finite");
+
+        if (!Double.isFinite(persistence))
+            throw new IllegalArgumentException("persistence (" + persistence + ") must be finite");
+
+        if (!Double.isFinite(lacunarity))
+            throw new IllegalArgumentException("lacunarity (" + lacunarity + ") must be finite");
     }
 }

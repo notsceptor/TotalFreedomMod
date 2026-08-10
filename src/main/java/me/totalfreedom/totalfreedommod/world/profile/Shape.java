@@ -115,11 +115,16 @@ public sealed interface Shape
      * Wherever the selector's value matches no listed region, the enclosing {@link Heightmap} or
      * {@link Density}'s own terrain field applies instead. Same fallback idiom as a palette's biome
      * bands plus its fallback biome; there is no separate "implicit region" to reason about.
+     *
+     * @throws IllegalArgumentException if blendWidth is negative
      */
     record Regions<T>(NoiseProfile selector, double blendWidth, List<Region<T>> regions)
     {
         public Regions
         {
+            if (blendWidth < 0.0D)
+                throw new IllegalArgumentException("blendWidth (" + blendWidth + ") must not be negative");
+
             regions = List.copyOf(regions);
         }
     }

@@ -3,17 +3,11 @@ package me.totalfreedom.totalfreedommod.util;
 import java.util.function.Supplier;
 
 /**
- * A value that gets worked out the first time you ask for it, then cached.
+ * Lazily computes a value once and safely publishes it to concurrent callers. {@code null} is a
+ * valid cached result.
  * <p>
- * Wrap the expensive part in a supplier and hand it over; nothing runs until the first
- * {@link #get()}. Every call after that hands back the same value, and the supplier is never run
- * again, including when it returned null.
- * <p>
- * Safe to share between threads. Do not call {@link #get()} from inside the supplier though.
- * {@code synchronized} is reentrant on the thread already holding it, so this will not deadlock;
- * instead the supplier calls itself, {@code initialized} is still false each time, and it recurses
- * until the stack overflows, all while holding the monitor and blocking every other thread's call
- * to {@link #get()} for as long as that takes.
+ * The supplier must not call {@link #get()} on this same instance; that recurses instead of
+ * deadlocking, since the lock is reentrant.
  *
  * @param <T> the type being worked out
  */

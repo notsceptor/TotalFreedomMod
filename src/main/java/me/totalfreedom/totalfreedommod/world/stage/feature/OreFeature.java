@@ -16,9 +16,12 @@ import me.totalfreedom.totalfreedommod.world.profile.FeatureDetail;
  * its stretched, slightly lumpy shape. The line is randomly angled on the horizontal, so veins do
  * not all run the same way.
  * <p>
- * Replaces the profile's own filler block and nothing else. That is why an ore entry works in the
- * nether without being told about netherrack: the generator only ever writes the filler, so
- * matching against it is the same as asking "is this untouched stone".
+ * Only replaces blocks matching {@code palette.materials().defaultBlock()}, nothing else. That is
+ * why an ore entry works in the nether without being told about netherrack: the generator writes
+ * the filler there instead of stone. Don't read too much into "filler" though; it's not the same as
+ * "untouched terrain". Whatever a surface rule, a river, or an earlier feature already swapped out no
+ * longer matches, so ore skips it same as anything else that isn't filler. Ends up leaning away from
+ * ground generation has already touched, which is usually what you'd want anyway.
  */
 public final class OreFeature implements Feature<FeatureDetail.Ore>
 {

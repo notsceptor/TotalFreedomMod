@@ -69,6 +69,11 @@ public final class ChunkContext
     /**
      * Highest solid block for a local column, after carving. Differs from the terrain height
      * wherever a cave broke the surface, so this is the one the {@link Designer} wants.
+     * <p>
+     * Starts at {@link #terrainHeight} and walks down while the carver keeps saying that y is
+     * carved. That only works if terrain height really is the highest solid block in the column,
+     * which holds for heightmap generation but is just an approximation for density, where an
+     * overhang sitting above the nominal surface would slip past this entirely.
      */
     public int columnTop(final int localX, final int localZ)
     {

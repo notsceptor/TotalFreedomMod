@@ -14,6 +14,11 @@ import me.totalfreedom.totalfreedommod.world.base.Generator;
  * Loads no chunks, since that function is pure maths, which is what lets it check hundreds of
  * candidates in the time a single chunk load would take. The cleanroom generator it replaces loaded
  * chunk (0, 0) on the main thread during world creation just to find one column.
+ * <p>
+ * The height it reads is the designer's terrain, before caves or any other carving runs, since
+ * carving only happens per chunk and this deliberately loads none. So if a carver would've hollowed
+ * out the column it picked, that never gets factored in, meaning a cave or overhang could end up
+ * right under the chosen spawn.
  */
 public final class SpawnFinder
 {
@@ -93,7 +98,7 @@ public final class SpawnFinder
         return Optional.empty();
     }
 
-    /** A column qualifies if its ground sits above the water line and below the world's ceiling. */
+    /** A column qualifies if its pre-carving ground sits above the water line and below the world's ceiling. */
     private Optional<Location> candidate(final World world, final int x, final int z, final int floor)
     {
         final int height = this.generator.surfaceHeight(x, z);
