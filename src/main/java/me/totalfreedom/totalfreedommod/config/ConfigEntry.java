@@ -102,7 +102,6 @@ public enum ConfigEntry
     DISABLE_ENTITY_SPAM(Boolean.class, "disable.entity_spam"),
     DISABLE_ENTITY_SPAM_MAX(Integer.class, "disable.entity_spam_max"),
     //
-    ENABLE_PREPROCESS_LOG(Boolean.class, "preprocess_log"),
     ENABLE_PET_PROTECT(Boolean.class, "petprotect.enabled"),
     BLOCK_SPECTATOR_TELEPORT(Boolean.class, "block_spectator_teleport"),
     //

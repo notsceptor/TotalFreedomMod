@@ -455,9 +455,6 @@ autoeject:
 freecam_trigger_count: 10
 explosive_radius: 4.0
 
-# Show all attempted commands in the log, will result in duplicate log messages
-preprocess_log: true
-
 # Disable certain events
 disable:
   night: true
