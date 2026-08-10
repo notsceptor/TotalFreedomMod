@@ -41,7 +41,13 @@ public final class ProfileChunkGenerator extends ChunkGenerator
         this.stages = wire(profile);
     }
 
-    /** Picks the stages for a profile's shape. The one place that switch is written. */
+    /**
+     * Picks the stages for a profile's shape. The one place that switch is written.
+     * <p>
+     * TODO: build each region's {@code NoiseField} via {@code NoiseField.of(noise, seed, role)}, with
+     * a distinct role string per region plus one for the selector. Reusing a role collapses two
+     * fields onto the same random stream.
+     */
     private static Stages wire(final GenerationProfile profile)
     {
 

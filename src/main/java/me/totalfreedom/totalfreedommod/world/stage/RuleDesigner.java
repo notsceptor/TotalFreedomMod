@@ -12,6 +12,10 @@ import me.totalfreedom.totalfreedommod.world.profile.SurfaceRule;
 /**
  * Applies the profile's surface rules. Walks each column down from the context's column top with a
  * depth counter that resets on air gaps, so cave floors get their own treatment.
+ * <p>
+ * TODO: surface() must resolve each column's band via {@code palette().resolveBand()}, not just its
+ * display biome, and use a {@code Logical} band's own {@code surface()} list when it has one.
+ * Everything else falls through to this.rules.
  */
 public final class RuleDesigner implements Designer
 {

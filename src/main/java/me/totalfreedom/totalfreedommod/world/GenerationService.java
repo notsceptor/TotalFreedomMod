@@ -67,7 +67,12 @@ public final class GenerationService extends FreedomService
 
     }
 
-    /** Re-reads every profile file. Already-loaded worlds keep the profile they were built with. */
+    /**
+     * Re-reads every profile file. Already-loaded worlds keep the profile they were built with.
+     * <p>
+     * TODO: call {@code this.loader.biomeLibrary()} once per reload and reuse the result for every
+     * {@code this.parser.parse(...)} call, not once per world.
+     */
     public void reload()
     {
 

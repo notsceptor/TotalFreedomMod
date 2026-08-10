@@ -71,5 +71,22 @@ public sealed interface FeatureDetail
         }
     }
 
+    /**
+     * A tree grown as its biome's vanilla mix would choose it, rather than one type named exactly.
+     * Resolved against the actual biome at the placement site, not the entry's own biome filter,
+     * since a wide filter can still span several distinct mixes. A biome with no natural tree cover
+     * at all (desert, ocean, badlands) is simply skipped, not defaulted to oak.
+     * <p>
+     * Use {@link Tree} instead to force one species regardless of the biome it lands in.
+     */
+    record NaturalTree() implements FeatureDetail
+    {
+        @Override
+        public Anchor anchor()
+        {
+            return Anchor.SURFACE;
+        }
+    }
+
     Anchor anchor();
 }

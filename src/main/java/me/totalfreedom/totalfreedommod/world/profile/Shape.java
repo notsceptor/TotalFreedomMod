@@ -1,5 +1,6 @@
 package me.totalfreedom.totalfreedommod.world.profile;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.bukkit.block.data.BlockData;
@@ -23,22 +24,39 @@ public sealed interface Shape
     {
     }
 
-    /** 2D height through a spline. No overhangs. */
+    /**
+     * 2D height through a spline. No overhangs.
+     * <p>
+     * regions, when present, lets different parts of the world use different terrain instead of one
+     * spline everywhere; see {@link Regions}.
+     */
     record Heightmap(Terrain terrain,
                      Optional<River> river,
-                     Optional<Caves> caves) implements Shape
+                     Optional<Caves> caves,
+                     Optional<Regions<Terrain>> regions) implements Shape
     {
     }
 
-    /** 3D density. Overhangs and floating islands, at roughly fifty times the samples. */
+    /**
+     * 3D density. Overhangs and floating islands, at roughly fifty times the samples.
+     * <p>
+     * regions, when present, lets different parts of the world use different density noise instead
+     * of one field everywhere; see {@link Regions}.
+     */
     record Density(NoiseProfile noise,
                    double warp,
-                   Optional<Caves> caves) implements Shape
+                   Optional<Caves> caves,
+                   Optional<Regions<DensityLayer>> regions) implements Shape
     {
     }
 
     /** warp offsets the sample coordinates by a second noise. */
     record Terrain(NoiseProfile noise, Spline spline, double warp)
+    {
+    }
+
+    /** A density mode region's own noise. warp offsets the sample coordinates, same as {@link Terrain}. */
+    record DensityLayer(NoiseProfile noise, double warp)
     {
     }
 
@@ -60,6 +78,49 @@ public sealed interface Shape
         {
             if (minY > maxY)
                 throw new IllegalArgumentException("minY (" + minY + ") must not be above maxY (" + maxY + ")");
+        }
+    }
+
+    /**
+     * One named region: the slice of the selector noise it claims, and the terrain it uses there.
+     * <p>
+     * First matching region in the enclosing list wins, same idiom as {@link Palette.BiomeBand} and
+     * {@link SurfaceRule}. name only has to be unique within that list; it exists so an admin
+     * authoring a profile can tell regions apart in an error message, not for anything to reference.
+     *
+     * @throws IllegalArgumentException if min is above max
+     */
+    record Region<T>(String name, double min, double max, T terrain)
+    {
+        public Region
+        {
+            if (min > max)
+                throw new IllegalArgumentException("min (" + min + ") must not be above max (" + max + ")");
+        }
+
+        public boolean matches(final double value)
+        {
+            return value >= this.min && value <= this.max;
+        }
+    }
+
+    /**
+     * A coarse selector noise plus the ordered regions it can pick between, for worlds that want
+     * different terrain in different places rather than one spline or one density field everywhere.
+     * <p>
+     * blendWidth is how far either side of a region boundary, in the selector's own -1 to 1 units,
+     * two neighbouring regions' terrain gets blended together, so borders read as a gradient rather
+     * than a hard seam.
+     * <p>
+     * Wherever the selector's value matches no listed region, the enclosing {@link Heightmap} or
+     * {@link Density}'s own terrain field applies instead. Same fallback idiom as a palette's biome
+     * bands plus its fallback biome; there is no separate "implicit region" to reason about.
+     */
+    record Regions<T>(NoiseProfile selector, double blendWidth, List<Region<T>> regions)
+    {
+        public Regions
+        {
+            regions = List.copyOf(regions);
         }
     }
 }

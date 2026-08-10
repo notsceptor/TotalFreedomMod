@@ -1,6 +1,7 @@
 package me.totalfreedom.totalfreedommod.world.profile;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.bukkit.block.Biome;
 
@@ -28,6 +29,25 @@ public record Palette(Materials materials,
         biomes = List.copyOf(biomes);
     }
 
+    /**
+     * Samples this palette's climate at a world position and returns the band it lands in, if any.
+     * <p>
+     * The one place every consumer that needs a position's biome should call through, rather than
+     * each re-deriving its own temperature/humidity lookup.
+     */
+    public Optional<BiomeBand> resolveBand(final int worldX, final int worldZ)
+    {
+        throw new UnsupportedOperationException("not yet implemented");
+    }
+
+    /** Convenience over {@link #resolveBand}: the matched band's display biome, or this palette's fallback. */
+    public Biome resolveBiome(final int worldX, final int worldZ)
+    {
+        return this.resolveBand(worldX, worldZ)
+                   .map(band -> band.target().display())
+                   .orElse(this.fallback);
+    }
+
     /** The two noise fields a position is scored against to land it in a band. */
     public record Climate(NoiseField temperature, NoiseField humidity, double scale)
     {
@@ -36,10 +56,13 @@ public record Palette(Materials materials,
     /**
      * One biome table entry. First band containing both values wins, and anything no band covers
      * gets the palette's fallback.
+     * <p>
+     * target is either a plain vanilla biome or a TFM-only one; see {@link BiomeTarget}. Whichever it
+     * is, {@link BiomeTarget#display()} is what the client and the biome provider see.
      *
      * @throws IllegalArgumentException if either range is inverted or falls outside -1 to 1
      */
-    public record BiomeBand(Biome biome,
+    public record BiomeBand(BiomeTarget target,
                             double minTemperature,
                             double maxTemperature,
                             double minHumidity,
