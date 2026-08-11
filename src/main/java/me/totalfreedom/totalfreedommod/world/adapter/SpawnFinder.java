@@ -18,7 +18,7 @@ import me.totalfreedom.totalfreedommod.world.base.Generator;
  * The height it reads is the designer's terrain, before caves or any other carving runs, since
  * carving only happens per chunk and this deliberately loads none. So if a carver would've hollowed
  * out the column it picked, that never gets factored in, meaning a cave or overhang could end up
- * right under the chosen spawn.
+ * right under/over the chosen spawn.
  */
 public final class SpawnFinder
 {

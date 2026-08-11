@@ -12,6 +12,7 @@ import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.generator.WorldInfo;
 
 import me.totalfreedom.totalfreedommod.world.GenerationProfile;
+import me.totalfreedom.totalfreedommod.world.base.Generator;
 import me.totalfreedom.totalfreedommod.world.base.Stages;
 import me.totalfreedom.totalfreedommod.world.profile.Shape;
 
@@ -39,6 +40,12 @@ public final class ProfileChunkGenerator extends ChunkGenerator
     {
         this.profile = profile;
         this.stages = wire(profile);
+    }
+
+    /** The wired terrain generator, for callers that need heights or spawn candidates outside a chunk callback. */
+    public Generator generator()
+    {
+        return this.stages.generator();
     }
 
     /**

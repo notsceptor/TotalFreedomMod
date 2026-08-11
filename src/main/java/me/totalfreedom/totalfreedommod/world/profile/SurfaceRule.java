@@ -12,6 +12,6 @@ public record SurfaceRule(BiomeFilter biomes, Depth depth, BlockData block)
 {
     public boolean matches(final Biome biome, final int depth)
     {
-        
+        return depth().contains(depth) && biomes.matches(biome);        
     }
 }

@@ -4,6 +4,7 @@ import org.bukkit.generator.ChunkGenerator;
 
 import me.totalfreedom.totalfreedommod.world.base.ChunkContext;
 import me.totalfreedom.totalfreedommod.world.base.Designer;
+import me.totalfreedom.totalfreedommod.world.profile.BedrockMode;
 import me.totalfreedom.totalfreedommod.world.profile.LayerStack;
 import me.totalfreedom.totalfreedommod.world.profile.Materials;
 
@@ -13,24 +14,30 @@ import me.totalfreedom.totalfreedommod.world.profile.Materials;
  */
 public final class LayerDesigner implements Designer
 {
-    private final LayerStack layers;
     private final Materials materials;
 
     public LayerDesigner(final LayerStack layers, final Materials materials)
     {
-        this.layers = layers;
+        // layers is unneeded
         this.materials = materials;
     }
 
     @Override
     public void surface(final ChunkContext context, final ChunkGenerator.ChunkData data)
     {
-
+        // no-op
     }
 
     @Override
     public void bedrock(final ChunkContext context, final ChunkGenerator.ChunkData data)
     {
+        int meny = context.getProfile().bounds().minY();
+        int man = context.getProfile().bounds().maxY();
 
+        data.setRegion(0, meny, 0, 16, meny + 1, 16, materials.bedrockBlock());
+
+        if (this.materials.bedrock() == BedrockMode.FLOOR_AND_ROOF)
+            data.setRegion(0, man, 0, 16, man - 1, 16, materials.bedrockBlock());
     }
+
 }

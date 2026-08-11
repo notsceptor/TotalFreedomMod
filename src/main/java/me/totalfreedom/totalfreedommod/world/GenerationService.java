@@ -1,14 +1,29 @@
 package me.totalfreedom.totalfreedommod.world;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.Reader;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.bukkit.Bukkit;
 import org.bukkit.generator.ChunkGenerator;
+
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.stream.JsonReader;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.totalfreedommod.util.FLog;
+import me.totalfreedom.totalfreedommod.world.adapter.ProfileChunkGenerator;
+import me.totalfreedom.totalfreedommod.world.profile.ProfileException;
 import me.totalfreedom.totalfreedommod.world.profile.ProfileLoader;
 import me.totalfreedom.totalfreedommod.world.profile.ProfileParser;
 
@@ -25,6 +40,8 @@ import me.totalfreedom.totalfreedommod.world.profile.ProfileParser;
  */
 public final class GenerationService extends FreedomService
 {
+    private static final String JSON_ENDING = ".json";
+
     private final ProfileLoader loader;
     private final ProfileParser parser;
     private final Map<String, GenerationProfile> profiles;
@@ -41,6 +58,22 @@ public final class GenerationService extends FreedomService
     @Override
     protected void onStart()
     {
+        final Map<String, JsonObject> biomeLibrary;
+
+        try 
+        {
+            biomeLibrary = this.loader.biomeLibrary();
+        }
+        catch (final ProfileException ex)
+        {
+            FLog.severe("Failed to load biome library: " + ExceptionUtils.getRootCauseMessage(ex));
+            Bukkit.getPluginManager().disablePlugin(plugin); // we don't want to load TFM because no worlds can be loaded.
+            return;
+        }
+
+        this.loader
+            .available()
+            .forEach(name -> this.loadProfile(name, biomeLibrary));
 
     }
 
@@ -52,29 +85,57 @@ public final class GenerationService extends FreedomService
 
     public Optional<GenerationProfile> profile(final String worldName)
     {
-
+        return Optional.ofNullable(profiles.get(worldName));
     }
 
     /** Empty if no profile covers the world, or if its file failed to parse. */
     public Optional<ChunkGenerator> generatorFor(final String worldName)
     {
-
+        return profile(worldName).map(p -> new ProfileChunkGenerator(p));
     }
 
     /** Only worlds whose profiles parsed. A file that failed does not appear here. */
     public Set<String> available()
     {
-
+        return profiles.keySet();
     }
 
-    /**
-     * Re-reads every profile file. Already-loaded worlds keep the profile they were built with.
-     * <p>
-     * TODO: call {@code this.loader.biomeLibrary()} once per reload and reuse the result for every
-     * {@code this.parser.parse(...)} call, not once per world.
-     */
     public void reload()
     {
+        final Map<String, JsonObject> biomeLibrary;
 
+        try
+        {
+            biomeLibrary = this.loader.biomeLibrary();
+        }
+        catch (final ProfileException ex)
+        {
+            FLog.warning("Failed to reload biome library: " + ExceptionUtils.getRootCauseMessage(ex)); 
+            // we don't want to disable the plugin here because this executes assuming worlds have already loaded.
+            return;
+        }
+
+        this.loader
+            .available()
+            .stream()
+            .filter(name -> !this.profiles.containsKey(name))
+            .forEach(name -> this.loadProfile(name, biomeLibrary));
+    }
+
+    private void loadProfile(final String worldName, final Map<String, JsonObject> biomeLibrary)
+    {
+        try
+        {
+            final Optional<JsonObject> jsonRoot = this.loader.read(worldName);
+
+            if (jsonRoot.isEmpty())
+                return;
+
+            this.profiles.put(worldName, parser.parse(worldName, jsonRoot.get(), biomeLibrary));
+        }
+        catch (final ProfileException ex)
+        {
+            FLog.warning(String.format("Failed to parse json object for %s: \n%s", worldName, ExceptionUtils.getRootCauseMessage(ex)));
+        }
     }
 }
