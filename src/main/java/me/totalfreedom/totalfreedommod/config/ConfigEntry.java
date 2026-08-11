@@ -78,7 +78,6 @@ public enum ConfigEntry
     DISCORD_PLAYER_WARN_MESSAGE(String.class, "discord.messages.warn"),
     DISCORD_PLAYER_SMITE_MESSAGE(String.class, "discord.messages.smite"),
     DISCORD_SAY_MESSAGE(String.class, "discord.messages.say"),
-
     //
     SERVER_COLORFUL_MOTD(Boolean.class, "server.colorful_motd"),
     SERVER_NAME(String.class, "server.name"),
@@ -88,6 +87,8 @@ public enum ConfigEntry
     SERVER_WEB_URL(String.class, "server.web_url"),
     SERVER_BAN_URL(String.class, "server.ban_url"),
     SERVER_PERMBAN_URL(String.class, "server.permban_url"),
+    SERVER_PLAYER_JOIN_MESSAGE(String.class, "server.messages.player_join"),
+    SERVER_PLAYER_LEAVE_MESSAGE(String.class, "server.messages.player_leave"),
     //
     ADMINLIST_CLEAN_THESHOLD_HOURS(Integer.class, "adminlist.clean_threshold_hours"),
     ADMINLIST_MOJANG_UUID_LOOKUP(Boolean.class, "adminlist.mojang_uuid_lookup"),
