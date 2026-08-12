@@ -26,6 +26,11 @@ server:
   # URL players should appeal for permanent bans at
   permban_url: https://tfreedom.org/appeal/
 
+  # Messages that are posted in the ingame chat only
+  messages:
+    player_join: '<gray><italic><player> has joined the game.</italic></gray>'
+    player_leave: '<gray><italic><player> has left the game.</italic></gray>'
+
   # Usernames granted the "owner" custom rank on join (case-sensitive).
   owners:
     - markbyron

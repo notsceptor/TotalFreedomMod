@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod;
 
+import me.totalfreedom.totalfreedommod.config.ConfigEntry;
+import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -35,7 +37,7 @@ public class JoinLeaveMessages extends FreedomService
     {
         final Player player = event.getPlayer();
         event.joinMessage(null);
-        broadcast(player, "<gray><italic><player> has joined the game.</italic></gray>");
+        broadcast(player, ConfigEntry.SERVER_PLAYER_JOIN_MESSAGE.getString());
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -43,7 +45,7 @@ public class JoinLeaveMessages extends FreedomService
     {
         final Player player = event.getPlayer();
         event.quitMessage(null);
-        broadcast(player, "<gray><italic><player> has left the game.</italic></gray>");
+        broadcast(player, ConfigEntry.SERVER_PLAYER_LEAVE_MESSAGE.getString());
     }
 
     /**
@@ -64,7 +66,7 @@ public class JoinLeaveMessages extends FreedomService
     private void broadcast(final Player subject, final String miniMessage)
     {
         final boolean subjectIsAdmin = isAdminOrDeveloper(subject);
-        final Component message = MessageUtils.parse(miniMessage, Placeholder.unparsed("player", subject.getName()));
+        final Component message = AdventureUtil.formatWithPlaceholders(miniMessage, Placeholder.unparsed("player", subject.getName()));
 
         for (final Player viewer : server.getOnlinePlayers())
         {
