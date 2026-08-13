@@ -1,12 +1,14 @@
 package me.totalfreedom.totalfreedommod.world.adapter;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 import org.bukkit.block.Biome;
 import org.bukkit.generator.BiomeProvider;
 import org.bukkit.generator.WorldInfo;
 
 import me.totalfreedom.totalfreedommod.world.GenerationProfile;
+import me.totalfreedom.totalfreedommod.world.profile.Palette;
 
 /**
  * Samples the profile's temperature and humidity noise and drops the result into a biome band.
@@ -27,22 +29,23 @@ public final class ProfileBiomeProvider extends BiomeProvider
         this.profile = profile;
     }
 
-    /** TODO: {@code return this.profile.palette().resolveBiome(x, z); } once resolveBand is implemented. */
     @Override
     public Biome getBiome(final WorldInfo worldInfo, final int x, final int y, final int z)
     {
-
+        return this.profile.palette().resolveBiome(x, z);
     }
 
-    /**
-     * Must list every biome getBiome can return, or the server rejects the provider.
-     * <p>
-     * TODO: collect every band's {@code target().display()} plus {@code palette.fallback()},
-     * deduplicated.
-     */
+    /** Must list every biome getBiome can return, or the server rejects the provider. */
     @Override
     public List<Biome> getBiomes(final WorldInfo worldInfo)
     {
+        final Palette palette = this.profile.palette();
+        final Stream<Biome> bandBiomes = palette.biomes()
+                                                .stream()
+                                                .map(band -> band.target().display());
 
+        return Stream.concat(bandBiomes, Stream.of(palette.fallback()))
+                     .distinct()
+                     .toList();
     }
 }

@@ -37,7 +37,13 @@ public record Palette(Materials materials,
      */
     public Optional<BiomeBand> resolveBand(final int worldX, final int worldZ)
     {
-        throw new UnsupportedOperationException("not yet implemented");
+        final double temperature = this.climate.temperature().sample(worldX, worldZ) * this.climate.scale();
+        final double humidity = this.climate.humidity().sample(worldX, worldZ) * this.climate.scale();
+
+        return this.biomes
+                   .stream()
+                   .filter(band -> band.matches(temperature, humidity))
+                   .findFirst();
     }
 
     /** Convenience over {@link #resolveBand}: the matched band's display biome, or this palette's fallback. */

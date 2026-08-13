@@ -27,7 +27,7 @@ import me.totalfreedom.totalfreedommod.world.profile.Spline;
 public final class HeightmapGenerator implements Generator
 {
     private final NoiseField terrain;
-    private final NoiseField river;
+    private final Optional<NoiseField> river;
     private final Spline spline;
     private final Bounds bounds;
     private final Materials materials;
@@ -35,7 +35,7 @@ public final class HeightmapGenerator implements Generator
     private final Optional<RegionSet> regions;
 
     public HeightmapGenerator(final NoiseField terrain,
-                              final NoiseField river,
+                              final Optional<NoiseField> river,
                               final Spline spline,
                               final Bounds bounds,
                               final Materials materials,
@@ -67,7 +67,12 @@ public final class HeightmapGenerator implements Generator
      * One profile region, already built: a sampled noise field and a ready spline, not the raw
      * settings {@link me.totalfreedom.totalfreedommod.world.profile.Shape.Region} carries.
      */
-    record BuiltRegion(String name, double min, double max, NoiseField noise, Spline spline, double warp)
+    public record BuiltRegion(String name, 
+                              double min, 
+                              double max, 
+                              NoiseField noise, 
+                              Spline spline, 
+                              double warp)
     {
     }
 
@@ -78,7 +83,7 @@ public final class HeightmapGenerator implements Generator
      * its own role string (e.g. {@code "terrain-region-<name>"}, {@code "terrain-selector"}) so no two
      * fields in one profile collapse onto the same random stream.
      */
-    record RegionSet(NoiseField selector, double blendWidth, List<BuiltRegion> regions)
+    public record RegionSet(NoiseField selector, double blendWidth, List<BuiltRegion> regions)
     {
     }
 }
