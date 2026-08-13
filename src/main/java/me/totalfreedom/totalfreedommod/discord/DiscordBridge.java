@@ -325,7 +325,7 @@ public class DiscordBridge extends FreedomService
             Component rendered;
             try
             {
-                rendered = event.renderer().render(player, player.displayName(), event.message(), Audience.empty());
+                rendered = event.renderer().render(player, player.name(), event.message(), Audience.empty());
             }
             catch (Exception ex)
             {
