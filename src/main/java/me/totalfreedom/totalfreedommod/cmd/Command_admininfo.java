@@ -13,20 +13,21 @@ import net.kyori.adventure.text.JoinConfiguration;
 
 @Command(name = "admininfo", description = "Information on how to apply for admin.", usage = "/admininfo", aliases={"si", "ai", "staffinfo"})
 @Permission(level = Rank.OP, source = SourceType.BOTH, permission = "tfm.player.admininfo")
-public class Command_admininfo extends FCommand 
+public class Command_admininfo extends FCommand
 {
     @Callback
     public void info(CommandSender sender)
     {
         final List<String> adminInfo = ConfigEntry.ADMIN_INFO.getStringList();
-        if (adminInfo.isEmpty()) 
+
+        if (adminInfo.isEmpty())
         {
             msg(sender, "<red>The admin information section of the config.yml file has not been configured.</red>");
             return;
         }
-        
-        // i'm too lazy to properly fix this
-        final String plain = MessageUtils.toPlainText(Component.join(JoinConfiguration.newlines(), adminInfo.stream().map(FUtil::colorizeWithLinks).toList()));
-        msg(sender, plain);  // this will autoparse if the previous toplaintext converted tags
+
+        final Component message = Component.join(JoinConfiguration.newlines(),adminInfo.stream().map(FUtil::colorizeWithLinks).toList());
+
+        sender.sendMessage(message);
     }
 }
