@@ -36,14 +36,13 @@ public final class BoulderFeature implements Feature<FeatureDetail.Boulder>
 
         for (int lobe = 0; lobe < LOBES; lobe++)
         {
-            // Later lobes are smaller, so the boulder tapers instead of growing arms.
             final int lobeRadius = Math.max(1, radius - lobe);
 
             sphere(region, detail, lobeX, lobeY, lobeZ, lobeRadius);
 
-            lobeX += random.nextInt(radius + 1) - radius / 2;
+            lobeX += (int) Math.round((random.nextDouble() - 0.5D) * radius);
             lobeY += random.nextInt(2);
-            lobeZ += random.nextInt(radius + 1) - radius / 2;
+            lobeZ += (int) Math.round((random.nextDouble() - 0.5D) * radius);
         }
     }
 

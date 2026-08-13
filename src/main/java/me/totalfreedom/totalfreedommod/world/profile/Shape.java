@@ -84,9 +84,14 @@ public sealed interface Shape
     /**
      * One named region: the slice of the selector noise it claims, and the terrain it uses there.
      * <p>
-     * First matching region in the enclosing list wins, same idiom as {@link Palette.BiomeBand} and
-     * {@link SurfaceRule}. name only has to be unique within that list; it exists so an admin
-     * authoring a profile can tell regions apart in an error message, not for anything to reference.
+     * Unlike {@link Palette.BiomeBand} or {@link SurfaceRule}, this is not first-match-wins: every
+     * region whose range the selector's value falls within, or comes within the enclosing
+     * {@link Regions#blendWidth} of, contributes, weighted by how close. That is what turns a shared
+     * border into a gradient instead of a seam, so two regions are expected to overlap only within
+     * that blend margin; {@link ProfileParser} rejects a profile whose regions overlap outright, since
+     * two full-strength regions simply averaging there would be a surprise, not a border. name only
+     * has to be unique within the enclosing list; it exists so an admin authoring a profile can tell
+     * regions apart in an error message, not for anything to reference.
      *
      * @throws IllegalArgumentException if min is above max
      */

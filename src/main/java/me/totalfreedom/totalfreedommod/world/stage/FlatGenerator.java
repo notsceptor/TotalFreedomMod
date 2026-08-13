@@ -40,6 +40,6 @@ public final class FlatGenerator implements Generator
     @Override
     public int surfaceHeight(final int worldX, final int worldZ)
     {
-        return this.bounds.minY() + this.layers.totalHeight();
+        return this.bounds.minY() + this.layers.totalHeight() - 1;
     }
 }

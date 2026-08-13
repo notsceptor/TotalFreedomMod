@@ -31,13 +31,16 @@ public final class LayerDesigner implements Designer
     @Override
     public void bedrock(final ChunkContext context, final ChunkGenerator.ChunkData data)
     {
-        int meny = context.getProfile().bounds().minY();
-        int man = context.getProfile().bounds().maxY();
+        if (this.materials.bedrock() == BedrockMode.NONE)
+            return;
 
-        data.setRegion(0, meny, 0, 16, meny + 1, 16, materials.bedrockBlock());
+        final int minY = context.getProfile().bounds().minY();
+        final int maxY = context.getProfile().bounds().maxY();
+
+        data.setRegion(0, minY, 0, 16, minY + 1, 16, this.materials.bedrockBlock());
 
         if (this.materials.bedrock() == BedrockMode.FLOOR_AND_ROOF)
-            data.setRegion(0, man, 0, 16, man - 1, 16, materials.bedrockBlock());
+            data.setRegion(0, maxY, 0, 16, maxY + 1, 16, this.materials.bedrockBlock());
     }
 
 }

@@ -7,7 +7,6 @@ import org.bukkit.command.CommandSender;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.JoinConfiguration;
 
-<<<<<<< HEAD
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FUtil;
@@ -15,11 +14,6 @@ import me.totalfreedom.totalfreedommod.util.FUtil;
 @Command(name = "admininfo", description = "Information on how to apply for admin.", usage = "/admininfo", aliases = {"si", "ai", "staffinfo"})
 @Permission(source = SourceType.BOTH, permission = "tfm.player.admininfo")
 public class Command_admininfo extends FCommand 
-=======
-@Command(name = "admininfo", description = "Information on how to apply for admin.", usage = "/admininfo", aliases={"si", "ai", "staffinfo"})
-@Permission(level = Rank.OP, source = SourceType.BOTH, permission = "tfm.player.admininfo")
-public class Command_admininfo extends FCommand
->>>>>>> prod
 {
     @Callback
     public void info(CommandSender sender)

@@ -45,8 +45,8 @@ public final class OreFeature implements Feature<FeatureDetail.Ore>
         final double toX = x - Math.sin(angle) * reach;
         final double fromZ = z + Math.cos(angle) * reach;
         final double toZ = z - Math.cos(angle) * reach;
-        final double fromY = y + random.nextInt(3) - 2;
-        final double toY = y + random.nextInt(3) - 2;
+        final double fromY = y + random.nextInt(3) - 1;
+        final double toY = y + random.nextInt(3) - 1;
 
         for (int step = 0; step < size; step++)
         {

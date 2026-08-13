@@ -23,6 +23,10 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import io.papermc.paper.registry.RegistryAccess;
+import io.papermc.paper.registry.RegistryKey;
+import net.kyori.adventure.key.Key;
+
 import me.totalfreedom.totalfreedommod.world.GenerationProfile;
 import me.totalfreedom.totalfreedommod.world.noise.NoiseField;
 import me.totalfreedom.totalfreedommod.world.noise.NoiseProfile;
@@ -38,10 +42,10 @@ import me.totalfreedom.totalfreedommod.world.noise.NoiseType;
  * with the file. Stopping at the first error means fixing typos one server restart at a time.
  * <p>
  * Treated as main thread only, though honestly that's more a project convention than a real API
- * requirement; {@link Material#valueOf} and {@link Biome#valueOf} are just enum lookups and don't
- * actually need the main thread. Keeping every Bukkit-facing lookup on one thread just means nobody
- * has to double check that assumption later as this file grows. Reading the file itself is not
- * bound the same way, so do that first and hand in the parsed JSON.
+ * requirement; {@link Material#valueOf} and a {@link RegistryKey#BIOME} lookup are just lookups and
+ * don't actually need the main thread. Keeping every Bukkit-facing lookup on one thread just means
+ * nobody has to double check that assumption later as this file grows. Reading the file itself is
+ * not bound the same way, so do that first and hand in the parsed JSON.
  * <p>
  * A {@link FeatureSpec}'s own {@code "type"} key is the variant discriminator, so no
  * {@link FeatureDetail} variant's fields may reuse that name.
@@ -54,7 +58,9 @@ public final class ProfileParser
      *                     {@link ProfileLoader#biomeLibrary()}
      * @throws ProfileException carrying every problem found, never just the first
      */
-    public GenerationProfile parse(final String worldName, final JsonObject root, final Map<String, JsonObject> biomeLibrary) throws ProfileException
+    public GenerationProfile parse(final String worldName, 
+                                   final JsonObject root, 
+                                   final Map<String, JsonObject> biomeLibrary) throws ProfileException
     {
         final List<ProfileError> errors = new ArrayList<>();
         final long seed = resolveSeed(worldName, root);
@@ -123,8 +129,8 @@ public final class ProfileParser
         final Optional<Shape> shape = switch (mode.get().toLowerCase(Locale.ROOT))
         {
             case "flat" -> parseFlatShape(node.get(), path, errors, bounds.get());
-            case "heightmap" -> parseHeightmapShape(node.get(), path, errors);
-            case "density" -> parseDensityShape(node.get(), path, errors);
+            case "heightmap" -> parseHeightmapShape(node.get(), path, errors, bounds.get());
+            case "density" -> parseDensityShape(node.get(), path, errors, bounds.get());
             default ->
             {
                 errors.add(new ProfileError(childPath(path, "mode"), "unknown mode \"" + mode.get() + "\""));
@@ -135,7 +141,9 @@ public final class ProfileParser
         return shape.map(s -> new ParsedShape(bounds.get(), s));
     }
 
-    private static Optional<Bounds> parseBounds(final JsonObject shapeNode, final String parentPath, final List<ProfileError> errors)
+    private static Optional<Bounds> parseBounds(final JsonObject shapeNode, 
+                                                final String parentPath, 
+                                                final List<ProfileError> errors)
     {
         final Optional<JsonObject> node = requireObject(shapeNode, "bounds", parentPath, errors);
         if (node.isEmpty())
@@ -160,8 +168,10 @@ public final class ProfileParser
         }
     }
 
-    private static Optional<Shape> parseFlatShape(final JsonObject shapeNode, final String path, final List<ProfileError> errors,
-                                                   final Bounds bounds)
+    private static Optional<Shape> parseFlatShape(final JsonObject shapeNode, 
+                                                  final String path, 
+                                                  final List<ProfileError> errors,
+                                                  final Bounds bounds)
     {
         final Optional<String> spec = requireString(shapeNode, "layers", path, errors);
         if (spec.isEmpty())
@@ -188,7 +198,10 @@ public final class ProfileParser
         }
     }
 
-    private static Optional<Shape> parseHeightmapShape(final JsonObject shapeNode, final String path, final List<ProfileError> errors)
+    private static Optional<Shape> parseHeightmapShape(final JsonObject shapeNode, 
+                                                       final String path, 
+                                                       final List<ProfileError> errors, 
+                                                       final Bounds bounds)
     {
         final Optional<JsonObject> terrainNode = requireObject(shapeNode, "terrain", path, errors);
         final Optional<Shape.Terrain> terrain = terrainNode.flatMap(node -> parseShapeTerrain(node, childPath(path, "terrain"), errors));
@@ -197,7 +210,7 @@ public final class ProfileParser
         final Optional<Shape.River> river = hasRiver ? parseRiver(shapeNode, path, errors) : Optional.empty();
 
         final boolean hasCaves = hasKey(shapeNode, "caves");
-        final Optional<Shape.Caves> caves = hasCaves ? parseCaves(shapeNode, path, errors) : Optional.empty();
+        final Optional<Shape.Caves> caves = hasCaves ? parseCaves(shapeNode, path, errors, bounds) : Optional.empty();
 
         final boolean hasRegions = hasKey(shapeNode, "regions");
         final Optional<Shape.Regions<Shape.Terrain>> regions = hasRegions
@@ -210,13 +223,16 @@ public final class ProfileParser
         return Optional.of(new Shape.Heightmap(terrain.get(), river, caves, regions));
     }
 
-    private static Optional<Shape> parseDensityShape(final JsonObject shapeNode, final String path, final List<ProfileError> errors)
+    private static Optional<Shape> parseDensityShape(final JsonObject shapeNode, 
+                                                     final String path, 
+                                                     final List<ProfileError> errors, 
+                                                     final Bounds bounds)
     {
         final Optional<JsonObject> terrainNode = requireObject(shapeNode, "terrain", path, errors);
         final Optional<Shape.DensityLayer> terrain = terrainNode.flatMap(node -> parseDensityLayer(node, childPath(path, "terrain"), errors));
 
         final boolean hasCaves = hasKey(shapeNode, "caves");
-        final Optional<Shape.Caves> caves = hasCaves ? parseCaves(shapeNode, path, errors) : Optional.empty();
+        final Optional<Shape.Caves> caves = hasCaves ? parseCaves(shapeNode, path, errors, bounds) : Optional.empty();
 
         final boolean hasRegions = hasKey(shapeNode, "regions");
         final Optional<Shape.Regions<Shape.DensityLayer>> regions = hasRegions
@@ -274,7 +290,7 @@ public final class ProfileParser
         return Optional.of(new Shape.River(noise.get(), threshold.get(), depth.get(), bedBlock.get()));
     }
 
-    private static Optional<Shape.Caves> parseCaves(final JsonObject parent, final String parentPath, final List<ProfileError> errors)
+    private static Optional<Shape.Caves> parseCaves(final JsonObject parent, final String parentPath, final List<ProfileError> errors, final Bounds bounds)
     {
         final Optional<JsonObject> node = requireObject(parent, "caves", parentPath, errors);
         if (node.isEmpty())
@@ -288,12 +304,40 @@ public final class ProfileParser
         final Optional<Integer> maxY = requireInt(node.get(), "maxY", path, errors);
         final Optional<Integer> floodLevel = requireInt(node.get(), "floodLevel", path, errors);
 
-        if (noise.isEmpty() || threshold.isEmpty() || minY.isEmpty() || maxY.isEmpty() || floodLevel.isEmpty())
+        if (noise.isEmpty() || threshold.isEmpty() 
+                            || minY.isEmpty() 
+                            || maxY.isEmpty() 
+                            || floodLevel.isEmpty())
             return Optional.empty();
+
+        if (minY.get() < bounds.minY() || maxY.get() > bounds.maxY())
+        {
+            errors.add(new ProfileError(path, 
+                                        String.format("minY/maxY (%d to %d) must fall within the world's own bounds (Y=%d to Y=%d)", 
+                                                      minY.get(), 
+                                                      maxY.get(), 
+                                                      bounds.minY(), 
+                                                      bounds.maxY())));
+            return Optional.empty();
+        }
+
+        if (floodLevel.get() < bounds.minY() || floodLevel.get() > bounds.maxY())
+        {
+            errors.add(new ProfileError(childPath(path, "floodLevel"), 
+                                        String.format("floodLevel (%d) must fall within the world's own bounds (Y=%d to Y=%d)", 
+                                                      floodLevel.get(),
+                                                      bounds.minY(), 
+                                                      bounds.maxY())));
+            return Optional.empty();
+        }
 
         try
         {
-            return Optional.of(new Shape.Caves(noise.get(), threshold.get(), minY.get(), maxY.get(), floodLevel.get()));
+            return Optional.of(new Shape.Caves(noise.get(), 
+                                               threshold.get(), 
+                                               minY.get(), 
+                                               maxY.get(), 
+                                               floodLevel.get()));
         }
         catch (final IllegalArgumentException ex)
         {
@@ -370,6 +414,9 @@ public final class ProfileParser
         if (!valid[0])
             return Optional.empty();
 
+        if (hasOverlappingCores(regions, path, errors))
+            return Optional.empty();
+
         try
         {
             return Optional.of(new Shape.Regions<>(selector.get(), blendWidth.get(), regions));
@@ -379,6 +426,39 @@ public final class ProfileParser
             errors.add(new ProfileError(path, ex.getMessage()));
             return Optional.empty();
         }
+    }
+
+    /**
+     * Regions are meant to overlap only within blendWidth of a shared border, which is what turns
+     * that border into a gradient; see {@link Shape.Region}. An outright overlap of two regions' own
+     * min/max would instead average them at full strength across their shared territory, which reads
+     * as a configuration mistake rather than an intended blend, so every overlapping pair is reported.
+     */
+    private static <T> boolean hasOverlappingCores(final List<Shape.Region<T>> regions, final String path, final List<ProfileError> errors)
+    {
+        final boolean[] overlapping = { false };
+
+        IntStream.range(0, regions.size()).forEach(i ->
+            IntStream.range(i + 1, regions.size()).forEach(j ->
+            {
+                final Shape.Region<T> a = regions.get(i);
+                final Shape.Region<T> b = regions.get(j);
+
+                if (a.min() <= b.max() && b.min() <= a.max())
+                {
+                    errors.add(new ProfileError(path, 
+                                                String.format("regions \"%s\" and \"%s\" overlap (%d to %d vs %d to %d); narrow their ranges so they meet at most within blendWidth",
+                                                              a.name(), 
+                                                              b.name(),
+                                                              a.min(),
+                                                              a.max(),
+                                                              b.min(),
+                                                              b.max())));
+                    overlapping[0] = true;
+                }
+            }));
+
+        return overlapping[0];
     }
 
     private static Optional<NoiseProfile> parseNoiseProfile(final JsonObject node, final String path, final List<ProfileError> errors)
@@ -697,7 +777,7 @@ public final class ProfileParser
             return BiomeFilter.any();
 
         return parseBiome(name.get(), childPath(path, "biome"), errors).<BiomeFilter>map(biome -> BiomeFilter.of(Set.of(biome)))
-                                                                        .orElseGet(BiomeFilter::any);
+                                                                            .orElseGet(BiomeFilter::any);
     }
 
     /** A feature or biome band's own shape: an optional "biomes" array of strings. Absent means Any(). */
@@ -716,7 +796,14 @@ public final class ProfileParser
 
             try
             {
-                biomes.add(Biome.valueOf(element.getAsString().toUpperCase(Locale.ROOT)));
+                final Biome biome = RegistryAccess.registryAccess()
+                                                   .getRegistry(RegistryKey.BIOME)
+                                                   .get(Key.key(element.getAsString().toLowerCase(Locale.ROOT)));
+
+                if (biome == null)
+                    throw new IllegalArgumentException();
+
+                biomes.add(biome);
             }
             catch (final RuntimeException ex)
             {
@@ -1106,7 +1193,14 @@ public final class ProfileParser
     {
         try
         {
-            return Optional.of(Biome.valueOf(name.toUpperCase(Locale.ROOT)));
+            final Biome biome = RegistryAccess.registryAccess()
+                                               .getRegistry(RegistryKey.BIOME)
+                                               .get(Key.key(name.toLowerCase(Locale.ROOT)));
+
+            if (biome == null)
+                throw new IllegalArgumentException();
+
+            return Optional.of(biome);
         }
         catch (final IllegalArgumentException ex)
         {

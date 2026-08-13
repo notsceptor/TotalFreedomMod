@@ -100,6 +100,11 @@ public final class GenerationService extends FreedomService
         return profiles.keySet();
     }
 
+    /**
+     * Re-parses every available profile and drops any no longer on disk. A profile that fails to
+     * re-parse keeps its last good copy, since {@link #loadProfile} only overwrites an entry once the
+     * new one parses cleanly.
+     */
     public void reload()
     {
         final Map<String, JsonObject> biomeLibrary;
@@ -110,16 +115,15 @@ public final class GenerationService extends FreedomService
         }
         catch (final ProfileException ex)
         {
-            FLog.warning("Failed to reload biome library: " + ExceptionUtils.getRootCauseMessage(ex)); 
+            FLog.warning("Failed to reload biome library: " + ExceptionUtils.getRootCauseMessage(ex));
             // we don't want to disable the plugin here because this executes assuming worlds have already loaded.
             return;
         }
 
-        this.loader
-            .available()
-            .stream()
-            .filter(name -> !this.profiles.containsKey(name))
-            .forEach(name -> this.loadProfile(name, biomeLibrary));
+        final Set<String> available = this.loader.available();
+
+        this.profiles.keySet().retainAll(available);
+        available.forEach(name -> this.loadProfile(name, biomeLibrary));
     }
 
     private void loadProfile(final String worldName, final Map<String, JsonObject> biomeLibrary)

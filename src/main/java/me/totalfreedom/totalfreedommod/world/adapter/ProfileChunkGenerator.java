@@ -161,7 +161,7 @@ public final class ProfileChunkGenerator extends ChunkGenerator
     @Override
     public List<BlockPopulator> getDefaultPopulators(final World world)
     {
-        return List.of(new ProfileBlockPopulator(this.profile));
+        return List.of(new ProfileBlockPopulator(this.profile, this.stages));
     }
 
     @Override
@@ -226,12 +226,15 @@ public final class ProfileChunkGenerator extends ChunkGenerator
                                                Optional.empty(),
                                                populator);
 
-            case Shape.Heightmap heightmap -> new Stages(new HeightmapGenerator(NoiseField.of(heightmap.terrain().noise(), 
-                                                                                              seed, 
+            case Shape.Heightmap heightmap -> new Stages(new HeightmapGenerator(NoiseField.of(heightmap.terrain().noise(),
+                                                                                              seed,
                                                                                               "terrain"),
-                                                                                heightmap.river().map(river -> NoiseField.of(river.noise(), 
-                                                                                                                             seed, 
-                                                                                                                             "river")),
+                                                                                heightmap.river().map(river -> new HeightmapGenerator.River(NoiseField.of(river.noise(),
+                                                                                                                                                          seed,
+                                                                                                                                                          "river"),
+                                                                                                                                             river.threshold(),
+                                                                                                                                             river.depth(),
+                                                                                                                                             river.bedBlock())),
                                                                                 heightmap.terrain().spline(),
                                                                                 profile.bounds(),
                                                                                 materials,

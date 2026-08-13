@@ -6,10 +6,15 @@ package me.totalfreedom.totalfreedommod.world.noise;
  * Amplitude is set by the spline for terrain and by the threshold for caves, so it is not a knob
  * here. The seed comes from the field's role name mixed with the world seed when the profile
  * parses.
+ * <p>
+ * persistence and lacunarity must be positive: {@link NoiseField}'s normaliser sums each octave's
+ * amplitude, itself the previous octave's times persistence, and a zero or negative persistence can
+ * walk that sum through zero (an even octave count with persistence exactly -1 zeroes it outright),
+ * turning every sample into infinity or NaN.
  *
  * @throws IllegalArgumentException if octaves is below one or above {@value #MAX_OCTAVES}, if
  *                                   frequency is not positive and finite, or if persistence or
- *                                   lacunarity is not finite
+ *                                   lacunarity is not positive and finite
  */
 public record NoiseProfile(NoiseType type,
                            int octaves,
@@ -29,10 +34,10 @@ public record NoiseProfile(NoiseType type,
         if (!(frequency > 0.0D) || Double.isInfinite(frequency))
             throw new IllegalArgumentException("frequency (" + frequency + ") must be positive and finite");
 
-        if (!Double.isFinite(persistence))
-            throw new IllegalArgumentException("persistence (" + persistence + ") must be finite");
+        if (!(persistence > 0.0D) || Double.isInfinite(persistence))
+            throw new IllegalArgumentException("persistence (" + persistence + ") must be positive and finite");
 
-        if (!Double.isFinite(lacunarity))
-            throw new IllegalArgumentException("lacunarity (" + lacunarity + ") must be finite");
+        if (!(lacunarity > 0.0D) || Double.isInfinite(lacunarity))
+            throw new IllegalArgumentException("lacunarity (" + lacunarity + ") must be positive and finite");
     }
 }
