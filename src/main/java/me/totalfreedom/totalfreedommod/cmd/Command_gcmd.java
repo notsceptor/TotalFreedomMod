@@ -26,7 +26,7 @@ public class Command_gcmd extends FCommand
     @Callback
     public void runAsOtherPlayer(CommandSender sender, Player player, @Greedy String command)
     {
-        if (plugin().cb.isCommandBlocked(command, sender))
+        if (plugin().cb.isCommandBlocked(command, player) || plugin().cb.isCommandBlocked(command, sender))
         {
             msg(sender, "<red>You cannot run blocked commands on another player.");
             return;
