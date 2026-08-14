@@ -71,6 +71,11 @@ public class JoinLeaveMessages extends FreedomService
         for (final Player viewer : server.getOnlinePlayers())
         {
             final boolean isSubject = viewer.getUniqueId().equals(subject.getUniqueId());
+            if (!isSubject && !plugin.vs.canSee(viewer, subject))
+            {
+                continue;
+            }
+
             if (isSubject || subjectIsAdmin || plugin.pl.getPlayer(viewer).joinLeaveMessagesEnabled())
             {
                 FUtil.playerMsg(viewer, message);
