@@ -323,9 +323,13 @@ public class DiscordBridge extends FreedomService
         {
             final Player player = event.getPlayer();
             Component rendered;
+
             try
             {
-                rendered = event.renderer().render(player, player.name(), event.message(), Audience.empty());
+                rendered = event.renderer().render(player, 
+                                                   player.displayName(), // there has to be a way to display both without it being spammy 
+                                                   event.message(), 
+                                                   Audience.empty());
             }
             catch (Exception ex)
             {
