@@ -40,6 +40,9 @@ public class Flatlands extends CustomWorld
 
         final World world = Bukkit.getServer().createWorld(worldCreator);
 
+        if (world == null)
+            return null;
+
         world.setSpawnFlags(false, false);
         world.setSpawnLocation(0, 50, 0);
 
