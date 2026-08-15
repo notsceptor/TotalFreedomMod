@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import java.util.Locale;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
@@ -29,18 +31,18 @@ public class AntiSpam extends FreedomService
 
     private static final long WARN_INTERVAL_MS = 2500L;
 
-    public AntiSpam(TotalFreedomMod plugin)
+    public AntiSpam(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
     }
 
@@ -64,7 +66,7 @@ public class AntiSpam extends FreedomService
         final Player player = event.getPlayer();
         final String message = PlainTextComponentSerializer.plainText().serialize(event.message()).trim();
 
-        final FPlayer playerdata = plugin.pl.getPlayerSync(player);
+        final FPlayer playerdata = plugin.players().getPlayerSync(player);
 
         final int count = playerdata.incrementAndGetMsgCount();
         if (count >= limit())
@@ -89,7 +91,7 @@ public class AntiSpam extends FreedomService
 
     private boolean blockIfChatSpam(Player player, FPlayer playerdata, String message)
     {
-        if (plugin.al.isAdmin(player))
+        if (plugin.admins().isAdmin(player))
         {
             return false;
         }
@@ -211,7 +213,7 @@ public class AntiSpam extends FreedomService
             return;
         }
         final Player player = event.getPlayer();
-        final FPlayer fPlayer = plugin.pl.getPlayer(player);
+        final FPlayer fPlayer = plugin.players().getPlayer(player);
 
         if (fPlayer.allCommandsBlocked())
         {
@@ -227,7 +229,7 @@ public class AntiSpam extends FreedomService
             if (count == limit())
             {
                 FUtil.bcastMsg(player.getName() + " was automatically kicked for spamming commands.", NamedTextColor.RED);
-                plugin.ae.autoEject(player, "Kicked for spamming commands.");
+                plugin.autoEject().autoEject(player, "Kicked for spamming commands.");
             }
             return;
         }

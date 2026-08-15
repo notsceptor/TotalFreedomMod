@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import me.totalfreedom.totalfreedommod.fun.Trailer;
+
 import org.bukkit.entity.Player;
 
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
@@ -11,7 +13,7 @@ public class Command_trail extends FCommand
     @Callback
     public void toggle(Player player)
     {
-        setTrail(player, plugin().tr.has(player));
+        setTrail(player, plugin().services().require(Trailer.class).has(player));
     }
 
     @Callback
@@ -21,12 +23,12 @@ public class Command_trail extends FCommand
     {
         if (value)
         {
-            plugin().tr.remove(player);
+            plugin().services().require(Trailer.class).remove(player);
             msg(player, "<gray>Trail disabled.");
         }
         else
         {
-            plugin().tr.add(player);
+            plugin().services().require(Trailer.class).add(player);
             msg(player, "<gray>Trail enabled.");
         }
     }

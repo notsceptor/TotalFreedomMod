@@ -14,16 +14,13 @@ import org.bukkit.scheduler.BukkitTask;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.api.FreedomAPI;
 import me.totalfreedom.totalfreedommod.caging.CageData;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.freeze.FreezeData;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.FTask;
 import me.totalfreedom.totalfreedommod.util.FUtil;
-
-import lombok.Getter;
-import lombok.Setter;
 
 public class FPlayer
 {
@@ -41,20 +38,14 @@ public class FPlayer
         }
     }
 
-    @Getter
-    private final TotalFreedomMod plugin;
-    @Getter
+    private final FreedomAPI plugin;
     private final String name;
-    @Getter
     private final String ip;
     //
-    @Setter
     private Player player;
     //
     private BukkitTask unmuteTask;
-    @Getter
     private final FreezeData freezeData = new FreezeData(this);
-    @Getter
     private double fuckoffRadius = 0;
     private int messageCount = 0;
     private long messageCountWindowStart = 0L;
@@ -68,9 +59,7 @@ public class FPlayer
     private long totalBlockPlaceWindowStart = 0L;
     private int freecamDestroyCount = 0;
     private int freecamPlaceCount = 0;
-    @Getter
     private final CageData cageData = new CageData(this);
-    @Getter
     private final ChatSpamData chatSpamData = new ChatSpamData();
     private boolean isOrbiting = false;
     private double orbitStrength = 10.0;
@@ -85,8 +74,6 @@ public class FPlayer
     private String lastMessage = "";
     private boolean inAdminchat = false;
     private boolean allCommandsBlocked = false;
-    @Getter
-    @Setter
     private boolean superadminIdVerified = false;
     private SpyMode commandSpyMode = SpyMode.OFF;
     private boolean joinLeaveMessagesEnabled = true;
@@ -94,16 +81,66 @@ public class FPlayer
     private String tagInternal = null;
     private int warningCount = 0;
 
-    public FPlayer(TotalFreedomMod plugin, Player player)
+    public FPlayer(FreedomAPI plugin, Player player)
     {
         this(plugin, player.getName(), player.getAddress().getAddress().getHostAddress());
     }
 
-    private FPlayer(TotalFreedomMod plugin, String name, String ip)
+    private FPlayer(FreedomAPI plugin, String name, String ip)
     {
         this.plugin = plugin;
         this.name = name;
         this.ip = ip;
+    }
+
+    public FreedomAPI getPlugin()
+    {
+        return plugin;
+    }
+
+    public String getName()
+    {
+        return name;
+    }
+
+    public String getIp()
+    {
+        return ip;
+    }
+
+    public void setPlayer(Player player)
+    {
+        this.player = player;
+    }
+
+    public FreezeData getFreezeData()
+    {
+        return freezeData;
+    }
+
+    public double getFuckoffRadius()
+    {
+        return fuckoffRadius;
+    }
+
+    public CageData getCageData()
+    {
+        return cageData;
+    }
+
+    public ChatSpamData getChatSpamData()
+    {
+        return chatSpamData;
+    }
+
+    public boolean isSuperadminIdVerified()
+    {
+        return superadminIdVerified;
+    }
+
+    public void setSuperadminIdVerified(boolean superadminIdVerified)
+    {
+        this.superadminIdVerified = superadminIdVerified;
     }
 
     public Player getPlayer()
@@ -304,7 +341,7 @@ public class FPlayer
         }
     }
 
-    public void startArrowShooter(TotalFreedomMod plugin)
+    public void startArrowShooter(FreedomAPI plugin)
     {
         this.stopArrowShooter();
         this.mp44ScheduleTask = new ArrowShooter(this.player).runTaskTimer(plugin, 1L, 1L);
@@ -378,11 +415,11 @@ public class FPlayer
         {
             return;
         }
-        final PlayerData data = plugin.pl.getData(p);
+        final PlayerData data = plugin.players().getData(p);
         if (data.isMuted() != muted)
         {
             data.setMuted(muted);
-            plugin.pl.saveData(data);
+            plugin.players().saveData(data);
         }
     }
 
@@ -430,11 +467,11 @@ public class FPlayer
         {
             return;
         }
-        final PlayerData data = plugin.pl.getData(p);
+        final PlayerData data = plugin.players().getData(p);
         if (data.isCommandsBlocked() != commandsBlocked)
         {
             data.setCommandsBlocked(commandsBlocked);
-            plugin.pl.saveData(data);
+            plugin.players().saveData(data);
         }
     }
 

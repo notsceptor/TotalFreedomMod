@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.blocking.entity;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import java.util.Set;
 
 import com.destroystokyo.paper.event.entity.EntityAddToWorldEvent;
@@ -14,7 +16,6 @@ import org.bukkit.util.Vector;
 import net.kyori.adventure.text.format.NamedTextColor;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.blocking.sweep.EntityVisitor;
 import me.totalfreedom.totalfreedommod.blocking.sweep.SweepContext;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
@@ -68,21 +69,21 @@ public class ProjectileGuard extends FreedomService
                     + " bad projectile(s). Sample: " + sample,
             DetectionReporter.warnOnly());
 
-    public ProjectileGuard(TotalFreedomMod plugin)
+    public ProjectileGuard(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
-        plugin.sweepScheduler.register(projectileVisitor);
+        plugin.sweepScheduler().register(projectileVisitor);
         FLog.info("[ProjectileGuard] active"
                 + " [periodic sweep every " + SWEEP_INTERVAL_TICKS + "t]");
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
     }
 

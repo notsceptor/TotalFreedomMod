@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -28,19 +30,19 @@ public class TextFilterService extends FreedomService
 {
     private List<Pattern> filters = List.of();
 
-    public TextFilterService(TotalFreedomMod plugin)
+    public TextFilterService(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
         reloadFilters();
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
         filters = List.of();
     }
@@ -142,7 +144,7 @@ public class TextFilterService extends FreedomService
             }
             catch (PatternSyntaxException ex)
             {
-                FLog.warning("Skipping invalid text filter regex: " + ex.getDescription());
+                FLog.warn("Skipping invalid text filter regex: " + ex.getDescription());
             }
         }
 
@@ -173,7 +175,7 @@ public class TextFilterService extends FreedomService
             return;
         }
 
-        if (plugin.bm.getByUsername(player.getName()) != null)
+        if (plugin.bans().getByUsername(player.getName()) != null)
         {
             player.kick(tempbanKickMessage());
             return;
@@ -182,13 +184,13 @@ public class TextFilterService extends FreedomService
         final Ban ban = Ban.forPlayer(player, Bukkit.getConsoleSender(), FUtil.parseDateOffset("1d"), "Use of prohibited language");
         
         ban.addIp(player.getAddress().getAddress().getHostAddress());
-        plugin.pl.getData(player).getIps().forEach(ban::addIp);
+        plugin.players().getData(player).getIps().forEach(ban::addIp);
 
-        plugin.bm.addBan(ban);
+        plugin.bans().addBan(ban);
 
         MessageUtils.broadcast("<red><player> has been temporarily banned for prohibited language.",
             Placeholder.unparsed("player", player.getName()));
-        FLog.warning("[TextFilter] Temporarily banned " + player.getName() + " for prohibited language.", true);
+        FLog.warn("[TextFilter] Temporarily banned " + player.getName() + " for prohibited language.", true);
 
         player.kick(tempbanKickMessage());
     }

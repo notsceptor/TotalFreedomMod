@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import me.totalfreedom.totalfreedommod.bridge.EssentialsBridge;
+
 import java.util.List;
 
 import org.bukkit.command.CommandSender;
@@ -51,7 +53,7 @@ public class Command_invis extends FCommand
                                                                           .hoverEvent(HoverEvent.showText(Component.text(player.getName())))
                                                                           .clickEvent(ClickEvent.clickEvent(
                                                                                                             ClickEvent.Action.RUN_COMMAND, 
-                                                                                                            ClickEvent.Payload.string("/tp" + (plugin().esb.isEssentialsEnabled() ? "o " : " ") + player.getName())
+                                                                                                            ClickEvent.Payload.string("/tp" + (plugin().bridges().require(EssentialsBridge.class).isEssentialsEnabled() ? "o " : " ") + player.getName())
                                                                                                         ))
                                                     )
                                                 .toList();

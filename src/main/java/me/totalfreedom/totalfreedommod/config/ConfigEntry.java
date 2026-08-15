@@ -410,7 +410,7 @@ public enum ConfigEntry
 
     private MainConfig getConfig()
     {
-        return PluginProvider.get().config;
+        return PluginProvider.get().config();
     }
 
     /** Effective max component-graph nodes for cursed-text scanning (default 1024). */

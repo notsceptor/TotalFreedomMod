@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.blocking.packet;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
@@ -10,7 +12,6 @@ import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.event.PacketListenerCommon;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.blocking.entity.EntityMetaPacketGuard;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
@@ -26,13 +27,13 @@ public class CrashPacketService extends FreedomService
     private MovementGuard movementGuard;
     private volatile boolean stopped;
 
-    public CrashPacketService(TotalFreedomMod plugin)
+    public CrashPacketService(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
         stopped = false;
 
@@ -66,8 +67,8 @@ public class CrashPacketService extends FreedomService
             }
             catch (Throwable t)
             {
-                FLog.severe("[CrashPacketService] Failed to register PacketEvents listener: " + t.getMessage());
-                FLog.severe(t);
+                FLog.error("[CrashPacketService] Failed to register PacketEvents listener: " + t.getMessage());
+                FLog.error(t);
                 registeredListener = null;
                 spamLimiter = null;
             }
@@ -76,7 +77,7 @@ public class CrashPacketService extends FreedomService
 
         if (attempt >= MAX_ATTEMPTS)
         {
-            FLog.warning("[CrashPacketService] PacketEvents not present after waiting; crash packet "
+            FLog.warn("[CrashPacketService] PacketEvents not present after waiting; crash packet "
                     + "guards and inbound rate limiting are disabled.");
             return;
         }
@@ -237,7 +238,7 @@ public class CrashPacketService extends FreedomService
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
         stopped = true;
 
@@ -263,7 +264,7 @@ public class CrashPacketService extends FreedomService
         }
         catch (Throwable t)
         {
-            FLog.warning("[CrashPacketService] Failed to unregister PacketEvents listener: " + t.getMessage());
+            FLog.warn("[CrashPacketService] Failed to unregister PacketEvents listener: " + t.getMessage());
         }
         finally
         {

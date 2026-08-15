@@ -1,34 +1,35 @@
 package me.totalfreedom.totalfreedommod.fun;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.PlayerQuitEvent;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 
 public class MP44 extends FreedomService
 {
 
-    public MP44(TotalFreedomMod plugin)
+    public MP44(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerQuit(PlayerQuitEvent event)
     {
-        plugin.pl.getPlayer(event.getPlayer()).disarmMP44();
+        plugin.players().getPlayer(event.getPlayer()).disarmMP44();
     }
 
 }

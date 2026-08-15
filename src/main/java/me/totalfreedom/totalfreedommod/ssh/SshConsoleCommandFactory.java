@@ -7,7 +7,7 @@ import java.util.concurrent.Executor;
 
 import org.bukkit.Bukkit;
 
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.api.FreedomAPI;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchContext;
 import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchSession;
@@ -24,9 +24,9 @@ import org.apache.sshd.server.command.CommandFactory;
 
 public class SshConsoleCommandFactory implements CommandFactory
 {
-    private final TotalFreedomMod plugin;
+    private final FreedomAPI plugin;
 
-    public SshConsoleCommandFactory(TotalFreedomMod plugin)
+    public SshConsoleCommandFactory(FreedomAPI plugin)
     {
         this.plugin = plugin;
     }
@@ -39,13 +39,13 @@ public class SshConsoleCommandFactory implements CommandFactory
 
     public static class SshConsoleCommand implements Command
     {
-        private final TotalFreedomMod plugin;
+        private final FreedomAPI plugin;
         private final String command;
 
         private OutputStream out;
         private ExitCallback callback;
 
-        public SshConsoleCommand(TotalFreedomMod plugin, String command)
+        public SshConsoleCommand(FreedomAPI plugin, String command)
         {
             this.plugin = plugin;
             this.command = command;
@@ -120,11 +120,11 @@ public class SshConsoleCommandFactory implements CommandFactory
         private String resolveDisplayName(ChannelSession channel, String fallback)
         {
             String identityId = channel.getSession().getAttribute(SshDaemon.IDENTITY_KEY);
-            if (identityId == null || plugin.sd == null)
+            if (identityId == null || plugin.services().require(SshDaemon.class) == null)
             {
                 return fallback;
             }
-            SshIdentityStore store = plugin.sd.getIdentityStore();
+            SshIdentityStore store = plugin.services().require(SshDaemon.class).getIdentityStore();
             if (store == null)
             {
                 return fallback;

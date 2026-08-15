@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.banning;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -17,7 +19,6 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.sql.PersistenceQueue;
 import me.totalfreedom.totalfreedommod.sql.adapter.StrikeRepository;
@@ -40,14 +41,14 @@ public class StrikeList extends FreedomService
     private boolean usingSql = false;
     private boolean persistEnabled = true;
 
-    public StrikeList(TotalFreedomMod plugin)
+    public StrikeList(FreedomAPI plugin)
     {
         super(plugin);
         this.configFile = new File(plugin.getDataFolder(), "strikes.json");
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
         strikes.clear();
         usingSql = false;
@@ -62,7 +63,7 @@ public class StrikeList extends FreedomService
         }
 
         load();
-        plugin.dm.whenReady(this::load);
+        plugin.database().whenReady(this::load);
     }
 
     /**
@@ -74,7 +75,7 @@ public class StrikeList extends FreedomService
         if (!persistEnabled)
             return;
 
-        if (plugin.dm != null && plugin.dm.isInitialized())
+        if (plugin.database() != null && plugin.database().isInitialized())
         {
             loadFromSqlAsync();
             return;
@@ -85,7 +86,7 @@ public class StrikeList extends FreedomService
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
         if (!persistEnabled) 
             return;
@@ -118,8 +119,8 @@ public class StrikeList extends FreedomService
 
     private void loadFromSqlAsync()
     {
-        final StrikeRepository repo = plugin.dm.getStrikeRepository();
-        plugin.dm.readAsync("StrikeList/loadFromSql", repo.loadAllAsync(),
+        final StrikeRepository repo = plugin.database().getStrikeRepository();
+        plugin.database().readAsync("StrikeList/loadFromSql", repo.loadAllAsync(),
                 loaded -> applyLoadedStrikes(repo, loaded),
                 () ->
                 {
@@ -164,7 +165,7 @@ public class StrikeList extends FreedomService
         }
         catch (IOException ex)
         {
-            FLog.warning(String.format("Failed to read strikes.json: %s", ex.getMessage()));
+            FLog.warn(String.format("Failed to read strikes.json: %s", ex.getMessage()));
             return;
         }
 
@@ -193,7 +194,7 @@ public class StrikeList extends FreedomService
                                                                 .thenMany(Flux.fromIterable(existing.keySet())
                                                                               .filter(ip -> !jsonStrikes.containsKey(ip))
                                                                               .concatMap(repo::deleteByIpAsync)))
-                                   .then(Mono.<Void>fromRunnable(() -> plugin.dm.sync("StrikeList/applyReconciled",
+                                   .then(Mono.<Void>fromRunnable(() -> plugin.database().sync("StrikeList/applyReconciled",
                                                                  () ->
                                                                  {
                                                                     strikes.clear();
@@ -202,7 +203,7 @@ public class StrikeList extends FreedomService
                     })
                     .onErrorResume(ex ->
                     {
-                        FLog.warning(String.format("Failed to reconcile strikes.json into the database: %s",
+                        FLog.warn(String.format("Failed to reconcile strikes.json into the database: %s",
                                                    ex.getMessage()));
                         return Mono.empty();
                     })
@@ -229,7 +230,7 @@ public class StrikeList extends FreedomService
             }
             catch (IOException ex)
             {
-                FLog.severe("Could not create strikes.json");
+                FLog.error("Could not create strikes.json");
             }
         }
 
@@ -239,7 +240,7 @@ public class StrikeList extends FreedomService
         }
         catch (IOException ex)
         {
-            FLog.severe("Could not read strikes.json: " + ex.getMessage());
+            FLog.error("Could not read strikes.json: " + ex.getMessage());
         }
         usingSql = false;
     }
@@ -264,14 +265,14 @@ public class StrikeList extends FreedomService
         if (prunedIps.isEmpty())
             return;
 
-        if (usingSql && plugin.dm != null && plugin.dm.isInitialized())
+        if (usingSql && plugin.database() != null && plugin.database().isInitialized())
         {
-            final StrikeRepository repo = plugin.dm.getStrikeRepository();
+            final StrikeRepository repo = plugin.database().getStrikeRepository();
             enqueue(Flux.fromIterable(prunedIps)
                         .concatMap(ip -> repo.deleteByIpAsync(ip)
                                              .onErrorResume(ex ->
                                              {
-                                                 FLog.warning(String.format(
+                                                 FLog.warn(String.format(
                                                                             "Failed to prune decayed strike for %s: %s", 
                                                                             ip, 
                                                                             ex.getMessage()
@@ -339,13 +340,13 @@ public class StrikeList extends FreedomService
         if (!persistEnabled)
             return true;
 
-        if (usingSql && plugin.dm != null && plugin.dm.isInitialized())
+        if (usingSql && plugin.database() != null && plugin.database().isInitialized())
         {
-            final StrikeRepository repo = plugin.dm.getStrikeRepository();
+            final StrikeRepository repo = plugin.database().getStrikeRepository();
             enqueue(repo.deleteByIpAsync(ip)
                         .onErrorResume(ex ->
                         {
-                            FLog.warning("Failed to clear strike from SQL: " + ex.getMessage());
+                            FLog.warn("Failed to clear strike from SQL: " + ex.getMessage());
                             return Mono.<Boolean>empty();
                         })
                         .then(writeJsonAsync()));
@@ -362,13 +363,13 @@ public class StrikeList extends FreedomService
 
     private void persist(StrikeRecord r)
     {
-        if (usingSql && plugin.dm != null && plugin.dm.isInitialized())
+        if (usingSql && plugin.database() != null && plugin.database().isInitialized())
         {
-            final StrikeRepository repo = plugin.dm.getStrikeRepository();
+            final StrikeRepository repo = plugin.database().getStrikeRepository();
             enqueue(repo.upsertAsync(r)
                         .onErrorResume(ex ->
                         {
-                            FLog.warning("Failed to persist strike to SQL: " + ex.getMessage());
+                            FLog.warn("Failed to persist strike to SQL: " + ex.getMessage());
                             return Mono.empty();
                         })
                         .then(writeJsonAsync()));
@@ -384,7 +385,7 @@ public class StrikeList extends FreedomService
         }
         catch (IOException ex)
         {
-            FLog.severe("Could not save strikes.json");
+            FLog.error("Could not save strikes.json");
         }
     }
 }

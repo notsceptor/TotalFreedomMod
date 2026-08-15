@@ -1,5 +1,11 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import me.totalfreedom.totalfreedommod.bridge.WorldEditBridge;
+
+import me.totalfreedom.totalfreedommod.discord.DiscordBridge;
+
+import me.totalfreedom.totalfreedommod.bridge.CoreProtectBridge;
+
 import java.util.List;
 
 import org.bukkit.GameMode;
@@ -60,7 +66,7 @@ public class Command_ban extends FCommand
         if (isProtectedAdminByName(sender, name))
             return;
 
-        if (plugin().bm.getByUsername(name) != null)
+        if (plugin().bans().getByUsername(name) != null)
         {
             msg(sender, "<gray><player> is already banned.",
                     Placeholder.unparsed("player", name));
@@ -76,7 +82,7 @@ public class Command_ban extends FCommand
                     Placeholder.unparsed("player", name));
         }
 
-        plugin().bm.addBan(ban);
+        plugin().bans().addBan(ban);
         if (!silent)
         {
             adminAction(sender, "<red>Banning <player><include_reason:\" - Reason: <yellow><reason>\":\"\">",
@@ -84,15 +90,15 @@ public class Command_ban extends FCommand
                     Formatter.booleanChoice("include_reason", reason != null && !reason.isEmpty()),
                     Placeholder.unparsed("reason", reason != null ? reason : ""));
 
-            plugin().db.sendActionMessage(sender.getName(), name, reason, ConfigEntry.DISCORD_PLAYER_BAN_MESSAGE);
+            plugin().services().require(DiscordBridge.class).sendActionMessage(sender.getName(), name, reason, ConfigEntry.DISCORD_PLAYER_BAN_MESSAGE);
         }
 
         if (!noRollback)
         {
-            plugin().cpb.rollback(name);
+            plugin().bridges().require(CoreProtectBridge.class).rollback(name);
         }
 
-        if (player == null || !plugin().al.isAdmin(player))
+        if (player == null || !plugin().admins().isAdmin(player))
         {
             data.setStrikes(0);
         }
@@ -101,7 +107,7 @@ public class Command_ban extends FCommand
         {
             try
             {
-                plugin().web.undo(player, 15);
+                plugin().bridges().require(WorldEditBridge.class).undo(player, 15);
             }
             catch (NoClassDefFoundError ignored)
             {

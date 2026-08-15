@@ -37,7 +37,7 @@ public class Command_doom extends FCommand
         if (admin != null)
         {
             adminAction(sender, "<red>Removing <player> from the superadmin list", name);
-            plugin().al.removeAdmin(admin);
+            plugin().admins().removeAdmin(admin);
         }
 
         // Remove from whitelist
@@ -49,11 +49,11 @@ public class Command_doom extends FCommand
         // Ban player
         final Ban ban = Ban.forPlayer(player, sender);
         ban.setReason("&cFUCKOFF");
-        for (String playerIp : plugin().pl.getData(player).getIps())
+        for (String playerIp : plugin().players().getData(player).getIps())
         {
             ban.addIp(playerIp);
         }
-        plugin().bm.addBan(ban);
+        plugin().bans().addBan(ban);
 
         // Set gamemode to survival
         player.setGameMode(GameMode.SURVIVAL);

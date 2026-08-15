@@ -34,24 +34,24 @@ public class Module_players extends HTTPDModule
         // viewer to check a bypass permission against.
         for (Player player : Bukkit.getOnlinePlayers())
         {
-            if (plugin.vs.isVanished(player))
+            if (plugin.vanish().isVanished(player))
             {
                 continue;
             }
 
             players.add(player.getName());
-            if (plugin.al.isAdmin(player) && !plugin.al.isAdminImpostor(player))
+            if (plugin.admins().isAdmin(player) && !plugin.admins().isAdminImpostor(player))
             {
                 onlineadmins.add(player.getName());
             }
         }
 
         // Admins
-        for (Admin admin : plugin.al.getActiveAdmins())
+        for (Admin admin : plugin.admins().getActiveAdmins())
         {
             final String username = admin.getName();
             
-            if (plugin.al.grantsSeniorStatus(admin))
+            if (plugin.admins().grantsSeniorStatus(admin))
             {
                 senioradmins.add(username);
             }

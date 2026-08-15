@@ -6,7 +6,7 @@ import java.sql.SQLException;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.api.FreedomAPI;
 import me.totalfreedom.totalfreedommod.sql.SQLProperties.DatabaseType;
 import me.totalfreedom.totalfreedommod.util.FLog;
 
@@ -39,7 +39,7 @@ public class ConnectionHandler
     private volatile AccessController accessController;
     private volatile Scheduler scheduler;
 
-    public ConnectionHandler(@NotNull final TotalFreedomMod plugin)
+    public ConnectionHandler(@NotNull final FreedomAPI plugin)
     {
         this.sqlProperties = new SQLProperties(plugin);
     }
@@ -237,7 +237,7 @@ public class ConnectionHandler
         }
         catch (Exception e)
         {
-            FLog.severe(String.format(
+            FLog.error(String.format(
                                     "Database connection test failed: %s", 
                                     ExceptionUtils.getRootCauseMessage(e)
                                 ));

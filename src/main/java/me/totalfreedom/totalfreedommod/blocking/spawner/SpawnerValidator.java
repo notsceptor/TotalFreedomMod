@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.blocking.spawner;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import java.util.function.Predicate;
 
 import org.bukkit.Material;
@@ -18,7 +20,6 @@ import org.bukkit.event.entity.SpawnerSpawnEvent;
 import org.bukkit.event.entity.TrialSpawnerSpawnEvent;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.blocking.sweep.SweepContext;
 import me.totalfreedom.totalfreedommod.blocking.sweep.TileEntityVisitor;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
@@ -68,15 +69,15 @@ public class SpawnerValidator extends FreedomService
                     + " | sample: " + sample,
             DetectionReporter.warnAndBroadcastAdmins(plugin));
 
-    public SpawnerValidator(TotalFreedomMod plugin)
+    public SpawnerValidator(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
-        plugin.sweepScheduler.register(windChargeSpawnerVisitor);
+        plugin.sweepScheduler().register(windChargeSpawnerVisitor);
         FLog.info("[SpawnerValidator] active"
                 + " [hanging prevent=" + Boolean.TRUE.equals(ConfigEntry.CRASH_SPAWNERS_PREVENT.getBoolean()) + "]"
                 + " [wind-charge prevent=" + windChargeActive() + "]"
@@ -84,7 +85,7 @@ public class SpawnerValidator extends FreedomService
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
     }
 

@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import me.totalfreedom.totalfreedommod.Fuckoff;
+
 import org.bukkit.entity.Player;
 
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
@@ -33,7 +35,7 @@ public class Command_fuckoff extends FCommand
     @Subcommand("off")
     public void disable(final Player sender)
     {
-        plugin().fo.disable(sender);
+        plugin().services().require(Fuckoff.class).disable(sender);
         msg(sender, "<gray>Fuckoff disabled.");
     }
 
@@ -41,7 +43,7 @@ public class Command_fuckoff extends FCommand
     {
         final double clamped = Math.clamp(radius, MIN_RADIUS, MAX_RADIUS);
 
-        plugin().fo.enable(sender, clamped);
+        plugin().services().require(Fuckoff.class).enable(sender, clamped);
 
         msg(sender, "<gray>Fuckoff enabled with radius <radius>.", Formatter.number("radius", clamped));
     }

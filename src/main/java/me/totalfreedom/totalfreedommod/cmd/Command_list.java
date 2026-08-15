@@ -57,13 +57,13 @@ public class Command_list extends FCommand
         final List<Player> admList = new ArrayList<>();
         final List<Player> players = new ArrayList<>();
         final List<Player> filteredPlayers = new ArrayList<>();
-        final List<Player> visiblePlayers = plugin().vs.visiblePlayersFor(sender);
+        final List<Player> visiblePlayers = plugin().vanish().visiblePlayersFor(sender);
 
         for (Player player : visiblePlayers)
         {
             if (filter == ListFilter.PLAYERS)
             {
-                if (plugin().al.isAdmin(player))
+                if (plugin().admins().isAdmin(player))
                 {
                     admList.add(player);
                 }
@@ -74,13 +74,13 @@ public class Command_list extends FCommand
                 continue;
             }
 
-            if (filter == ListFilter.ADMINS && plugin().al.isAdmin(player))
+            if (filter == ListFilter.ADMINS && plugin().admins().isAdmin(player))
             {
                 filteredPlayers.add(player);
                 continue;
             }
 
-            if (filter == ListFilter.IMPOSTORS && plugin().al.isAdminImpostor(player))
+            if (filter == ListFilter.IMPOSTORS && plugin().admins().isAdminImpostor(player))
             {
                 filteredPlayers.add(player);
                 continue;
@@ -134,7 +134,7 @@ public class Command_list extends FCommand
         List<Component> segments = players.stream()
             .map(player ->
             {
-                Displayable display = plugin().rm.getDisplay(player);
+                Displayable display = plugin().ranks().getDisplay(player);
                 return MessageUtils.parse(
                     "<tag> <name>",
                     MessageUtils.component("tag", display.getColoredTag()),

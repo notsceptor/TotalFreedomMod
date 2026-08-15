@@ -11,7 +11,7 @@ import org.bukkit.entity.Player;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.api.FreedomAPI;
 
 public final class ChatMentionUtil
 {
@@ -53,7 +53,7 @@ public final class ChatMentionUtil
                 }));
     }
 
-    public static void pingMentions(TotalFreedomMod plugin, Component message, boolean allowEveryone)
+    public static void pingMentions(FreedomAPI plugin, Component message, boolean allowEveryone)
     {
         if (message == null)
         {
@@ -97,7 +97,7 @@ public final class ChatMentionUtil
         playPings(plugin, pingedPlayers);
     }
 
-    public static Component highlightAndPing(TotalFreedomMod plugin, Component message, boolean allowEveryone)
+    public static Component highlightAndPing(FreedomAPI plugin, Component message, boolean allowEveryone)
     {
         Component highlighted = highlight(message, allowEveryone);
         pingMentions(plugin, message, allowEveryone);
@@ -136,7 +136,7 @@ public final class ChatMentionUtil
         return new MentionContext(onlinePlayers, playersByName, pattern);
     }
 
-    private static void playPings(TotalFreedomMod plugin, Set<UUID> pingedPlayers)
+    private static void playPings(FreedomAPI plugin, Set<UUID> pingedPlayers)
     {
         if (pingedPlayers.isEmpty())
         {

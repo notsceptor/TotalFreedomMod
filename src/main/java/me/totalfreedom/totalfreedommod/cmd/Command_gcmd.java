@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import me.totalfreedom.totalfreedommod.blocking.command.CommandBlocker;
+
 import java.util.List;
 
 import org.bukkit.command.CommandSender;
@@ -26,7 +28,7 @@ public class Command_gcmd extends FCommand
     @Callback
     public void runAsOtherPlayer(CommandSender sender, Player player, @Greedy String command)
     {
-        if (plugin().cb.isCommandBlocked(command, player) || plugin().cb.isCommandBlocked(command, sender))
+        if (plugin().services().require(CommandBlocker.class).isCommandBlocked(command, player) || plugin().services().require(CommandBlocker.class).isCommandBlocked(command, sender))
         {
             msg(sender, "<red>You cannot run blocked commands on another player.");
             return;

@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import java.util.Collections;
 import java.util.List;
 
@@ -25,13 +27,13 @@ public class Announcer extends FreedomService
     private String prefix;
     private BukkitTask announcer;
 
-    public Announcer(TotalFreedomMod plugin)
+    public Announcer(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
         enabled = ConfigEntry.ANNOUNCER_ENABLED.getBoolean();
         interval = ConfigEntry.ANNOUNCER_INTERVAL.getInteger() * 20L;
@@ -71,7 +73,7 @@ public class Announcer extends FreedomService
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
         if (announcer == null)
         {

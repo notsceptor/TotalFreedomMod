@@ -4,7 +4,7 @@ import java.sql.SQLException;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
 
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.api.FreedomAPI;
 import me.totalfreedom.totalfreedommod.sql.ConnectionHandler;
 import me.totalfreedom.totalfreedommod.sql.StatementHandler;
 
@@ -20,11 +20,11 @@ import me.totalfreedom.totalfreedommod.sql.StatementHandler;
  */
 public abstract class DatabaseAdapter
 {
-    protected final TotalFreedomMod plugin;
+    protected final FreedomAPI plugin;
     protected final ConnectionHandler connectionHandler;
     protected final StatementHandler statementHandler;
 
-    protected DatabaseAdapter(TotalFreedomMod plugin, ConnectionHandler connectionHandler, StatementHandler statementHandler)
+    protected DatabaseAdapter(FreedomAPI plugin, ConnectionHandler connectionHandler, StatementHandler statementHandler)
     {
         this.plugin = plugin;
         this.connectionHandler = connectionHandler;
@@ -115,6 +115,11 @@ public abstract class DatabaseAdapter
      * Get the applied-migration ledger for this database type.
      */
     public abstract MigrationRepository getMigrationRepository();
+
+    /**
+     * Get the per-player economy balance repository for this database type.
+     */
+    public abstract EconomyRepository getEconomyRepository();
 
     // ============================================
     // SQL Dialect Methods (override for differences)

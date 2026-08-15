@@ -1,11 +1,12 @@
 package me.totalfreedom.totalfreedommod.ssh;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
 
@@ -25,13 +26,13 @@ public class SshDaemon extends FreedomService
     private SshServer sshd;
     private SshIdentityStore identityStore;
 
-    public SshDaemon(TotalFreedomMod plugin)
+    public SshDaemon(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
         if (!ConfigEntry.SSH_ENABLED.getBoolean())
         {
@@ -55,13 +56,13 @@ public class SshDaemon extends FreedomService
 
         if (!usePassword && !usePublicKey)
         {
-            FLog.warning("SSH: Both authentication modes are disabled! Defaulting to password.");
+            FLog.warn("SSH: Both authentication modes are disabled! Defaulting to password.");
             usePassword = true;
         }
 
         if (useTotp && !usePublicKey)
         {
-            FLog.warning("SSH: Public key authentication is not enabled so two-factor will be ignored.");
+            FLog.warn("SSH: Public key authentication is not enabled so two-factor will be ignored.");
             useTotp = false;
         }
 
@@ -81,7 +82,7 @@ public class SshDaemon extends FreedomService
                 if (usePassword)
                 {
                     // Password-based auth doesn't bind an identity key, so nothing to require.
-                    FLog.warning("SSH: Two-factor auth is enabled alongside password mode! Please note that password-based login will NOT prompt for a code.");
+                    FLog.warn("SSH: Two-factor auth is enabled alongside password mode! Please note that password-based login will NOT prompt for a code.");
                 }
                 else
                 {
@@ -100,8 +101,8 @@ public class SshDaemon extends FreedomService
         }
         catch (IOException e)
         {
-            FLog.severe("Failed to start SSH daemon on port " + port + "!");
-            FLog.severe(e);
+            FLog.error("Failed to start SSH daemon on port " + port + "!");
+            FLog.error(e);
         }
     }
 
@@ -119,7 +120,7 @@ public class SshDaemon extends FreedomService
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
         if (sshd != null)
         {
@@ -130,8 +131,8 @@ public class SshDaemon extends FreedomService
             }
             catch (Exception e)
             {
-                FLog.severe("Error stopping SSH daemon.");
-                FLog.severe(e);
+                FLog.error("Error stopping SSH daemon.");
+                FLog.error(e);
             }
         }
     }

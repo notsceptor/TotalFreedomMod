@@ -1,5 +1,9 @@
 package me.totalfreedom.totalfreedommod;
 
+import me.totalfreedom.totalfreedommod.banning.StrikeList;
+
+import me.totalfreedom.api.FreedomAPI;
+
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
@@ -18,18 +22,18 @@ import me.totalfreedom.totalfreedommod.util.FUtil;
 public class AutoEject extends FreedomService
 {
 
-    public AutoEject(TotalFreedomMod plugin)
+    public AutoEject(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
     }
 
@@ -43,7 +47,7 @@ public class AutoEject extends FreedomService
         }
 
         final String ip = player.getAddress().getAddress().getHostAddress();
-        final int strike = plugin.sl.recordStrikeAndGet(ip, player.getName());
+        final int strike = plugin.services().require(StrikeList.class).recordStrikeAndGet(ip, player.getName());
 
         FLog.info("AutoEject -> name: " + player.getName() + " - player ip: " + ip + " - strike: " + strike);
 
@@ -86,11 +90,11 @@ public class AutoEject extends FreedomService
         {
             if (Boolean.TRUE.equals(ConfigEntry.RANGE_BAN_IPS.getBoolean()))
             {
-                plugin.bm.addBan(Ban.forPlayerFuzzy(player, Bukkit.getConsoleSender(), null, kickMessage));
+                plugin.bans().addBan(Ban.forPlayerFuzzy(player, Bukkit.getConsoleSender(), null, kickMessage));
             }
             else
             {
-                plugin.bm.addBan(Ban.forPlayer(player, Bukkit.getConsoleSender(), null, kickMessage));
+                plugin.bans().addBan(Ban.forPlayer(player, Bukkit.getConsoleSender(), null, kickMessage));
             }
             FUtil.bcastMsg(player.getName() + " has been banned.", NamedTextColor.RED);
             player.kick(FUtil.colorizeWithLinks(kickMessage));
@@ -102,7 +106,7 @@ public class AutoEject extends FreedomService
         final Date expires = cal.getTime();
 
         FUtil.bcastMsg(player.getName() + " has been banned for " + timeoutMinutes + " minutes.", NamedTextColor.RED);
-        plugin.bm.addBan(Ban.forPlayer(player, Bukkit.getConsoleSender(), expires, kickMessage));
+        plugin.bans().addBan(Ban.forPlayer(player, Bukkit.getConsoleSender(), expires, kickMessage));
         player.kick(FUtil.colorizeWithLinks(kickMessage));
     }
 }

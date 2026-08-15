@@ -18,7 +18,7 @@ public class Command_cage extends FCommand
     @Callback // /cage [-s] <player> | Will auto-toggle, but switch -s can be used to guarantee uncaging.
     public void toggle(final CommandSender sender, final Player player, @Switch("s") boolean stop)
     {
-        final CageData cageData = plugin().pl.getPlayer(player).getCageData();
+        final CageData cageData = plugin().players().getPlayer(player).getCageData();
 
         if (stop || cageData.isCaged())
         {
@@ -36,7 +36,7 @@ public class Command_cage extends FCommand
     {
         server().getOnlinePlayers()
               .stream()
-              .map(plugin().pl::getPlayer)
+              .map(plugin().players()::getPlayer)
               .map(FPlayer::getCageData)
               .forEach(cd -> cd.setCaged(false));
 
@@ -49,7 +49,7 @@ public class Command_cage extends FCommand
         if (isProtectedAdmin(sender, player))
             return;
 
-        final CageData data = plugin().pl.getPlayer(player).getCageData();
+        final CageData data = plugin().players().getPlayer(player).getCageData();
         final Location loc = player.getLocation().clone().add(0, 1, 0);
 
         adminAction(sender, "<red>Caging <player>", Placeholder.unparsed("player", player.getName()));

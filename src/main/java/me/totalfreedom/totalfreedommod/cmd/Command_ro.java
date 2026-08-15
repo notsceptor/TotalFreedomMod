@@ -29,7 +29,7 @@ public class Command_ro extends FCommand
     public void allPlayersWithRadius(CommandSender sender, @Resolve(value = "MaterialQuery", strategy = "mode=blocks,limit=24L,nonEmpty") List<Material> blocks, int radius)
     {
         removeNear(sender, blocks, radius, server().getOnlinePlayers().stream()
-                .filter(player -> !player.getWorld().getName().equalsIgnoreCase(plugin().wm.adminworld.getName()))
+                .filter(player -> !player.getWorld().getName().equalsIgnoreCase(plugin().worlds().adminworld.getName()))
                 .map(player -> (Player) player)
                 .toList());
     }

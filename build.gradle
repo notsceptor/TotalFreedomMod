@@ -99,23 +99,6 @@ tasks.withType(JavaCompile) {
     options.deprecation = true
 }
 
-task generateBuildNumber {
-    def buildNumberFile = file('build.properties')
-    def buildNumber = buildNumberFile.exists() ? {
-        try {
-            def props = new Properties()
-            props.load(new FileInputStream(buildNumberFile))
-            (props.getProperty('buildNumber', '0') as Integer ?: 0) + 1
-        } catch (Exception e) {
-            1
-        }
-    }.call() : 1
-
-    doLast {
-        buildNumberFile.text = "buildNumber=$buildNumber\n"
-    }
-}
-
 gitProperties {
     dateFormat = 'yyyy-MM-dd HH:mm:ss'
     failOnNoGitDirectory = true
@@ -146,23 +129,14 @@ task addBuildTimeToGitProperties {
 }
 
 processResources {
-    dependsOn generateBuildNumber, addBuildTimeToGitProperties
+    dependsOn addBuildTimeToGitProperties
     filteringCharset = 'UTF-8'
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
-    
+
     filesMatching('build.properties') {
-        def buildNumberFile = file('build.properties')
-        def buildNumber = '1'
-        if (buildNumberFile.exists()) {
-            def props = new Properties()
-            props.load(new FileInputStream(buildNumberFile))
-            buildNumber = props.getProperty('buildNumber', '1')
-        }
-        
         expand(
-            buildAuthor: project.findProperty('buildAuthor') ?: 'TotalFreedom', // Collective Effort :)
-            buildCodeName: project.findProperty('buildCodeName') ?: 'Sirius',
-            buildNumber: buildNumber,
+            buildAuthor: project.findProperty('buildAuthor') ?: 'TotalFreedom',
+            buildCodeName: project.findProperty('buildCodeName') ?: 'Unnamed',
             buildVersion: project.version
         )
     }

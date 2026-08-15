@@ -18,6 +18,6 @@ public class Command_flatlands extends FCommand
             return;
         }
 
-        plugin().wm.flatlands.sendToWorld(player);
+        plugin().worlds().flatlands.sendToWorld(player);
     }
 }

@@ -31,7 +31,7 @@ public class Command_realname extends FCommand
                 .stream()
                 .reduce(false, (found, player) ->
                     {
-                        final PlayerData data = plugin().pl.getData(player);
+                        final PlayerData data = plugin().players().getData(player);
                         final Component playerNickname = data.getNickname();
                         if (playerNickname != null)
                         {

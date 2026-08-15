@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.discord;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.List;
@@ -33,7 +35,6 @@ import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FTask;
@@ -104,32 +105,32 @@ public class DiscordBridge extends FreedomService
     private volatile int linkCodeTtlSeconds;
     private volatile boolean startedWhileReloading;
 
-    public DiscordBridge(TotalFreedomMod plugin)
+    public DiscordBridge(FreedomAPI plugin)
     {
         super(plugin);
         this.mainThread = Schedulers.fromExecutor(Bukkit.getScheduler().getMainThreadExecutor(plugin));
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
         startedWhileReloading = reloading;
 
         if (!Boolean.TRUE.equals(ConfigEntry.DISCORD_ENABLED.getBoolean()))
             return;
 
-        plugin.dm.whenReady(() ->
-                DiscordLinkJsonSync.reconcileFromJsonIfNewer(plugin, plugin.dm.getDiscordLinkRepository()));
+        plugin.database().whenReady(() ->
+                DiscordLinkJsonSync.reconcileFromJsonIfNewer(plugin, plugin.database().getDiscordLinkRepository()));
 
         final Optional<String> token = configured(ConfigEntry.DISCORD_TOKEN.getString());
         if (token.isEmpty())
         {
-            FLog.warning("[Discord] discord.enabled is true but discord.token is empty; bridge will not start.");
+            FLog.warn("[Discord] discord.enabled is true but discord.token is empty; bridge will not start.");
             return;
         }
         if (configured(ConfigEntry.DISCORD_GUILD_ID.getString()).isEmpty())
         {
-            FLog.warning("[Discord] discord.guild_id is empty; bridge will not start.");
+            FLog.warn("[Discord] discord.guild_id is empty; bridge will not start.");
             return;
         }
 
@@ -146,7 +147,7 @@ public class DiscordBridge extends FreedomService
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
         started = false;
         cleanupTask.ifPresent(BukkitTask::cancel);
@@ -279,7 +280,7 @@ public class DiscordBridge extends FreedomService
                         String.format("[Discord] Registered slash commands on guild %s.", opened.guildName()))))
                 .onErrorResume(thrown ->
                 {
-                    FLog.warning(String.format("[Discord] Failed to register slash commands: %s",
+                    FLog.warn(String.format("[Discord] Failed to register slash commands: %s",
                             DiscordConnection.describeFailure(thrown)));
                     return Mono.empty();
                 })
@@ -298,7 +299,7 @@ public class DiscordBridge extends FreedomService
                                          .map(channel -> new ResolvedChannel(Optional.of(id), channel.getName()))
                                          .switchIfEmpty(Mono.fromSupplier(() ->
                                          {
-                                             FLog.warning(String.format(
+                                             FLog.warn(String.format(
                                                                         "[Discord] %s '%s' is not a text channel in the configured guild.",
                                                                         configKey, rawId));
                                              return ResolvedChannel.none();
@@ -306,7 +307,7 @@ public class DiscordBridge extends FreedomService
                     .defaultIfEmpty(ResolvedChannel.none())
                     .onErrorResume(thrown ->
                     {
-                        FLog.warning(String.format(
+                        FLog.warn(String.format(
                                                    "[Discord] Could not resolve %s '%s': %s",
                                                    configKey, rawId, DiscordConnection.describeFailure(thrown)));
                         return Mono.just(ResolvedChannel.none());
@@ -333,7 +334,7 @@ public class DiscordBridge extends FreedomService
             }
             catch (Exception ex)
             {
-                FLog.warning(String.format(
+                FLog.warn(String.format(
                                            "[Discord] Chat renderer threw, falling back to plain: %s",
                                            ex.getMessage()));
                 rendered = Component.text(player.getName() + ": ").append(event.message());
@@ -493,7 +494,7 @@ public class DiscordBridge extends FreedomService
             }
             catch (NumberFormatException ex)
             {
-                FLog.warning(String.format("[Discord] %s '%s' is not a valid Discord id.", configKey, raw));
+                FLog.warn(String.format("[Discord] %s '%s' is not a valid Discord id.", configKey, raw));
                 return Optional.empty();
             }
         });

@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.fun;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -24,7 +26,6 @@ import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.util.FUtil;
@@ -34,18 +35,18 @@ public class ItemFun extends FreedomService
 
     private final Random random = new Random();
 
-    public ItemFun(TotalFreedomMod plugin)
+    public ItemFun(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
     }
 
@@ -59,7 +60,7 @@ public class ItemFun extends FreedomService
         }
 
         final Player player = event.getPlayer();
-        final FPlayer fPlayer = plugin.pl.getPlayer(player);
+        final FPlayer fPlayer = plugin.players().getPlayer(player);
 
         switch (event.getMaterial())
         {
@@ -77,7 +78,7 @@ public class ItemFun extends FreedomService
                     break;
                 }
 
-                if (!plugin.al.isSeniorAdmin(player))
+                if (!plugin.admins().isSeniorAdmin(player))
                 {
                     Component clownMsg = Component.empty();
                     for (char c : "You are a clown.".toCharArray())
@@ -136,7 +137,7 @@ public class ItemFun extends FreedomService
                     break;
                 }
 
-                if (!plugin.al.isSeniorAdmin(player))
+                if (!plugin.admins().isSeniorAdmin(player))
                 {
                     break;
                 }
@@ -235,7 +236,7 @@ public class ItemFun extends FreedomService
                     break;
                 }
 
-                if (!plugin.al.isSeniorAdmin(player))
+                if (!plugin.admins().isSeniorAdmin(player))
                 {
                     break;
                 }

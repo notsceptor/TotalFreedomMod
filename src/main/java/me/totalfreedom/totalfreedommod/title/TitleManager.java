@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.title;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -23,7 +25,6 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.display.Displayable;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.sql.PersistenceQueue;
@@ -64,20 +65,20 @@ public class TitleManager extends FreedomService
 
     private boolean usingSql = false;
 
-    public TitleManager(TotalFreedomMod plugin)
+    public TitleManager(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
         loadTitles();
-        plugin.dm.whenReady(this::loadTitles);
+        plugin.database().whenReady(this::loadTitles);
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
         saveTitles();
         writes.await(SHUTDOWN_FLUSH_TIMEOUT_MS);
@@ -91,7 +92,7 @@ public class TitleManager extends FreedomService
     {
         titlesFile = new File(plugin.getDataFolder(), TITLES_FILENAME);
 
-        if (plugin.dm != null && plugin.dm.isInitialized())
+        if (plugin.database() != null && plugin.database().isInitialized())
         {
             loadFromSqlAsync();
             return;
@@ -139,7 +140,7 @@ public class TitleManager extends FreedomService
         if (player == null)
             return List.of();
 
-        final PlayerData data = plugin.pl.getData(player);
+        final PlayerData data = plugin.players().getData(player);
 
         return data == null ? List.of() : resolve(data.getTitles());
     }
@@ -201,11 +202,11 @@ public class TitleManager extends FreedomService
         if (title == null)
             return false;
 
-        final PlayerData data = plugin.pl.getData(player);
+        final PlayerData data = plugin.players().getData(player);
         if (data == null || !data.addTitle(title.getId()))
             return false;
 
-        plugin.pl.saveData(data);
+        plugin.players().saveData(data);
         refreshDisplay(player);
 
         return true;
@@ -216,11 +217,11 @@ public class TitleManager extends FreedomService
      */
     public boolean revokeTitle(Player player, String titleId)
     {
-        final PlayerData data = plugin.pl.getData(player);
+        final PlayerData data = plugin.players().getData(player);
         if (data == null || titleId == null || !data.removeTitle(titleId.toLowerCase()))
             return false;
 
-        plugin.pl.saveData(data);
+        plugin.players().saveData(data);
         refreshDisplay(player);
 
         return true;
@@ -234,26 +235,26 @@ public class TitleManager extends FreedomService
      */
     private void refreshDisplay(Player player)
     {
-        if (plugin.rm == null)
+        if (plugin.ranks() == null)
             return;
 
-        plugin.rm.updatePlayerTeam(player);
+        plugin.ranks().updatePlayerTeam(player);
 
         // A title can open the admin world, and that check is cached per player for 30s. Drop the
         // cache now so a grant or revoke takes effect immediately rather than on the next sweep.
-        if (plugin.wm != null && plugin.wm.adminworld != null)
+        if (plugin.worlds() != null && plugin.worlds().adminworld != null)
         {
-            plugin.wm.adminworld.wipeAccessCache();
+            plugin.worlds().adminworld.wipeAccessCache();
         }
 
-        final PlayerData data = plugin.pl.getData(player);
+        final PlayerData data = plugin.players().getData(player);
         if (data == null || data.getSavedTag() != null)
             return;
 
-        final Displayable display = plugin.rm.getDisplay(player);
+        final Displayable display = plugin.ranks().getDisplay(player);
         if (display != null)
         {
-            plugin.pl.getPlayer(player)
+            plugin.players().getPlayer(player)
                      .setTag(AdventureUtil.componentToLegacySection(display.getColoredTag()));
         }
     }
@@ -279,13 +280,13 @@ public class TitleManager extends FreedomService
 
         // saveTitles() only writes the titles that survive, so without an explicit delete the row
         // stays behind in SQL and the title returns on the next load.
-        if (usingSql && plugin.dm != null && plugin.dm.isInitialized())
+        if (usingSql && plugin.database() != null && plugin.database().isInitialized())
         {
-            writes.enqueue(plugin.dm.getTitleRepository()
+            writes.enqueue(plugin.database().getTitleRepository()
                     .deleteAsync(removed.getId())
                     .onErrorResume(ex ->
                     {
-                        FLog.severe(String.format("Could not delete title %s from SQL: %s",
+                        FLog.error(String.format("Could not delete title %s from SQL: %s",
                                 removed.getId(), ex.getMessage()));
                         return Mono.empty();
                     })
@@ -303,8 +304,8 @@ public class TitleManager extends FreedomService
 
     private void loadFromSqlAsync()
     {
-        final TitleRepository repo = plugin.dm.getTitleRepository();
-        plugin.dm.readAsync("TitleManager/loadFromSql", repo.loadAllAsync(),
+        final TitleRepository repo = plugin.database().getTitleRepository();
+        plugin.database().readAsync("TitleManager/loadFromSql", repo.loadAllAsync(),
                 loaded -> applyLoadedTitles(repo, loaded),
                 () ->
                 {
@@ -355,7 +356,7 @@ public class TitleManager extends FreedomService
         }
         catch (IOException ex)
         {
-            FLog.warning(String.format("Failed to read %s: %s", TITLES_FILENAME, ex.getMessage()));
+            FLog.warn(String.format("Failed to read %s: %s", TITLES_FILENAME, ex.getMessage()));
             return;
         }
 
@@ -381,12 +382,12 @@ public class TitleManager extends FreedomService
                     return repo.deleteAll()
                                .thenMany(Flux.fromIterable(jsonTitles.values())
                                              .concatMap(repo::save))
-                               .then(Mono.<Void>fromRunnable(() -> plugin.dm.sync("TitleManager/applyReconciled",
+                               .then(Mono.<Void>fromRunnable(() -> plugin.database().sync("TitleManager/applyReconciled",
                                                              () -> applyReconciledTitles(jsonTitles))));
                 })
                 .onErrorResume(ex ->
                 {
-                    FLog.warning(String.format("Failed to reconcile %s into the database: %s",
+                    FLog.warn(String.format("Failed to reconcile %s into the database: %s",
                             TITLES_FILENAME, ex.getMessage()));
                     return Mono.empty();
                 })
@@ -423,13 +424,13 @@ public class TitleManager extends FreedomService
         }
         catch (IllegalArgumentException ex)
         {
-            FLog.severe(String.format("No bundled %s to install: %s", TITLES_FILENAME, ex.getMessage()));
+            FLog.error(String.format("No bundled %s to install: %s", TITLES_FILENAME, ex.getMessage()));
             return;
         }
 
         if (!titlesFile.exists())
         {
-            FLog.severe(String.format("Could not install a default %s; no titles will be available.",
+            FLog.error(String.format("Could not install a default %s; no titles will be available.",
                     TITLES_FILENAME));
             return;
         }
@@ -448,7 +449,7 @@ public class TitleManager extends FreedomService
         }
         catch (IOException ex)
         {
-            FLog.severe(String.format("Could not read %s: %s", TITLES_FILENAME, ex.getMessage()));
+            FLog.error(String.format("Could not read %s: %s", TITLES_FILENAME, ex.getMessage()));
         }
 
         FLog.info(String.format("Loaded %d titles.", titles.size()));
@@ -492,20 +493,20 @@ public class TitleManager extends FreedomService
      */
     public void saveTitles()
     {
-        if (!usingSql || plugin.dm == null || !plugin.dm.isInitialized())
+        if (!usingSql || plugin.database() == null || !plugin.database().isInitialized())
         {
             writes.enqueue(writeJsonAsync());
             return;
         }
 
-        final TitleRepository repo = plugin.dm.getTitleRepository();
+        final TitleRepository repo = plugin.database().getTitleRepository();
         final List<Title> snapshot = new ArrayList<>(titles.values());
 
         writes.enqueue(Flux.fromIterable(snapshot)
                 .concatMap(title -> repo.save(title)
                         .onErrorResume(ex ->
                         {
-                            FLog.severe(String.format("Could not save title %s to SQL: %s",
+                            FLog.error(String.format("Could not save title %s to SQL: %s",
                                     title.getId(), ex.getMessage()));
                             return Mono.empty();
                         }))
@@ -538,7 +539,7 @@ public class TitleManager extends FreedomService
         }
         catch (IOException ex)
         {
-            FLog.severe(String.format("Could not save %s: %s", TITLES_FILENAME, ex.getMessage()));
+            FLog.error(String.format("Could not save %s: %s", TITLES_FILENAME, ex.getMessage()));
         }
     }
 

@@ -1,5 +1,9 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import me.totalfreedom.totalfreedommod.freeze.Freezer;
+
+import me.totalfreedom.totalfreedommod.EntityWiper;
+
 import org.bukkit.command.CommandSender;
 import org.bukkit.potion.PotionEffect;
 
@@ -17,7 +21,7 @@ public class Command_purgeall extends FCommand
     {
         adminAction(sender, "<red>Purging all player data");
 
-        plugin().ew.wipeEntities(true);
+        plugin().services().require(EntityWiper.class).wipeEntities(true);
 
         server().getOnlinePlayers().forEach(player -> 
         {
@@ -54,7 +58,7 @@ public class Command_purgeall extends FCommand
             }
         });
 
-        plugin().fm.setGlobalFreeze(false);
+        plugin().services().require(Freezer.class).setGlobalFreeze(false);
 
         Command_mobpurge.purgeMobs();
     }

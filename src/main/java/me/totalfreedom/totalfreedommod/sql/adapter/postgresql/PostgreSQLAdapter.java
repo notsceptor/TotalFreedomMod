@@ -4,7 +4,7 @@ import java.sql.SQLException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.api.FreedomAPI;
 import me.totalfreedom.totalfreedommod.sql.ConnectionHandler;
 import me.totalfreedom.totalfreedommod.sql.StatementHandler;
 import me.totalfreedom.totalfreedommod.sql.adapter.*;
@@ -33,8 +33,9 @@ public class PostgreSQLAdapter extends DatabaseAdapter
     private SavedFlagRepository savedFlagRepository;
     private PlayerRepository playerRepository;
     private MigrationRepository migrationRepository;
+    private EconomyRepository economyRepository;
 
-    public PostgreSQLAdapter(TotalFreedomMod plugin, ConnectionHandler connectionHandler, StatementHandler statementHandler)
+    public PostgreSQLAdapter(FreedomAPI plugin, ConnectionHandler connectionHandler, StatementHandler statementHandler)
     {
         super(plugin, connectionHandler, statementHandler);
     }
@@ -164,6 +165,8 @@ public class PostgreSQLAdapter extends DatabaseAdapter
         createSavedFlagsTable();
         createPlayersTable();
         createPlayerIpsTable();
+        createEconomyPlayersTable();
+        createEconomyBankTable();
 
         FLog.info("[PostgreSQL] Database migrations complete.");
     }
@@ -463,6 +466,34 @@ public class PostgreSQLAdapter extends DatabaseAdapter
         statementHandler.executeUpdate(sql);
     }
 
+    private void createEconomyPlayersTable() throws SQLException
+    {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS "economy_players" (
+                "username" VARCHAR(16) PRIMARY KEY,
+                "uuid" VARCHAR(36) NOT NULL,
+                "wallet_balance" INTEGER NOT NULL DEFAULT 0,
+                "checking_balance" INTEGER NOT NULL DEFAULT 0,
+                "savings_balance" INTEGER NOT NULL DEFAULT 0,
+                "updated_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+            """;
+        statementHandler.executeUpdate(sql);
+    }
+
+    private void createEconomyBankTable() throws SQLException
+    {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS "economy_bank" (
+                "id" VARCHAR(16) PRIMARY KEY,
+                "checking_balance" INTEGER NOT NULL DEFAULT 0,
+                "savings_balance" INTEGER NOT NULL DEFAULT 0,
+                "updated_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+            """;
+        statementHandler.executeUpdate(sql);
+    }
+
     // ============================================
     // Repository Getters
     // ============================================
@@ -575,5 +606,15 @@ public class PostgreSQLAdapter extends DatabaseAdapter
             migrationRepository = new GenericMigrationRepository(statementHandler, this);
         }
         return migrationRepository;
+    }
+
+    @Override
+    public EconomyRepository getEconomyRepository()
+    {
+        if (economyRepository == null)
+        {
+            economyRepository = new GenericEconomyRepository(statementHandler, this);
+        }
+        return economyRepository;
     }
 }

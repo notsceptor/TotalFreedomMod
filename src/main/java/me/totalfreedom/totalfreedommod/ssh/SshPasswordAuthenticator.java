@@ -25,7 +25,7 @@ public class SshPasswordAuthenticator implements PasswordAuthenticator
         // Reject if no password is configured
         if (configPassword == null || configPassword.isEmpty())
         {
-            FLog.warning("SSH login attempt by '" + username + "' rejected: no password configured in config.yml (ssh.password is empty).");
+            FLog.warn("SSH login attempt by '" + username + "' rejected: no password configured in config.yml (ssh.password is empty).");
             return false;
         }
 

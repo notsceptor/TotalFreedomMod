@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.player;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -26,7 +28,6 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.sql.PersistenceQueue;
 import me.totalfreedom.totalfreedommod.sql.adapter.PlayerRepository;
 import me.totalfreedom.totalfreedommod.util.FLog;
@@ -67,7 +68,7 @@ public class PlayerList extends FreedomService
         return configFolder;
     }
 
-    public PlayerList(TotalFreedomMod plugin)
+    public PlayerList(FreedomAPI plugin)
     {
         super(plugin);
 
@@ -76,11 +77,11 @@ public class PlayerList extends FreedomService
 
     private boolean usingSql()
     {
-        return plugin.dm != null && plugin.dm.isInitialized();
+        return plugin.database() != null && plugin.database().isInitialized();
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
         playerMap.clear();
         dataMap.clear();
@@ -93,7 +94,7 @@ public class PlayerList extends FreedomService
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
         save();
         writes.await(SHUTDOWN_FLUSH_TIMEOUT_MS);
@@ -124,12 +125,12 @@ public class PlayerList extends FreedomService
             return;
         }
 
-        writes.enqueue(plugin.dm.getPlayerRepository().save(data)
+        writes.enqueue(plugin.database().getPlayerRepository().save(data)
                 .onErrorResume(ex ->
                 {
-                    FLog.severe(String.format("Could not save player data for %s to SQL: %s",
+                    FLog.error(String.format("Could not save player data for %s to SQL: %s",
                             data.getUsername(), ex.getMessage()));
-                    FLog.severe(ex);
+                    FLog.error(ex);
                     return Mono.empty();
                 })
                 .then(writeJsonAsync(data)));
@@ -150,8 +151,8 @@ public class PlayerList extends FreedomService
         }
         catch (IOException ex)
         {
-            FLog.severe("Could not save player data for " + data.getUsername());
-            FLog.severe(ex);
+            FLog.error("Could not save player data for " + data.getUsername());
+            FLog.error(ex);
         }
     }
 
@@ -279,7 +280,7 @@ public class PlayerList extends FreedomService
     {
         try
         {
-            PlayerRepository repo = plugin.dm.getPlayerRepository();
+            PlayerRepository repo = plugin.database().getPlayerRepository();
             reconcileFromJsonIfNewer(username, repo);
 
             return repo.findByUsername(username)
@@ -295,7 +296,7 @@ public class PlayerList extends FreedomService
         }
         catch (Exception ex)
         {
-            FLog.warning("Failed to load player data for " + username + " from SQL, falling back to JSON: " + ex.getMessage());
+            FLog.warn("Failed to load player data for " + username + " from SQL, falling back to JSON: " + ex.getMessage());
             return null;
         }
     }
@@ -329,7 +330,7 @@ public class PlayerList extends FreedomService
         }
         catch (Exception ex)
         {
-            FLog.warning("Failed to reconcile player data for " + username + " into the database: " + ex.getMessage());
+            FLog.warn("Failed to reconcile player data for " + username + " into the database: " + ex.getMessage());
         }
     }
 
@@ -345,7 +346,7 @@ public class PlayerList extends FreedomService
 
         if (data == null || !data.isValid())
         {
-            FLog.warning("Could not load player data entry: " + username + ". Entry is not valid!");
+            FLog.warn("Could not load player data entry: " + username + ". Entry is not valid!");
             configFile.delete();
             return null;
         }
@@ -368,7 +369,7 @@ public class PlayerList extends FreedomService
         }
         catch (Exception ex)
         {
-            FLog.severe("Could not read player data for " + username + ": " + ex.getMessage());
+            FLog.error("Could not read player data for " + username + ": " + ex.getMessage());
             return null;
         }
     }
@@ -397,11 +398,11 @@ public class PlayerList extends FreedomService
         {
             try
             {
-                return plugin.dm.getPlayerRepository().loadAll().values();
+                return plugin.database().getPlayerRepository().loadAll().values();
             }
             catch (Exception ex)
             {
-                FLog.warning("Failed to load all player data from SQL, falling back to JSON: " + ex.getMessage());
+                FLog.warn("Failed to load all player data from SQL, falling back to JSON: " + ex.getMessage());
             }
         }
 
@@ -503,10 +504,10 @@ public class PlayerList extends FreedomService
 
         if (usingSql())
         {
-            writes.enqueue(plugin.dm.getPlayerRepository().deleteAll()
+            writes.enqueue(plugin.database().getPlayerRepository().deleteAll()
                     .onErrorResume(ex ->
                     {
-                        FLog.severe(String.format("Could not purge player data from SQL: %s", ex.getMessage()));
+                        FLog.error(String.format("Could not purge player data from SQL: %s", ex.getMessage()));
                         return Mono.empty();
                     }));
         }

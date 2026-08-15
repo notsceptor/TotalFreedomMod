@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import me.totalfreedom.totalfreedommod.freeze.Freezer;
+
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -21,7 +23,7 @@ public class Command_freeze extends FCommand
     @Callback
     public void toggleGlobalFreeze(CommandSender sender)
     {
-        setGlobalFreeze(sender, !plugin().fm.isGlobalFreeze());
+        setGlobalFreeze(sender, !plugin().services().require(Freezer.class).isGlobalFreeze());
     }
 
     @Callback
@@ -43,12 +45,12 @@ public class Command_freeze extends FCommand
         adminAction(sender, "<red><value:Enabling:Disabling> global player freeze",
                 Formatter.booleanChoice("value", value));
 
-        plugin().fm.setGlobalFreeze(value);
+        plugin().services().require(Freezer.class).setGlobalFreeze(value);
 
         if (value)
         {
             server().getOnlinePlayers().stream()
-                    .filter(player -> !plugin().al.isAdmin(player))
+                    .filter(player -> !plugin().admins().isAdmin(player))
                     .forEach(player -> msg(player, "<red>You have been temporarily frozen due to rulebreakers. You will be unfrozen soon."));
         }
 
@@ -61,13 +63,13 @@ public class Command_freeze extends FCommand
     public void unfreezeAll(CommandSender sender)
     {
         adminAction(sender, "<red>Unfreezing all players");
-        plugin().fm.purge();
+        plugin().services().require(Freezer.class).purge();
     }
 
     @Callback
     public void togglePlayerFreeze(CommandSender sender, Player player)
     {
-        setFreezeForPlayer(sender, player, !plugin().pl.getPlayer(player).getFreezeData().isFrozen());
+        setFreezeForPlayer(sender, player, !plugin().players().getPlayer(player).getFreezeData().isFrozen());
     }
 
     @Callback
@@ -76,7 +78,7 @@ public class Command_freeze extends FCommand
         if (value && isProtectedAdmin(sender, player))
             return;
 
-        plugin().pl.getPlayer(player).getFreezeData().setFrozen(value);
+        plugin().players().getPlayer(player).getFreezeData().setFrozen(value);
 
         msg(sender, "<gray><player> has been <state>.",
                 Placeholder.unparsed("player", player.getName()),

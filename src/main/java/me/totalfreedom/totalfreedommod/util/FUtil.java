@@ -369,8 +369,7 @@ public class FUtil
         {
             return ip;
         }
-        if (sender != null && PluginProvider.get().rm != null
-                && PluginProvider.get().rm.hasPermission(sender, "tfm.manage.showips"))
+        if (sender != null && PluginProvider.get().ranks().hasPermission(sender, "tfm.manage.showips"))
         {
             return ip;
         }
@@ -527,7 +526,7 @@ public class FUtil
         }
         catch (Exception ex)
         {
-            FLog.warning("Failed to fetch UUID for " + username + ": " + ex.getMessage());
+            FLog.warn("Failed to fetch UUID for " + username + ": " + ex.getMessage());
         }
 
         return null;
@@ -583,7 +582,7 @@ public class FUtil
         }
         catch (IllegalArgumentException ex)
         {
-            FLog.warning("Failed to parse UUID: " + uuidString);
+            FLog.warn("Failed to parse UUID: " + uuidString);
         }
 
         return null;

@@ -19,7 +19,7 @@ public class Command_jumppads extends FCommand
     public void setEnabled(CommandSender sender, Boolean status)
     {
         adminAction(sender, "<aqua><choice:Enabling:Disabling> Jumppads", Formatter.booleanChoice("choice", status));
-        plugin().jp.setMode(status ? Jumppads.JumpPadMode.NORMAL : Jumppads.JumpPadMode.OFF);
+        plugin().services().require(Jumppads.class).setMode(status ? Jumppads.JumpPadMode.NORMAL : Jumppads.JumpPadMode.OFF);
     }
 
     @Callback
@@ -29,7 +29,7 @@ public class Command_jumppads extends FCommand
         value = Math.clamp(value, 1F, 10F);
 
         adminAction(sender, "<aqua>Setting Jumppads strength to: <value>", Formatter.number("value", value));
-        plugin().jp.setStrength((value / 10) + 0.1F);
+        plugin().services().require(Jumppads.class).setStrength((value / 10) + 0.1F);
     }
 
     @Callback
@@ -42,7 +42,7 @@ public class Command_jumppads extends FCommand
                 <gray>The current Jumppads mode is <white><mode><gray>.
                 <gray>Possible modes: <modes>
             """,
-            Placeholder.unparsed("mode", plugin().jp.getMode().name()),
+            Placeholder.unparsed("mode", plugin().services().require(Jumppads.class).getMode().name()),
             MessageUtils.joinedList("modes", Stream.of(Jumppads.JumpPadMode.values())
                                                         .map(m -> m.name())
                                                         .toList(), NamedTextColor.WHITE)
@@ -62,17 +62,17 @@ public class Command_jumppads extends FCommand
         adminAction(
                     sender, 
                     "<green><status:Setting:Enabling and setting> Jumppads to <mode>.", 
-                    Formatter.booleanChoice("status", plugin().jp.getMode().isOn()), 
+                    Formatter.booleanChoice("status", plugin().services().require(Jumppads.class).getMode().isOn()), 
                     Placeholder.unparsed("mode", mode.getLabel()));
 
-        plugin().jp.setMode(mode);
+        plugin().services().require(Jumppads.class).setMode(mode);
     }
 
     @Callback
     @Subcommand("info")
     public void showInfo(CommandSender sender)
     {
-        final Jumppads.JumpPadMode mode = plugin().jp.getMode();
+        final Jumppads.JumpPadMode mode = plugin().services().require(Jumppads.class).getMode();
 
         msg(
             sender,
@@ -83,7 +83,7 @@ public class Command_jumppads extends FCommand
             """,
             Formatter.booleanChoice("jump", mode.isOn()),
             Formatter.booleanChoice("sideways", mode == Jumppads.JumpPadMode.NORMAL_AND_SIDEWAYS),
-            Formatter.number("strength", plugin().jp.getStrength() * 10 - 1)
+            Formatter.number("strength", plugin().services().require(Jumppads.class).getStrength() * 10 - 1)
         );
     }
 }

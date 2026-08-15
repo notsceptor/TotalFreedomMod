@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import java.io.*;
 import java.lang.reflect.Type;
 import java.util.*;
@@ -55,13 +57,13 @@ public class ProtectArea extends FreedomService
     private boolean usingSql = false;
     private BukkitTask itemSweepTask;
 
-    public ProtectArea(TotalFreedomMod plugin)
+    public ProtectArea(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
         if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
             return;
@@ -69,7 +71,7 @@ public class ProtectArea extends FreedomService
         dataFile = new File(plugin.getDataFolder(), DATA_FILENAME);
 
         load();
-        plugin.dm.whenReady(this::load);
+        plugin.database().whenReady(this::load);
 
         itemSweepTask = Bukkit.getScheduler().runTaskTimer(
             plugin, FTask.guard("ProtectArea/sweepItems", this::sweepItems), ITEM_SWEEP_RATE, ITEM_SWEEP_RATE);
@@ -84,7 +86,7 @@ public class ProtectArea extends FreedomService
         if (dataFile == null)
             dataFile = new File(plugin.getDataFolder(), DATA_FILENAME);
 
-        if (plugin.dm != null && plugin.dm.isInitialized())
+        if (plugin.database() != null && plugin.database().isInitialized())
         {
             loadFromSqlAsync();
             return;
@@ -95,8 +97,8 @@ public class ProtectArea extends FreedomService
 
     private void loadFromSqlAsync()
     {
-        final ProtectedAreaRepository repo = plugin.dm.getProtectedAreaRepository();
-        plugin.dm.readAsync("ProtectArea/loadFromSql", repo.loadAllAsync(),
+        final ProtectedAreaRepository repo = plugin.database().getProtectedAreaRepository();
+        plugin.database().readAsync("ProtectArea/loadFromSql", repo.loadAllAsync(),
                             loaded -> applyLoadedAreas(repo, loaded),
                             () ->
                             {
@@ -148,7 +150,7 @@ public class ProtectArea extends FreedomService
         }
         catch (IOException ex)
         {
-            FLog.severe("Failed to read " + DATA_FILENAME + ": " + ex.getMessage());
+            FLog.error("Failed to read " + DATA_FILENAME + ": " + ex.getMessage());
         }
         FLog.info("Loaded " + areas.size() + " protected area(s).");
     }
@@ -182,7 +184,7 @@ public class ProtectArea extends FreedomService
         }
         catch (IOException ex)
         {
-            FLog.warning(String.format("Failed to read %s: %s", DATA_FILENAME, ex.getMessage()));
+            FLog.warn(String.format("Failed to read %s: %s", DATA_FILENAME, ex.getMessage()));
             return;
         }
 
@@ -215,7 +217,7 @@ public class ProtectArea extends FreedomService
                            .map(ProtectedRegion::getUuid)
                            .filter(uuid -> !keep.contains(uuid))
                            .concatMap(repo::deleteAsync)
-                           .then(Mono.<Void>fromRunnable(() -> plugin.dm.sync("ProtectArea/applyReconciled",
+                           .then(Mono.<Void>fromRunnable(() -> plugin.database().sync("ProtectArea/applyReconciled",
                                                          () ->
                                                          {
                                                             areas.clear();
@@ -224,7 +226,7 @@ public class ProtectArea extends FreedomService
               })
               .onErrorResume(ex ->
               {
-                  FLog.warning(String.format("Failed to reconcile %s into the database: %s",
+                  FLog.warn(String.format("Failed to reconcile %s into the database: %s",
                                DATA_FILENAME, ex.getMessage()));
                   return Mono.empty();
               })
@@ -261,13 +263,13 @@ public class ProtectArea extends FreedomService
             if (legacyFile.renameTo(oldFile))
                 FLog.info("Migration complete. Legacy file renamed to " + LEGACY_DATA_FILENAME + ".old");
             else
-                FLog.warning("Migration complete but could not rename legacy file.");
+                FLog.warn("Migration complete but could not rename legacy file.");
 
         }
         catch (Exception ex)
         {
-            FLog.severe("Failed to migrate legacy protected areas data: " + ex.getMessage());
-            FLog.severe(ex);
+            FLog.error("Failed to migrate legacy protected areas data: " + ex.getMessage());
+            FLog.error(ex);
         }
     }
 
@@ -309,19 +311,19 @@ public class ProtectArea extends FreedomService
                 }
                 catch (CantFindWorldException ex)
                 {
-                    FLog.warning(ex.getMessage());
+                    FLog.warn(ex.getMessage());
                 }
             }
         }
         catch (Exception ex)
         {
-            FLog.severe("Failed to load protected areas: " + ex.getMessage());
-            FLog.severe(ex);
+            FLog.error("Failed to load protected areas: " + ex.getMessage());
+            FLog.error(ex);
         }
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
         if (itemSweepTask != null)
         {
@@ -342,20 +344,20 @@ public class ProtectArea extends FreedomService
      */
     public void save()
     {
-        if (!usingSql || plugin.dm == null || !plugin.dm.isInitialized())
+        if (!usingSql || plugin.database() == null || !plugin.database().isInitialized())
         {
             writes.enqueue(writeJsonAsync());
             return;
         }
 
-        final ProtectedAreaRepository repo = plugin.dm.getProtectedAreaRepository();
+        final ProtectedAreaRepository repo = plugin.database().getProtectedAreaRepository();
         final List<ProtectedRegion> snapshot = new ArrayList<>(areas.values());
 
         writes.enqueue(Flux.fromIterable(snapshot)
                 .concatMap(region -> repo.save(region)
                         .onErrorResume(ex ->
                         {
-                            FLog.severe(String.format("Could not save protected area %s to SQL: %s",
+                            FLog.error(String.format("Could not save protected area %s to SQL: %s",
                                     region.getName(), ex.getMessage()));
                             return Mono.empty();
                         }))
@@ -388,8 +390,8 @@ public class ProtectArea extends FreedomService
         }
         catch (IOException ex)
         {
-            FLog.severe("Failed to save protected areas: " + ex.getMessage());
-            FLog.severe(ex);
+            FLog.error("Failed to save protected areas: " + ex.getMessage());
+            FLog.error(ex);
         }
     }
 
@@ -400,7 +402,7 @@ public class ProtectArea extends FreedomService
             return;
 
         final Player player = event.getPlayer();
-        if (plugin.al.isAdmin(player))
+        if (plugin.admins().isAdmin(player))
             return;
 
         final Location location = event.getBlock().getLocation();
@@ -416,7 +418,7 @@ public class ProtectArea extends FreedomService
             return;
 
         final Player player = event.getPlayer();
-        if (plugin.al.isAdmin(player))
+        if (plugin.admins().isAdmin(player))
             return;
 
         final Location location = event.getBlock().getLocation();
@@ -458,7 +460,7 @@ public class ProtectArea extends FreedomService
             return;
 
         final Player player = event.getPlayer();
-        if (plugin.al.isAdmin(player))
+        if (plugin.admins().isAdmin(player))
             return;
 
         if (isInProtectedArea(event.getBlock().getLocation()))
@@ -473,7 +475,7 @@ public class ProtectArea extends FreedomService
             return;
 
         final Player player = event.getPlayer();
-        if (plugin.al.isAdmin(player))
+        if (plugin.admins().isAdmin(player))
             return;
 
         if (isInProtectedArea(event.getBlock().getLocation()))
@@ -488,7 +490,7 @@ public class ProtectArea extends FreedomService
             return;
 
         final Player player = event.getPlayer();
-        if (player != null && plugin.al.isAdmin(player))
+        if (player != null && plugin.admins().isAdmin(player))
             return;
 
         if (isInProtectedArea(event.getBlock().getLocation()))
@@ -564,7 +566,7 @@ public class ProtectArea extends FreedomService
             return;
 
         final Player player = event.getPlayer();
-        if (player != null && plugin.al.isAdmin(player))
+        if (player != null && plugin.admins().isAdmin(player))
             return;
 
         if (isInProtectedArea(event.getEntity().getLocation()))
@@ -582,7 +584,7 @@ public class ProtectArea extends FreedomService
         if (remover instanceof Player)
         {
             Player player = (Player) remover;
-            if (plugin.al.isAdmin(player))
+            if (plugin.admins().isAdmin(player))
                 return;
         }
 
@@ -601,7 +603,7 @@ public class ProtectArea extends FreedomService
         if (attacker instanceof Player)
         {
             Player player = (Player) attacker;
-            if (plugin.al.isAdmin(player))
+            if (plugin.admins().isAdmin(player))
                 return;
         }
 
@@ -626,7 +628,7 @@ public class ProtectArea extends FreedomService
             return;
 
         final Player player = event.getPlayer();
-        if (plugin.al.isAdmin(player))
+        if (plugin.admins().isAdmin(player))
             return;
 
         if (isInProtectedArea(event.getBlock().getLocation()))
@@ -722,7 +724,7 @@ public class ProtectArea extends FreedomService
         if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean() 
                 || !ConfigEntry.PROTECTAREA_BLOCK_ITEMS.getBoolean()
                 || (event.getEntity() instanceof Player player 
-                        && plugin.al.isAdmin(player)))
+                        && plugin.admins().isAdmin(player)))
                     return;
 
         if (isInProtectedArea(event.getItem().getLocation()))
@@ -745,7 +747,7 @@ public class ProtectArea extends FreedomService
         if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
             return false;
 
-        if (player != null && plugin.al.isAdmin(player))
+        if (player != null && plugin.admins().isAdmin(player))
             return false;
 
         return isInProtectedArea(location);

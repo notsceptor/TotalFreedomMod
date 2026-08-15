@@ -30,7 +30,7 @@ public class SshHandshakeAuthenticator implements KeyboardInteractiveAuthenticat
 
         if (identity == null || identity.totpSecret() == null)
         {
-            FLog.warning("[SSH] Access denied — no TOTP secret configured for identity: " + identityId);
+            FLog.warn("[SSH] Access denied — no TOTP secret configured for identity: " + identityId);
             return null;
         }
 
@@ -54,7 +54,7 @@ public class SshHandshakeAuthenticator implements KeyboardInteractiveAuthenticat
 
         if (identity == null || identity.totpSecret() == null)
         {
-            FLog.warning("[SSH] No TOTP secret configured for identity: " + identityId);
+            FLog.warn("[SSH] No TOTP secret configured for identity: " + identityId);
             return false;
         }
 

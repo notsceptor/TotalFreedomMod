@@ -72,7 +72,7 @@ public abstract class HTTPDModule extends PluginComponent<TotalFreedomMod>
         }
         catch (Exception ex)
         {
-            FLog.severe(ex);
+            FLog.error(ex);
         }
 
         return files;

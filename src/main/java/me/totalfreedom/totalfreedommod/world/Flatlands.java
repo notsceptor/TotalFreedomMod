@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.world;
 
+import me.totalfreedom.totalfreedommod.SavedFlags;
+
 import java.io.File;
 
 import org.bukkit.*;
@@ -54,7 +56,7 @@ public class Flatlands extends CustomWorld
         boolean doFlatlandsWipe = false;
         try
         {
-            doFlatlandsWipe = plugin.sf.getSavedFlag("do_wipe_flatlands");
+            doFlatlandsWipe = plugin.services().require(SavedFlags.class).getSavedFlag("do_wipe_flatlands");
         }
         catch (Exception ex)
         {
@@ -65,12 +67,12 @@ public class Flatlands extends CustomWorld
             if (Bukkit.getServer().getWorld("flatlands") == null)
             {
                 FLog.info("Wiping flatlands.");
-                plugin.sf.setSavedFlag("do_wipe_flatlands", false);
+                plugin.services().require(SavedFlags.class).setSavedFlag("do_wipe_flatlands", false);
                 FileUtils.deleteQuietly(new File("./flatlands"));
             }
             else
             {
-                FLog.severe("Can't wipe flatlands, it is already loaded.");
+                FLog.error("Can't wipe flatlands, it is already loaded.");
             }
         }
     }

@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.blocking.sweep;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
@@ -19,7 +21,6 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.world.ChunkLoadEvent;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FTask;
 
@@ -36,13 +37,13 @@ public class SweepScheduler extends FreedomService
     private int drainTaskId = -1;
     private boolean started;
 
-    public SweepScheduler(TotalFreedomMod plugin)
+    public SweepScheduler(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
         started = true;
         ensureDrainTask();
@@ -54,7 +55,7 @@ public class SweepScheduler extends FreedomService
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
         started = false;
         if (drainTaskId != -1)

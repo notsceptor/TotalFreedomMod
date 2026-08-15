@@ -12,7 +12,7 @@ import discord4j.core.spec.InteractionApplicationCommandCallbackSpec;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.api.FreedomAPI;
 import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.sql.adapter.DiscordLinkRepository;
 import me.totalfreedom.totalfreedommod.util.FLog;
@@ -29,10 +29,10 @@ import me.totalfreedom.totalfreedommod.util.PlayerListUtil;
 public class DiscordCommands
 {
 
-    private final TotalFreedomMod plugin;
+    private final FreedomAPI plugin;
     private final DiscordBridge bridge;
 
-    public DiscordCommands(TotalFreedomMod plugin, DiscordBridge bridge)
+    public DiscordCommands(FreedomAPI plugin, DiscordBridge bridge)
     {
         this.plugin = plugin;
         this.bridge = bridge;
@@ -48,7 +48,7 @@ public class DiscordCommands
         return gateway.on(ChatInputInteractionEvent.class)
                       .flatMap(event -> handle(event).onErrorResume(thrown ->
                                                   {
-                                                      FLog.warning(String.format(
+                                                      FLog.warn(String.format(
                                                                                   "[Discord] /%s failed: %s",
                                                                                   event.getCommandName(), 
                                                                                   DiscordConnection.describeFailure(thrown)
@@ -91,7 +91,7 @@ public class DiscordCommands
             return replyPrivately(event, "That code is unknown or expired. Run `/link` in-game to get a fresh one.");
 
         final UUID adminUuid = pendingUuid.get();
-        final Optional<Admin> admin = Optional.ofNullable(plugin.al.getAdminByUuid(adminUuid));
+        final Optional<Admin> admin = Optional.ofNullable(plugin.admins().getAdminByUuid(adminUuid));
         if (admin.isEmpty())
             return replyPrivately(event, "Internal error: admin record for the code is gone. Try again.");
 
@@ -108,7 +108,7 @@ public class DiscordCommands
 
     private boolean persistLink(final Admin admin, final UUID adminUuid, final String discordUserId)
     {
-        final DiscordLinkRepository repo = plugin.dm.getDiscordLinkRepository();
+        final DiscordLinkRepository repo = plugin.database().getDiscordLinkRepository();
         try
         {
             repo.deleteByAdminUuid(adminUuid);
@@ -117,7 +117,7 @@ public class DiscordCommands
         }
         catch (SQLException ex)
         {
-            FLog.warning("[Discord] /link failed for " + admin.getName() + ": " + ex.getMessage());
+            FLog.warn("[Discord] /link failed for " + admin.getName() + ": " + ex.getMessage());
             return false;
         }
 
@@ -142,7 +142,7 @@ public class DiscordCommands
 
     private UnlinkOutcome removeLink(final String discordUserId)
     {
-        final DiscordLinkRepository repo = plugin.dm.getDiscordLinkRepository();
+        final DiscordLinkRepository repo = plugin.database().getDiscordLinkRepository();
         final boolean removed;
         try
         {
@@ -150,7 +150,7 @@ public class DiscordCommands
         }
         catch (SQLException ex)
         {
-            FLog.warning("[Discord] /unlink failed for " + discordUserId + ": " + ex.getMessage());
+            FLog.warn("[Discord] /unlink failed for " + discordUserId + ": " + ex.getMessage());
             return UnlinkOutcome.FAILED;
         }
 

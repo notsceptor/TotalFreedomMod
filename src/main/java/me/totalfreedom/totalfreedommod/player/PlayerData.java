@@ -13,7 +13,6 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 
 import me.totalfreedom.totalfreedommod.PluginProvider;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.ConfigInterfaces.ConfigLoadable;
 import me.totalfreedom.totalfreedommod.util.ConfigInterfaces.Validatable;
@@ -347,9 +346,7 @@ public class PlayerData implements ConfigLoadable, Validatable
         if (player != null)
             player.displayName(hasCustomNickname() ? getDisplayedNickname() :
                     Component.text(player.getName(), player.isOp() ? NamedTextColor.RED : NamedTextColor.WHITE));
-        final TotalFreedomMod plugin = PluginProvider.get();
-        if (plugin != null && plugin.pl != null)
-            plugin.pl.saveData(this);
+        PluginProvider.get().savePlayerData(this);
     }
 
     /**

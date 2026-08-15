@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.blocking.packet;
 
+import me.totalfreedom.totalfreedommod.blocking.item.ItemValidator;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -31,7 +33,7 @@ import com.github.retrooper.packetevents.wrapper.play.server.*;
 
 import io.netty.buffer.ByteBuf;
 
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.api.FreedomAPI;
 import me.totalfreedom.totalfreedommod.blocking.entity.EntityMetaPacketGuard;
 import me.totalfreedom.totalfreedommod.blocking.item.ContainerPacketGuard;
 import me.totalfreedom.totalfreedommod.blocking.sign.SignPacketGuard;
@@ -58,7 +60,7 @@ final class CrashPacketListener extends PacketListenerAbstract
     private static final com.github.retrooper.packetevents.protocol.item.ItemStack EMPTY =
             com.github.retrooper.packetevents.protocol.item.ItemStack.EMPTY;
 
-    private final TotalFreedomMod plugin;
+    private final FreedomAPI plugin;
     private final boolean sanitizeOutbound;
     private final boolean entityMetadataGuard;
     private final EntityMetaPacketGuard.Limits entityLimits;
@@ -76,7 +78,7 @@ final class CrashPacketListener extends PacketListenerAbstract
     private final boolean containerBlockEntityGuard;
     private final boolean containerChunkGuard;
 
-    CrashPacketListener(TotalFreedomMod plugin, boolean sanitizeOutbound, boolean entityMetadataGuard,
+    CrashPacketListener(FreedomAPI plugin, boolean sanitizeOutbound, boolean entityMetadataGuard,
                              EntityMetaPacketGuard.Limits entityLimits, PacketSpamLimiter spamLimiter,
                              MovementGuard movementGuard, CommandDepthGuard commandDepthGuard,
                              boolean signBlockEntityGuard,
@@ -278,7 +280,7 @@ final class CrashPacketListener extends PacketListenerAbstract
             return true;
         }
 
-        final FPlayer playerdata = plugin.pl.getPlayerSync(player);
+        final FPlayer playerdata = plugin.players().getPlayerSync(player);
         final int count = playerdata.incrementAndGetMsgCount();
         final int limit = ConfigEntry.ANTISPAM_LIMIT.getInteger(8);
         if (count >= limit)
@@ -349,7 +351,7 @@ final class CrashPacketListener extends PacketListenerAbstract
         {
             return;
         }
-        FLog.warning("[CommandDepthGuard] Blocked nested command from "
+        FLog.warn("[CommandDepthGuard] Blocked nested command from "
                 + describeUser(event) + " (>" + commandDepthGuard.maxDepth() + " brackets).");
     }
 
@@ -405,7 +407,7 @@ final class CrashPacketListener extends PacketListenerAbstract
             final Player player = Bukkit.getPlayer(id);
             if (player != null)
             {
-                plugin.ae.autoEject(player, "Moving too quickly across chunks is not permitted.");
+                plugin.autoEject().autoEject(player, "Moving too quickly across chunks is not permitted.");
             }
         }));
     }
@@ -756,7 +758,7 @@ final class CrashPacketListener extends PacketListenerAbstract
         {
             return false;
         }
-        return plugin.iv.isCursed(bukkit);
+        return plugin.services().require(ItemValidator.class).isCursed(bukkit);
     }
 
 }

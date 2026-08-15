@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import me.totalfreedom.totalfreedommod.discord.DiscordBridge;
+
 import org.bukkit.entity.Player;
 
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
@@ -15,21 +17,21 @@ public class Command_link extends FCommand
     @Callback
     public void link(Player player)
     {
-        if (plugin().db == null || !plugin().db.isReady())
+        if (plugin().services().require(DiscordBridge.class) == null || !plugin().services().require(DiscordBridge.class).isReady())
         {
             msg(player, "<red>Discord bridge is not enabled or not ready.");
             return;
         }
 
-        Admin admin = plugin().al.getAdmin(player);
+        Admin admin = plugin().admins().getAdmin(player);
         if (admin == null)
         {
             msg(player, "<red>You're not in the admin list.");
             return;
         }
 
-        String code = plugin().db.createPendingLink(admin.getUuid());
-        int ttlSeconds = plugin().db.getLinkCodeTtlSeconds();
+        String code = plugin().services().require(DiscordBridge.class).createPendingLink(admin.getUuid());
+        int ttlSeconds = plugin().services().require(DiscordBridge.class).getLinkCodeTtlSeconds();
 
         msg(
             player,

@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import me.totalfreedom.totalfreedommod.banning.PermbanList;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -27,8 +29,8 @@ public class Command_baninfo extends FCommand
     @Callback
     public void query(CommandSender sender, String target)
     {
-        final Optional<Ban> ban = Optional.ofNullable(plugin().bm.getByUsername(target))
-                .or(() -> Optional.ofNullable(plugin().bm.getByIp(target)));
+        final Optional<Ban> ban = Optional.ofNullable(plugin().bans().getByUsername(target))
+                .or(() -> Optional.ofNullable(plugin().bans().getByIp(target)));
 
         if (ban.isPresent())
         {
@@ -36,9 +38,9 @@ public class Command_baninfo extends FCommand
             return;
         }
 
-        final Optional<PermBan> permban = Optional.ofNullable(plugin().pm.getPermban(target))
-                .or(() -> plugin().pm.getPermbannedNames().stream()
-                        .map(plugin().pm::getPermban)
+        final Optional<PermBan> permban = Optional.ofNullable(plugin().services().require(PermbanList.class).getPermban(target))
+                .or(() -> plugin().services().require(PermbanList.class).getPermbannedNames().stream()
+                        .map(plugin().services().require(PermbanList.class)::getPermban)
                         .filter(candidate -> candidate != null && candidate.getIps() != null && candidate.getIps().contains(target))
                         .findFirst());
 
@@ -54,7 +56,7 @@ public class Command_baninfo extends FCommand
             final int leading = countLeadingOctets(target);
             final AtomicBoolean foundAny = new AtomicBoolean(false);
 
-            plugin().bm.getAllBans()
+            plugin().bans().getAllBans()
                 .stream()
                 .filter(candidate -> !candidate.isExpired())
                 .forEach(candidate -> candidate.getIps()
@@ -67,10 +69,10 @@ public class Command_baninfo extends FCommand
                                 foundAny.set(true);
                             }));
 
-            plugin().pm.getPermbannedNames()
+            plugin().services().require(PermbanList.class).getPermbannedNames()
                 .forEach(name ->
                     {
-                        final PermBan candidate = plugin().pm.getPermban(name);
+                        final PermBan candidate = plugin().services().require(PermbanList.class).getPermban(name);
                         if (candidate == null || candidate.getIps() == null) return; // in a lambda, return does NOT return the execution back to the caller. It simply moves to the next element in the set.
                         candidate.getIps()
                             .stream()

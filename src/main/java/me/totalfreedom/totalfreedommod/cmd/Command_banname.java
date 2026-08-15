@@ -38,7 +38,7 @@ public class Command_banname extends FCommand
         if (isProtectedAdminByName(sender, name))
             return;
 
-        if (plugin().bm.getByUsername(name) != null)
+        if (plugin().bans().getByUsername(name) != null)
         {
             msg(sender, "<gray><name> is already banned.", Placeholder.unparsed("name", name));
             return;
@@ -49,7 +49,7 @@ public class Command_banname extends FCommand
 
         final Ban ban = Ban.forPlayerName(name, sender, null, reason);
 
-        plugin().bm.addBan(ban);
+        plugin().bans().addBan(ban);
 
         adminAction(sender, "<red>Banning the username <name>",
                 Placeholder.unparsed("name", name));

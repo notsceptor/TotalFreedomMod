@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import java.time.Duration;
 import java.util.*;
 
@@ -57,19 +59,19 @@ public class SignSpy extends FreedomService
         return side == Side.FRONT ? Side.BACK : Side.FRONT;
     }
 
-    public SignSpy(TotalFreedomMod plugin)
+    public SignSpy(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
         this.pendingReverts = new HashMap<>();
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
         for (final UUID viewerId : List.copyOf(pendingReverts.keySet()))
         {
@@ -136,12 +138,12 @@ public class SignSpy extends FreedomService
         final String context = bothSides
                 ? (event.getSide() == Side.FRONT ? " (front)" : " (back)") : "";
 
-        final boolean editorIsAdmin = plugin.al.isAdmin(editor);
+        final boolean editorIsAdmin = plugin.admins().isAdmin(editor);
 
         Component message = Component.empty();
         if (editorIsAdmin)
         {
-            final Displayable display = plugin.rm.getDisplay(editor);
+            final Displayable display = plugin.ranks().getDisplay(editor);
             String prefix = AdventureUtil.componentToPlainText(display.getColoredTag()).trim();
             if (prefix.isEmpty())
             {
@@ -212,13 +214,13 @@ public class SignSpy extends FreedomService
                     .append(Component.text("]", NamedTextColor.GRAY));
         }
 
-        for (final Player admin : plugin.al.getOnlineAdmins())
+        for (final Player admin : plugin.admins().getOnlineAdmins())
         {
             if (admin.equals(editor))
             {
                 continue;
             }
-            final PlayerData data = plugin.pl.getData(admin);
+            final PlayerData data = plugin.players().getData(admin);
             if (data == null || !data.getSignSpyMode().shows(editorIsAdmin))
             {
                 continue;

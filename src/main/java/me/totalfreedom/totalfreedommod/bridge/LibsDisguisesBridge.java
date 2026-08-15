@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.bridge;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import java.lang.reflect.Method;
 
 import org.bukkit.entity.Entity;
@@ -7,7 +9,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.disguise.DisallowedDisguises;
 import me.totalfreedom.totalfreedommod.util.FLog;
 
@@ -25,16 +26,16 @@ public class LibsDisguisesBridge extends FreedomService
     private Method undisguiseToAllMethod = null;
     private DisallowedDisguises disallowedDisguises = null;
 
-    public LibsDisguisesBridge(TotalFreedomMod plugin)
+    public LibsDisguisesBridge(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
         // Get DisallowedDisguises service
-        disallowedDisguises = plugin.services.getService(DisallowedDisguises.class);
+        disallowedDisguises = plugin.services().get(DisallowedDisguises.class).orElse(null);
 
         // Initialize API lazily - LibsDisguises might not be loaded yet
         // We'll try to initialize it when first needed
@@ -111,7 +112,7 @@ public class LibsDisguisesBridge extends FreedomService
                     catch (NoSuchMethodException ex2)
                     {
                         // List all available methods for debugging
-                        FLog.warning("LibsDisguises API found but methods not accessible. Available methods:");
+                        FLog.warn("LibsDisguises API found but methods not accessible. Available methods:");
                         for (Method method : disguiseAPI.getMethods())
                         {
                             if (method.getName().contains("isDisguised") || method.getName().contains("undisguise"))
@@ -122,10 +123,10 @@ public class LibsDisguisesBridge extends FreedomService
                                     if (params.length() > 0) params.append(", ");
                                     params.append(param.getSimpleName());
                                 }
-                                FLog.warning("  - " + method.getName() + "(" + params + ")");
+                                FLog.warn("  - " + method.getName() + "(" + params + ")");
                             }
                         }
-                        FLog.warning("Expected methods: isDisguised(Entity), undisguiseToAll(Entity)");
+                        FLog.warn("Expected methods: isDisguised(Entity), undisguiseToAll(Entity)");
                         disguiseAPI = null;
                         return false;
                     }
@@ -143,8 +144,8 @@ public class LibsDisguisesBridge extends FreedomService
                 }
                 catch (Exception ex2)
                 {
-                    FLog.warning("LibsDisguises API not found. Tried: me.libraryaddict.disguise.DisguiseAPI and me.libraryaddict.disguise.api.DisguiseAPI");
-                    FLog.warning("LibsDisguises plugin is loaded but API class not accessible. Disguise features will be limited.");
+                    FLog.warn("LibsDisguises API not found. Tried: me.libraryaddict.disguise.DisguiseAPI and me.libraryaddict.disguise.api.DisguiseAPI");
+                    FLog.warn("LibsDisguises plugin is loaded but API class not accessible. Disguise features will be limited.");
                     disguiseAPI = null;
                     return false;
                 }
@@ -152,14 +153,14 @@ public class LibsDisguisesBridge extends FreedomService
         }
         catch (Exception ex)
         {
-            FLog.severe("Error initializing LibsDisguises bridge: " + ex.getMessage());
-            FLog.severe(ex);
+            FLog.error("Error initializing LibsDisguises bridge: " + ex.getMessage());
+            FLog.error(ex);
             return false;
         }
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
         libsDisguisesPlugin = null;
         disguiseAPI = null;
@@ -214,8 +215,8 @@ public class LibsDisguisesBridge extends FreedomService
         }
         catch (Exception ex)
         {
-            FLog.severe("Error checking if player is disguised: " + ex.getMessage());
-            FLog.severe(ex);
+            FLog.error("Error checking if player is disguised: " + ex.getMessage());
+            FLog.error(ex);
         }
 
         return null;
@@ -246,7 +247,7 @@ public class LibsDisguisesBridge extends FreedomService
                 Boolean disguised = isDisguised(player);
                 if (disguised != null && disguised)
                 {
-                    if (!includeAdmins && plugin.al.isAdmin(player))
+                    if (!includeAdmins && plugin.admins().isAdmin(player))
                     {
                         continue;
                     }
@@ -258,8 +259,8 @@ public class LibsDisguisesBridge extends FreedomService
         }
         catch (Exception ex)
         {
-            FLog.severe("Error undisguising players: " + ex.getMessage());
-            FLog.severe(ex);
+            FLog.error("Error undisguising players: " + ex.getMessage());
+            FLog.error(ex);
         }
     }
 

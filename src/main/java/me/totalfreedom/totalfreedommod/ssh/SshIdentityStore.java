@@ -51,7 +51,7 @@ public class SshIdentityStore
             }
             catch (Exception e)
             {
-                FLog.warning("[SSH] Failed to load identity '" + identifier + "': " + e.getMessage());
+                FLog.warn("[SSH] Failed to load identity '" + identifier + "': " + e.getMessage());
             }
         }
         FLog.info("[SSH] Loaded " + identities.size() + " SSH identit" + (identities.size() == 1 ? "y" : "ies") + ".");
@@ -101,7 +101,7 @@ public class SshIdentityStore
             }
             catch (Exception e)
             {
-                FLog.warning("[SSH] Failed to write TOTP secret for '" + identifier + "': " + e.getMessage());
+                FLog.warn("[SSH] Failed to write TOTP secret for '" + identifier + "': " + e.getMessage());
             }
         });
     }
@@ -141,7 +141,7 @@ public class SshIdentityStore
             }
             catch (Exception e)
             {
-                FLog.warning("[SSH] Failed to update last-login for '" + identifier + "': " + e.getMessage());
+                FLog.warn("[SSH] Failed to update last-login for '" + identifier + "': " + e.getMessage());
             }
         });
     }

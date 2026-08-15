@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import me.totalfreedom.totalfreedommod.banning.PermbanList;
+
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -31,13 +33,13 @@ public class Command_permban extends FCommand
         requireLocalConsole(sender);
 
         msg(sender, "<red>Reloading permban list...");
-        plugin().pm.reload();
+        plugin().services().require(PermbanList.class).reload();
         msg(sender, "<green>Reloaded permban list.");
         msg(
             sender,
             "<gray><count> IPs and <names> usernames loaded.",
-            Formatter.number("count", plugin().pm.getPermbannedIps().size()),
-            Formatter.number("names", plugin().pm.getPermbannedNames().size())
+            Formatter.number("count", plugin().services().require(PermbanList.class).getPermbannedIps().size()),
+            Formatter.number("names", plugin().services().require(PermbanList.class).getPermbannedNames().size())
         );
     }
 
@@ -102,7 +104,7 @@ public class Command_permban extends FCommand
 
         UUID uuid = online != null ? online.getUniqueId() : FUtil.usernameToUuid(canonicalName);
 
-        PermBan permban = plugin().pm.getPermban(canonicalName);
+        PermBan permban = plugin().services().require(PermbanList.class).getPermban(canonicalName);
 
         final boolean existed = permban != null;
 
@@ -115,7 +117,7 @@ public class Command_permban extends FCommand
         permban.addIps(new ArrayList<>(ips));
         final int addedIps = permban.getIps().size() - before;
 
-        plugin().pm.addPermban(permban);
+        plugin().services().require(PermbanList.class).addPermban(permban);
 
         adminAction(
             sender,
@@ -169,7 +171,7 @@ public class Command_permban extends FCommand
 
         if (isValidIpOrRange(target))
         {
-            final List<String> removed = plugin().pm.removePermbansByIp(target);
+            final List<String> removed = plugin().services().require(PermbanList.class).removePermbansByIp(target);
 
             if (removed.isEmpty())
                 msg(sender, "<red>No permbans matched the IP <target>.", Placeholder.unparsed("target", target));
@@ -192,7 +194,7 @@ public class Command_permban extends FCommand
             return;
         }
 
-        if (plugin().pm.removePermban(target))
+        if (plugin().services().require(PermbanList.class).removePermban(target))
         {
             adminAction(sender, "<red>Removing the permban for <target>", Placeholder.unparsed("target", target));
             msg(sender, "<gray>Removed the permban for <target>.", Placeholder.unparsed("target", target));

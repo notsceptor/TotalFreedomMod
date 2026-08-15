@@ -1,5 +1,9 @@
 package me.totalfreedom.totalfreedommod.tablist;
 
+import me.totalfreedom.totalfreedommod.bridge.EssentialsBridge;
+
+import me.totalfreedom.api.FreedomAPI;
+
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -11,7 +15,6 @@ import net.kyori.adventure.text.TextComponent;
 
 import me.totalfreedom.totalfreedommod.ChatManager;
 import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
@@ -27,13 +30,13 @@ public class TabList extends FreedomService
     private Component colorfulHeader = Component.empty();
     private Component colorfulFooter = Component.empty();
 
-    public TabList(TotalFreedomMod plugin)
+    public TabList(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
         enabled = ConfigEntry.TABLIST_ENABLED.getBoolean();
 
@@ -60,7 +63,7 @@ public class TabList extends FreedomService
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
         if (updateTask != null)
         {
@@ -120,7 +123,7 @@ public class TabList extends FreedomService
         }
         ctx.playerComponentTemplate = ConfigEntry.TABLIST_PLAYER_COMPONENT.getString();
         ctx.afkTag = ConfigEntry.TABLIST_AFK_TAG.getString();
-        ctx.essentialsEnabled = plugin.esb.isEssentialsEnabled();
+        ctx.essentialsEnabled = plugin.bridges().require(EssentialsBridge.class).isEssentialsEnabled();
         return ctx;
     }
 
@@ -137,11 +140,11 @@ public class TabList extends FreedomService
     private Component buildPlayerListName(Player player, CycleContext ctx)
     {
         // ${prefix} — rank tag / custom tag, same logic as chat prefix
-        String prefix = plugin.cm.buildPlayerPrefix(player, ChatManager.PrefixFormat.AMPERSAND);
+        String prefix = plugin.services().require(ChatManager.class).buildPlayerPrefix(player, ChatManager.PrefixFormat.AMPERSAND);
 
         // ${afk_tag} — AFK indicator (empty if not AFK or Essentials unavailable)
         String afkTag = "";
-        if (ctx.essentialsEnabled && plugin.esb.isAfk(player.getName()))
+        if (ctx.essentialsEnabled && plugin.bridges().require(EssentialsBridge.class).isAfk(player.getName()))
         {
             afkTag = ctx.afkTag;
         }
@@ -164,7 +167,7 @@ public class TabList extends FreedomService
     // Returns the player's display name for the tab list:
     private String resolveDisplayName(Player player, CycleContext ctx)
     {
-        final PlayerData data = plugin.pl.getData(player);
+        final PlayerData data = plugin.players().getData(player);
         if (!data.hasCustomNickname())
             return "&r" + player.getName();
         return AdventureUtil.componentToLegacy(data.getDisplayedNickname()).replace('§', '&');

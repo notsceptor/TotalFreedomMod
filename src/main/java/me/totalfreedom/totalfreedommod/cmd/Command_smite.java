@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import me.totalfreedom.totalfreedommod.discord.DiscordBridge;
+
 import java.util.List;
 
 import org.bukkit.GameMode;
@@ -46,7 +48,7 @@ public class Command_smite extends FCommand
         if (reason != null)
             FUtil.bcastMsg("  <yellow>Reason: <reason>", Placeholder.unparsed("reason", reason));
 
-        plugin().db.sendActionMessage(sender.getName(), player.getName(), reason, ConfigEntry.DISCORD_PLAYER_SMITE_MESSAGE);
+        plugin().services().require(DiscordBridge.class).sendActionMessage(sender.getName(), player.getName(), reason, ConfigEntry.DISCORD_PLAYER_SMITE_MESSAGE);
 
         // Deop
         player.setOp(false);

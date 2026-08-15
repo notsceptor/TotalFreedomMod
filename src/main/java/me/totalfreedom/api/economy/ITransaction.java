@@ -2,7 +2,7 @@ package me.totalfreedom.api.economy;
 
 import java.util.Optional;
 
-public interface ITransaction<S extends Transactional, R extends Transactional>
+public interface ITransaction<S extends Transactional<S>, R extends Transactional<R>>
 {
     /**
      * This returns who paid out the transaction.

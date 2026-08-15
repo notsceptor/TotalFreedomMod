@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -43,18 +45,18 @@ public class BookSpy extends FreedomService
 	{
 	}
 
-	public BookSpy(TotalFreedomMod plugin)
+	public BookSpy(FreedomAPI plugin)
 	{
 		super(plugin);
 	}
 
 	@Override
-	protected void onStart()
+	public void onStart()
 	{
 	}
 
 	@Override
-	protected void onStop()
+	public void onStop()
 	{
 	}
 
@@ -77,7 +79,7 @@ public class BookSpy extends FreedomService
 			return;
 		}
 
-		final boolean editorIsAdmin = plugin.al.isAdmin(editor);
+		final boolean editorIsAdmin = plugin.admins().isAdmin(editor);
 		final Component rawTitle = newMeta.hasTitle() ? newMeta.title() : UNTITLED;
 		final Component title = isCursed(rawTitle) ? UNTITLED : rawTitle;
 		final List<PageChange> changes = diff(oldPages, newPages);
@@ -87,7 +89,7 @@ public class BookSpy extends FreedomService
 		Component message = Component.empty();
 		if (editorIsAdmin)
 		{
-			final Displayable display = plugin.rm.getDisplay(editor);
+			final Displayable display = plugin.ranks().getDisplay(editor);
 			String prefix = AdventureUtil.componentToPlainText(display.getColoredTag()).trim();
 			if (prefix.isEmpty())
 			{
@@ -151,13 +153,13 @@ public class BookSpy extends FreedomService
 		message = message.append(viewButton("Read Book", "Click to read the whole book from page 1", snapshot, true))
 				.append(Component.text("]", NamedTextColor.GRAY));
 
-		for (final Player admin : plugin.al.getOnlineAdmins())
+		for (final Player admin : plugin.admins().getOnlineAdmins())
 		{
 			if (admin.equals(editor))
 			{
 				continue;
 			}
-			final PlayerData data = plugin.pl.getData(admin);
+			final PlayerData data = plugin.players().getData(admin);
 			if (data == null || !data.getBookSpyMode().shows(editorIsAdmin))
 			{
 				continue;

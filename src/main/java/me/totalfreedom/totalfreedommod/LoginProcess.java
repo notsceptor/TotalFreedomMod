@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -34,16 +36,16 @@ public class LoginProcess extends FreedomService
     public List<UUID> TELEPORT_ON_JOIN = new ArrayList<>();
     public List<UUID> CLEAR_ON_JOIN = new ArrayList<>();
 
-    public LoginProcess(TotalFreedomMod plugin) 
+    public LoginProcess(FreedomAPI plugin) 
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart() {}
+    public void onStart() {}
 
     @Override
-    protected void onStop() {}
+    public void onStop() {}
 
     /*
      * Banning and Permban checks are their respective services
@@ -60,12 +62,12 @@ public class LoginProcess extends FreedomService
         final boolean isAdmin;
         if (ConfigEntry.ADMINLIST_USE_UUID_ONLY.getBoolean()) 
         {
-            final Admin uuidAdmin = plugin.al.getAdminByUuid(event.getUniqueId());
+            final Admin uuidAdmin = plugin.admins().getAdminByUuid(event.getUniqueId());
             isAdmin = uuidAdmin != null && uuidAdmin.isActive();
         } 
         else 
         {
-            isAdmin = plugin.al.getEntryByIp(ip) != null;
+            isAdmin = plugin.admins().getEntryByIp(ip) != null;
         }
 
         server.getOnlinePlayers()
@@ -134,12 +136,12 @@ public class LoginProcess extends FreedomService
         final boolean isAdmin;
         if (ConfigEntry.ADMINLIST_USE_UUID_ONLY.getBoolean()) 
         {
-            final Admin uuidAdmin = plugin.al.getAdminByUuid(player.getId());
+            final Admin uuidAdmin = plugin.admins().getAdminByUuid(player.getId());
             isAdmin = uuidAdmin != null && uuidAdmin.isActive();
         } 
         else 
         {
-            isAdmin = plugin.al.getEntryByIp(ip) != null;
+            isAdmin = plugin.admins().getEntryByIp(ip) != null;
         }
 
         // Validation below this point
@@ -153,7 +155,7 @@ public class LoginProcess extends FreedomService
             {
                 for (Player onlinePlayer : server.getOnlinePlayers()) 
                 {
-                    if (!plugin.al.isAdmin(onlinePlayer)) 
+                    if (!plugin.admins().isAdmin(onlinePlayer)) 
                     {
                         onlinePlayer.kick(net.kyori.adventure.text.Component.text("You have been kicked to free up room for an admin."));
                         count--;
@@ -207,12 +209,12 @@ public class LoginProcess extends FreedomService
         final boolean isAdmin;
         if (ConfigEntry.ADMINLIST_USE_UUID_ONLY.getBoolean()) 
         {
-            final Admin uuidAdmin = plugin.al.getAdminByUuid(player.getUniqueId());
+            final Admin uuidAdmin = plugin.admins().getAdminByUuid(player.getUniqueId());
             isAdmin = uuidAdmin != null && uuidAdmin.isActive();
         } 
         else 
         {
-            isAdmin = plugin.al.getEntryByIp(ip) != null;
+            isAdmin = plugin.admins().getEntryByIp(ip) != null;
         }
         
         if (ConfigEntry.AUTO_OP_ENABLED.getBoolean() && !isAdmin) 

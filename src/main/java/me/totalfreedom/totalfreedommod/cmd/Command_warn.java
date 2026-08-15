@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import me.totalfreedom.totalfreedommod.discord.DiscordBridge;
+
 import java.util.List;
 
 import org.bukkit.command.CommandSender;
@@ -45,6 +47,6 @@ public class Command_warn extends FCommand
 
         msg(sender, "<green><player> has been successfully warned.", Placeholder.unparsed("player", player.getName()));
 
-        plugin().db.sendActionMessage(sender.getName(), player.getName(), reason, ConfigEntry.DISCORD_PLAYER_WARN_MESSAGE);
+        plugin().services().require(DiscordBridge.class).sendActionMessage(sender.getName(), player.getName(), reason, ConfigEntry.DISCORD_PLAYER_WARN_MESSAGE);
     }
 }

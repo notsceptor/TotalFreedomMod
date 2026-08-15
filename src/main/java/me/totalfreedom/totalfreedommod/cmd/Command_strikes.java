@@ -72,7 +72,7 @@ public class Command_strikes extends FCommand
     @Subcommand("purge")
     public void purge(CommandSender sender)
     {
-        final long count = plugin().pl
+        final long count = plugin().players()
                                    .getAllData()
                                    .stream()
                                    .peek(data -> data.setStrikes(0))

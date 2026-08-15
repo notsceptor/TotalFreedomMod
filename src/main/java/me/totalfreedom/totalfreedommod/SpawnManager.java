@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -14,18 +16,18 @@ import me.totalfreedom.totalfreedommod.util.FLog;
 
 public class SpawnManager extends FreedomService
 {
-    public SpawnManager(TotalFreedomMod plugin)
+    public SpawnManager(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
     }
 
@@ -37,11 +39,11 @@ public class SpawnManager extends FreedomService
             world = Bukkit.getWorlds().isEmpty() ? null : Bukkit.getWorlds().get(0);
             if (world == null)
             {
-                FLog.warning("Could not resolve configured spawn world.");
+                FLog.warn("Could not resolve configured spawn world.");
                 return null;
             }
 
-            FLog.warning("Configured spawn world not found; using " + world.getName() + " instead.");
+            FLog.warn("Configured spawn world not found; using %s instead.", world.getName());
         }
 
         return new Location(
@@ -73,7 +75,7 @@ public class SpawnManager extends FreedomService
         ConfigEntry.SPAWN_Z.setDouble(location.getZ());
         ConfigEntry.SPAWN_YAW.setDouble((double) location.getYaw());
         ConfigEntry.SPAWN_PITCH.setDouble((double) location.getPitch());
-        plugin.config.save();
+        plugin.config().save();
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
@@ -85,7 +87,7 @@ public class SpawnManager extends FreedomService
             return;
         }
 
-        boolean isFirstJoin = plugin.pl.getData(event.getPlayer().getName()) == null;
+        boolean isFirstJoin = plugin.players().getData(event.getPlayer().getName()) == null;
         if (policy == JoinSpawnPolicy.FIRST_JOIN && !isFirstJoin)
         {
             return;
@@ -135,7 +137,7 @@ public class SpawnManager extends FreedomService
             }
             catch (IllegalArgumentException ex)
             {
-                FLog.warning("Invalid spawn.send_player.on_join value \"" + value + "\"; using first_join.");
+                FLog.warn("Invalid spawn.send_player.on_join value \"%s\"; using first_join.", value);
                 return FIRST_JOIN;
             }
         }

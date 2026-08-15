@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import me.totalfreedom.totalfreedommod.banning.PermbanList;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeSet;
@@ -21,20 +23,20 @@ public class Command_banlist extends FCommand
     public void showBanList(CommandSender sender)
     {
         final List<String> playerNames = new ArrayList<>();
-        plugin().bm.getUsernameBans()
+        plugin().bans().getUsernameBans()
             .stream()
             .filter(Ban::hasUsername)
             .map(Ban::getUsername)
             .forEach(playerNames::add);
 
         final TreeSet<String> ipOnly = new TreeSet<>();
-        plugin().bm.getIpBans()
+        plugin().bans().getIpBans()
             .stream()
             .filter(b -> !b.hasUsername())
             .flatMap(b -> b.getIps().stream())
             .forEach(ip -> ipOnly.add(FUtil.sanitizeIp(sender, ip)));
         
-        final List<String> permbanNames = new ArrayList<>(plugin().pm.getPermbannedNames());
+        final List<String> permbanNames = new ArrayList<>(plugin().services().require(PermbanList.class).getPermbannedNames());
         permbanNames.sort(String.CASE_INSENSITIVE_ORDER);
 
         if (playerNames.isEmpty() && ipOnly.isEmpty() && permbanNames.isEmpty())
@@ -51,7 +53,7 @@ public class Command_banlist extends FCommand
                             .toList()));
         }
 
-        if (!ipOnly.isEmpty() && plugin().al.isAdmin(sender))
+        if (!ipOnly.isEmpty() && plugin().admins().isAdmin(sender))
         {
             msg(sender, "<red>IP bans: <white><list>",
                     Formatter.joining("list", ipOnly.stream()
@@ -65,9 +67,9 @@ public class Command_banlist extends FCommand
     @Permission(permission = "tfm.admin.banlist.purge")
     public void purgeBans(CommandSender sender)
     {
-        // Ok so apparently plugin().bm.purge() purges the banlist then returns an int to count how many bans were purged.
+        // Ok so apparently plugin().bans().purge() purges the banlist then returns an int to count how many bans were purged.
         adminAction(sender, "<red>Purging the ban list");
-        final int purged = plugin().bm.purge();
+        final int purged = plugin().bans().purge();
         msg(sender, "<gray>Purged <count> player ban<plural>.",
                 Formatter.number("count", purged),
                 Placeholder.unparsed("plural", purged == 1 ? "" : "s"));

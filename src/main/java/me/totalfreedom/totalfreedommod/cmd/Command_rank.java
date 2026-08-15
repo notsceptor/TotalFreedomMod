@@ -31,8 +31,8 @@ public class Command_rank extends FCommand
     @Callback
     public void queryPlayer(CommandSender sender, Player player)
     {
-        final Displayable display = plugin().rm.getDisplay(player);
-        final CustomRank rank = plugin().rm.getEffectiveRank(player);
+        final Displayable display = plugin().ranks().getDisplay(player);
+        final CustomRank rank = plugin().ranks().getEffectiveRank(player);
 
         Component result = Component.text(player.getName() + " is ", NamedTextColor.AQUA)
                                     .append(display.getColoredLoginMessage());

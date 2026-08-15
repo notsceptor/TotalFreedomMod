@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import me.totalfreedom.totalfreedommod.banning.PermbanList;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,7 +28,7 @@ public class Command_permbanlist extends FCommand
     @Callback
     public void showPage(CommandSender sender, int page)
     {
-        final List<String> permbanNames = new ArrayList<>(plugin().pm.getPermbannedNames());
+        final List<String> permbanNames = new ArrayList<>(plugin().services().require(PermbanList.class).getPermbannedNames());
         permbanNames.sort(String.CASE_INSENSITIVE_ORDER);
 
         if (permbanNames.isEmpty())

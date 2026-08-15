@@ -1,6 +1,5 @@
 # TFM excludes
 /lib
-/build.properties
 git.properties
 .github/
 

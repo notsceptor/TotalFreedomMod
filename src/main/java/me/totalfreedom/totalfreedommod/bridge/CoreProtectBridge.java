@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.bridge;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import java.util.Collections;
 import java.util.List;
 
@@ -19,7 +21,6 @@ import net.coreprotect.CoreProtectAPI;
 import net.coreprotect.utility.Util;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 
@@ -28,13 +29,13 @@ public class CoreProtectBridge extends FreedomService
     private static final int ROLLBACK_TIME = 2592000;
     private CoreProtectAPI coreProtectAPI;
 
-    public CoreProtectBridge(TotalFreedomMod plugin)
+    public CoreProtectBridge(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
         coreProtectAPI = findCoreProtectAPI();
 
@@ -45,7 +46,7 @@ public class CoreProtectBridge extends FreedomService
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
         coreProtectAPI = null;
     }
@@ -58,7 +59,7 @@ public class CoreProtectBridge extends FreedomService
         if (!event.hasItem()
                 || !isEnabled()
                 || event.getItem().getType() != Material.STICK
-                || !plugin.al.isAdmin(player))
+                || !plugin.admins().isAdmin(player))
         {
             return;
         }
@@ -128,7 +129,7 @@ public class CoreProtectBridge extends FreedomService
             }
             catch (Exception ex)
             {
-                FLog.severe(ex);
+                FLog.error(ex);
             }
         });
 
@@ -160,7 +161,7 @@ public class CoreProtectBridge extends FreedomService
             }
             catch (Exception ex)
             {
-                FLog.severe(ex);
+                FLog.error(ex);
             }
         });
 
@@ -200,7 +201,7 @@ public class CoreProtectBridge extends FreedomService
         }
         catch (Exception ex)
         {
-            FLog.severe(ex);
+            FLog.error(ex);
             return null;
         }
     }

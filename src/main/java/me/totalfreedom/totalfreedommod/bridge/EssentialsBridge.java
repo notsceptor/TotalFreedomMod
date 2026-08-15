@@ -1,10 +1,11 @@
 package me.totalfreedom.totalfreedommod.bridge;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.util.FLog;
 
 public class EssentialsBridge extends FreedomService
@@ -12,18 +13,18 @@ public class EssentialsBridge extends FreedomService
 
     private Plugin essentialsPlugin = null;
 
-    public EssentialsBridge(TotalFreedomMod plugin)
+    public EssentialsBridge(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
     }
 
@@ -41,7 +42,7 @@ public class EssentialsBridge extends FreedomService
             }
             catch (Exception ex)
             {
-                FLog.severe(ex);
+                FLog.error(ex);
             }
         }
         return essentialsPlugin;
@@ -63,7 +64,7 @@ public class EssentialsBridge extends FreedomService
         }
         catch (Exception ex)
         {
-            FLog.severe(ex);
+            FLog.error(ex);
         }
         return null;
     }
@@ -86,7 +87,7 @@ public class EssentialsBridge extends FreedomService
         }
         catch (Exception ex)
         {
-            FLog.severe(ex);
+            FLog.error(ex);
         }
         return 0L;
     }
@@ -107,7 +108,7 @@ public class EssentialsBridge extends FreedomService
         }
         catch (Exception ex)
         {
-            FLog.severe(ex);
+            FLog.error(ex);
         }
         return false;
     }
@@ -124,7 +125,7 @@ public class EssentialsBridge extends FreedomService
         }
         catch (Exception ex)
         {
-            FLog.severe(ex);
+            FLog.error(ex);
         }
         return false;
     }

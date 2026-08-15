@@ -6,7 +6,7 @@ import org.bukkit.entity.Player;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.api.FreedomAPI;
 import me.totalfreedom.totalfreedommod.cmd.SourceType;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Permission;
 import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchContext;
@@ -48,7 +48,7 @@ public final class PermissionGate
      * @param sendMsg whether to message the sender on failure (pass {@code false} for silent checks
      *                such as Brigadier {@code requires()} / tab visibility)
      */
-    public static boolean test(final TotalFreedomMod plugin, final CommandSender sender,
+    public static boolean test(final FreedomAPI plugin, final CommandSender sender,
                                final Permission perm, final boolean sendMsg)
     {
         if (perm == null)
@@ -60,7 +60,7 @@ public final class PermissionGate
         if (!passesSourceGate(sender, perm, sendMsg))
             return false;
 
-        final boolean allowed = plugin.rm.hasPermission(sender, perm.permission());
+        final boolean allowed = plugin.ranks().hasPermission(sender, perm.permission());
         if (!allowed && sendMsg)
             sender.sendMessage(Component.text(perm.message(), NamedTextColor.RED));
 
@@ -71,7 +71,7 @@ public final class PermissionGate
      * Whether the sender is permitted to issue commands over the channel it arrived on at all,
      * independently of what the command itself requires.
      */
-    private static boolean passesChannelGate(final TotalFreedomMod plugin, final CommandSender sender,
+    private static boolean passesChannelGate(final FreedomAPI plugin, final CommandSender sender,
                                              final boolean sendMsg)
     {
         final RemoteDispatchSession dispatch = RemoteDispatchContext.getActiveSession();
@@ -95,16 +95,16 @@ public final class PermissionGate
             return requireChannelNode(plugin, sender, node, label, sendMsg);
         }
 
-        if (!(sender instanceof Player) && plugin.al.getEntryByName(sender.getName()) != null)
+        if (!(sender instanceof Player) && plugin.admins().getEntryByName(sender.getName()) != null)
             return requireChannelNode(plugin, sender, "tfm.manage.telnet", "telnet", sendMsg);
 
         return true;
     }
 
-    private static boolean requireChannelNode(final TotalFreedomMod plugin, final CommandSender sender,
+    private static boolean requireChannelNode(final FreedomAPI plugin, final CommandSender sender,
                                               final String node, final String label, final boolean sendMsg)
     {
-        if (plugin.rm.hasPermission(sender, node))
+        if (plugin.ranks().hasPermission(sender, node))
             return true;
 
         if (sendMsg)

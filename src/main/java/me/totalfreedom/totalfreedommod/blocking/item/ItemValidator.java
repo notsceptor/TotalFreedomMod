@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.blocking.item;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -38,7 +40,6 @@ import org.bukkit.inventory.*;
 import net.kyori.adventure.text.format.NamedTextColor;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.blocking.sweep.EntityVisitor;
 import me.totalfreedom.totalfreedommod.blocking.sweep.SweepContext;
 import me.totalfreedom.totalfreedommod.blocking.sweep.TileEntityVisitor;
@@ -161,13 +162,13 @@ public class ItemValidator extends FreedomService
                     + count + " item(s). Sample: " + sample,
             DetectionReporter.warnAndBroadcastAdmins(plugin));
 
-    public ItemValidator(TotalFreedomMod plugin)
+    public ItemValidator(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
         panicMode = Boolean.TRUE.equals(ConfigEntry.CRASH_ITEMS_PANIC_MODE.getBoolean());
         Integer cap = ConfigEntry.CRASH_ITEMS_MAX_POTION_EFFECTS.getInteger();
@@ -176,17 +177,17 @@ public class ItemValidator extends FreedomService
                 ConfigEntry.CRASH_CONTAINERS_SWEEP_MODE.getString());
         if (!RawNbtInspector.isAvailable())
         {
-            FLog.warning("[ItemValidator] Raw NBT inspection is unavailable on this server runtime.");
+            FLog.warn("[ItemValidator] Raw NBT inspection is unavailable on this server runtime.");
         }
         scheduleEquipmentSweep();
         scheduleContainerRadiusSweep();
-        plugin.sweepScheduler.register(containerVisitor);
-        plugin.sweepScheduler.register(containerEntityVisitor);
-        plugin.sweepScheduler.register(equipmentEntityVisitor);
+        plugin.sweepScheduler().register(containerVisitor);
+        plugin.sweepScheduler().register(containerEntityVisitor);
+        plugin.sweepScheduler().register(equipmentEntityVisitor);
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
         if (sweepTaskId != -1)
         {
@@ -266,7 +267,7 @@ public class ItemValidator extends FreedomService
         }
         if (acted > 0)
         {
-            FLog.warning("[ItemValidator] Radius sweep handled " + acted + " cursed container(s).", true);
+            FLog.warn("[ItemValidator] Radius sweep handled " + acted + " cursed container(s).", true);
         }
     }
 
@@ -768,11 +769,11 @@ public class ItemValidator extends FreedomService
         }
         catch (Throwable th) // because we ignored this, we don't see why the itemvalidator spams the logs.
         {
-            FLog.severe(ExceptionUtils.getRootCauseMessage(th));
+            FLog.error(ExceptionUtils.getRootCauseMessage(th));
             return; // Returning here so it doesn't enter a recursive loop of spamming logs with nonsense. Instead, we will spam the logs with actual errors.
         }
         recordDetection(verdict, context + " [block destroyed]");
-        FLog.warning("[ItemValidator] Destroyed container block at " + FUtil.formatLocation(block.getLocation())
+        FLog.warn("[ItemValidator] Destroyed container block at " + FUtil.formatLocation(block.getLocation())
                 + " (" + verdict.reason() + ").", true);
     }
 
@@ -793,7 +794,7 @@ public class ItemValidator extends FreedomService
             {
             }
             recordDetection(verdict, context + " [entity removed]");
-            FLog.warning("[ItemValidator] Removed container entity at "
+            FLog.warn("[ItemValidator] Removed container entity at "
                     + FUtil.formatLocation(entity.getLocation())
                     + " (" + verdict.reason() + ").", true);
         }

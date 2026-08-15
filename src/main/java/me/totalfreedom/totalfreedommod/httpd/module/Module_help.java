@@ -13,6 +13,7 @@ import org.bukkit.command.CommandMap;
 import org.bukkit.command.PluginIdentifiableCommand;
 import org.bukkit.command.SimpleCommandMap;
 
+import me.totalfreedom.api.FreedomAPI;
 import me.totalfreedom.totalfreedommod.PluginProvider;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.cmd.CommandRegistry;
@@ -78,7 +79,7 @@ public class Module_help extends HTTPDModule
             Displayable lastTfmCommandLevel = null;
             for (Command command : commands)
             {
-                if (!TotalFreedomMod.pluginName.equals(pluginName))
+                if (!plugin.getPluginMeta().getName().equals(pluginName))
                 {
                     responseBody.append(buildDescription(command));
                     continue;
@@ -121,11 +122,9 @@ public class Module_help extends HTTPDModule
      */
     private static CustomRank requiredRank(Permission perm)
     {
-        final TotalFreedomMod plugin = PluginProvider.get();
+        final FreedomAPI plugin = PluginProvider.get();
 
-        return plugin == null || plugin.rm == null
-                ? null
-                : plugin.rm.getRegistry().requiredFor(perm.permission()).orElse(null);
+        return plugin.ranks().getRegistry().requiredFor(perm.permission()).orElse(null);
     }
 
     private static String buildDescription(Command command)

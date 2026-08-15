@@ -63,7 +63,7 @@ public final class SshQrServer
             }
             catch (IOException e)
             {
-                FLog.warning("[SSH] Failed to start QR server: " + e.getMessage());
+                FLog.warn("[SSH] Failed to start QR server: " + e.getMessage());
             }
         }
     }
@@ -224,7 +224,7 @@ public final class SshQrServer
         }
         catch (IOException e)
         {
-            FLog.severe("[SSH] Failed to load QR template '" + resourcePath + "': " + e.getMessage());
+            FLog.error("[SSH] Failed to load QR template '" + resourcePath + "': " + e.getMessage());
             return "<html><body><p>Internal error.</p></body></html>";
         }
     }

@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -36,13 +38,13 @@ public class GameRuleHandler extends FreedomService
     //
     private BukkitTask commitTask = null;
 
-    public GameRuleHandler(TotalFreedomMod plugin)
+    public GameRuleHandler(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
         // Clear the gamerule defaults and known malicious entries from memory
         defaultGameRuleValues.clear();
@@ -72,7 +74,7 @@ public class GameRuleHandler extends FreedomService
             // Ignore gamerules that don't exist
             if (rule == null)
             {
-                FLog.warning("Ignoring default gamerule " + key + " as it doesn't exist");
+                FLog.warn("Ignoring default gamerule " + key + " as it doesn't exist");
                 continue;
             }
 
@@ -81,14 +83,14 @@ public class GameRuleHandler extends FreedomService
             // IntelliJ complained about nullability even though that makes no sense given how this code is done
             if (value == null)
             {
-                FLog.warning("Ignoring default gamerule " + key + " as the value is somehow null");
+                FLog.warn("Ignoring default gamerule " + key + " as the value is somehow null");
                 continue;
             }
 
             // Ignore gamerules with invalid values
             if (!rule.getType().isInstance(value))
             {
-                FLog.warning("Ignoring default gamerule " + key + " as it uses an invalid type - Expected " + rule.getType() + ", got " + value.getClass().getName());
+                FLog.warn("Ignoring default gamerule " + key + " as it uses an invalid type - Expected " + rule.getType() + ", got " + value.getClass().getName());
                 continue;
             }
 
@@ -115,14 +117,14 @@ public class GameRuleHandler extends FreedomService
             // Ignore gamerules that don't exist
             if (rule == null)
             {
-                FLog.warning("Ignoring cap for gamerule " + key + " as it doesn't exist");
+                FLog.warn("Ignoring cap for gamerule " + key + " as it doesn't exist");
                 continue;
             }
 
             // Ignore gamerules that aren't numbers
             if (!Integer.class.isAssignableFrom(rule.getType()) )
             {
-                FLog.warning("Ignoring cap for gamerule " + key + " as said gamerule isn't a number");
+                FLog.warn("Ignoring cap for gamerule " + key + " as said gamerule isn't a number");
                 continue;
             }
 
@@ -130,7 +132,7 @@ public class GameRuleHandler extends FreedomService
             final List<Integer> range = caps.getIntegerList(key);
             if (range.size() != 2 || range.getFirst() > range.getLast())
             {
-                FLog.warning("Ignoring cap for gamerule " + key + " as the range given isn't valid (must be specified like [min, max] in the configuration)");
+                FLog.warn("Ignoring cap for gamerule " + key + " as the range given isn't valid (must be specified like [min, max] in the configuration)");
                 continue;
             }
 
@@ -154,7 +156,7 @@ public class GameRuleHandler extends FreedomService
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
         changeWindows.clear();
 
@@ -184,7 +186,7 @@ public class GameRuleHandler extends FreedomService
         final GameRule<?> gameRule = event.getGameRule();
 
         // Prevent players we don't want from screwing with our game rules
-        if (source != null && !plugin.rm.hasPermission(source, "tfm.world.gamerule"))
+        if (source != null && !plugin.ranks().hasPermission(source, "tfm.world.gamerule"))
         {
             // Cancel the event, we don't want players without this permission to be able to mess with this
             event.setCancelled(true);
@@ -197,21 +199,21 @@ public class GameRuleHandler extends FreedomService
                 {
                     if (perSecond == maxPerSecond + 1)
                     {
-                        FLog.warning(source.getName() + " is spamming gamerule changes; rate-limiting"
+                        FLog.warn(source.getName() + " is spamming gamerule changes; rate-limiting"
                                 + " and suppressing further warnings.");
 
                         if (ConfigEntry.GAMERULES_KICK_FLOODERS.getBoolean(true) && source instanceof Player player)
                         {
                             FUtil.bcastMsg(player.getName() + " was automatically kicked for spamming"
                                     + " gamerule changes.", NamedTextColor.RED);
-                            plugin.ae.autoEject(player, "Kicked for spamming gamerule changes.");
+                            plugin.autoEject().autoEject(player, "Kicked for spamming gamerule changes.");
                         }
                     }
                     return;
                 }
             }
 
-            FLog.warning(source.getName()
+            FLog.warn(source.getName()
                     + " just tried to change "
                     + (maliciousGameRules.contains(gameRule.getKey().key()) ? "malicious " : "")
                     + "gamerule "
@@ -233,7 +235,7 @@ public class GameRuleHandler extends FreedomService
             // Uh oh, we've been clamped!
             if (requested != clamped)
             {
-                FLog.warning("Clamped requested gamerule value "
+                FLog.warn("Clamped requested gamerule value "
                         + gameRule.getKey()
                         + " from "
                         + requested

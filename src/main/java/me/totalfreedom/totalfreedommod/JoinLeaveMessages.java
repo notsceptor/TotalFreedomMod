@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import org.bukkit.entity.Player;
@@ -17,18 +19,18 @@ import me.totalfreedom.totalfreedommod.util.FUtil;
 public class JoinLeaveMessages extends FreedomService
 {
 
-    public JoinLeaveMessages(TotalFreedomMod plugin)
+    public JoinLeaveMessages(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
     }
 
@@ -54,8 +56,8 @@ public class JoinLeaveMessages extends FreedomService
       */
     private boolean isAdminOrDeveloper(final Player player)
     {
-        return plugin.al.isAdmin(player)
-               || (plugin.tm != null && plugin.tm.getDisplayTitle(player) != null);
+        return plugin.admins().isAdmin(player)
+               || (plugin.titles() != null && plugin.titles().getDisplayTitle(player) != null);
     }
 
     /**
@@ -71,12 +73,12 @@ public class JoinLeaveMessages extends FreedomService
         for (final Player viewer : server.getOnlinePlayers())
         {
             final boolean isSubject = viewer.getUniqueId().equals(subject.getUniqueId());
-            if (!isSubject && !plugin.vs.canSee(viewer, subject))
+            if (!isSubject && !plugin.vanish().canSee(viewer, subject))
             {
                 continue;
             }
 
-            if (isSubject || subjectIsAdmin || plugin.pl.getPlayer(viewer).joinLeaveMessagesEnabled())
+            if (isSubject || subjectIsAdmin || plugin.players().getPlayer(viewer).joinLeaveMessagesEnabled())
             {
                 FUtil.playerMsg(viewer, message);
             }

@@ -5,7 +5,7 @@ import java.util.UUID;
 
 import org.bukkit.entity.Player;
 
-public interface IEcoPlayer extends Transactional
+public interface IEcoPlayer extends Transactional<IEcoPlayer>
 {
     /** The player's Minecraft username */
     String name();

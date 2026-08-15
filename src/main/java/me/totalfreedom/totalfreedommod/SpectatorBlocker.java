@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -46,13 +48,13 @@ public class SpectatorBlocker extends FreedomService
     private BukkitTask refreshTask;
     private volatile boolean stopped;
 
-    public SpectatorBlocker(TotalFreedomMod plugin)
+    public SpectatorBlocker(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
         stopped = false;
         attemptRegister(0);
@@ -80,7 +82,7 @@ public class SpectatorBlocker extends FreedomService
 
         if (attempt >= MAX_ATTEMPTS)
         {
-            FLog.warning("[SpectatorBlocker] PacketEvents is not enabled. Spectator teleports will still be cancelled, but the teleport menu will not be grayed out.");
+            FLog.warn("[SpectatorBlocker] PacketEvents is not enabled. Spectator teleports will still be cancelled, but the teleport menu will not be grayed out.");
             return;
         }
 
@@ -107,13 +109,13 @@ public class SpectatorBlocker extends FreedomService
         }
         catch (Throwable ex)
         {
-            FLog.severe("[SpectatorBlocker] Could not register the PacketEvents listener.");
-            FLog.severe(ex);
+            FLog.error("[SpectatorBlocker] Could not register the PacketEvents listener.");
+            FLog.error(ex);
         }
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
         stopped = true;
 
@@ -144,7 +146,7 @@ public class SpectatorBlocker extends FreedomService
             }
             catch (Throwable ex)
             {
-                FLog.warning("[SpectatorBlocker] Could not unregister the PacketEvents listener: " + ex.getMessage());
+                FLog.warn("[SpectatorBlocker] Could not unregister the PacketEvents listener: " + ex.getMessage());
             }
 
             registeredListener = null;
@@ -188,7 +190,7 @@ public class SpectatorBlocker extends FreedomService
 
         final Player player = event.getPlayer();
 
-        if (plugin.al.isAdmin(player))
+        if (plugin.admins().isAdmin(player))
         {
             return;
         }
@@ -216,7 +218,7 @@ public class SpectatorBlocker extends FreedomService
             return;
         }
 
-        if (plugin.al.isAdmin(player))
+        if (plugin.admins().isAdmin(player))
         {
             return;
         }
@@ -238,7 +240,7 @@ public class SpectatorBlocker extends FreedomService
         final boolean shouldRestrict =
                 ConfigEntry.BLOCK_SPECTATOR_TELEPORT.getBoolean()
                         && player.getGameMode() == GameMode.SPECTATOR
-                        && !plugin.al.isAdmin(player);
+                        && !plugin.admins().isAdmin(player);
 
         final boolean currentlyRestricted =
                 restrictedSpectators.contains(player.getUniqueId());

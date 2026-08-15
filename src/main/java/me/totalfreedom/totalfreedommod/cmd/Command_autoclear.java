@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import me.totalfreedom.totalfreedommod.LoginProcess;
+
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 
@@ -16,10 +18,10 @@ public class Command_autoclear extends FCommand
     @Callback
     public void autoclear(CommandSender sender, OfflinePlayer target)
     {
-        final boolean enabled = !plugin().lp.CLEAR_ON_JOIN.removeIf(entry -> entry.equals(target.getUniqueId()));
+        final boolean enabled = !plugin().services().require(LoginProcess.class).CLEAR_ON_JOIN.removeIf(entry -> entry.equals(target.getUniqueId()));
         if (enabled)
         {
-            plugin().lp.CLEAR_ON_JOIN.add(target.getUniqueId());
+            plugin().services().require(LoginProcess.class).CLEAR_ON_JOIN.add(target.getUniqueId());
         }
 
         msg(sender, "<gold><player> <aqua>will <enabled:now:no longer> have their inventory cleared when they join.",

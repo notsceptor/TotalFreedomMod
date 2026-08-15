@@ -46,7 +46,7 @@ public class InetAddressListResolver implements AbstractParameterizedArgumentRes
         // Get all their IP addresses
         if (all)
         {
-            final PlayerData playerData = PluginProvider.get().pl.getData(player);
+            final PlayerData playerData = PluginProvider.get().getPlayerData(player);
             return playerData.getIps().stream()
                     .filter(InetAddresses::isInetAddress)
                     .map(InetAddress::ofLiteral)

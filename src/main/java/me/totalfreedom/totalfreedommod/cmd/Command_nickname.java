@@ -97,7 +97,7 @@ public class Command_nickname extends FCommand
             return;
         }
 
-        final PlayerData data = plugin().pl.getData(player);
+        final PlayerData data = plugin().players().getData(player);
 
         // Plaintext match to own username with no styling is equivalent to no nickname.
         if (plainNickname.equalsIgnoreCase(player.getName()) && !AdventureUtil.hasVisualStyle(colorizedNickname))
@@ -174,7 +174,7 @@ public class Command_nickname extends FCommand
 
         final long count = server().getOnlinePlayers()
                 .stream()
-                .map(p -> plugin().pl.getData(p))
+                .map(p -> plugin().players().getData(p))
                 .filter(d -> d.getNickname() != null)
                 .reduce(0L, (total, d) ->
                     {
@@ -193,7 +193,7 @@ public class Command_nickname extends FCommand
         adminAction(sender, "<aqua>Cleaning all nicknames");
 
         final long count = server().getOnlinePlayers().stream()
-            .map(p -> plugin().pl.getData(p))
+            .map(p -> plugin().players().getData(p))
             .filter(data -> data.getNickname() != null && data.hasCustomNickname())
             .filter(data ->
             {
@@ -235,7 +235,7 @@ public class Command_nickname extends FCommand
 
     private void clearNickname(Player player)
     {
-        plugin().pl
+        plugin().players()
                 .getData(player)
                 .setNickname(null);
     }
@@ -263,7 +263,7 @@ public class Command_nickname extends FCommand
         final List<String> terms = new ArrayList<>(FORBIDDEN_WORDS);
 
         PluginProvider.get()
-                      .rm
+                      .ranks()
                       .getCustomRanksSorted()
                       .stream()
                       .filter(r -> r.isAdmin()) // for some reason, this Rank::isAdmin is giving me some sort of null warning. Same as above.

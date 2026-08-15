@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.bridge;
 
+import me.totalfreedom.totalfreedommod.ProtectArea;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.*;
@@ -43,7 +45,7 @@ import com.sk89q.worldedit.world.block.BlockType;
 import com.sk89q.worldedit.world.registry.BlockMaterial;
 import com.sk89q.worldedit.world.registry.LegacyMapper;
 
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.api.FreedomAPI;
 import me.totalfreedom.totalfreedommod.blocking.sweep.SweepContext;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
@@ -137,7 +139,7 @@ public final class WorldEditHook implements Listener
         "_sign", "_head", "_skull", "_banner", "_bed", "shulker_box", "campfire", "command_block"
     };
 
-    private final TotalFreedomMod plugin;
+    private final FreedomAPI plugin;
     private final Map<UUID, RegionSnapshot> lastSelections = new HashMap<>();
     private final Map<UUID, Integer> playerLimits = new ConcurrentHashMap<>();
     private final Map<UUID, PermissionAttachment> bypassAttachments = new HashMap<>();
@@ -148,7 +150,7 @@ public final class WorldEditHook implements Listener
     private Object editSessionSubscriber;
     private WorldEditPlugin worldEditPlugin;
 
-    public WorldEditHook(TotalFreedomMod plugin)
+    public WorldEditHook(FreedomAPI plugin)
     {
         this.plugin = plugin;
     }
@@ -160,7 +162,7 @@ public final class WorldEditHook implements Listener
         {
             // Should not happen — WorldEditBridge gates on provider presence —
             // but bail out cleanly rather than NPE on the first poll tick.
-            FLog.warning("WorldEditHook.register(): no WorldEdit / FAWE plugin instance available.");
+            FLog.warn("WorldEditHook.register(): no WorldEdit / FAWE plugin instance available.");
             return;
         }
 
@@ -187,7 +189,7 @@ public final class WorldEditHook implements Listener
                 Extent wrapped = new ProtectedAreaExtent(event.getExtent(), wePlayer, event.getWorld());
 
                 final Player bukkitPlayer = Bukkit.getPlayer(wePlayer.getUniqueId());
-                if (bukkitPlayer != null && !plugin.al.isAdmin(bukkitPlayer))
+                if (bukkitPlayer != null && !plugin.admins().isAdmin(bukkitPlayer))
                 {
                     wrapped = new LimitExtent(wrapped, wePlayer.getUniqueId(), getLimitFor(wePlayer.getUniqueId()));
                     final int containerCap = getMaxContainers();
@@ -289,7 +291,7 @@ public final class WorldEditHook implements Listener
             return;
         }
         final UUID uuid = player.getUniqueId();
-        final boolean shouldNegate = !plugin.al.isAdmin(player);
+        final boolean shouldNegate = !plugin.admins().isAdmin(player);
         final PermissionAttachment existing = bypassAttachments.get(uuid);
 
         if (!shouldNegate)
@@ -323,7 +325,7 @@ public final class WorldEditHook implements Listener
         }
         catch (Throwable t)
         {
-            FLog.warning("Failed to apply WorldEdit bypass negation for " + player.getName() + ": " + t.getMessage());
+            FLog.warn("Failed to apply WorldEdit bypass negation for " + player.getName() + ": " + t.getMessage());
         }
     }
 
@@ -378,7 +380,7 @@ public final class WorldEditHook implements Listener
         final String targetName = m.group(2);
 
         final Player player = event.getPlayer();
-        if (plugin.al.isAdmin(player))
+        if (plugin.admins().isAdmin(player))
         {
             return;
         }
@@ -518,7 +520,7 @@ public final class WorldEditHook implements Listener
             return false;
         }
         final Player player = event.getPlayer();
-        if (plugin.al.isAdmin(player))
+        if (plugin.admins().isAdmin(player))
         {
             return false;
         }
@@ -559,7 +561,7 @@ public final class WorldEditHook implements Listener
             opThrottles.remove(uuid);
             FUtil.bcastMsg(player.getName()
                 + " was automatically ejected for spamming WorldEdit operations.", NamedTextColor.RED);
-            plugin.ae.autoEject(player, "Kicked for spamming WorldEdit operations.");
+            plugin.autoEject().autoEject(player, "Kicked for spamming WorldEdit operations.");
         }
         else if (now - throttle.lastWarn > window)
         {
@@ -579,7 +581,7 @@ public final class WorldEditHook implements Listener
         }
 
         final Player player = event.getPlayer();
-        if (plugin.al.isAdmin(player))
+        if (plugin.admins().isAdmin(player))
         {
             return false;
         }
@@ -600,7 +602,7 @@ public final class WorldEditHook implements Listener
                 player.sendMessage(Component.text(
                     "Block-category tags (##…) cannot be used in your WorldEdit operations.",
                     NamedTextColor.RED));
-                FLog.warning(player.getName()
+                FLog.warn(player.getName()
                     + " tried to use a block-category tag in a W/E operation: " + message);
                 return true;
             }
@@ -617,7 +619,7 @@ public final class WorldEditHook implements Listener
         }
 
         final Player player = event.getPlayer();
-        if (plugin.al.isAdmin(player))
+        if (plugin.admins().isAdmin(player))
         {
             return false;
         }
@@ -728,7 +730,7 @@ public final class WorldEditHook implements Listener
         player.sendMessage(Component.text(
             "The block type '" + id + "' cannot be used in your operation.",
             NamedTextColor.RED));
-        FLog.warning(player.getName() + " tried to use a disallowed W/E block type (" + id
+        FLog.warn(player.getName() + " tried to use a disallowed W/E block type (" + id
             + "): " + message);
     }
 
@@ -797,7 +799,7 @@ public final class WorldEditHook implements Listener
         }
 
         final Player player = event.getPlayer();
-        if (plugin.al.isAdmin(player))
+        if (plugin.admins().isAdmin(player))
         {
             return false;
         }
@@ -822,7 +824,7 @@ public final class WorldEditHook implements Listener
         player.sendMessage(Component.text(
             "The clipboard pattern may not be used in this context. Please use //paste to paste your clipboard.",
             NamedTextColor.RED));
-        FLog.warning(player.getName() + " tried to use the clipboard pattern in an operation: " + message);
+        FLog.warn(player.getName() + " tried to use the clipboard pattern in an operation: " + message);
         return true;
     }
 
@@ -881,7 +883,7 @@ public final class WorldEditHook implements Listener
         final int max = maxObj;
 
         final Player player = event.getPlayer();
-        if (plugin.al.isAdmin(player))
+        if (plugin.admins().isAdmin(player))
         {
             return false;
         }
@@ -958,7 +960,7 @@ public final class WorldEditHook implements Listener
         final int max = maxObj;
 
         final Player player = event.getPlayer();
-        if (plugin.al.isAdmin(player))
+        if (plugin.admins().isAdmin(player))
         {
             return false;
         }
@@ -1353,7 +1355,7 @@ public final class WorldEditHook implements Listener
         }
 
         final Player player = event.getPlayer();
-        if (plugin.al.isAdmin(player))
+        if (plugin.admins().isAdmin(player))
         {
             return;
         }
@@ -1387,7 +1389,7 @@ public final class WorldEditHook implements Listener
                 "Your WorldEdit selection (" + volume + " blocks) exceeds the max of "
                     + cap + ". Operation blocked.",
                 NamedTextColor.RED));
-            FLog.warning("Blocked oversized WorldEdit op from " + player.getName()
+            FLog.warn("Blocked oversized WorldEdit op from " + player.getName()
                 + " (volume=" + volume + ", cap=" + cap + "): " + msg);
             try
             {
@@ -1426,7 +1428,7 @@ public final class WorldEditHook implements Listener
         }
 
         final Player player = event.getPlayer();
-        if (plugin.al.isAdmin(player) || worldEditPlugin == null)
+        if (plugin.admins().isAdmin(player) || worldEditPlugin == null)
         {
             return;
         }
@@ -1496,12 +1498,12 @@ public final class WorldEditHook implements Listener
             player.sendMessage(Component.text(
                 "Your schematic contains too much data in order to be saved.",
                 NamedTextColor.RED));
-            FLog.warning("Blocked oversized schematic save from " + player.getName()
+            FLog.warn("Blocked oversized schematic save from " + player.getName()
                 + " (cap=" + capKb + " KB): " + msg);
         }
         catch (Throwable t)
         {
-            FLog.warning("Failed to check schematic save size for " + player.getName()
+            FLog.warn("Failed to check schematic save size for " + player.getName()
                 + ": " + t.getMessage());
         }
     }
@@ -1537,7 +1539,7 @@ public final class WorldEditHook implements Listener
         }
 
         final Player player = event.getPlayer();
-        if (plugin.al.isAdmin(player) || worldEditPlugin == null)
+        if (plugin.admins().isAdmin(player) || worldEditPlugin == null)
         {
             return;
         }
@@ -1553,7 +1555,7 @@ public final class WorldEditHook implements Listener
         }
         catch (Throwable t)
         {
-            FLog.warning("Failed to check WorldEdit container command for " + event.getPlayer().getName()
+            FLog.warn("Failed to check WorldEdit container command for " + event.getPlayer().getName()
                 + ": " + t.getMessage());
         }
     }
@@ -1567,7 +1569,7 @@ public final class WorldEditHook implements Listener
         {
             event.setCancelled(true);
             player.sendMessage(Component.text("Your clipboard contains too much data to paste.", NamedTextColor.RED));
-            FLog.warning("Blocked oversized volume clipboard paste from " + player.getName()
+            FLog.warn("Blocked oversized volume clipboard paste from " + player.getName()
                 + " (" + region.getVolume() + ")");
             return;
         }
@@ -1579,7 +1581,7 @@ public final class WorldEditHook implements Listener
             player.sendMessage(Component.text(
                 "Your clipboard contains too much container data to paste.",
                 NamedTextColor.RED));
-            FLog.warning("Blocked oversized container clipboard paste from " + player.getName()
+            FLog.warn("Blocked oversized container clipboard paste from " + player.getName()
                 + " (" + containers + " containers)");
         }
     }
@@ -1620,7 +1622,7 @@ public final class WorldEditHook implements Listener
         }
         catch (Throwable t)
         {
-            FLog.severe(t);
+            FLog.error(t);
         }
     }
 
@@ -1644,7 +1646,7 @@ public final class WorldEditHook implements Listener
         }
         catch (Throwable t)
         {
-            FLog.warning("Failed to cancel WorldEdit operations for "
+            FLog.warn("Failed to cancel WorldEdit operations for "
                 + player.getName() + ": " + t.getMessage());
             return 0;
         }
@@ -1655,7 +1657,7 @@ public final class WorldEditHook implements Listener
         final SessionManager sessions = WorldEdit.getInstance().getSessionManager();
         for (Player bukkitPlayer : Bukkit.getOnlinePlayers())
         {
-            if (plugin.al.isAdmin(bukkitPlayer))
+            if (plugin.admins().isAdmin(bukkitPlayer))
             {
                 continue;
             }
@@ -1709,7 +1711,7 @@ public final class WorldEditHook implements Listener
                     continue;
                 }
 
-                if (plugin.pa.doesRegionOverlapWithProtectedArea(
+                if (plugin.services().require(ProtectArea.class).doesRegionOverlapWithProtectedArea(
                     BukkitAdapter.adapt(world, min),
                     BukkitAdapter.adapt(world, max),
                     world))
@@ -1806,7 +1808,7 @@ public final class WorldEditHook implements Listener
             {
                 return false;
             }
-            if (plugin.al.isAdmin(bukkitPlayer))
+            if (plugin.admins().isAdmin(bukkitPlayer))
             {
                 return false;
             }
@@ -1817,7 +1819,7 @@ public final class WorldEditHook implements Listener
                 return false;
             }
 
-            if (plugin.pa.doesRegionOverlapWithProtectedArea(
+            if (plugin.services().require(ProtectArea.class).doesRegionOverlapWithProtectedArea(
                 BukkitAdapter.adapt(world, minPos),
                 BukkitAdapter.adapt(world, maxPos),
                 world))
@@ -2040,7 +2042,7 @@ public final class WorldEditHook implements Listener
                 final int cz = (int) key;
                 if (world.isChunkLoaded(cx, cz))
                 {
-                    plugin.sweepScheduler.enqueueChunk(world.getChunkAt(cx, cz), SweepContext.EDIT);
+                    plugin.sweepScheduler().enqueueChunk(world.getChunkAt(cx, cz), SweepContext.EDIT);
                 }
             }
         }

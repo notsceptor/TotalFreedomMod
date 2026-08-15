@@ -1,6 +1,6 @@
 package me.totalfreedom.totalfreedommod.discord;
 
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.api.FreedomAPI;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 
@@ -9,7 +9,7 @@ import me.totalfreedom.totalfreedommod.util.FUtil;
  */
 public class DiscordChatRelay extends AbstractDiscordChatRelay
 {
-    public DiscordChatRelay(TotalFreedomMod plugin, DiscordBridge bridge)
+    public DiscordChatRelay(FreedomAPI plugin, DiscordBridge bridge)
     {
         super(bridge::currentPublicChannel,
             ConfigEntry.DISCORD_CHANNEL_FORMAT.getString(),

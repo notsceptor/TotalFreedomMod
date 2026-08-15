@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import java.io.*;
 import java.lang.reflect.Type;
 import java.util.Collections;
@@ -40,13 +42,13 @@ public class SavedFlags extends FreedomService
 
     private boolean usingSql = false;
 
-    public SavedFlags(TotalFreedomMod plugin)
+    public SavedFlags(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
         final File dataFile = new File(plugin.getDataFolder(), DATA_FILENAME);
         final File legacyFile = new File(plugin.getDataFolder(), LEGACY_DATA_FILENAME);
@@ -57,11 +59,11 @@ public class SavedFlags extends FreedomService
         }
 
         flags.putAll(readJsonFlags(dataFile));
-        plugin.dm.whenReady(this::load);
+        plugin.database().whenReady(this::load);
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
         writes.await(SHUTDOWN_FLUSH_TIMEOUT_MS);
     }
@@ -72,11 +74,11 @@ public class SavedFlags extends FreedomService
      */
     public void load()
     {
-        if (plugin.dm == null || !plugin.dm.isInitialized())
+        if (plugin.database() == null || !plugin.database().isInitialized())
             return;
 
-        final SavedFlagRepository repo = plugin.dm.getSavedFlagRepository();
-        plugin.dm.readAsync("SavedFlags/loadFromSql", repo.loadAllAsync(),
+        final SavedFlagRepository repo = plugin.database().getSavedFlagRepository();
+        plugin.database().readAsync("SavedFlags/loadFromSql", repo.loadAllAsync(),
                 loaded ->
                 {
                     usingSql = true;
@@ -107,13 +109,13 @@ public class SavedFlags extends FreedomService
             }
             else
             {
-                FLog.warning("Migration complete but could not rename legacy file.");
+                FLog.warn("Migration complete but could not rename legacy file.");
             }
         }
         catch (Exception ex)
         {
-            FLog.severe("Failed to migrate legacy saved flags data: " + ex.getMessage());
-            FLog.severe(ex);
+            FLog.error("Failed to migrate legacy saved flags data: " + ex.getMessage());
+            FLog.error(ex);
         }
     }
 
@@ -144,8 +146,8 @@ public class SavedFlags extends FreedomService
         }
         catch (Exception ex)
         {
-            FLog.severe("Failed to load legacy saved flags: " + ex.getMessage());
-            FLog.severe(ex);
+            FLog.error("Failed to load legacy saved flags: " + ex.getMessage());
+            FLog.error(ex);
         }
 
         return flags;
@@ -191,7 +193,7 @@ public class SavedFlags extends FreedomService
                                                         .thenMany(Flux.fromIterable(existing.keySet())
                                                         .filter(flag -> !jsonFlags.containsKey(flag))
                                                         .concatMap(repo::deleteAsync)))
-                           .then(Mono.<Void>fromRunnable(() -> plugin.dm.sync("SavedFlags/applyReconciled",
+                           .then(Mono.<Void>fromRunnable(() -> plugin.database().sync("SavedFlags/applyReconciled",
                                                          () -> 
                                                          {
                                                             flags.clear();
@@ -200,7 +202,7 @@ public class SavedFlags extends FreedomService
               })
               .onErrorResume(ex ->
               {
-                  FLog.warning(String.format("Failed to reconcile %s into the database: %s",
+                  FLog.warn(String.format("Failed to reconcile %s into the database: %s",
                                              DATA_FILENAME, ex.getMessage()));
                   return Mono.empty();
               })
@@ -221,8 +223,8 @@ public class SavedFlags extends FreedomService
         }
         catch (Exception ex)
         {
-            FLog.severe("Failed to load saved flags: " + ex.getMessage());
-            FLog.severe(ex);
+            FLog.error("Failed to load saved flags: " + ex.getMessage());
+            FLog.error(ex);
         }
 
         return flags;
@@ -237,8 +239,8 @@ public class SavedFlags extends FreedomService
         }
         catch (IOException ex)
         {
-            FLog.severe(String.format("Failed to save saved flags: %s", ex.getMessage()));
-            FLog.severe(ex);
+            FLog.error(String.format("Failed to save saved flags: %s", ex.getMessage()));
+            FLog.error(ex);
         }
     }
 
@@ -274,16 +276,16 @@ public class SavedFlags extends FreedomService
     {
         flags.put(flag, value);
 
-        if (!usingSql || plugin.dm == null || !plugin.dm.isInitialized())
+        if (!usingSql || plugin.database() == null || !plugin.database().isInitialized())
         {
             writes.enqueue(writeJsonAsync());
             return;
         }
 
-        writes.enqueue(plugin.dm.getSavedFlagRepository().upsertAsync(flag, value)
+        writes.enqueue(plugin.database().getSavedFlagRepository().upsertAsync(flag, value)
               .onErrorResume(ex ->
               {
-                  FLog.severe(String.format("Could not save flag '%s' to SQL: %s", flag, ex.getMessage()));
+                  FLog.error(String.format("Could not save flag '%s' to SQL: %s", flag, ex.getMessage()));
                   return Mono.empty();
               })
               .then(writeJsonAsync()));

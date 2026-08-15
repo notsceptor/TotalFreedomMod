@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -20,19 +22,19 @@ public class GameModeGuard extends FreedomService
 {
     private final Map<UUID, RateWindow> changeWindows = new ConcurrentHashMap<>();
 
-    public GameModeGuard(TotalFreedomMod plugin)
+    public GameModeGuard(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
         changeWindows.clear();
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
         changeWindows.clear();
     }
@@ -68,14 +70,14 @@ public class GameModeGuard extends FreedomService
 
         if (perSecond == maxPerSecond + 1)
         {
-            FLog.warning(player.getName() + " is spamming game mode changes; rate-limiting"
+            FLog.warn(player.getName() + " is spamming game mode changes; rate-limiting"
                     + " and suppressing further warnings.");
 
             if (ConfigEntry.GAMEMODE_FLOOD_KICK_FLOODERS.getBoolean(true))
             {
                 FUtil.bcastMsg(player.getName() + " was automatically kicked for spamming"
                         + " game mode changes.", NamedTextColor.RED);
-                plugin.ae.autoEject(player, "Kicked for spamming game mode changes.");
+                plugin.autoEject().autoEject(player, "Kicked for spamming game mode changes.");
             }
         }
     }

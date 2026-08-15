@@ -3,6 +3,7 @@ package me.totalfreedom.totalfreedommod.cmd.internal;
 import java.util.List;
 
 import me.totalfreedom.totalfreedommod.PluginProvider;
+import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.cmd.CommandRegistry;
 import me.totalfreedom.totalfreedommod.cmd.FCommand;
 
@@ -17,7 +18,7 @@ public final class CommandHolder
     public static void register(FCommand command)
     {
         CommandRegistry.store(command);
-        CommandProcessor.register(command, PluginProvider.get());
+        CommandProcessor.register(command, (TotalFreedomMod) PluginProvider.get());
     }
 
     /**

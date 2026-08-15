@@ -13,13 +13,13 @@ public class Command_joinmessages extends FCommand
     @Callback
     public void toggle(final Player player)
     {
-        final FPlayer fp = plugin().pl.getPlayer(player);
-        final PlayerData pd = plugin().pl.getData(player);
+        final FPlayer fp = plugin().players().getPlayer(player);
+        final PlayerData pd = plugin().players().getData(player);
         final boolean enabled = !fp.joinLeaveMessagesEnabled();
 
         fp.setJoinLeaveMessagesEnabled(enabled);
         pd.setJoinLeaveMessagesEnabled(enabled);
-        plugin().pl.saveAsync();
+        plugin().players().saveAsync();
 
         msg(player, enabled
             ? "<gray>You will now see other players' join/leave messages."

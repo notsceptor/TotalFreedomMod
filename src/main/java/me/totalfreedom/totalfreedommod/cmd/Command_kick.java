@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import me.totalfreedom.totalfreedommod.discord.DiscordBridge;
+
 import java.util.List;
 
 import org.bukkit.command.CommandSender;
@@ -43,7 +45,7 @@ public class Command_kick extends FCommand
                     Placeholder.unparsed("player", player.getName()),
                     MessageUtils.parsed("reason", reason != null ? reason : ""));
 
-            plugin().db.sendActionMessage(sender.getName(), player.getName(), reason, ConfigEntry.DISCORD_PLAYER_KICK_MESSAGE);
+            plugin().services().require(DiscordBridge.class).sendActionMessage(sender.getName(), player.getName(), reason, ConfigEntry.DISCORD_PLAYER_KICK_MESSAGE);
         }
 
         kickPlayer(player, kickMessage,

@@ -4,6 +4,7 @@ import org.bukkit.entity.Player;
 
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
+import me.totalfreedom.totalfreedommod.SpawnManager;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 
 @Command(name = "spawn", description = "Teleport to the server spawn.", usage = "/spawn [player]")
@@ -13,7 +14,7 @@ public class Command_spawn extends FCommand
     @Callback
     public void spawnSelf(Player player)
     {
-        if (plugin().sm.sendToSpawn(player))
+        if (plugin().services().require(SpawnManager.class).sendToSpawn(player))
         {
             msg(player, "<gray>Teleported to spawn.");
         }
@@ -28,7 +29,7 @@ public class Command_spawn extends FCommand
             return;
         }
 
-        if (plugin().sm.sendToSpawn(target))
+        if (plugin().services().require(SpawnManager.class).sendToSpawn(target))
         {
             msg(sender, "<gray>Sent <player> to spawn.", Placeholder.unparsed("player", target.getName()));
         }

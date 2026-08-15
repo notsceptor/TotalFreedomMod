@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import me.totalfreedom.totalfreedommod.SavedFlags;
+
 import org.bukkit.command.CommandSender;
 
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
@@ -11,7 +13,7 @@ public class Command_wipeflatlands extends FCommand
     @Callback
     public void wipeflatlands(CommandSender sender)
     {
-        plugin().sf.setSavedFlag("do_wipe_flatlands", true);
+        plugin().services().require(SavedFlags.class).setSavedFlag("do_wipe_flatlands", true);
 
         MessageUtils.broadcast("<gray>Server is going offline for flatlands wipe.");
 

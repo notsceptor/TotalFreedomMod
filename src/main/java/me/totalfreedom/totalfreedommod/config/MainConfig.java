@@ -47,7 +47,7 @@ public class MainConfig extends PluginComponent<TotalFreedomMod>
             }
             catch (IOException ex)
             {
-                FLog.severe(ex);
+                FLog.error(ex);
             }
 
             copyDefaultConfig(getConfigFile());
@@ -56,7 +56,7 @@ public class MainConfig extends PluginComponent<TotalFreedomMod>
         }
         catch (Exception ex)
         {
-            FLog.severe(ex);
+            FLog.error(ex);
         }
 
         defaults = tempDefaults;
@@ -84,7 +84,7 @@ public class MainConfig extends PluginComponent<TotalFreedomMod>
                     }
                     else
                     {
-                        FLog.warning("Value for " + entry.getConfigName() + " is of type "
+                        FLog.warn("Value for " + entry.getConfigName() + " is of type "
                                 + value.getClass().getSimpleName() + ". Needs to be " + entry.getType().getSimpleName() + ". Using default value.");
                     }
                 }
@@ -107,7 +107,7 @@ public class MainConfig extends PluginComponent<TotalFreedomMod>
         }
         catch (IOException | InvalidConfigurationException ex)
         {
-            FLog.severe(ex);
+            FLog.error(ex);
         }
     }
 
@@ -124,7 +124,7 @@ public class MainConfig extends PluginComponent<TotalFreedomMod>
         }
         catch (IllegalArgumentException ex)
         {
-            FLog.severe(ex);
+            FLog.error(ex);
         }
         return null;
     }
@@ -137,7 +137,7 @@ public class MainConfig extends PluginComponent<TotalFreedomMod>
         }
         catch (IllegalArgumentException ex)
         {
-            FLog.severe(ex);
+            FLog.error(ex);
         }
     }
 
@@ -149,7 +149,7 @@ public class MainConfig extends PluginComponent<TotalFreedomMod>
         }
         catch (IllegalArgumentException ex)
         {
-            FLog.severe(ex);
+            FLog.error(ex);
         }
         return null;
     }
@@ -162,7 +162,7 @@ public class MainConfig extends PluginComponent<TotalFreedomMod>
         }
         catch (IllegalArgumentException ex)
         {
-            FLog.severe(ex);
+            FLog.error(ex);
         }
     }
 
@@ -174,7 +174,7 @@ public class MainConfig extends PluginComponent<TotalFreedomMod>
         }
         catch (IllegalArgumentException ex)
         {
-            FLog.severe(ex);
+            FLog.error(ex);
         }
         return null;
     }
@@ -187,7 +187,7 @@ public class MainConfig extends PluginComponent<TotalFreedomMod>
         }
         catch (IllegalArgumentException ex)
         {
-            FLog.severe(ex);
+            FLog.error(ex);
         }
     }
 
@@ -199,7 +199,7 @@ public class MainConfig extends PluginComponent<TotalFreedomMod>
         }
         catch (IllegalArgumentException ex)
         {
-            FLog.severe(ex);
+            FLog.error(ex);
         }
         return null;
     }
@@ -212,7 +212,7 @@ public class MainConfig extends PluginComponent<TotalFreedomMod>
         }
         catch (IllegalArgumentException ex)
         {
-            FLog.severe(ex);
+            FLog.error(ex);
         }
     }
 
@@ -224,7 +224,7 @@ public class MainConfig extends PluginComponent<TotalFreedomMod>
         }
         catch (IllegalArgumentException ex)
         {
-            FLog.severe(ex);
+            FLog.error(ex);
         }
         return null;
     }
@@ -276,7 +276,7 @@ public class MainConfig extends PluginComponent<TotalFreedomMod>
         }
         catch (IOException | InvalidConfigurationException ex)
         {
-            FLog.severe(ex);
+            FLog.error(ex);
         }
     }
 
@@ -298,7 +298,7 @@ public class MainConfig extends PluginComponent<TotalFreedomMod>
         }
         catch (IOException ex)
         {
-            FLog.severe(ex);
+            FLog.error(ex);
         }
     }
 
@@ -328,11 +328,11 @@ public class MainConfig extends PluginComponent<TotalFreedomMod>
             }
             catch (IOException ex)
             {
-                FLog.severe(ex);
+                FLog.error(ex);
             }
             catch (InvalidConfigurationException ex)
             {
-                FLog.severe(ex);
+                FLog.error(ex);
             }
         }
 

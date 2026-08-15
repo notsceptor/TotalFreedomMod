@@ -1,7 +1,8 @@
 package me.totalfreedom.totalfreedommod.blocking.item;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 
 import org.apache.logging.log4j.Level;
@@ -30,13 +31,13 @@ public class ConsoleSpamFilter extends FreedomService
 
     private boolean installed = false;
 
-    public ConsoleSpamFilter(TotalFreedomMod plugin)
+    public ConsoleSpamFilter(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
         if (!ConfigEntry.CRASH_ITEMS_HIDE_CONSOLE_SPAM.getBoolean())
         {
@@ -51,7 +52,7 @@ public class ConsoleSpamFilter extends FreedomService
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
         if (!installed)
         {

@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.vanish;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -22,7 +24,6 @@ import org.bukkit.event.server.ServerListPingEvent;
 import com.destroystokyo.paper.event.server.PaperServerListPingEvent;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 
 /**
  * Single source of truth for vanish state.
@@ -39,18 +40,18 @@ public class VanishService extends FreedomService
 
     private final Set<UUID> vanished = new HashSet<>();
 
-    public VanishService(TotalFreedomMod plugin)
+    public VanishService(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
         for (UUID uuid : new HashSet<>(vanished))
         {
@@ -94,7 +95,7 @@ public class VanishService extends FreedomService
             return true;
         }
 
-        return viewingPlayer.getUniqueId().equals(target.getUniqueId()) || plugin.rm.hasPermission(viewer, SEE_PERMISSION);
+        return viewingPlayer.getUniqueId().equals(target.getUniqueId()) || plugin.ranks().hasPermission(viewer, SEE_PERMISSION);
     }
 
     public List<Player> visiblePlayersFor(CommandSender viewer)
@@ -265,6 +266,6 @@ public class VanishService extends FreedomService
      */
     private boolean isReadOnly(Player player)
     {
-        return isVanished(player) && !plugin.rm.hasPermission(player, BYPASS_PERMISSION);
+        return isVanished(player) && !plugin.ranks().hasPermission(player, BYPASS_PERMISSION);
     }
 }

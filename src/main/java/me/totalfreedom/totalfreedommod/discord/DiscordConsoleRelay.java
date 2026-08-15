@@ -18,7 +18,7 @@ import discord4j.core.object.entity.User;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.api.FreedomAPI;
 import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchContext;
@@ -60,7 +60,7 @@ public class DiscordConsoleRelay
      */
     private static final ThreadLocal<Boolean> SUPPRESS_CAPTURE = ThreadLocal.withInitial(() -> Boolean.FALSE);
 
-    private final TotalFreedomMod plugin;
+    private final FreedomAPI plugin;
     private final DiscordBridge bridge;
 
     private final Deque<String> pendingLines = new ArrayDeque<>();
@@ -74,7 +74,7 @@ public class DiscordConsoleRelay
     private volatile Optional<CallbackLogAppender> logAppender = Optional.empty();
     private volatile Optional<BukkitTask> flushTask = Optional.empty();
 
-    public DiscordConsoleRelay(TotalFreedomMod plugin, DiscordBridge bridge)
+    public DiscordConsoleRelay(FreedomAPI plugin, DiscordBridge bridge)
     {
         this.plugin = plugin;
         this.bridge = bridge;
@@ -179,7 +179,7 @@ public class DiscordConsoleRelay
         final Optional<UUID> adminUuid;
         try
         {
-            adminUuid = Optional.ofNullable(plugin.dm.getDiscordLinkRepository().findAdminUuidByDiscordId(discordUserId));
+            adminUuid = Optional.ofNullable(plugin.database().getDiscordLinkRepository().findAdminUuidByDiscordId(discordUserId));
         }
         catch (SQLException ex)
         {
@@ -187,7 +187,7 @@ public class DiscordConsoleRelay
             return AdminResolution.lookupFailed();
         }
 
-        return adminUuid.flatMap(uuid -> Optional.ofNullable(plugin.al.getAdminByUuid(uuid)))
+        return adminUuid.flatMap(uuid -> Optional.ofNullable(plugin.admins().getAdminByUuid(uuid)))
                         .filter(Admin::isActive)
                         .map(AdminResolution::linked)
                         .orElseGet(AdminResolution::notLinked);
@@ -303,7 +303,7 @@ public class DiscordConsoleRelay
         SUPPRESS_CAPTURE.set(Boolean.TRUE);
         try
         {
-            FLog.warning(message);
+            FLog.warn(message);
         }
         finally
         {

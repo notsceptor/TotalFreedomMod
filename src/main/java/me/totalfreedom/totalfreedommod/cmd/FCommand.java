@@ -19,8 +19,8 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 
+import me.totalfreedom.api.FreedomAPI;
 import me.totalfreedom.totalfreedommod.PluginProvider;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
@@ -52,7 +52,7 @@ public abstract class FCommand
     // Eventually the above components will be converted to use this same MM string format.
     public static final String ADMIN_PROTECTED_MESSAGE = "<red>This command cannot be used on other admins.";
 
-    protected final TotalFreedomMod plugin()
+    protected final FreedomAPI plugin()
     {
         return PluginProvider.get();
     }
@@ -177,7 +177,7 @@ public abstract class FCommand
 
     protected boolean isAdmin(CommandSender sender)
     {
-        return plugin().al.isAdmin(sender);
+        return plugin().admins().isAdmin(sender);
     }
 
     /**
@@ -186,7 +186,7 @@ public abstract class FCommand
      */
     protected boolean isProtectedAdmin(final CommandSender sender, final Player target)
     {
-        if (target == null || !plugin().al.isAdmin(target))
+        if (target == null || !plugin().admins().isAdmin(target))
             return false;
 
         msg(sender, ADMIN_PROTECTED_MESSAGE);
@@ -205,7 +205,7 @@ public abstract class FCommand
         if (online != null)
             return isProtectedAdmin(sender, online);
 
-        final Admin listed = plugin().al.getEntryByName(targetName);
+        final Admin listed = plugin().admins().getEntryByName(targetName);
         if (listed == null || !listed.isActive())
             return false;
 
@@ -221,7 +221,7 @@ public abstract class FCommand
         if (ip == null || ip.isEmpty())
             return false;
 
-        final Admin listed = plugin().al.getEntryByIpFuzzy(ip);
+        final Admin listed = plugin().admins().getEntryByIpFuzzy(ip);
         if (listed == null || !listed.isActive())
             return false;
 
@@ -231,17 +231,17 @@ public abstract class FCommand
 
     protected Admin getAdmin(CommandSender sender)
     {
-        return plugin().al.getAdmin(sender);
+        return plugin().admins().getAdmin(sender);
     }
 
     protected Admin getAdmin(Player player)
     {
-        return plugin().al.getAdmin(player);
+        return plugin().admins().getAdmin(player);
     }
 
     protected PlayerData getData(Player player)
     {
-        return plugin().pl.getData(player);
+        return plugin().players().getData(player);
     }
 
     protected BukkitTask sync(final Runnable task, long delayInTicks)
@@ -268,6 +268,6 @@ public abstract class FCommand
 
     protected FPlayer fplayer(final Player player)
     {
-        return plugin().pl.getPlayer(player);
+        return plugin().players().getPlayer(player);
     }
 }

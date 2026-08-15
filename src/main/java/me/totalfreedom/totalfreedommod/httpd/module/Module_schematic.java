@@ -204,7 +204,7 @@ public class Module_schematic extends HTTPDModule
         }
         catch (IOException ex)
         {
-            FLog.severe(ex);
+            FLog.error(ex);
             throw new SchematicTransferException();
         }
 
@@ -249,7 +249,7 @@ public class Module_schematic extends HTTPDModule
 
     private boolean isAuthorized(String remoteAddress)
     {
-        Admin entry = plugin.al.getEntryByIp(remoteAddress);
+        Admin entry = plugin.admins().getEntryByIp(remoteAddress);
         return entry != null && entry.isActive();
     }
 

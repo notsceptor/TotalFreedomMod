@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import me.totalfreedom.totalfreedommod.bridge.CoreProtectBridge;
+
 import java.util.List;
 import java.util.Set;
 
@@ -47,7 +49,7 @@ public class Command_unban extends FCommand
 
         for (Ban ban : bans)
         {
-            plugin().bm.removeBan(ban);
+            plugin().bans().removeBan(ban);
         }
 
         if (!silent)
@@ -57,7 +59,7 @@ public class Command_unban extends FCommand
 
         if (restore)
         {
-            plugin().cpb.restore(name);
+            plugin().bridges().require(CoreProtectBridge.class).restore(name);
         }
     }
 }

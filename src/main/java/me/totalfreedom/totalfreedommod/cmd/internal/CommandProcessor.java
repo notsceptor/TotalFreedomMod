@@ -137,7 +137,7 @@ public final class CommandProcessor
         Command meta = command.getClass().getAnnotation(Command.class);
         if (meta == null)
         {
-            FLog.warning(String.format("%s is missing @Command; skipped", command.getClass().getSimpleName()));
+            FLog.warn(String.format("%s is missing @Command; skipped", command.getClass().getSimpleName()));
             return;
         }
 
@@ -186,7 +186,7 @@ public final class CommandProcessor
         }
         catch (Exception e)
         {
-            FLog.severe(String.format("Failed to register /%s: \n%s", commandName, ExceptionUtils.getRootCauseMessage(e)));
+            FLog.error(String.format("Failed to register /%s: \n%s", commandName, ExceptionUtils.getRootCauseMessage(e)));
         }
     }
 
@@ -200,7 +200,7 @@ public final class CommandProcessor
         {
             return true;
         }
-        FLog.warning(String.format("%s.%s is not accessible; skipped.", command.getClass().getSimpleName(), method.getName()));
+        FLog.warn(String.format("%s.%s is not accessible; skipped.", command.getClass().getSimpleName(), method.getName()));
         return false;
     }
 
@@ -215,7 +215,7 @@ public final class CommandProcessor
                 {
                     if (!isValidCompleterSignature(method))
                     {
-                        FLog.warning(String.format("%s has @Completer but an invalid signature (expected (SenderType, String) -> List<String>); skipped.", method.getName()));
+                        FLog.warn(String.format("%s has @Completer but an invalid signature (expected (SenderType, String) -> List<String>); skipped.", method.getName()));
                         return;
                     }
                     Completer c = method.getAnnotation(Completer.class);
@@ -238,7 +238,7 @@ public final class CommandProcessor
                     {
                         rootHandlers.stream()
                                 .filter(prior -> conflicts(prior, method))
-                                .forEach(prior -> FLog.warning(String.format(
+                                .forEach(prior -> FLog.warn(String.format(
                                         "Ambiguous root handlers on /%s:\n %s and %s cannot be told apart at parse time (%d argument(s) with overlapping tokens)",
                                         commandName, method.getName(), prior.getName(), argumentCount(method))));
 
@@ -254,7 +254,7 @@ public final class CommandProcessor
                     node.handlerMethods
                         .stream()
                         .filter(existing -> conflicts(existing, method))
-                        .forEach(existing -> FLog.warning(String.format(
+                        .forEach(existing -> FLog.warn(String.format(
                                 "Ambiguous handlers for subcommand \"%s\" on /%s:\n %s and %s cannot be told apart at parse time (%d argument(s) with overlapping tokens)",
                                 pathValue, commandName, method.getName(), existing.getName(), argumentCount(method))));
 
@@ -478,7 +478,7 @@ public final class CommandProcessor
             catch (Exception e)
             {
                 Throwable cause = e.getCause() != null ? e.getCause() : e;
-                FLog.severe(String.format("Error in completer %s: \n%s", completerMethod.getName(), ExceptionUtils.getRootCauseMessage(cause)));
+                FLog.error(String.format("Error in completer %s: \n%s", completerMethod.getName(), ExceptionUtils.getRootCauseMessage(cause)));
             }
             return target.buildFuture();
         };
@@ -655,7 +655,7 @@ public final class CommandProcessor
                     
                     if (param.isAnnotationPresent(Switch.class) && !isSwitchParam(param)) 
                     {
-                        FLog.warning(String.format("@Switch on non-boolean parameter '%s' of /%s %s is ignored", param.getName(), commandName, subPath));
+                        FLog.warn(String.format("@Switch on non-boolean parameter '%s' of /%s %s is ignored", param.getName(), commandName, subPath));
                     }
                     
                     if (isSwitchParam(param)) 
@@ -736,7 +736,7 @@ public final class CommandProcessor
                         boolean greedy = param.isAnnotationPresent(Greedy.class);
                         
                         if (greedy && position != positionalParams.size() - 1) {
-                            FLog.warning(String.format("@Greedy on non-last parameter '%s' of /%s %s is ignored", param.getName(), commandName, subPath));
+                            FLog.warn(String.format("@Greedy on non-last parameter '%s' of /%s %s is ignored", param.getName(), commandName, subPath));
                             greedy = false;
                         }
 
@@ -900,13 +900,13 @@ public final class CommandProcessor
                     sender.sendMessage(are.getFormattedMessage());
                     return 0;
                 }
-                FLog.severe(String.format("Error in /%s %s: \n%s", commandName, subPath, ExceptionUtils.getRootCauseMessage(e)));
+                FLog.error(String.format("Error in /%s %s: \n%s", commandName, subPath, ExceptionUtils.getRootCauseMessage(e)));
                 sender.sendMessage(Component.text("Command error: " + (cause == null || cause.getMessage() == null ? "Unknown cause" : cause.getMessage()), NamedTextColor.RED));
                 return 0;
             }
             catch (Exception e)
             {
-                FLog.severe(String.format("Error in /%s %s: \n%s", commandName, subPath, ExceptionUtils.getRootCauseMessage(e)));
+                FLog.error(String.format("Error in /%s %s: \n%s", commandName, subPath, ExceptionUtils.getRootCauseMessage(e)));
                 return 0;
             }
         };

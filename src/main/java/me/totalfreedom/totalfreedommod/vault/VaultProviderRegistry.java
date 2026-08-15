@@ -4,6 +4,7 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.ServicePriority;
 
+import me.totalfreedom.api.FreedomAPI;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.util.FLog;
 
@@ -15,16 +16,16 @@ public final class VaultProviderRegistry
     private static final String PERMISSION_SERVICE = "me.totalfreedom.totalfreedommod.vault.PermissionService";
     private static final String CHAT_SERVICE = "me.totalfreedom.totalfreedommod.vault.ChatService";
 
-    private final TotalFreedomMod plugin;
+    private final FreedomAPI plugin;
     private Object chatProvider;
     private Object permissionProvider;
 
-    private VaultProviderRegistry(TotalFreedomMod plugin)
+    private VaultProviderRegistry(FreedomAPI plugin)
     {
         this.plugin = plugin;
     }
 
-    public static boolean isVaultPresent(TotalFreedomMod plugin)
+    public static boolean isVaultPresent(FreedomAPI plugin)
     {
         Plugin vault = plugin.getServer().getPluginManager().getPlugin("Vault");
         if (vault == null || !vault.isEnabled())
@@ -43,7 +44,7 @@ public final class VaultProviderRegistry
         }
     }
 
-    public static VaultProviderRegistry create(TotalFreedomMod plugin)
+    public static VaultProviderRegistry create(FreedomAPI plugin)
     {
         return isVaultPresent(plugin) ? new VaultProviderRegistry(plugin) : null;
     }
@@ -96,8 +97,8 @@ public final class VaultProviderRegistry
         }
         catch (Throwable ex)
         {
-            FLog.warning("Failed to register Vault chat provider: " + ex.getMessage());
-            FLog.warning(ex);
+            FLog.warn("Failed to register Vault chat provider: " + ex.getMessage());
+            FLog.warn(ex);
             unregister();
             return false;
         }
@@ -114,7 +115,7 @@ public final class VaultProviderRegistry
             }
             catch (Throwable ex)
             {
-                FLog.warning("Failed to unregister Vault chat provider: " + ex.getMessage());
+                FLog.warn("Failed to unregister Vault chat provider: " + ex.getMessage());
             }
             chatProvider = null;
         }
@@ -127,7 +128,7 @@ public final class VaultProviderRegistry
             }
             catch (Throwable ex)
             {
-                FLog.warning("Failed to unregister Vault permission provider: " + ex.getMessage());
+                FLog.warn("Failed to unregister Vault permission provider: " + ex.getMessage());
             }
             permissionProvider = null;
         }

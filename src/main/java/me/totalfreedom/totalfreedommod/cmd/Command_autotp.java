@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import me.totalfreedom.totalfreedommod.LoginProcess;
+
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 
@@ -15,10 +17,10 @@ public class Command_autotp extends FCommand
     @Callback
     public void autotp(CommandSender sender, OfflinePlayer target)
     {
-        final boolean enabled = !plugin().lp.TELEPORT_ON_JOIN.removeIf(entry -> entry.equals(target.getUniqueId()));
+        final boolean enabled = !plugin().services().require(LoginProcess.class).TELEPORT_ON_JOIN.removeIf(entry -> entry.equals(target.getUniqueId()));
         if (enabled)
         {
-            plugin().lp.TELEPORT_ON_JOIN.add(target.getUniqueId());
+            plugin().services().require(LoginProcess.class).TELEPORT_ON_JOIN.add(target.getUniqueId());
         }
 
         msg(sender, "<gold><player> <aqua>will <enabled:now:no longer> be automatically teleported when they join.",

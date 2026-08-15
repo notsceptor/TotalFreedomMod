@@ -17,17 +17,17 @@ public class Command_potionspy extends FCommand
     @Callback
     public void toggle(final Player player)
     {
-        final PlayerData data = plugin().pl.getData(player);
+        final PlayerData data = plugin().players().getData(player);
         potionSpy(player, data.isPotionSpy() ? SpyMode.OFF : SpyMode.ALL);
     }
 
     @Callback
     public void potionSpy(final Player player, final SpyMode mode)
     {
-        final PlayerData data = plugin().pl.getData(player);
+        final PlayerData data = plugin().players().getData(player);
 
         data.setPotionSpyMode(mode);
-        plugin().pl.saveAsync();
+        plugin().players().saveAsync();
 
         switch (mode)
         {

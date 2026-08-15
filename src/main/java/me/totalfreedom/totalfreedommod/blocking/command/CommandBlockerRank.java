@@ -40,10 +40,10 @@ public enum CommandBlockerRank
             return TELNET;
         }
 
-        Admin admin = PluginProvider.get().al.getAdmin(sender);
+        Admin admin = PluginProvider.get().admins().getAdmin(sender);
         if (admin != null)
         {
-            if (PluginProvider.get().al.isSeniorAdmin(sender))
+            if (PluginProvider.get().admins().isSeniorAdmin(sender))
             {
                 return SENIOR;
             }

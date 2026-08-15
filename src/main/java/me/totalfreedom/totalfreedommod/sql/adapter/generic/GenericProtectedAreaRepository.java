@@ -238,7 +238,7 @@ public class GenericProtectedAreaRepository implements ProtectedAreaRepository
         }
         catch (CantFindWorldException ex)
         {
-            FLog.warning(ex.getMessage());
+            FLog.warn(ex.getMessage());
             return null;
         }
     }

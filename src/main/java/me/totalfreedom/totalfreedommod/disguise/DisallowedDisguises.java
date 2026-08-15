@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.disguise;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -7,7 +9,6 @@ import java.util.Set;
 import org.bukkit.entity.EntityType;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
 
@@ -29,19 +30,19 @@ public class DisallowedDisguises extends FreedomService
     private final Set<String> forbiddenDisguiseTypes = new HashSet<>();
     private boolean disabled = false;
 
-    public DisallowedDisguises(TotalFreedomMod plugin)
+    public DisallowedDisguises(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
         loadForbiddenDisguises();
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
         forbiddenDisguiseTypes.clear();
     }

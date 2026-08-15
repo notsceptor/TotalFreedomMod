@@ -6,7 +6,7 @@ import java.util.concurrent.ExecutionException;
 
 import org.bukkit.Bukkit;
 
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.api.FreedomAPI;
 import me.totalfreedom.totalfreedommod.util.FLog;
 
 import org.jline.reader.Candidate;
@@ -19,9 +19,9 @@ import org.jline.reader.ParsedLine;
  */
 public class SshCommandCompleter implements Completer {
 
-    private final TotalFreedomMod plugin;
+    private final FreedomAPI plugin;
 
-    public SshCommandCompleter(TotalFreedomMod plugin) {
+    public SshCommandCompleter(FreedomAPI plugin) {
         this.plugin = plugin;
     }
 
@@ -50,7 +50,7 @@ public class SshCommandCompleter implements Completer {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         } catch (ExecutionException e) {
-            FLog.warning("Error during SSH tab completion: " + e.getMessage());
+            FLog.warn("Error during SSH tab completion: " + e.getMessage());
         }
     }
 }

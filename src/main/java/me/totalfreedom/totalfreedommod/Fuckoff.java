@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import java.util.HashSet;
 import java.util.Set;
 
@@ -18,32 +20,32 @@ public class Fuckoff extends FreedomService
 
     private final Set<Player> fuckoffPlayers = new HashSet<>();
 
-    public Fuckoff(TotalFreedomMod plugin)
+    public Fuckoff(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
         fuckoffPlayers.clear();
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
         fuckoffPlayers.clear();
     }
 
     public void enable(Player player, double radius)
     {
-        plugin.pl.getPlayer(player).setFuckoff(radius);
+        plugin.players().getPlayer(player).setFuckoff(radius);
         fuckoffPlayers.add(player);
     }
 
     public void disable(Player player)
     {
-        plugin.pl.getPlayer(player).disableFuckoff();
+        plugin.players().getPlayer(player).disableFuckoff();
         fuckoffPlayers.remove(player);
     }
 
@@ -62,7 +64,7 @@ public class Fuckoff extends FreedomService
         }
 
         final Player fuckoffPlayer = event.getPlayer();
-        if (plugin.al.isAdmin(fuckoffPlayer))
+        if (plugin.admins().isAdmin(fuckoffPlayer))
         {
             return;
         }
@@ -74,7 +76,7 @@ public class Fuckoff extends FreedomService
                 continue;
             }
 
-            final FPlayer fPlayer = plugin.pl.getPlayer(onlinePlayer);
+            final FPlayer fPlayer = plugin.players().getPlayer(onlinePlayer);
             double fuckoffRange = fPlayer.getFuckoffRadius();
             Location opLocation = onlinePlayer.getLocation();
             Location foLocation = fuckoffPlayer.getLocation();

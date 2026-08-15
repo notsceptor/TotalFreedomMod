@@ -3,7 +3,7 @@ package me.totalfreedom.totalfreedommod.discord;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.api.FreedomAPI;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 
 /**
@@ -11,14 +11,14 @@ import me.totalfreedom.totalfreedommod.config.ConfigEntry;
  */
 public class DiscordAdminchatRelay extends AbstractDiscordChatRelay
 {
-    public DiscordAdminchatRelay(TotalFreedomMod plugin, DiscordBridge bridge)
+    public DiscordAdminchatRelay(FreedomAPI plugin, DiscordBridge bridge)
     {
         super(bridge::currentAdminchatChannel,
             ConfigEntry.DISCORD_ADMINCHAT_CHANNEL_FORMAT.getString(),
             ConfigEntry.DISCORD_ADMINCHAT_FORMAT.getString(),
             component -> {
                 Bukkit.getConsoleSender().sendMessage(component);
-                for (Player player : plugin.al.getOnlineAdmins())
+                for (Player player : plugin.admins().getOnlineAdmins())
                     player.sendMessage(component);
             },
             plugin,

@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import java.util.Iterator;
 import java.util.List;
 
@@ -20,18 +22,18 @@ import me.totalfreedom.totalfreedommod.util.FUtil;
 public class AntiDrop extends FreedomService
 {
 
-    public AntiDrop(TotalFreedomMod plugin)
+    public AntiDrop(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
     }
 
@@ -75,13 +77,13 @@ public class AntiDrop extends FreedomService
         }
 
         final Player player = event.getPlayer();
-        if (plugin.al.isAdmin(player))
+        if (plugin.admins().isAdmin(player))
         {
             return;
         }
 
         final long window = window();
-        final FPlayer fPlayer = plugin.pl.getPlayer(player);
+        final FPlayer fPlayer = plugin.players().getPlayer(player);
 
         final ItemStack stack = event.getItemDrop().getItemStack();
         final int amount = (stack == null) ? 1 : Math.max(stack.getAmount(), 1);
@@ -152,7 +154,7 @@ public class AntiDrop extends FreedomService
         }
 
         final Player player = event.getPlayer();
-        if (plugin.al.isAdmin(player))
+        if (plugin.admins().isAdmin(player))
         {
             return;
         }
@@ -206,7 +208,7 @@ public class AntiDrop extends FreedomService
     private void ejectForDropFlood(Player player, FPlayer fPlayer)
     {
         FUtil.bcastMsg(player.getName() + " was automatically kicked for dropping too many items.", NamedTextColor.RED);
-        plugin.ae.autoEject(player, "Kicked for dropping too many items at once.");
+        plugin.autoEject().autoEject(player, "Kicked for dropping too many items at once.");
         fPlayer.resetDropCount();
         fPlayer.resetDropItemCount();
     }

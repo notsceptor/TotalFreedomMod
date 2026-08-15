@@ -2,12 +2,13 @@ package me.totalfreedom.totalfreedommod;
 
 import org.bukkit.event.Listener;
 
+import me.totalfreedom.api.FreedomAPI;
 import me.totalfreedom.totalfreedommod.framework.AbstractService;
 
-public abstract class FreedomService extends AbstractService<TotalFreedomMod> implements Listener
+public abstract class FreedomService extends AbstractService implements Listener
 {
 
-    public FreedomService(TotalFreedomMod plugin)
+    public FreedomService(FreedomAPI plugin)
     {
         super(plugin);
     }

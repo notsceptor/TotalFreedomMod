@@ -15,13 +15,13 @@ public class Command_sqlstatus extends FCommand
     @Callback
     public void info(CommandSender sender)
     {
-        if (plugin().dm == null || !plugin().dm.isInitialized())
+        if (plugin().database() == null || !plugin().database().isInitialized())
         {
             msg(sender, "<red>Database is not initialized; every domain is running on its JSON fallback.");
             return;
         }
 
-        final PoolStats stats = plugin().dm.getPoolStats();
+        final PoolStats stats = plugin().database().getPoolStats();
         if (stats == null)
         {
             msg(sender, "<red>Could not read connection pool stats.");

@@ -1,5 +1,9 @@
 package me.totalfreedom.totalfreedommod.blocking;
 
+import me.totalfreedom.totalfreedommod.blocking.item.ItemValidator;
+
+import me.totalfreedom.api.FreedomAPI;
+
 import java.util.Collection;
 
 import org.bukkit.entity.Arrow;
@@ -20,32 +24,31 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 
 public class PotionBlocker extends FreedomService
 {
 
     public static final int POTION_BLOCK_RADIUS_SQUARED = 20 * 20;
 
-    public PotionBlocker(TotalFreedomMod plugin)
+    public PotionBlocker(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
     }
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onThrowPotion(PotionSplashEvent event)
     {
-        if (isLethalPotion(event.getEntity()) || hasTooManyEffects(event.getEntity(), plugin.iv.getMaxPotionEffects()))
+        if (isLethalPotion(event.getEntity()) || hasTooManyEffects(event.getEntity(), plugin.services().require(ItemValidator.class).getMaxPotionEffects()))
         {
             event.setCancelled(true);
             return;
@@ -61,7 +64,7 @@ public class PotionBlocker extends FreedomService
 
         Player thrower = (Player) source;
 
-        if (plugin.al.isAdmin(thrower))
+        if (plugin.admins().isAdmin(thrower))
         {
             return;
         }
@@ -81,7 +84,7 @@ public class PotionBlocker extends FreedomService
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onLingeringPotion(LingeringPotionSplashEvent event)
     {
-        if (isLethalPotion(event.getEntity()) || hasTooManyEffects(event.getEntity(), plugin.iv.getMaxPotionEffects()))
+        if (isLethalPotion(event.getEntity()) || hasTooManyEffects(event.getEntity(), plugin.services().require(ItemValidator.class).getMaxPotionEffects()))
         {
             event.setCancelled(true);
         }
@@ -104,7 +107,7 @@ public class PotionBlocker extends FreedomService
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onProjectileLaunch(ProjectileLaunchEvent event)
     {
-        int cap = plugin.iv.getMaxPotionEffects();
+        int cap = plugin.services().require(ItemValidator.class).getMaxPotionEffects();
         if (cap > 0
                 && event.getEntity() instanceof Arrow arrow
                 && arrow.hasCustomEffects()

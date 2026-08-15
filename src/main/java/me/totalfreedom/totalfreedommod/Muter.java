@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import java.util.List;
 
 import io.papermc.paper.event.player.AsyncChatEvent;
@@ -24,18 +26,18 @@ public class Muter extends FreedomService
 
     public static final List<String> MUTE_COMMANDS = List.of("say", "me", "msg", "tell", "reply", "mail", ",");
 
-    public Muter(TotalFreedomMod plugin)
+    public Muter(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
     }
 
@@ -60,14 +62,14 @@ public class Muter extends FreedomService
 
     private boolean shouldCancelChat(Player player)
     {
-        FPlayer fPlayer = plugin.pl.getPlayerSync(player);
+        FPlayer fPlayer = plugin.players().getPlayerSync(player);
 
         if (!fPlayer.isMuted())
         {
             return false;
         }
 
-        if (plugin.al.isAdminSync(player))
+        if (plugin.admins().isAdminSync(player))
         {
             fPlayer.setMuted(false);
             return false;
@@ -82,7 +84,7 @@ public class Muter extends FreedomService
     {
 
         Player player = event.getPlayer();
-        FPlayer fPlayer = plugin.pl.getPlayer(event.getPlayer());
+        FPlayer fPlayer = plugin.players().getPlayer(event.getPlayer());
 
         // Block commands if player is muted
         if (!fPlayer.isMuted())
@@ -91,7 +93,7 @@ public class Muter extends FreedomService
         }
 
         String message = event.getMessage();
-        if (plugin.al.isAdmin(player))
+        if (plugin.admins().isAdmin(player))
         {
             fPlayer.setMuted(false);
             return;

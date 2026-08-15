@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import java.util.*;
 
 import org.bukkit.Bukkit;
@@ -26,7 +28,7 @@ public class EntityWiper extends FreedomService
     //
     private BukkitTask wipeTask;
 
-    public EntityWiper(TotalFreedomMod plugin)
+    public EntityWiper(FreedomAPI plugin)
     {
         super(plugin);
         wipables.add(EnderCrystal.class);
@@ -46,7 +48,7 @@ public class EntityWiper extends FreedomService
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
         if (!isAutoWipeEnabled())
         {
@@ -71,7 +73,7 @@ public class EntityWiper extends FreedomService
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
         FUtil.cancel(wipeTask);
         wipeTask = null;

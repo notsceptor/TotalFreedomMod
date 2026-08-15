@@ -1,13 +1,15 @@
 package me.totalfreedom.totalfreedommod.cmd.resolver;
 
+import me.totalfreedom.totalfreedommod.ProtectArea;
+
 import me.totalfreedom.totalfreedommod.ProtectArea.ProtectedRegion;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.api.FreedomAPI;
 
 public class ProtectedRegionArgumentResolver implements AbstractArgumentResolver<ProtectedRegion>
 {
-    private final TotalFreedomMod plugin;
+    private final FreedomAPI plugin;
 
-    public ProtectedRegionArgumentResolver(final TotalFreedomMod plugin)
+    public ProtectedRegionArgumentResolver(final FreedomAPI plugin)
     {
         this.plugin = plugin;
     }
@@ -21,7 +23,7 @@ public class ProtectedRegionArgumentResolver implements AbstractArgumentResolver
     @Override
     public ProtectedRegion resolve(final String arg, final String strategy)
     {
-        final ProtectedRegion region = plugin.pa.getProtectedRegion(arg);
+        final ProtectedRegion region = plugin.services().require(ProtectArea.class).getProtectedRegion(arg);
 
         if (region == null)
         {

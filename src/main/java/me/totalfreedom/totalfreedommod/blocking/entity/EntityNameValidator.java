@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.blocking.entity;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import java.util.regex.Pattern;
 
 import com.destroystokyo.paper.event.entity.EntityAddToWorldEvent;
@@ -13,7 +15,6 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.blocking.sweep.EntityVisitor;
 import me.totalfreedom.totalfreedommod.blocking.sweep.SweepContext;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
@@ -70,15 +71,15 @@ public class EntityNameValidator extends FreedomService
                     + " | sample: " + sample,
             DetectionReporter.warnAndBroadcastAdmins(plugin));
 
-    public EntityNameValidator(TotalFreedomMod plugin)
+    public EntityNameValidator(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
-        plugin.sweepScheduler.register(nameVisitor);
+        plugin.sweepScheduler().register(nameVisitor);
         long ticks = ConfigEntry.CRASH_ENTITIES_SWEEP_TICKS.getInteger();
         FLog.info("[EntityNameValidator] active"
                 + " [entity name filter]"
@@ -87,7 +88,7 @@ public class EntityNameValidator extends FreedomService
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
     }
 

@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import me.totalfreedom.totalfreedommod.blocking.MobBlocker;
+
 import org.bukkit.GameRules;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.EntityType;
@@ -28,7 +30,7 @@ public class Command_moblimiter extends FCommand
 
             msg(sender, "<gray>Currently blocked entity types:");
             msg(sender, "<types>", MessageUtils.joinedList("types",
-                    plugin().mb.getBlockedMobTypes().stream().map(key -> key.asString()).toList(),
+                    plugin().services().require(MobBlocker.class).getBlockedMobTypes().stream().map(key -> key.asString()).toList(),
                     NamedTextColor.WHITE));
         }
         else
@@ -42,13 +44,13 @@ public class Command_moblimiter extends FCommand
     @Subcommand("allow")
     public void allowEntityType(CommandSender sender, @Resolve(value = "EntityType", strategy = "mobs") EntityType type)
     {
-        if (!plugin().mb.isMobTypeBlocked(type))
+        if (!plugin().services().require(MobBlocker.class).isMobTypeBlocked(type))
         {
             msg(sender, "<gray><type> is not a blocked mob type.", Placeholder.unparsed("type", type.key().asString()));
             return;
         }
 
-        plugin().mb.allowMobType(type);
+        plugin().services().require(MobBlocker.class).allowMobType(type);
         showStatus(sender);
     }
 
@@ -56,13 +58,13 @@ public class Command_moblimiter extends FCommand
     @Subcommand("block")
     public void blockEntityType(CommandSender sender, @Resolve(value = "EntityType", strategy = "mobs") EntityType type)
     {
-        if (plugin().mb.isMobTypeBlocked(type))
+        if (plugin().services().require(MobBlocker.class).isMobTypeBlocked(type))
         {
             msg(sender, "<gray><type> is already a blocked mob type.", Placeholder.unparsed("type", type.key().asString()));
             return;
         }
 
-        plugin().mb.blockMobType(type);
+        plugin().services().require(MobBlocker.class).blockMobType(type);
         showStatus(sender);
     }
 
@@ -78,7 +80,7 @@ public class Command_moblimiter extends FCommand
     public void setMobLimiterState(CommandSender sender, boolean value)
     {
         ConfigEntry.MOB_LIMITER_ENABLED.setBoolean(value);
-        plugin().gr.setGameRule(GameRules.SPAWN_MOBS, !ConfigEntry.MOB_LIMITER_ENABLED.getBoolean());
+        plugin().gameRules().setGameRule(GameRules.SPAWN_MOBS, !ConfigEntry.MOB_LIMITER_ENABLED.getBoolean());
         showStatus(sender);
     }
 }

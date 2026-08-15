@@ -19,7 +19,7 @@ public class Command_orbit extends FCommand
     @Callback
     public void setOrbit(CommandSender sender, Player player)
     {
-        final FPlayer target = plugin().pl.getPlayer(player);
+        final FPlayer target = plugin().players().getPlayer(player);
         if (!target.isOrbiting())
         {
             if (isProtectedAdmin(sender, player))

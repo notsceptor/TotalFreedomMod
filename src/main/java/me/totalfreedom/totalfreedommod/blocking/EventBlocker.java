@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.blocking;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import io.papermc.paper.event.block.BlockPreDispenseEvent;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
@@ -24,24 +26,23 @@ import org.bukkit.event.world.PortalCreateEvent;
 
 import me.totalfreedom.totalfreedommod.EntityWiper;
 import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 
 public class EventBlocker extends FreedomService
 {
 
-    public EventBlocker(TotalFreedomMod plugin)
+    public EventBlocker(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
     }
 

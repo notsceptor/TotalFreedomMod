@@ -1,6 +1,6 @@
 package me.totalfreedom.totalfreedommod.sql.adapter;
 
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.api.FreedomAPI;
 import me.totalfreedom.totalfreedommod.sql.ConnectionHandler;
 import me.totalfreedom.totalfreedommod.sql.SQLProperties;
 import me.totalfreedom.totalfreedommod.sql.StatementHandler;
@@ -29,7 +29,7 @@ public final class AdapterFactory
     /**
      * Creates a DatabaseAdapter based on the configured database type.
      *
-     * @param plugin The TotalFreedomMod plugin instance
+     * @param plugin The FreedomAPI plugin instance
      * @param properties The SQL properties containing database configuration
      * @param connectionHandler The connection handler for database connections
      * @param statementHandler The statement handler for executing queries
@@ -37,7 +37,7 @@ public final class AdapterFactory
      * @throws UnsupportedOperationException if the database type is not supported
      */
     public static DatabaseAdapter createAdapter(
-            TotalFreedomMod plugin,
+            FreedomAPI plugin,
             SQLProperties properties,
             ConnectionHandler connectionHandler,
             StatementHandler statementHandler)

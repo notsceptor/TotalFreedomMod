@@ -17,19 +17,19 @@ public class Command_cmdspy extends FCommand
     @Callback
     public void toggle(final Player player)
     {
-        final var pd = plugin().pl.getPlayer(player);
+        final var pd = plugin().players().getPlayer(player);
         commandSpy(player, pd.cmdspyEnabled() ? SpyMode.OFF : SpyMode.ALL);
     }
 
     @Callback
     public void commandSpy(final Player player, final SpyMode mode) // should auto resolve enums
     {
-        final var fp = plugin().pl.getPlayer(player);
-        final var pd = plugin().pl.getData(player);
+        final var fp = plugin().players().getPlayer(player);
+        final var pd = plugin().players().getData(player);
 
         fp.setCommandSpyMode(mode);
         pd.setCommandSpyMode(mode); // Why is this in two separate locations? This is unnecessary caching.
-        plugin().pl.saveAsync();
+        plugin().players().saveAsync();
 
         switch (mode)
         {

@@ -69,7 +69,7 @@ public class PermissionService extends Permission {
 	public boolean playerInGroup(String world, String player, String group) {
 		Player p = plugin.getServer().getPlayerExact(player);
 		if (p != null && p.isOnline()) {
-			CustomRank rank = plugin.rm.getEffectiveRank(p);
+			CustomRank rank = plugin.ranks().getEffectiveRank(p);
 			return rank != null && rank.getId().equalsIgnoreCase(group);
 		}
 		return false;
@@ -89,7 +89,7 @@ public class PermissionService extends Permission {
 	public String[] getPlayerGroups(String world, String player) {
 		Player p = plugin.getServer().getPlayerExact(player);
 		if (p != null && p.isOnline()) {
-			CustomRank rank = plugin.rm.getEffectiveRank(p);
+			CustomRank rank = plugin.ranks().getEffectiveRank(p);
 			if (rank != null) {
 				return new String[] { rank.getId() };
 			}
@@ -101,7 +101,7 @@ public class PermissionService extends Permission {
 	public String getPrimaryGroup(String world, String player) {
 		Player p = plugin.getServer().getPlayerExact(player);
 		if (p != null && p.isOnline()) {
-			CustomRank rank = plugin.rm.getEffectiveRank(p);
+			CustomRank rank = plugin.ranks().getEffectiveRank(p);
 			if (rank != null) {
 				return rank.getId();
 			}
@@ -113,7 +113,7 @@ public class PermissionService extends Permission {
 	public String[] getGroups() {
 		// Groups are whatever ranks.json defines, so an operator-defined rank is visible to Vault
 		// consumers on the same footing as one the plugin ships with.
-		return plugin.rm.getCustomRanks().keySet().toArray(String[]::new);
+		return plugin.ranks().getCustomRanks().keySet().toArray(String[]::new);
 	}
 
 	@Override
@@ -125,7 +125,7 @@ public class PermissionService extends Permission {
 	public String getPrimaryGroup(String world, OfflinePlayer player) {
 		Player p = plugin.getServer().getPlayer(player.getUniqueId());
 		if (p != null && p.isOnline()) {
-			CustomRank rank = plugin.rm.getEffectiveRank(p);
+			CustomRank rank = plugin.ranks().getEffectiveRank(p);
 			if (rank != null) {
 				return rank.getId();
 			}
@@ -137,7 +137,7 @@ public class PermissionService extends Permission {
 	public String[] getPlayerGroups(String world, OfflinePlayer player) {
 		Player p = plugin.getServer().getPlayer(player.getUniqueId());
 		if (p != null && p.isOnline()) {
-			CustomRank rank = plugin.rm.getEffectiveRank(p);
+			CustomRank rank = plugin.ranks().getEffectiveRank(p);
 			if (rank != null) {
 				return new String[] { rank.getId() };
 			}

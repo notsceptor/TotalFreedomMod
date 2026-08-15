@@ -61,7 +61,7 @@ public final class ResolverRegistry
         AbstractArgumentResolver<?> resolver = byName.get(name);
         if (resolver == null)
         {
-            FLog.warning(String.format("No argument resolver registered with the name '%s'", name));
+            FLog.warn(String.format("No argument resolver registered with the name '%s'", name));
         }
         return resolver;
     }

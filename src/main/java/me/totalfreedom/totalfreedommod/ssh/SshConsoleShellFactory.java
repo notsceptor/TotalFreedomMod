@@ -11,7 +11,7 @@ import org.bukkit.Bukkit;
 
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.api.FreedomAPI;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchContext;
 import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchSession;
@@ -41,9 +41,9 @@ import org.jline.terminal.impl.ExternalTerminal;
 public class SshConsoleShellFactory implements ShellFactory
 {
 
-    private final TotalFreedomMod plugin;
+    private final FreedomAPI plugin;
 
-    public SshConsoleShellFactory(TotalFreedomMod plugin)
+    public SshConsoleShellFactory(FreedomAPI plugin)
     {
         this.plugin = plugin;
     }
@@ -60,7 +60,7 @@ public class SshConsoleShellFactory implements ShellFactory
     public static class SshConsoleShell implements Command, Runnable
     {
 
-        private final TotalFreedomMod plugin;
+        private final FreedomAPI plugin;
 
         private InputStream in;
         private OutputStream out;
@@ -74,7 +74,7 @@ public class SshConsoleShellFactory implements ShellFactory
         private RemoteDispatchSession sshSession;
         private Executor mainExecutor;
 
-        public SshConsoleShell(TotalFreedomMod plugin)
+        public SshConsoleShell(FreedomAPI plugin)
         {
             this.plugin = plugin;
         }
@@ -168,11 +168,11 @@ public class SshConsoleShellFactory implements ShellFactory
         private String resolveDisplayName(ServerSession session, String fallback)
         {
             String identityId = session.getAttribute(SshDaemon.IDENTITY_KEY);
-            if (identityId == null || plugin.sd == null)
+            if (identityId == null || plugin.services().require(SshDaemon.class) == null)
             {
                 return fallback;
             }
-            SshIdentityStore store = plugin.sd.getIdentityStore();
+            SshIdentityStore store = plugin.services().require(SshDaemon.class).getIdentityStore();
             if (store == null)
             {
                 return fallback;
@@ -199,7 +199,7 @@ public class SshConsoleShellFactory implements ShellFactory
                 catch (IOException e)
                 {
                     // We should actually probably parse this.
-                    FLog.severe(ExceptionUtils.getRootCauseMessage(e));
+                    FLog.error(ExceptionUtils.getRootCauseMessage(e));
                 }
             }
 
@@ -260,15 +260,15 @@ public class SshConsoleShellFactory implements ShellFactory
                         RemoteDispatchContext.dispatch(sshSession, stripped);
                     }, mainExecutor).exceptionally(ex ->
                     {
-                        FLog.warning("[SSH] Command dispatch failed for " + displayName + ": " + ex.getMessage());
+                        FLog.warn("[SSH] Command dispatch failed for " + displayName + ": " + ex.getMessage());
                         return null;
                     });
                 }
             }
             catch (Exception e)
             {
-                FLog.severe("Error processing SSH shell for user: " + username);
-                FLog.severe(e);
+                FLog.error("Error processing SSH shell for user: " + username);
+                FLog.error(e);
             }
             finally
             {
@@ -278,7 +278,7 @@ public class SshConsoleShellFactory implements ShellFactory
 
         private void printPreamble() throws IOException
         {
-            terminal.writer().println("TotalFreedomMod version " + plugin.getPluginMeta().getVersion());
+            terminal.writer().println("FreedomAPI version " + plugin.getPluginMeta().getVersion());
             terminal.writer().println("Connected to: " + Bukkit.getServer().getName());
             terminal.writer().println("- " + PlainTextComponentSerializer.plainText().serialize(Bukkit.getServer().motd()));
             terminal.writer().println();

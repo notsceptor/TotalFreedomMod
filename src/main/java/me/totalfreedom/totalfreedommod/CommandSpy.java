@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -17,18 +19,18 @@ import me.totalfreedom.totalfreedommod.util.FUtil;
 public class CommandSpy extends FreedomService
 {
 
-    public CommandSpy(TotalFreedomMod plugin)
+    public CommandSpy(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
     }
 
@@ -36,11 +38,11 @@ public class CommandSpy extends FreedomService
     public void onPlayerCommandPreprocess(PlayerCommandPreprocessEvent event)
     {
         final Player commandSender = event.getPlayer();
-        final boolean senderIsAdmin = plugin.al.isAdmin(commandSender);
+        final boolean senderIsAdmin = plugin.admins().isAdmin(commandSender);
 
-        for (Player player : plugin.al.getOnlineAdmins())
+        for (Player player : plugin.admins().getOnlineAdmins())
         {
-            final FPlayer playerData = plugin.pl.getPlayer(player);
+            final FPlayer playerData = plugin.players().getPlayer(player);
             if (!playerData.cmdspyEnabled())
             {
                 continue;
@@ -62,7 +64,7 @@ public class CommandSpy extends FreedomService
                 continue;
             }
 
-            final Displayable display = plugin.rm.getDisplay(commandSender);
+            final Displayable display = plugin.ranks().getDisplay(commandSender);
             String prefix = AdventureUtil.componentToPlainText(display.getColoredTag()).trim();
             if (prefix.isEmpty())
             {

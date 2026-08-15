@@ -230,7 +230,7 @@ public class Command_settings extends FCommand
         LAVA_PLACE("lavaplace", "Lava Placement", ALLOW_LAVA_PLACE),
         SIGN_PLACE("signplace", "Sign Placement", ALLOW_SIGN_PLACE),
         WATER_PLACE("waterplace", "Water Placement", ALLOW_WATER_PLACE),
-        FIRE_SPREAD("firespread", "Fire Spreading", ALLOW_FIRE_SPREAD, c -> PluginProvider.get().gr.setGameRule(GameRules.FIRE_SPREAD_RADIUS_AROUND_PLAYER, c.getBoolean() ? 128 : 0)),
+        FIRE_SPREAD("firespread", "Fire Spreading", ALLOW_FIRE_SPREAD, c -> PluginProvider.get().gameRules().setGameRule(GameRules.FIRE_SPREAD_RADIUS_AROUND_PLAYER, c.getBoolean() ? 128 : 0)),
         FLUID_SPREAD("fluidspread", "Fluid Spreading", ALLOW_FLUID_SPREAD),
 
         LAVA_DAMAGE("lavadmg", "Lava Damage", ALLOW_LAVA_DAMAGE),

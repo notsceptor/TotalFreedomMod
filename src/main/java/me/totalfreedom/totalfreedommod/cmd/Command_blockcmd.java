@@ -23,7 +23,7 @@ public class Command_blockcmd extends FCommand
             return;
         }
 
-        final FPlayer playerdata = plugin().pl.getPlayer(player);
+        final FPlayer playerdata = plugin().players().getPlayer(player);
 
         adminAction(sender, "<red><blocked:Unb:B>locking all commands for <player>",
                 Formatter.booleanChoice("blocked", playerdata.allCommandsBlocked()),
@@ -49,7 +49,7 @@ public class Command_blockcmd extends FCommand
                 .stream()
                 .filter(p -> !isAdmin(p))
                 .peek(p -> {
-                    plugin().pl.getPlayer(p).setCommandsBlocked(true);
+                    plugin().players().getPlayer(p).setCommandsBlocked(true);
                     msg(p, "<red>Your commands have been blocked by an admin.");
                 })
                 .count();
@@ -67,7 +67,7 @@ public class Command_blockcmd extends FCommand
 
         final long count = server().getOnlinePlayers()
               .stream()
-              .map(plugin().pl::getPlayer)
+              .map(plugin().players()::getPlayer)
               .filter(FPlayer::allCommandsBlocked)
               .reduce(0L, (total, data) ->
                     {

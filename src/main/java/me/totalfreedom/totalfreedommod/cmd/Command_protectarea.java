@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import me.totalfreedom.totalfreedommod.ProtectArea;
+
 import java.util.List;
 
 import org.bukkit.command.CommandSender;
@@ -29,7 +31,7 @@ public class Command_protectarea extends FCommand
     {
         checkEnabled();
 
-        final List<String> names = plugin().pa.getProtectedAreaNames();
+        final List<String> names = plugin().services().require(ProtectArea.class).getProtectedAreaNames();
         if (names.isEmpty())
         {
             msg(sender, "<gray>There are no protected regions.");
@@ -48,7 +50,7 @@ public class Command_protectarea extends FCommand
         checkEnabled();
 
         adminAction(sender, "<red>Clearing all protected regions");
-        plugin().pa.clearProtectedAreas();
+        plugin().services().require(ProtectArea.class).clearProtectedAreas();
         msg(sender, "<gray>All protected regions have been cleared.");
     }
 
@@ -60,7 +62,7 @@ public class Command_protectarea extends FCommand
         checkEnabled();
 
         final WorldEditBridge.Region selection = getWorldEditSelection(sender);
-        final ProtectedRegion region = plugin().pa.addProtectedArea(name, selection.min(), selection.max(), selection.world());
+        final ProtectedRegion region = plugin().services().require(ProtectArea.class).addProtectedArea(name, selection.min(), selection.max(), selection.world());
 
         if (region == null)
         {
@@ -85,7 +87,7 @@ public class Command_protectarea extends FCommand
 
         adminAction(sender, "<red>Updating protected region '<name>'",
             Placeholder.unparsed("name", region.getName()));
-        msg(sender, plugin().pa.updateProtectedRegion(region, selection.min(), selection.max(), selection.world()).toString());
+        msg(sender, plugin().services().require(ProtectArea.class).updateProtectedRegion(region, selection.min(), selection.max(), selection.world()).toString());
     }
 
     @Callback
@@ -103,7 +105,7 @@ public class Command_protectarea extends FCommand
     {
         checkEnabled();
 
-        plugin().pa.removeProtectedArea(region);
+        plugin().services().require(ProtectArea.class).removeProtectedArea(region);
 
         adminAction(sender, "<red>Deleting protected region '<name>'",
             Placeholder.unparsed("name", region.getName()));
@@ -119,10 +121,10 @@ public class Command_protectarea extends FCommand
 
     private WorldEditBridge.Region getWorldEditSelection(final Player player)
     {
-        if (!plugin().web.isWorldEditEnabled())
+        if (!plugin().bridges().require(WorldEditBridge.class).isWorldEditEnabled())
             throw new CommandFailException("<red>WorldEdit must be available in order to manage protected regions.");
 
-        final WorldEditBridge.Region selection = plugin().web.getSelection(player);
+        final WorldEditBridge.Region selection = plugin().bridges().require(WorldEditBridge.class).getSelection(player);
         if (selection == null)
             throw new CommandFailException("<red>Please select a region to protect using WorldEdit.");
 

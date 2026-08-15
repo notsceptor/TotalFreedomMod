@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import me.totalfreedom.totalfreedommod.bridge.LibsDisguisesBridge;
+
 import org.bukkit.command.CommandSender;
 
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
@@ -11,13 +13,13 @@ public class Command_undisguiseall extends FCommand
     @Callback
     public void undisguiseall(CommandSender sender)
     {
-        if (!plugin().ldb.isPluginEnabled())
+        if (!plugin().bridges().require(LibsDisguisesBridge.class).isPluginEnabled())
         {
             msg(sender, "<gray>LibsDisguises is not enabled.");
             return;
         }
 
-        if (!plugin().ldb.isDisguisesEnabled())
+        if (!plugin().bridges().require(LibsDisguisesBridge.class).isDisguisesEnabled())
         {
             msg(sender, "<gray>Disguises are not enabled.");
             return;
@@ -25,6 +27,6 @@ public class Command_undisguiseall extends FCommand
 
         adminAction(sender, "<red>Undisguising all non-admins");
 
-        plugin().ldb.undisguiseAll(false);
+        plugin().bridges().require(LibsDisguisesBridge.class).undisguiseAll(false);
     }
 }

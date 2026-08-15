@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import me.totalfreedom.totalfreedommod.bridge.EssentialsBridge;
+
 import java.util.List;
 
 import org.bukkit.Material;
@@ -44,7 +46,7 @@ public class Command_whohas extends FCommand
                                                                   .colorIfAbsent(NamedTextColor.WHITE)
                                                                   .hoverEvent(HoverEvent.showText(Component.text(player.getName())))
                                                                   .clickEvent(ClickEvent.clickEvent(ClickEvent.Action.SUGGEST_COMMAND,
-                                                                                                    ClickEvent.Payload.string(plugin().esb.isEssentialsEnabled() ?
+                                                                                                    ClickEvent.Payload.string(plugin().bridges().require(EssentialsBridge.class).isEssentialsEnabled() ?
                                                                                                                               "/invsee " + player.getName() :
                                                                                                                               "/data get entity " + player.getUniqueId() + " Inventory")
                                                                                                  )

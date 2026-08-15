@@ -1,5 +1,9 @@
 package me.totalfreedom.totalfreedommod.rank;
 
+import me.totalfreedom.totalfreedommod.discord.DiscordBridge;
+
+import me.totalfreedom.api.FreedomAPI;
+
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -49,7 +53,6 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchContext;
@@ -95,7 +98,7 @@ public class RankManager extends FreedomService
      */
     private final ChatInputHandler chatInputHandler = new ChatInputHandler();
 
-    public RankManager(TotalFreedomMod plugin)
+    public RankManager(FreedomAPI plugin)
     {
         super(plugin);
         this.registry = new RankRegistry(plugin, customRanks);
@@ -113,14 +116,14 @@ public class RankManager extends FreedomService
     private BukkitRunnable persistentMonitorTask = null;
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
         loadRanks();
-        plugin.dm.whenReady(this::loadRanks);
+        plugin.database().whenReady(this::loadRanks);
 
-        if (plugin.csr != null)
+        if (plugin.consoleSenders() != null)
         {
-            plugin.csr.load();
+            plugin.consoleSenders().load();
         }
 
         server.getScheduler().runTask(plugin, this::updateAllPlayerTeams);
@@ -133,7 +136,7 @@ public class RankManager extends FreedomService
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
         // Save ranks before shutdown, then let the queue drain: a queued write landing after
         // the flush would restore a stale snapshot.
@@ -158,7 +161,7 @@ public class RankManager extends FreedomService
      */
     public void loadRanks()
     {
-        if (plugin.dm != null && plugin.dm.isInitialized())
+        if (plugin.database() != null && plugin.database().isInitialized())
         {
             loadFromSqlAsync();
             return;
@@ -169,8 +172,8 @@ public class RankManager extends FreedomService
 
     private void loadFromSqlAsync()
     {
-        final RankRepository repo = plugin.dm.getRankRepository();
-        plugin.dm.readAsync("RankManager/loadFromSql", repo.loadAllAsync(),
+        final RankRepository repo = plugin.database().getRankRepository();
+        plugin.database().readAsync("RankManager/loadFromSql", repo.loadAllAsync(),
                 loaded -> applyLoadedRanks(repo, loaded),
                 () ->
                 {
@@ -214,8 +217,8 @@ public class RankManager extends FreedomService
      */
     private void refreshConsoleBindings()
     {
-        if (plugin.csr != null)
-            plugin.csr.load();
+        if (plugin.consoleSenders() != null)
+            plugin.consoleSenders().load();
     }
 
     private void loadFromJsonOrDefaults()
@@ -245,13 +248,13 @@ public class RankManager extends FreedomService
         }
         catch (IllegalArgumentException ex)
         {
-            FLog.severe(String.format("No bundled %s to install: %s", RANKS_FILENAME, ex.getMessage()));
+            FLog.error(String.format("No bundled %s to install: %s", RANKS_FILENAME, ex.getMessage()));
             return;
         }
 
         if (!ranksFile.exists())
         {
-            FLog.severe(String.format("Could not install a default %s; all guarded commands will be denied.",
+            FLog.error(String.format("Could not install a default %s; all guarded commands will be denied.",
                     RANKS_FILENAME));
             return;
         }
@@ -269,7 +272,7 @@ public class RankManager extends FreedomService
         }
         catch (IOException ex)
         {
-            FLog.severe("Could not read " + RANKS_FILENAME + ": " + ex.getMessage());
+            FLog.error("Could not read " + RANKS_FILENAME + ": " + ex.getMessage());
         }
 
         resolveInheritance();
@@ -331,7 +334,7 @@ public class RankManager extends FreedomService
         }
         catch (IOException ex)
         {
-            FLog.warning(String.format("Failed to read %s: %s", RANKS_FILENAME, ex.getMessage()));
+            FLog.warn(String.format("Failed to read %s: %s", RANKS_FILENAME, ex.getMessage()));
             return;
         }
 
@@ -360,12 +363,12 @@ public class RankManager extends FreedomService
                            .flatMapMany(existing -> Flux.fromIterable(existing.keySet()))
                            .filter(id -> !jsonRanks.containsKey(id))
                            .concatMap(repo::deleteAsync)
-                           .then(Mono.<Void>fromRunnable(() -> plugin.dm.sync("RankManager/applyReconciled",
+                           .then(Mono.<Void>fromRunnable(() -> plugin.database().sync("RankManager/applyReconciled",
                                                          () -> applyReconciledRanks(jsonRanks))));
               })
               .onErrorResume(ex ->
               {
-                  FLog.warning(String.format("Failed to reconcile %s into the database: %s",
+                  FLog.warn(String.format("Failed to reconcile %s into the database: %s",
                                              RANKS_FILENAME, ex.getMessage()));
                   return Mono.empty();
               })
@@ -389,20 +392,20 @@ public class RankManager extends FreedomService
      */
     public void saveRanks()
     {
-        if (!usingSql || plugin.dm == null || !plugin.dm.isInitialized())
+        if (!usingSql || plugin.database() == null || !plugin.database().isInitialized())
         {
             writes.enqueue(writeJsonAsync());
             return;
         }
 
-        final RankRepository repo = plugin.dm.getRankRepository();
+        final RankRepository repo = plugin.database().getRankRepository();
         final List<CustomRank> snapshot = new ArrayList<>(customRanks.values());
 
         writes.enqueue(Flux.fromIterable(snapshot)
               .concatMap(rank -> repo.save(rank)
                                      .onErrorResume(ex ->
                                      {
-                                         FLog.severe(String.format("Could not save rank %s to SQL: %s",
+                                         FLog.error(String.format("Could not save rank %s to SQL: %s",
                                                                    rank.getId(), 
                                                                    ex.getMessage()));
                                          return Mono.empty();
@@ -433,7 +436,7 @@ public class RankManager extends FreedomService
         }
         catch (IOException ex)
         {
-            FLog.severe(String.format("Could not save %s: %s", RANKS_FILENAME, ex.getMessage()));
+            FLog.error(String.format("Could not save %s: %s", RANKS_FILENAME, ex.getMessage()));
         }
     }
 
@@ -456,7 +459,7 @@ public class RankManager extends FreedomService
 
         if (visited.contains(rank.getId()))
         {
-            FLog.warning("Circular inheritance detected for rank: " + rank.getId());
+            FLog.warn("Circular inheritance detected for rank: " + rank.getId());
             return Set.of();
         }
         visited.add(rank.getId());
@@ -467,7 +470,7 @@ public class RankManager extends FreedomService
         {
             CustomRank parent = customRanks.get(rank.getInheritFrom().toLowerCase());
             if (parent == null)
-                FLog.warning("Rank '" + rank.getId() + "' inherits from non-existent rank: " + rank.getInheritFrom());
+                FLog.warn("Rank '" + rank.getId() + "' inherits from non-existent rank: " + rank.getInheritFrom());
             else
                 perms.addAll(collectPermissions(parent, visited));
         }
@@ -486,10 +489,10 @@ public class RankManager extends FreedomService
 
     private CustomRank getAssignedAdminRank(Player player)
     {
-        if (plugin.al.isAdminImpostor(player))
+        if (plugin.admins().isAdminImpostor(player))
             return null;
 
-        final Admin admin = plugin.al.getAdmin(player);
+        final Admin admin = plugin.admins().getAdmin(player);
 
         if (admin == null || !admin.isActive())
             return null;
@@ -583,13 +586,13 @@ public class RankManager extends FreedomService
         if (removed == null)
             return false;
 
-        if (usingSql && plugin.dm != null && plugin.dm.isInitialized())
+        if (usingSql && plugin.database() != null && plugin.database().isInitialized())
         {
-            writes.enqueue(plugin.dm.getRankRepository()
+            writes.enqueue(plugin.database().getRankRepository()
                   .deleteAsync(removed.getId())
                   .onErrorResume(ex ->
                   {
-                      FLog.severe(String.format("Could not delete rank %s from SQL: %s",
+                      FLog.error(String.format("Could not delete rank %s from SQL: %s",
                                                 removed.getId(), 
                                                 ex.getMessage()));
                       return Mono.empty();
@@ -739,7 +742,7 @@ public class RankManager extends FreedomService
             catch (Exception ex)
             {
                 player.sendMessage(Component.text("Error processing input: " + ex.getMessage()).color(NamedTextColor.RED));
-                FLog.warning("Error in chat input callback: " + ex.getMessage());
+                FLog.warn("Error in chat input callback: " + ex.getMessage());
             }
 
             return true;
@@ -973,7 +976,7 @@ public class RankManager extends FreedomService
                     for (Player player : server.getOnlinePlayers())
                     {
                         // Skip admins and players who should not be OP
-                        if (plugin.al.isAdmin(player) || plugin.al.isAdminImpostor(player))
+                        if (plugin.admins().isAdmin(player) || plugin.admins().isAdminImpostor(player))
                             continue;
 
                         // Re-OP players who lost OP status
@@ -997,7 +1000,7 @@ public class RankManager extends FreedomService
 
 
         // Skip admins and impostors
-        if (plugin.al.isAdmin(player) || plugin.al.isAdminImpostor(player))
+        if (plugin.admins().isAdmin(player) || plugin.admins().isAdminImpostor(player))
             return;
 
         // Only ensure OP if auto-OP is enabled
@@ -1026,7 +1029,7 @@ public class RankManager extends FreedomService
                 @Override
                 public void run()
                 {
-                    if (player.isOnline() && !plugin.al.isAdmin(player) && !plugin.al.isAdminImpostor(player))
+                    if (player.isOnline() && !plugin.admins().isAdmin(player) && !plugin.admins().isAdminImpostor(player))
                     {
                         try
                         {
@@ -1057,14 +1060,14 @@ public class RankManager extends FreedomService
             return registry.forSender(sender).orElse(null);
         }
 
-        if (plugin.al.isAdminImpostor(player))
+        if (plugin.admins().isAdminImpostor(player))
         {
             return registry.byRole(RankRole.IMPOSTOR).orElse(null);
         }
 
         // A held title outranks the player's rank for display purposes: a title is the identity
         // people recognise ("Master Builder"), while the rank underneath is only what they may do.
-        final Displayable title = plugin.tm == null ? null : plugin.tm.getDisplayTitle(player);
+        final Displayable title = plugin.titles() == null ? null : plugin.titles().getDisplayTitle(player);
 
         return title != null ? title : registry.forSender(player).orElse(null);
     }
@@ -1098,10 +1101,10 @@ public class RankManager extends FreedomService
     public void onPlayerJoinAutoOp(PlayerJoinEvent event)
     {
         final Player player = event.getPlayer();
-        final boolean isAdmin = plugin.al.isAdmin(player);
+        final boolean isAdmin = plugin.admins().isAdmin(player);
 
         // Skip admins and impostors
-        if (isAdmin || plugin.al.isAdminImpostor(player))
+        if (isAdmin || plugin.admins().isAdminImpostor(player))
         {
             return;
         }
@@ -1118,15 +1121,15 @@ public class RankManager extends FreedomService
     public void onPlayerJoin(PlayerJoinEvent event)
     {
         final Player player = event.getPlayer();
-        //plugin.pl.getData(player);
-        final FPlayer fPlayer = plugin.pl.getPlayer(player);
+        //plugin.players().getData(player);
+        final FPlayer fPlayer = plugin.players().getPlayer(player);
 
         // Unban admins
-        boolean isAdmin = plugin.al.isAdmin(player);
+        boolean isAdmin = plugin.admins().isAdmin(player);
         if (isAdmin)
         {
             // Verify strict IP match
-            if (!plugin.al.isIdentityMatched(player))
+            if (!plugin.admins().isIdentityMatched(player))
             {
                 Component warningMsg = Component.text("Warning: " + player.getName() + " is an admin, but is using an account not registered to one of their ip-list.")
                         .color(NamedTextColor.RED);
@@ -1136,22 +1139,22 @@ public class RankManager extends FreedomService
             else
             {
                 fPlayer.setSuperadminIdVerified(true);
-                plugin.al.updateLastLogin(player);
+                plugin.admins().updateLastLogin(player);
             }
         }
 
         updatePlayerTeam(player);
 
         // Handle impostors
-        if (plugin.al.isAdminImpostor(player))
+        if (plugin.admins().isAdminImpostor(player))
         {
             Component impostorMsg = Component.text(player.getName() + " is ")
                     .color(NamedTextColor.AQUA)
                     .append(impostorLoginMessage());
             FUtil.bcastMsg(impostorMsg);
-            if (plugin.db != null)
+            if (plugin.services().require(DiscordBridge.class) != null)
             {
-                plugin.db.relayLoginMessage(impostorMsg);
+                plugin.services().require(DiscordBridge.class).relayLoginMessage(impostorMsg);
             }
 
             Component warningMsg = Component.text("Warning: " + player.getName() + " has been flagged as an impostor and has been frozen!")
@@ -1161,7 +1164,7 @@ public class RankManager extends FreedomService
             player.getInventory().clear();
             player.setOp(false);
             player.setGameMode(GameMode.SURVIVAL);
-            plugin.pl.getPlayer(player).getFreezeData().setFrozen(true);
+            plugin.players().getPlayer(player).getFreezeData().setFrozen(true);
 
             Component playerMsg = Component.text("You are marked as an impostor, please verify yourself!")
                     .color(NamedTextColor.RED);
@@ -1171,22 +1174,22 @@ public class RankManager extends FreedomService
 
         // Announce admins, and anyone holding a title worth announcing. The hardcoded developer
         // list used to stand in for the latter; a title says the same thing as data instead.
-        if (isAdmin || (plugin.tm != null && plugin.tm.getDisplayTitle(player) != null))
+        if (isAdmin || (plugin.titles() != null && plugin.titles().getDisplayTitle(player) != null))
         {
             final Displayable display = getDisplay(player);
             Component loginMsg = formatLoginMessage(player);
             FUtil.bcastMsg(loginMsg);
-            if (plugin.db != null)
+            if (plugin.services().require(DiscordBridge.class) != null)
             {
-                plugin.db.relayLoginMessage(loginMsg);
+                plugin.services().require(DiscordBridge.class).relayLoginMessage(loginMsg);
             }
 
             // Skip rank tag when the player has a saved custom tag.
-            final String savedTag = plugin.pl.getData(player).getSavedTag();
+            final String savedTag = plugin.players().getData(player).getSavedTag();
             if (savedTag == null)
             {
                 String tagLegacy = AdventureUtil.componentToLegacySection(display.getColoredTag());
-                plugin.pl.getPlayer(player).setTag(tagLegacy);
+                plugin.players().getPlayer(player).setTag(tagLegacy);
             }
 
         }
@@ -1195,14 +1198,14 @@ public class RankManager extends FreedomService
     public Component formatLoginMessage(Player player)
     {
         final Displayable display = getDisplay(player);
-        final boolean isAdmin = plugin.al.isAdmin(player);
+        final boolean isAdmin = plugin.admins().isAdmin(player);
         Component loginMsg = Component.text(player.getName() + " is ")
                 .color(NamedTextColor.AQUA)
                 .append(display.getColoredLoginMessage());
 
         if (isAdmin)
         {
-            Admin admin = plugin.al.getAdmin(player);
+            Admin admin = plugin.admins().getAdmin(player);
             if (admin.hasLoginMessage())
             {
                 // Temporary measure to convert old tags to the preferred MiniMessage system and update database
@@ -1215,8 +1218,8 @@ public class RankManager extends FreedomService
                             .replace("%coloredrank%", "<colored_rank>");
 
                     admin.setLoginMessage(loginMessage);
-                    plugin.al.saveAsync();
-                    plugin.al.updateTables();
+                    plugin.admins().saveAsync();
+                    plugin.admins().updateTables();
                 }
 
                 loginMsg = AdventureUtil.addLinks(
@@ -1236,7 +1239,7 @@ public class RankManager extends FreedomService
     public void onPlayerRespawn(PlayerRespawnEvent event)
     {
         final Player player = event.getPlayer();
-        if (ConfigEntry.AUTO_OP_ENABLED.getBoolean() && !plugin.al.isAdmin(player) && !plugin.al.isAdminImpostor(player))
+        if (ConfigEntry.AUTO_OP_ENABLED.getBoolean() && !plugin.admins().isAdmin(player) && !plugin.admins().isAdminImpostor(player))
         {
             // Re-verify OP after respawn
             ensureOp(player);
@@ -1247,7 +1250,7 @@ public class RankManager extends FreedomService
     public void onPlayerChangedWorld(PlayerChangedWorldEvent event)
     {
         final Player player = event.getPlayer();
-        if (ConfigEntry.AUTO_OP_ENABLED.getBoolean() && !plugin.al.isAdmin(player) && !plugin.al.isAdminImpostor(player))
+        if (ConfigEntry.AUTO_OP_ENABLED.getBoolean() && !plugin.admins().isAdmin(player) && !plugin.admins().isAdminImpostor(player))
         {
             // Re-verify OP after world change
             ensureOp(player);

@@ -87,7 +87,7 @@ public class BackupManager extends PluginComponent<TotalFreedomMod>
         }
         catch (IOException ex)
         {
-            FLog.severe("Could not read backup.json: " + ex.getMessage());
+            FLog.error("Could not read backup.json: " + ex.getMessage());
             return new HashMap<>();
         }
     }
@@ -104,7 +104,7 @@ public class BackupManager extends PluginComponent<TotalFreedomMod>
         }
         catch (IOException ex)
         {
-            FLog.severe("Could not save backup.json: " + ex.getMessage());
+            FLog.error("Could not save backup.json: " + ex.getMessage());
         }
     }
 

@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import me.totalfreedom.totalfreedommod.blocking.command.CommandBlocker;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -38,7 +40,7 @@ public class Command_wildcard extends FCommand
         final String[] splitCommand = command.split(" ");
 
         if (Arrays.stream(splitCommand).anyMatch(this::isBlacklistedCommand)
-                || plugin().cb.isCommandBlocked(command, sender))
+                || plugin().services().require(CommandBlocker.class).isCommandBlocked(command, sender))
         {
             msg(sender, "<red>Did you really think that was going to work?");
             return;

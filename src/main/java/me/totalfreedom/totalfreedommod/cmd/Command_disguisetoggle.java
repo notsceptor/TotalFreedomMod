@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import me.totalfreedom.totalfreedommod.bridge.LibsDisguisesBridge;
+
 import org.bukkit.command.CommandSender;
 
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
@@ -13,7 +15,7 @@ public class Command_disguisetoggle extends FCommand
     @Callback
     public void disguisetoggle(CommandSender sender)
     {
-        if (!plugin().ldb.isPluginEnabled())
+        if (!plugin().bridges().require(LibsDisguisesBridge.class).isPluginEnabled())
         {
             msg(sender, "<red>LibsDisguises is not enabled.");
             return;
@@ -22,23 +24,23 @@ public class Command_disguisetoggle extends FCommand
         adminAction(
                     sender, 
                     "<aqua><value:Enabling:Disabling> disguises.",
-                    Formatter.booleanChoice("value", !plugin().ldb.isDisguisesEnabled())
+                    Formatter.booleanChoice("value", !plugin().bridges().require(LibsDisguisesBridge.class).isDisguisesEnabled())
                 );
 
-        if (plugin().ldb.isDisguisesEnabled())
+        if (plugin().bridges().require(LibsDisguisesBridge.class).isDisguisesEnabled())
         {
-            plugin().ldb.undisguiseAll(true);
-            plugin().ldb.setDisguisesEnabled(false);
+            plugin().bridges().require(LibsDisguisesBridge.class).undisguiseAll(true);
+            plugin().bridges().require(LibsDisguisesBridge.class).setDisguisesEnabled(false);
         }
         else
         {
-            plugin().ldb.setDisguisesEnabled(true);
+            plugin().bridges().require(LibsDisguisesBridge.class).setDisguisesEnabled(true);
         }
 
         msg(
             sender, 
             "<gray>Disguises are now <value:enabled:disabled>",
-            Formatter.booleanChoice("value", plugin().ldb.isDisguisesEnabled())
+            Formatter.booleanChoice("value", plugin().bridges().require(LibsDisguisesBridge.class).isDisguisesEnabled())
         );
     }
 }

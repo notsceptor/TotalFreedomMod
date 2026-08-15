@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import me.totalfreedom.totalfreedommod.Announcer;
+
 import java.util.List;
 
 import org.bukkit.command.CommandSender;
@@ -19,6 +21,6 @@ public class Command_announce extends FCommand
     @Callback
     public void broadcast(CommandSender sender, @Greedy String content)
     {
-        plugin().an.announce(content); // TODO: Trace this all the way to the root, and modify to use new MessageUtils
+        plugin().services().require(Announcer.class).announce(content); // TODO: Trace this all the way to the root, and modify to use new MessageUtils
     }
 }

@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.fun;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import java.util.*;
 
 import org.bukkit.GameMode;
@@ -11,7 +13,6 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.util.Vector;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
 
@@ -32,7 +33,7 @@ public class Jumppads extends FreedomService
     @Setter
     private double strength = 0.4;
 
-    public Jumppads(TotalFreedomMod plugin)
+    public Jumppads(FreedomAPI plugin)
     {
         super(plugin);
     }
@@ -48,11 +49,11 @@ public class Jumppads extends FreedomService
 
         if (foundMode == null)
         {
-            FLog.warning("Config contains invalid jumppad mode, defaulting to off");
+            FLog.warn("Config contains invalid jumppad mode, defaulting to off");
             foundMode = JumpPadMode.OFF;
 
             ConfigEntry.JUMPPAD_MODE.setString(foundMode.name().toLowerCase());
-            plugin.config.save();
+            plugin.config().save();
         }
 
         this.mode = foundMode;
@@ -68,7 +69,7 @@ public class Jumppads extends FreedomService
     {
         this.mode = mode;
         ConfigEntry.JUMPPAD_MODE.setString(this.mode.name().toLowerCase());
-        plugin.config.save();
+        plugin.config().save();
     }
 
     @EventHandler

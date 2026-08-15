@@ -2,68 +2,57 @@ package me.totalfreedom.totalfreedommod.framework;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Function;
 
 import org.bukkit.event.Listener;
 
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.api.FreedomAPI;
 import me.totalfreedom.totalfreedommod.util.FLog;
 
 /**
- * Manages the lifecycle of services.
- * Services are registered and then started/stopped in order.
+ * Owns registration, lookup, and lifecycle for a set of services.
+ * Services are registered in dependency order, started in that order, and stopped in reverse.
  */
-public class ServiceManager<T extends TotalFreedomMod>
+public class ServiceManager
 {
 
-    private final T plugin;
-    private final List<AbstractService<T>> services;
+    private final FreedomAPI plugin;
+    private final List<AbstractService> services = new ArrayList<>();
 
-    public ServiceManager(T plugin)
+    public ServiceManager(FreedomAPI plugin)
     {
         this.plugin = plugin;
-        this.services = new ArrayList<>();
     }
 
     /**
-     * Registers a service by instantiating it and adding it to the service list.
-     * The service must have a constructor that takes a single parameter of type T (the plugin).
+     * Registers a service by invoking the given factory and adding the result to the service list.
+     * Auto-registers the service as a listener if it implements one.
      *
-     * @param serviceClass The service class to register
+     * @param serviceClass The service class being registered
+     * @param factory Produces the service instance from the owning plugin
      * @param <S> The service type
      * @return The instantiated service
      */
-    @SuppressWarnings("unchecked")
-    public <S extends AbstractService<T>> S registerService(Class<S> serviceClass)
+    public <S extends AbstractService> S register(Class<S> serviceClass, Function<FreedomAPI, S> factory)
     {
-        try
-        {
-            // Find constructor that takes plugin as parameter
-            java.lang.reflect.Constructor<S> constructor = serviceClass.getConstructor(plugin.getClass());
-            S service = constructor.newInstance(plugin);
-            services.add(service);
+        S service = factory.apply(plugin);
+        services.add(service);
 
-            // Auto-register as listener if it implements Listener
-            if (service instanceof Listener)
-            {
-                plugin.getServer().getPluginManager().registerEvents((Listener) service, plugin);
-            }
-
-            return service;
-        }
-        catch (Exception ex)
+        if (service instanceof Listener listener)
         {
-            FLog.severe("Failed to register service: " + serviceClass.getName());
-            FLog.severe(ex);
-            throw new RuntimeException("Service registration failed", ex);
+            plugin.getServer().getPluginManager().registerEvents(listener, plugin);
         }
+
+        return service;
     }
 
     /**
-     * Starts all registered services by calling their onStart() methods.
+     * Starts all registered services by calling their onStart() methods, in registration order.
      */
     public void start()
     {
-        for (AbstractService<T> service : services)
+        for (AbstractService service : services)
         {
             try
             {
@@ -71,62 +60,67 @@ public class ServiceManager<T extends TotalFreedomMod>
             }
             catch (Exception ex)
             {
-                FLog.severe("Failed to start service: " + service.getClass().getName());
-                FLog.severe(ex);
+                FLog.error("Failed to start service: " + service.getClass().getName());
+                FLog.error(ex);
             }
         }
     }
 
     /**
-     * Stops all registered services by calling their onStop() methods.
-     * Services are stopped in reverse order of registration.
+     * Stops all registered services by calling their onStop() methods, in reverse registration order.
      */
     public void stop()
     {
-        // Stop in reverse order
         for (int i = services.size() - 1; i >= 0; i--)
         {
-            AbstractService<T> service = services.get(i);
+            AbstractService service = services.get(i);
             try
             {
                 service.onStop();
             }
             catch (Exception ex)
             {
-                FLog.severe("Failed to stop service: " + service.getClass().getName());
-                FLog.severe(ex);
+                FLog.error("Failed to stop service: " + service.getClass().getName());
+                FLog.error(ex);
             }
         }
     }
 
     /**
-     * Gets all registered services.
-     *
-     * @return List of all services
+     * @return An immutable snapshot of all registered services, in registration order.
      */
-    public List<AbstractService<T>> getServices()
+    public List<AbstractService> getServices()
     {
-        return new ArrayList<>(services);
+        return List.copyOf(services);
     }
 
     /**
-     * Gets a service by its class type.
+     * Looks up a registered service by its class.
      *
      * @param serviceClass The service class to find
      * @param <S> The service type
-     * @return The service instance, or null if not found
+     * @return The service instance, or empty if none is registered
      */
-    @SuppressWarnings("unchecked")
-    public <S extends AbstractService<T>> S getService(Class<S> serviceClass)
+    public <S extends AbstractService> Optional<S> get(Class<S> serviceClass)
     {
-        for (AbstractService<T> service : services)
-        {
-            if (serviceClass.isInstance(service))
-            {
-                return (S) service;
-            }
-        }
-        return null;
+        return services.stream()
+                .filter(serviceClass::isInstance)
+                .map(serviceClass::cast)
+                .findFirst();
+    }
+
+    /**
+     * Looks up a registered service by its class, throwing if it is not present.
+     * Use this for dependencies that must exist for the caller to function.
+     *
+     * @param serviceClass The service class to find
+     * @param <S> The service type
+     * @return The service instance
+     * @throws IllegalStateException if the service is not registered
+     */
+    public <S extends AbstractService> S require(Class<S> serviceClass)
+    {
+        return get(serviceClass).orElseThrow(() ->
+                new IllegalStateException("Service not registered: " + serviceClass.getName()));
     }
 }
-

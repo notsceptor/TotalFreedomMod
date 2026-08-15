@@ -16,13 +16,13 @@ public class Command_unbanip extends FCommand
     @Callback
     public void unbanip(CommandSender sender, InetAddress ip)
     {
-        if (!plugin().bm.isIpBanned(ip.getHostAddress()))
+        if (!plugin().bans().isIpBanned(ip.getHostAddress()))
         {
             msg(sender, "<gray>That IP address is not banned.");
             return;
         }
 
         adminAction(sender, "<red>Unbanning IP <ip>", Placeholder.unparsed("ip", FUtil.sanitizeIp(sender, ip.getHostAddress())));
-        plugin().bm.unbanIp(ip.getHostAddress());
+        plugin().bans().unbanIp(ip.getHostAddress());
     }
 }

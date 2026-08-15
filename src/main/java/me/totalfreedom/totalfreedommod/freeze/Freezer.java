@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.freeze;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -7,7 +9,6 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.PlayerMoveEvent;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 
 import lombok.Getter;
@@ -18,19 +19,19 @@ public class Freezer extends FreedomService
     @Getter
     private boolean globalFreeze = false;
 
-    public Freezer(TotalFreedomMod plugin)
+    public Freezer(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
         globalFreeze = false;
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
     }
 
@@ -45,7 +46,7 @@ public class Freezer extends FreedomService
 
         for (Player player : server.getOnlinePlayers())
         {
-            plugin.pl.getPlayer(player).getFreezeData().setFrozen(false);
+            plugin.players().getPlayer(player).getFreezeData().setFrozen(false);
         }
     }
 
@@ -59,12 +60,12 @@ public class Freezer extends FreedomService
 
         final Player player = event.getPlayer();
 
-        if (plugin.al.isAdmin(player))
+        if (plugin.admins().isAdmin(player))
         {
             return;
         }
 
-        final FreezeData fd = plugin.pl.getPlayer(player).getFreezeData();
+        final FreezeData fd = plugin.players().getPlayer(player).getFreezeData();
         if (!fd.isFrozen() && !globalFreeze)
         {
             return;

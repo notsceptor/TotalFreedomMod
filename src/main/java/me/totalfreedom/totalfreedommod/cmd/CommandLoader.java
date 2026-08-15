@@ -1,5 +1,9 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import me.totalfreedom.totalfreedommod.ProtectArea;
+
+import me.totalfreedom.api.FreedomAPI;
+
 import java.lang.reflect.Modifier;
 import java.net.InetAddress;
 import java.nio.file.FileSystem;
@@ -28,7 +32,6 @@ import net.kyori.adventure.key.Key;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.ProtectArea.ProtectedRegion;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.cmd.internal.*;
 import me.totalfreedom.totalfreedommod.cmd.resolver.*;
 import me.totalfreedom.totalfreedommod.util.FLog;
@@ -47,13 +50,13 @@ public class CommandLoader extends FreedomService
 
     private boolean started = false;
 
-    public CommandLoader(TotalFreedomMod plugin) 
+    public CommandLoader(FreedomAPI plugin) 
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart() 
+    public void onStart() 
     {
         if (started) 
         {
@@ -68,7 +71,7 @@ public class CommandLoader extends FreedomService
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
         started = false;
 
@@ -117,7 +120,7 @@ public class CommandLoader extends FreedomService
             () -> Bukkit.getWorlds().stream().map(World::getName).sorted().toList());
         // Suggestions are not memoized because regions change at runtime.
         ResolverRegistry.register(new ProtectedRegionArgumentResolver(plugin), ProtectedRegion.class,
-            () -> plugin.pa.getProtectedAreaNames());
+            () -> plugin.services().require(ProtectArea.class).getProtectedAreaNames());
     }
 
     private static Supplier<List<String>> memoize(Supplier<List<String>> source) 
@@ -155,8 +158,8 @@ public class CommandLoader extends FreedomService
         }
         catch (Exception ex) 
         {
-            FLog.warning(String.format("Error walking commands: \n%s", ExceptionUtils.getRootCauseMessage(ex)));
-            FLog.warning(ex);
+            FLog.warn(String.format("Error walking commands: \n%s", ExceptionUtils.getRootCauseMessage(ex)));
+            FLog.warn(ex);
         }
 
         return 0;
@@ -177,11 +180,11 @@ public class CommandLoader extends FreedomService
         } 
         catch (ClassNotFoundException | NoClassDefFoundError | ExceptionInInitializerError ex) 
         {
-            FLog.warning(String.format("Could not load command class %s: \n%s", className, ExceptionUtils.getRootCauseMessage(ex)));
+            FLog.warn(String.format("Could not load command class %s: \n%s", className, ExceptionUtils.getRootCauseMessage(ex)));
         } 
         catch (Exception ex) 
         {
-            FLog.warning(String.format("Failed to register command %s: \n%s ", className, ExceptionUtils.getRootCauseMessage(ex)));
+            FLog.warn(String.format("Failed to register command %s: \n%s ", className, ExceptionUtils.getRootCauseMessage(ex)));
         }
         return false;
     }

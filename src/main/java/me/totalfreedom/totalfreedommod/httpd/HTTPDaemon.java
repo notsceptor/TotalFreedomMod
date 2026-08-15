@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.httpd;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -9,7 +11,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.httpd.NanoHTTPD.Response;
 import me.totalfreedom.totalfreedommod.httpd.module.*;
@@ -25,7 +26,7 @@ public class HTTPDaemon extends FreedomService
     private HTTPD httpd;
     public Map<String, ModuleExecutable> modules = new HashMap<>();
 
-    public HTTPDaemon(TotalFreedomMod plugin)
+    public HTTPDaemon(FreedomAPI plugin)
     {
         super(plugin);
     }
@@ -65,7 +66,7 @@ public class HTTPDaemon extends FreedomService
         }
         catch (IOException ex)
         {
-            FLog.severe(ex);
+            FLog.error(ex);
         }
     }
 
@@ -122,7 +123,7 @@ public class HTTPDaemon extends FreedomService
             }
             catch (Exception ex)
             {
-                FLog.severe(ex);
+                FLog.error(ex);
                 return new Response(Response.Status.INTERNAL_ERROR, MIME_PLAINTEXT, "Error 500: Internal Server Error\r\n" + ex.getMessage());
             }
         }
@@ -154,7 +155,7 @@ public class HTTPDaemon extends FreedomService
             }
             catch (IOException ex)
             {
-                FLog.severe(ex);
+                FLog.error(ex);
             }
         }
 

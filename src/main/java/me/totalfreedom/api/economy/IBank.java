@@ -2,7 +2,9 @@ package me.totalfreedom.api.economy;
 
 import java.util.Map;
 
-public interface IBank extends Transactional
+import me.totalfreedom.api.economy.ILoan.Interval;
+
+public interface IBank extends Transactional<IBank>
 {
     /**
      * Represents the Bank's default Bank Account.
@@ -17,7 +19,7 @@ public interface IBank extends Transactional
 
     IBankAccount<IEcoPlayer> getBankAccount(final IEcoPlayer player);
 
-    ILoan loan(final IEcoPlayer recipient, final int amount, final int interestRate);
+    ILoan loan(final IEcoPlayer recipient, final int amount, final int interestRate, Interval interval);
 
     ITransaction<IEcoPlayer, IBank> loanPayment(final IEcoPlayer sender, final int amount);
 }

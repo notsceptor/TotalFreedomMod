@@ -7,7 +7,7 @@ import java.util.Set;
 
 import org.bukkit.entity.Player;
 
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.api.FreedomAPI;
 import me.totalfreedom.totalfreedommod.banning.Ban;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
@@ -19,9 +19,9 @@ final class BanCommandUtil
     {
     }
 
-    static PlayerData getData(TotalFreedomMod plugin, String name, Player online)
+    static PlayerData getData(FreedomAPI plugin, String name, Player online)
     {
-        return online != null ? plugin.pl.getData(online) : plugin.pl.getData(name);
+        return online != null ? plugin.players().getData(online) : plugin.players().getData(name);
     }
 
     static String getCanonicalName(String input, Player online, PlayerData data)
@@ -78,15 +78,15 @@ final class BanCommandUtil
         return ban;
     }
 
-    static Set<Ban> findLinkedBans(TotalFreedomMod plugin, String target, Player online, PlayerData data)
+    static Set<Ban> findLinkedBans(FreedomAPI plugin, String target, Player online, PlayerData data)
     {
         Set<Ban> bans = new LinkedHashSet<>();
-        Ban byName = plugin.bm.getByUsername(getCanonicalName(target, online, data));
+        Ban byName = plugin.bans().getByUsername(getCanonicalName(target, online, data));
         if (byName != null)
         {
             bans.add(byName);
         }
-        Ban byIp = plugin.bm.getByIp(target);
+        Ban byIp = plugin.bans().getByIp(target);
         if (byIp != null)
         {
             bans.add(byIp);
@@ -98,12 +98,12 @@ final class BanCommandUtil
         }
         for (String ip : ips)
         {
-            Ban exact = plugin.bm.getByIp(ip);
+            Ban exact = plugin.bans().getByIp(ip);
             if (exact != null)
             {
                 bans.add(exact);
             }
-            Ban fuzzy = plugin.bm.getByIp(FUtil.getFuzzyIp(ip));
+            Ban fuzzy = plugin.bans().getByIp(FUtil.getFuzzyIp(ip));
             if (fuzzy != null)
             {
                 bans.add(fuzzy);

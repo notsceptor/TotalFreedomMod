@@ -17,17 +17,17 @@ public class Command_signspy extends FCommand
     @Callback
     public void toggle(final Player player)
     {
-        final PlayerData data = plugin().pl.getData(player);
+        final PlayerData data = plugin().players().getData(player);
         signSpy(player, data.isSignSpy() ? SpyMode.OFF : SpyMode.OPS);
     }
 
     @Callback
     public void signSpy(final Player player, final SpyMode mode)
     {
-        final PlayerData data = plugin().pl.getData(player);
+        final PlayerData data = plugin().players().getData(player);
 
         data.setSignSpyMode(mode);
-        plugin().pl.saveAsync();
+        plugin().players().saveAsync();
         
         switch (mode)
         {

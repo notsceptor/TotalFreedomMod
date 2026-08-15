@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.fun;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -11,7 +13,6 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.PlayerMoveEvent;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 
 public class Trailer extends FreedomService
 {
@@ -23,18 +24,18 @@ public class Trailer extends FreedomService
     };
     private final Map<UUID, AtomicInteger> trailPlayers = new HashMap<>(); // player uuid
 
-    public Trailer(TotalFreedomMod plugin)
+    public Trailer(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
     }
 

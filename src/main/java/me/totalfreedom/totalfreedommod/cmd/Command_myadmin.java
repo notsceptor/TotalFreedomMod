@@ -25,7 +25,7 @@ public class Command_myadmin extends FCommand
             return;
         }
 
-        final Admin entry = plugin().al.getAdmin(player);
+        final Admin entry = plugin().admins().getAdmin(player);
         if (!entry.getIps().contains(address.getHostAddress()))
         {
             msg(player, "<red>That IP address isn't in your entry.");
@@ -33,8 +33,8 @@ public class Command_myadmin extends FCommand
         }
 
         entry.removeIp(address.getHostAddress());
-        plugin().al.refreshIps(entry);
-        plugin().al.saveAdminAsync(entry);
+        plugin().admins().refreshIps(entry);
+        plugin().admins().saveAdminAsync(entry);
 
         msg(player, "<gray>Removed <ip> from your admin entry.", MessageUtils.unparsed("ip", address.getHostAddress()));
     }
@@ -43,15 +43,15 @@ public class Command_myadmin extends FCommand
     @Subcommand("clearips")
     public void clearIps(Player player)
     {
-        final Admin entry = plugin().al.getAdmin(player);
+        final Admin entry = plugin().admins().getAdmin(player);
         final List<String> ips = entry.getIps();
         final int count = ips.size();
 
         ips.clear();
         ips.add(player.getAddress().getAddress().getHostAddress());
 
-        plugin().al.refreshIps(entry);
-        plugin().al.saveAdminAsync(entry);
+        plugin().admins().refreshIps(entry);
+        plugin().admins().saveAdminAsync(entry);
 
         msg(player, "<gray><count> IP address(es) were removed.", Formatter.number("count", count - 1));
     }
@@ -60,7 +60,7 @@ public class Command_myadmin extends FCommand
     @Subcommand("setlogin")
     public void setLoginMessage(Player player, @Greedy String message)
     {
-        final Admin entry = plugin().al.getAdmin(player);
+        final Admin entry = plugin().admins().getAdmin(player);
         //removed conversion method. we want to enforce <tags> because tags are peak.
 
         entry.setLoginMessage(message);
@@ -71,20 +71,20 @@ public class Command_myadmin extends FCommand
             Your login message is now:
             > <login>\
             """,
-            MessageUtils.component("login", plugin().rm.formatLoginMessage(player))
+            MessageUtils.component("login", plugin().ranks().formatLoginMessage(player))
         );
 
-        plugin().al.saveAdminAsync(entry);
+        plugin().admins().saveAdminAsync(entry);
     }
 
     @Callback
     @Subcommand("clearlogin")
     public void clearLogin(Player player)
     {
-        final Admin entry = plugin().al.getAdmin(player);
+        final Admin entry = plugin().admins().getAdmin(player);
 
         entry.setLoginMessage(null); // this needs a .resetLoginMessage() call so that we AVOID nullability. Not my problem right now.
         msg(player, "<gray>Your login message has been removed.");
-        plugin().al.saveAdminAsync(entry);
+        plugin().admins().saveAdminAsync(entry);
     }
 }

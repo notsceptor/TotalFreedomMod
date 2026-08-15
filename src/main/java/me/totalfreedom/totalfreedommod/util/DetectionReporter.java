@@ -9,7 +9,7 @@ import org.bukkit.entity.Player;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.api.FreedomAPI;
 
 public final class DetectionReporter
 {
@@ -93,18 +93,18 @@ public final class DetectionReporter
 
     public static Consumer<String> warnOnly()
     {
-        return message -> FLog.warning(message, true);
+        return message -> FLog.warn(message, true);
     }
 
-    public static Consumer<String> warnAndBroadcastAdmins(TotalFreedomMod plugin)
+    public static Consumer<String> warnAndBroadcastAdmins(FreedomAPI plugin)
     {
         return message ->
         {
-            FLog.warning(message, true);
+            FLog.warn(message, true);
             Component component = Component.text(message, NamedTextColor.RED);
             for (Player p : Bukkit.getOnlinePlayers())
             {
-                if (plugin.al.isAdmin(p))
+                if (plugin.admins().isAdmin(p))
                 {
                     p.sendMessage(component);
                 }

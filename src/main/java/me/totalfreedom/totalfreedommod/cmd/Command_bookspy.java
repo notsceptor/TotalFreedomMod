@@ -17,17 +17,17 @@ public class Command_bookspy extends FCommand
 	@Callback
 	public void toggle(final Player player)
 	{
-		final PlayerData data = plugin().pl.getData(player);
+		final PlayerData data = plugin().players().getData(player);
 		bookSpy(player, data.isBookSpy() ? SpyMode.OFF : SpyMode.OPS);
 	}
 
 	@Callback
 	public void bookSpy(final Player player, final SpyMode mode)
 	{
-		final PlayerData data = plugin().pl.getData(player);
+		final PlayerData data = plugin().players().getData(player);
 
 		data.setBookSpyMode(mode);
-		plugin().pl.saveAsync();
+		plugin().players().saveAsync();
 
 		switch (mode)
 		{

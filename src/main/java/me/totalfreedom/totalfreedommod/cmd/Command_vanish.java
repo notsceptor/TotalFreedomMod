@@ -19,7 +19,7 @@ public class Command_vanish extends FCommand
             throw new CommandFailException("This command can only be used by players.");
         }
 
-        final boolean nowVanished = plugin().vs.toggle(player);
+        final boolean nowVanished = plugin().vanish().toggle(player);
         msg(sender, nowVanished ? "<gray>You are now <aqua>vanished<gray>." : "<gray>You are no longer vanished.");
     }
 }

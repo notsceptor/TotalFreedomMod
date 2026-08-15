@@ -16,7 +16,7 @@ import reactor.core.scheduler.Schedulers;
 
 import me.totalfreedom.totalfreedommod.ProtectArea.ProtectedRegion;
 import me.totalfreedom.totalfreedommod.ProtectArea.ProtectedRegion.CantFindWorldException;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.api.FreedomAPI;
 import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.banning.Ban;
 import me.totalfreedom.totalfreedommod.banning.PermBan;
@@ -39,7 +39,7 @@ import me.totalfreedom.totalfreedommod.util.FUtil;
  */
 public class YamlMigrationService
 {
-    private final TotalFreedomMod plugin;
+    private final FreedomAPI plugin;
     private final FreedomDatabase databaseManager;
 
     private static final String ADMINS_FILE = "admins.yml";
@@ -65,7 +65,7 @@ public class YamlMigrationService
     private static final Set<String> ALL_VERSIONS = Set.of(
             V_ADMINS, V_BANS, V_PERMBANS, V_RANKS, V_PROTECTED_AREAS, V_SAVED_FLAGS, V_PLAYERS);
 
-    public YamlMigrationService(TotalFreedomMod plugin, FreedomDatabase databaseManager)
+    public YamlMigrationService(FreedomAPI plugin, FreedomDatabase databaseManager)
     {
         this.plugin = plugin;
         this.databaseManager = databaseManager;
@@ -84,7 +84,7 @@ public class YamlMigrationService
 
                 if (!databaseManager.isInitialized())
                 {
-                    FLog.warning("Database not initialized, skipping YAML migrations");
+                    FLog.warn("Database not initialized, skipping YAML migrations");
                     return;
                 }
 
@@ -94,7 +94,7 @@ public class YamlMigrationService
             }
             catch (Exception ex)
             {
-                FLog.severe("Error during YAML migrations: " + ex.getMessage());
+                FLog.error("Error during YAML migrations: " + ex.getMessage());
                 ex.printStackTrace();
             }
         }).subscribeOn(Schedulers.boundedElastic());
@@ -144,7 +144,7 @@ public class YamlMigrationService
         }
         catch (RuntimeException ex)
         {
-            FLog.warning(String.format("YAML import '%s' did not complete, will retry on next start: %s",
+            FLog.warn(String.format("YAML import '%s' did not complete, will retry on next start: %s",
                     version, ex.getMessage()));
             return;
         }
@@ -178,7 +178,7 @@ public class YamlMigrationService
         }
         catch (Exception ex)
         {
-            FLog.warning("Could not check existing admins: " + ex.getMessage());
+            FLog.warn("Could not check existing admins: " + ex.getMessage());
         }
 
         FLog.info("Migrating admins from " + ADMINS_FILE + "...");
@@ -192,7 +192,7 @@ public class YamlMigrationService
             ConfigurationSection section = config.getConfigurationSection(key);
             if (section == null)
             {
-                FLog.warning("Invalid admin entry: " + key);
+                FLog.warn("Invalid admin entry: " + key);
                 failed.incrementAndGet();
                 continue;
             }
@@ -204,7 +204,7 @@ public class YamlMigrationService
 
                 if (!admin.isValid())
                 {
-                    FLog.warning("Invalid admin data for: " + key);
+                    FLog.warn("Invalid admin data for: " + key);
                     failed.incrementAndGet();
                     continue;
                 }
@@ -217,7 +217,7 @@ public class YamlMigrationService
             }
             catch (Exception ex)
             {
-                FLog.warning("Failed to migrate admin " + key + ": " + ex.getMessage());
+                FLog.warn("Failed to migrate admin " + key + ": " + ex.getMessage());
                 failed.incrementAndGet();
             }
         }
@@ -253,7 +253,7 @@ public class YamlMigrationService
         }
         catch (Exception ex)
         {
-            FLog.warning("Could not check existing bans: " + ex.getMessage());
+            FLog.warn("Could not check existing bans: " + ex.getMessage());
         }
 
         FLog.info("Migrating bans from " + BANS_FILE + "...");
@@ -267,7 +267,7 @@ public class YamlMigrationService
             ConfigurationSection section = config.getConfigurationSection(key);
             if (section == null)
             {
-                FLog.warning("Invalid ban entry: " + key);
+                FLog.warn("Invalid ban entry: " + key);
                 failed.incrementAndGet();
                 continue;
             }
@@ -279,7 +279,7 @@ public class YamlMigrationService
 
                 if (!ban.isValid())
                 {
-                    FLog.warning("Invalid ban data for: " + key);
+                    FLog.warn("Invalid ban data for: " + key);
                     failed.incrementAndGet();
                     continue;
                 }
@@ -289,7 +289,7 @@ public class YamlMigrationService
             }
             catch (Exception ex)
             {
-                FLog.warning("Failed to migrate ban " + key + ": " + ex.getMessage());
+                FLog.warn("Failed to migrate ban " + key + ": " + ex.getMessage());
                 failed.incrementAndGet();
             }
         }
@@ -325,7 +325,7 @@ public class YamlMigrationService
         }
         catch (Exception ex)
         {
-            FLog.warning("Could not check existing permbans: " + ex.getMessage());
+            FLog.warn("Could not check existing permbans: " + ex.getMessage());
         }
 
         FLog.info("Migrating permbans from " + PERMBANS_FILE + "...");
@@ -353,7 +353,7 @@ public class YamlMigrationService
             }
             catch (Exception ex)
             {
-                FLog.warning("Failed to migrate permban " + name + ": " + ex.getMessage());
+                FLog.warn("Failed to migrate permban " + name + ": " + ex.getMessage());
                 failed.incrementAndGet();
             }
         }
@@ -387,7 +387,7 @@ public class YamlMigrationService
         }
         catch (Exception ex)
         {
-            FLog.warning("Could not check existing ranks: " + ex.getMessage());
+            FLog.warn("Could not check existing ranks: " + ex.getMessage());
         }
 
         FLog.info("Migrating ranks from " + RANKS_FILE + "...");
@@ -401,7 +401,7 @@ public class YamlMigrationService
             ConfigurationSection section = config.getConfigurationSection(key);
             if (section == null)
             {
-                FLog.warning("Invalid rank entry: " + key);
+                FLog.warn("Invalid rank entry: " + key);
                 failed.incrementAndGet();
                 continue;
             }
@@ -415,7 +415,7 @@ public class YamlMigrationService
             }
             catch (Exception ex)
             {
-                FLog.warning("Failed to migrate rank " + key + ": " + ex.getMessage());
+                FLog.warn("Failed to migrate rank " + key + ": " + ex.getMessage());
                 failed.incrementAndGet();
             }
         }
@@ -449,7 +449,7 @@ public class YamlMigrationService
         }
         catch (Exception ex)
         {
-            FLog.warning("Could not check existing protected areas: " + ex.getMessage());
+            FLog.warn("Could not check existing protected areas: " + ex.getMessage());
         }
 
         FLog.info("Migrating protected areas from " + PROTECTED_AREAS_FILE + "...");
@@ -466,7 +466,7 @@ public class YamlMigrationService
                 ConfigurationSection areaSection = areasSection.getConfigurationSection(id);
                 if (areaSection == null)
                 {
-                    FLog.warning("Invalid protected area entry: " + id);
+                    FLog.warn("Invalid protected area entry: " + id);
                     failed.incrementAndGet();
                     continue;
                 }
@@ -489,12 +489,12 @@ public class YamlMigrationService
                 }
                 catch (CantFindWorldException | IllegalArgumentException ex)
                 {
-                    FLog.warning("Failed to migrate protected area " + id + ": " + ex.getMessage());
+                    FLog.warn("Failed to migrate protected area " + id + ": " + ex.getMessage());
                     failed.incrementAndGet();
                 }
                 catch (Exception ex)
                 {
-                    FLog.warning("Failed to migrate protected area " + id + ": " + ex.getMessage());
+                    FLog.warn("Failed to migrate protected area " + id + ": " + ex.getMessage());
                     failed.incrementAndGet();
                 }
             }
@@ -529,7 +529,7 @@ public class YamlMigrationService
         }
         catch (Exception ex)
         {
-            FLog.warning("Could not check existing saved flags: " + ex.getMessage());
+            FLog.warn("Could not check existing saved flags: " + ex.getMessage());
         }
 
         FLog.info("Migrating saved flags from " + SAVED_FLAGS_FILE + "...");
@@ -549,7 +549,7 @@ public class YamlMigrationService
                 }
                 catch (Exception ex)
                 {
-                    FLog.warning("Failed to migrate saved flag " + key + ": " + ex.getMessage());
+                    FLog.warn("Failed to migrate saved flag " + key + ": " + ex.getMessage());
                 }
             }
         }
@@ -584,7 +584,7 @@ public class YamlMigrationService
         }
         catch (Exception ex)
         {
-            FLog.warning("Could not check existing player data: " + ex.getMessage());
+            FLog.warn("Could not check existing player data: " + ex.getMessage());
         }
 
         FLog.info("Migrating player data from players/*.yml...");
@@ -604,7 +604,7 @@ public class YamlMigrationService
 
                 if (!data.isValid())
                 {
-                    FLog.warning("Invalid player data for: " + username);
+                    FLog.warn("Invalid player data for: " + username);
                     failed.incrementAndGet();
                     continue;
                 }
@@ -614,7 +614,7 @@ public class YamlMigrationService
             }
             catch (Exception ex)
             {
-                FLog.warning("Failed to migrate player data for " + username + ": " + ex.getMessage());
+                FLog.warn("Failed to migrate player data for " + username + ": " + ex.getMessage());
                 failed.incrementAndGet();
             }
         }
@@ -682,7 +682,7 @@ public class YamlMigrationService
         }
         else
         {
-            FLog.warning("Could not backup " + file.getName() + " - please manually remove or rename it");
+            FLog.warn("Could not backup " + file.getName() + " - please manually remove or rename it");
         }
     }
 
@@ -693,7 +693,7 @@ public class YamlMigrationService
     public Mono<Void> forceMigration()
     {
         return Mono.<Void>fromRunnable(() -> {
-            FLog.warning("Force migration requested - this will overwrite database data!");
+            FLog.warn("Force migration requested - this will overwrite database data!");
 
             try
             {
@@ -712,7 +712,7 @@ public class YamlMigrationService
             }
             catch (Exception ex)
             {
-                FLog.severe("Failed to clear existing data: " + ex.getMessage());
+                FLog.error("Failed to clear existing data: " + ex.getMessage());
                 return;
             }
 
@@ -725,7 +725,7 @@ public class YamlMigrationService
             }
             catch (SQLException ex)
             {
-                FLog.severe(String.format("Force migration failed: %s", ex.getMessage()));
+                FLog.error(String.format("Force migration failed: %s", ex.getMessage()));
             }
         }).subscribeOn(Schedulers.boundedElastic());
     }

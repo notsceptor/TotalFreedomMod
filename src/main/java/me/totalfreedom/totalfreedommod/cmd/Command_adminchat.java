@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import me.totalfreedom.totalfreedommod.ChatManager;
+
 import java.util.List;
 
 import org.bukkit.command.CommandSender;
@@ -23,7 +25,7 @@ public class Command_adminchat extends FCommand
     @Permission(permission = "tfm.admin.adminchat", source = SourceType.ONLY_IN_GAME)
     public void toggle(Player sender)
     {
-        final FPlayer fplayer = plugin().pl.getPlayer(sender);
+        final FPlayer fplayer = plugin().players().getPlayer(sender);
         boolean mode = !fplayer.inAdminChat();
 
         fplayer.setAdminChat(mode);
@@ -39,6 +41,6 @@ public class Command_adminchat extends FCommand
     @Callback
     public void sendMessage(CommandSender sender, @Greedy String message)
     {
-        plugin().cm.adminChat(sender, message);
+        plugin().services().require(ChatManager.class).adminChat(sender, message);
     }
 }

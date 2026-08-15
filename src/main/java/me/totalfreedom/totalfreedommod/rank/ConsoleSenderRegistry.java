@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.api.FreedomAPI;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
 
@@ -31,11 +31,11 @@ public class ConsoleSenderRegistry
 
     private static final String ENTRY_SEPARATOR = ":";
 
-    private final TotalFreedomMod plugin;
+    private final FreedomAPI plugin;
 
     private final Map<String, String> senderToRankId = new HashMap<>();
 
-    public ConsoleSenderRegistry(TotalFreedomMod plugin)
+    public ConsoleSenderRegistry(FreedomAPI plugin)
     {
         this.plugin = plugin;
     }
@@ -47,7 +47,7 @@ public class ConsoleSenderRegistry
         final List<?> raw = ConfigEntry.HOST_SENDERS.getList();
         if (raw == null)
         {
-            FLog.warning("Host sender whitelist (config 'host_senders:') is missing. Identity-less senders "
+            FLog.warn("Host sender whitelist (config 'host_senders:') is missing. Identity-less senders "
                     + "will be denied, except the host channels, which hold their floor.");
             applyHostChannelFloor();
             return;
@@ -77,7 +77,7 @@ public class ConsoleSenderRegistry
     {
         if (!(obj instanceof String))
         {
-            FLog.warning(String.format("Console whitelist entry is not a string, skipping: %s", obj));
+            FLog.warn(String.format("Console whitelist entry is not a string, skipping: %s", obj));
             return;
         }
 
@@ -85,7 +85,7 @@ public class ConsoleSenderRegistry
         final int colon = entry.indexOf(ENTRY_SEPARATOR);
         if (colon <= 0 || colon == entry.length() - 1)
         {
-            FLog.warning(String.format(
+            FLog.warn(String.format(
                     "Console whitelist entry is malformed (expected '<rank_id>:<sender_name>'), skipping: %s", entry));
             return;
         }
@@ -95,7 +95,7 @@ public class ConsoleSenderRegistry
 
         if (!isKnownRank(rankId))
         {
-            FLog.warning(String.format("Console whitelist entry references unknown rank '%s', skipping: %s",
+            FLog.warn(String.format("Console whitelist entry references unknown rank '%s', skipping: %s",
                     rankId, entry));
             return;
         }
@@ -103,7 +103,7 @@ public class ConsoleSenderRegistry
         final String existing = senderToRankId.put(senderName, rankId);
         if (existing != null && !existing.equals(rankId))
         {
-            FLog.warning(String.format("Console whitelist binds sender '%s' to multiple ranks; using %s",
+            FLog.warn(String.format("Console whitelist binds sender '%s' to multiple ranks; using %s",
                     senderName, rankId));
         }
     }
@@ -118,7 +118,7 @@ public class ConsoleSenderRegistry
         final CustomRank floor = hostChannelFloor();
         if (floor == null)
         {
-            FLog.warning("No rank fills the console floor role, so host channels keep whatever "
+            FLog.warn("No rank fills the console floor role, so host channels keep whatever "
                     + "'host_senders:' bound them to.");
             return;
         }
@@ -132,7 +132,7 @@ public class ConsoleSenderRegistry
 
             if (boundId != null)
             {
-                FLog.warning(String.format(
+                FLog.warn(String.format(
                         "Console whitelist binds host channel '%s' to '%s', below the '%s' floor for host "
                         + "channels; raising it.", channel, boundId, floor.getId()));
             }
@@ -146,9 +146,7 @@ public class ConsoleSenderRegistry
      */
     private CustomRank hostChannelFloor()
     {
-        return plugin.rm == null
-                ? null
-                : plugin.rm.getRegistry().byRole(RankRole.CONSOLE_FLOOR).orElse(null);
+        return plugin.ranks().getRegistry().byRole(RankRole.CONSOLE_FLOOR).orElse(null);
     }
 
     /**
@@ -157,14 +155,14 @@ public class ConsoleSenderRegistry
      */
     private boolean outranksFloor(final String rankId, final CustomRank floor)
     {
-        final CustomRank bound = plugin.rm.getCustomRank(rankId);
+        final CustomRank bound = plugin.ranks().getCustomRank(rankId);
 
         return bound != null && bound.isAtLeast(floor);
     }
 
     private boolean isKnownRank(final String rankId)
     {
-        return plugin.rm != null && plugin.rm.getCustomRank(rankId) != null;
+        return plugin.ranks().getCustomRank(rankId) != null;
     }
 
 }

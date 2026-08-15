@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.bridge;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
@@ -9,7 +11,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
 
@@ -19,13 +20,13 @@ public class WorldEditBridge extends FreedomService
     private WorldEditHook hook = null;
     private Plugin worldedit = null;
 
-    public WorldEditBridge(TotalFreedomMod plugin)
+    public WorldEditBridge(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
         if (!ConfigEntry.WORLDEDIT_ENABLED.getBoolean())
         {
@@ -51,8 +52,8 @@ public class WorldEditBridge extends FreedomService
         }
         catch (Throwable t)
         {
-            FLog.warning("Failed to attach WorldEdit hook: " + t.getMessage());
-            FLog.warning(t);
+            FLog.warn("Failed to attach WorldEdit hook: " + t.getMessage());
+            FLog.warn(t);
             hook = null;
         }
     }
@@ -76,7 +77,7 @@ public class WorldEditBridge extends FreedomService
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
         if (hook != null)
         {
@@ -133,7 +134,7 @@ public class WorldEditBridge extends FreedomService
         }
         catch (Exception ex)
         {
-            FLog.severe(ex);
+            FLog.error(ex);
         }
     }
 
@@ -147,7 +148,7 @@ public class WorldEditBridge extends FreedomService
             }
             catch (Exception ex)
             {
-                FLog.severe(ex);
+                FLog.error(ex);
             }
         }
         return worldedit;
@@ -167,7 +168,7 @@ public class WorldEditBridge extends FreedomService
         }
         catch (Exception ex)
         {
-            FLog.severe(ex);
+            FLog.error(ex);
             return null;
         }
     }
@@ -189,7 +190,7 @@ public class WorldEditBridge extends FreedomService
         }
         catch (NoSuchMethodException ex)
         {
-            FLog.severe(ex);
+            FLog.error(ex);
             return null;
         }
 
@@ -205,12 +206,12 @@ public class WorldEditBridge extends FreedomService
             if (ex.getCause() != null &&
                 ex.getCause().getClass().getSimpleName().equals("IncompleteRegionException"))
                 return null;
-            FLog.severe(ex);
+            FLog.error(ex);
             return null;
         }
         catch (Exception ex)
         {
-            FLog.severe(ex);
+            FLog.error(ex);
             return null;
         }
 
@@ -234,7 +235,7 @@ public class WorldEditBridge extends FreedomService
         }
         catch (Exception ex)
         {
-            FLog.severe(ex);
+            FLog.error(ex);
             return null;
         }
 
@@ -274,7 +275,7 @@ public class WorldEditBridge extends FreedomService
         }
         catch (Exception ex)
         {
-            FLog.severe(ex);
+            FLog.error(ex);
             return null;
         }
 
@@ -298,7 +299,7 @@ public class WorldEditBridge extends FreedomService
         }
         catch (Exception ex)
         {
-            FLog.severe(ex);
+            FLog.error(ex);
         }
         return false;
     }

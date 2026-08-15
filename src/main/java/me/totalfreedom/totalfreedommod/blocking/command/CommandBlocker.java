@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.blocking.command;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -16,7 +18,6 @@ import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.server.ServerCommandEvent;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.blocking.command.CommandBlockerEntry.PatternToken;
 import me.totalfreedom.totalfreedommod.blocking.command.CommandBlockerEntry.TokenType;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
@@ -42,19 +43,19 @@ public class CommandBlocker extends FreedomService
             Comparator.<CommandBlockerEntry>comparingInt(CommandBlockerEntry::literalTokenCount).reversed()
                     .thenComparing(Comparator.<CommandBlockerEntry>comparingInt(CommandBlockerEntry::patternTokenCount).reversed());
 
-    public CommandBlocker(TotalFreedomMod plugin)
+    public CommandBlocker(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
         load();
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
         entriesByBaseCommand.clear();
     }
@@ -68,7 +69,7 @@ public class CommandBlocker extends FreedomService
         final CommandMap commandMap = getCommandMap();
         if (commandMap == null)
         {
-            FLog.severe("Error loading commandMap.");
+            FLog.error("Error loading commandMap.");
             return;
         }
 
@@ -80,7 +81,7 @@ public class CommandBlocker extends FreedomService
             final String[] parts = rawEntry.split(":");
             if (parts.length < 3 || parts.length > 4)
             {
-                FLog.warning("Invalid command blocker entry: " + rawEntry);
+                FLog.warn("Invalid command blocker entry: " + rawEntry);
                 continue;
             }
 
@@ -91,7 +92,7 @@ public class CommandBlocker extends FreedomService
 
             if (rank == null || action == null || commandSpec == null || commandSpec.isEmpty())
             {
-                FLog.warning("Invalid command blocker entry: " + rawEntry);
+                FLog.warn("Invalid command blocker entry: " + rawEntry);
                 continue;
             }
 
@@ -109,7 +110,7 @@ public class CommandBlocker extends FreedomService
                 PatternToken token = PatternToken.of(specParts[i]);
                 if (token.type == TokenType.MULTI && i != specParts.length - 1)
                 {
-                    FLog.warning("Invalid command blocker entry (\"{*}\" may only appear as the last token): " + rawEntry);
+                    FLog.warn("Invalid command blocker entry (\"{*}\" may only appear as the last token): " + rawEntry);
                     malformed = true;
                     break;
                 }
@@ -185,7 +186,7 @@ public class CommandBlocker extends FreedomService
         final Player player = event.getPlayer();
         final String command = event.getMessage();
 
-        if (!plugin.al.isAdmin(player) && containsRestrictedTarget(command))
+        if (!plugin.admins().isAdmin(player) && containsRestrictedTarget(command))
         {
             FUtil.playerMsg(player, "You may not use player selectors in commands.");
             event.setCancelled(true);
@@ -276,7 +277,7 @@ public class CommandBlocker extends FreedomService
         final long nowTick = server.getCurrentTick();
         if (lastServerCommandBlockWarningTick == 0L || nowTick - lastServerCommandBlockWarningTick >= intervalTicks)
         {
-            FLog.warning("[TFM] Blocked " + blockedServerCommandsSinceLastWarning
+            FLog.warn("[TFM] Blocked " + blockedServerCommandsSinceLastWarning
                     + " server-side command(s) from " + sender.getClass().getSimpleName()
                     + " (\"" + sender.getName() + "\"). Last: " + rawCommand);
 

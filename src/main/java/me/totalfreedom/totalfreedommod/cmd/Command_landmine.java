@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import me.totalfreedom.totalfreedommod.fun.Landminer;
+
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -22,7 +24,7 @@ public class Command_landmine extends FCommand
     @Subcommand("list")
     public void list(Player player)
     {
-        plugin().lm.getLandmines().forEach(landmine -> msg(player, landmine.toString()));
+        plugin().services().require(Landminer.class).getLandmines().forEach(landmine -> msg(player, landmine.toString()));
     }
 
     @Callback
@@ -50,7 +52,7 @@ public class Command_landmine extends FCommand
 
         final Block landmine = player.getLocation().getBlock().getRelative(BlockFace.DOWN);
         landmine.setType(Material.TNT);
-        plugin().lm.add(new Landmine(landmine.getLocation(), player, clamped));
+        plugin().services().require(Landminer.class).add(new Landmine(landmine.getLocation(), player, clamped));
 
         msg(player, "<green>Landmine planted. Radius: <radius> blocks.", Formatter.number("radius", clamped));
     }

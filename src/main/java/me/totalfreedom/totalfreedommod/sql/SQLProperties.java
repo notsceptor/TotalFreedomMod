@@ -7,7 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.api.FreedomAPI;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -72,7 +72,7 @@ public final class SQLProperties
     private final File propertiesFile;
     private final Properties sqlProperties;
 
-    public SQLProperties(final TotalFreedomMod plugin)
+    public SQLProperties(final FreedomAPI plugin)
     {
         try {
             this.propertiesFile = new File(plugin.getDataFolder(), "sql.properties");

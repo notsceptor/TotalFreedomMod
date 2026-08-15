@@ -8,7 +8,7 @@ import java.util.TimeZone;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.api.FreedomAPI;
 import me.totalfreedom.totalfreedommod.sql.ConnectionHandler;
 import me.totalfreedom.totalfreedommod.sql.StatementHandler;
 import me.totalfreedom.totalfreedommod.sql.adapter.*;
@@ -43,8 +43,9 @@ public class SQLiteAdapter extends DatabaseAdapter
     private SavedFlagRepository savedFlagRepository;
     private PlayerRepository playerRepository;
     private MigrationRepository migrationRepository;
+    private EconomyRepository economyRepository;
 
-    public SQLiteAdapter(TotalFreedomMod plugin, ConnectionHandler connectionHandler, StatementHandler statementHandler)
+    public SQLiteAdapter(FreedomAPI plugin, ConnectionHandler connectionHandler, StatementHandler statementHandler)
     {
         super(plugin, connectionHandler, statementHandler);
     }
@@ -190,6 +191,8 @@ public class SQLiteAdapter extends DatabaseAdapter
         createSavedFlagsTable();
         createPlayersTable();
         createPlayerIpsTable();
+        createEconomyPlayersTable();
+        createEconomyBankTable();
 
         FLog.info("[SQLite] Database migrations complete.");
     }
@@ -498,6 +501,34 @@ public class SQLiteAdapter extends DatabaseAdapter
         statementHandler.executeUpdate(sql);
     }
 
+    private void createEconomyPlayersTable() throws SQLException
+    {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS economy_players (
+                username TEXT PRIMARY KEY,
+                uuid TEXT NOT NULL,
+                wallet_balance INTEGER NOT NULL DEFAULT 0,
+                checking_balance INTEGER NOT NULL DEFAULT 0,
+                savings_balance INTEGER NOT NULL DEFAULT 0,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+            """;
+        statementHandler.executeUpdate(sql);
+    }
+
+    private void createEconomyBankTable() throws SQLException
+    {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS economy_bank (
+                id TEXT PRIMARY KEY,
+                checking_balance INTEGER NOT NULL DEFAULT 0,
+                savings_balance INTEGER NOT NULL DEFAULT 0,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+            """;
+        statementHandler.executeUpdate(sql);
+    }
+
     /**
      * Add a column to a table created before that column existed. SQLite has no
      * ADD COLUMN IF NOT EXISTS, so presence is checked up front rather than by
@@ -652,5 +683,15 @@ public class SQLiteAdapter extends DatabaseAdapter
             migrationRepository = new GenericMigrationRepository(statementHandler, this);
         }
         return migrationRepository;
+    }
+
+    @Override
+    public EconomyRepository getEconomyRepository()
+    {
+        if (economyRepository == null)
+        {
+            economyRepository = new GenericEconomyRepository(statementHandler, this);
+        }
+        return economyRepository;
     }
 }

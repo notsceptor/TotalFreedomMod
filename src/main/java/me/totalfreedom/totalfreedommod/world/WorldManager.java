@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.world;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -25,16 +27,16 @@ public class WorldManager extends FreedomService
     public Flatlands flatlands;
     public AdminWorld adminworld;
 
-    public WorldManager(TotalFreedomMod plugin)
+    public WorldManager(FreedomAPI plugin)
     {
         super(plugin);
 
-        this.flatlands = new Flatlands(plugin);
-        this.adminworld = new AdminWorld(plugin);
+        this.flatlands = new Flatlands((TotalFreedomMod) plugin);
+        this.adminworld = new AdminWorld((TotalFreedomMod) plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
         Bukkit.getScheduler().runTask(plugin, () ->
         {
@@ -56,7 +58,7 @@ public class WorldManager extends FreedomService
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
         World fl = Bukkit.getWorld(flatlands.getName());
         if (fl != null) fl.save();
@@ -68,9 +70,9 @@ public class WorldManager extends FreedomService
     public void onPlayerTeleport(PlayerTeleportEvent event)
     {
         final Player player = event.getPlayer();
-        final FPlayer fPlayer = plugin.pl.getPlayer(player);
+        final FPlayer fPlayer = plugin.players().getPlayer(player);
 
-        if (!plugin.al.isAdmin(player) && fPlayer.getFreezeData().isFrozen())
+        if (!plugin.admins().isAdmin(player) && fPlayer.getFreezeData().isFrozen())
         {
             return; // Don't process adminworld validation
         }

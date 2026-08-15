@@ -1,5 +1,9 @@
 package me.totalfreedom.totalfreedommod.admin;
 
+import me.totalfreedom.totalfreedommod.bridge.WorldEditBridge;
+
+import me.totalfreedom.api.FreedomAPI;
+
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -30,7 +34,6 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.rank.CustomRank;
 import me.totalfreedom.totalfreedommod.rank.RankRole;
@@ -81,7 +84,7 @@ public class AdminList extends FreedomService
     // Flag to track if SQL is available
     private boolean usingSql = false;
 
-    public AdminList(TotalFreedomMod plugin)
+    public AdminList(FreedomAPI plugin)
     {
         super(plugin);
 
@@ -89,10 +92,10 @@ public class AdminList extends FreedomService
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
         load();
-        plugin.dm.whenReady(this::load);
+        plugin.database().whenReady(this::load);
 
         server.getServicesManager().register(Function.class, new Function<Player, Boolean>()
         {
@@ -107,7 +110,7 @@ public class AdminList extends FreedomService
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
         // Let the queue drain first, then flush everything. Ordering matters:
         // a queued write landing after the flush would restore a stale snapshot.
@@ -122,7 +125,7 @@ public class AdminList extends FreedomService
      */
     public void load()
     {
-        if (plugin.dm != null && plugin.dm.isInitialized())
+        if (plugin.database() != null && plugin.database().isInitialized())
         {
             loadFromSqlAsync();
             return;
@@ -240,7 +243,7 @@ public class AdminList extends FreedomService
      */
     public boolean isSeniorAdmin(CommandSender sender)
     {
-        return isAdmin(sender) && plugin.rm.hasPermission(sender, SENIOR_STATUS_NODE);
+        return isAdmin(sender) && plugin.ranks().hasPermission(sender, SENIOR_STATUS_NODE);
     }
 
     /**
@@ -249,9 +252,9 @@ public class AdminList extends FreedomService
      */
     public boolean grantsSeniorStatus(Admin admin)
     {
-        return plugin.rm.getRegistry()
+        return plugin.ranks().getRegistry()
                         .byId(admin.getRankId())
-                        .map(rank -> plugin.rm.getRegistry().satisfies(rank, SENIOR_STATUS_NODE))
+                        .map(rank -> plugin.ranks().getRegistry().satisfies(rank, SENIOR_STATUS_NODE))
                         .orElse(false);
     }
 
@@ -400,7 +403,7 @@ public class AdminList extends FreedomService
     {
         if (!admin.isValid())
         {
-            FLog.warning(String.format("Could not add admin: %s Admin is missing details!", admin.getConfigKey()));
+            FLog.warn(String.format("Could not add admin: %s Admin is missing details!", admin.getConfigKey()));
             return false;
         }
 
@@ -500,9 +503,9 @@ public class AdminList extends FreedomService
                 .filter(this::isAdmin)
                 .forEach(onlineAdminPlayers::add);
 
-        if (plugin.wm != null && plugin.wm.adminworld != null)
+        if (plugin.worlds() != null && plugin.worlds().adminworld != null)
         {
-            plugin.wm.adminworld.wipeAccessCache();
+            plugin.worlds().adminworld.wipeAccessCache();
         }
     }
 
@@ -609,7 +612,7 @@ public class AdminList extends FreedomService
 
         if (offlineDerived > 0 && !ConfigEntry.ADMINLIST_MOJANG_UUID_LOOKUP.getBoolean())
         {
-            FLog.warning(String.format("use_uuid_only is enabled but mojang_uuid_lookup is disabled; "
+            FLog.warn(String.format("use_uuid_only is enabled but mojang_uuid_lookup is disabled; "
                     + "%d admin record(s) fell back to offline-derived UUIDs and "
                     + "will not match premium accounts on login", offlineDerived));
         }
@@ -624,8 +627,8 @@ public class AdminList extends FreedomService
      */
     private void loadFromSqlAsync()
     {
-        final AdminRepository repo = plugin.dm.getAdminRepository();
-        plugin.dm.readAsync("AdminList/loadFromSql", repo.findAll(),
+        final AdminRepository repo = plugin.database().getAdminRepository();
+        plugin.database().readAsync("AdminList/loadFromSql", repo.findAll(),
                 admins -> applyLoadedAdmins(repo, admins),
                 () ->
                 {
@@ -683,7 +686,7 @@ public class AdminList extends FreedomService
         }
         catch (IOException ex)
         {
-            FLog.warning(String.format("Failed to read %s: %s", CONFIG_FILENAME, ex.getMessage()));
+            FLog.warn(String.format("Failed to read %s: %s", CONFIG_FILENAME, ex.getMessage()));
             return;
         }
 
@@ -716,12 +719,12 @@ public class AdminList extends FreedomService
                                .filter(existing -> existing.getUuid() != null
                                                    && !jsonAdmins.containsKey(existing.getName().toLowerCase()))
                                .concatMap(stale -> repo.deleteByUuid(stale.getUuid()))
-                               .then(Mono.<Void>fromRunnable(() -> plugin.dm.sync("AdminList/applyReconciled",
+                               .then(Mono.<Void>fromRunnable(() -> plugin.database().sync("AdminList/applyReconciled",
                                                              () -> applyReconciledAdmins(jsonAdmins))));
                 })
                 .onErrorResume(ex ->
                 {
-                    FLog.warning(String.format("Failed to reconcile %s into the database: %s",
+                    FLog.warn(String.format("Failed to reconcile %s into the database: %s",
                             CONFIG_FILENAME, ex.getMessage()));
                     return Mono.empty();
                 })
@@ -778,7 +781,7 @@ public class AdminList extends FreedomService
             }
             catch (IOException ex)
             {
-                FLog.severe(String.format("Could not create %s", CONFIG_FILENAME));
+                FLog.error(String.format("Could not create %s", CONFIG_FILENAME));
             }
         }
 
@@ -789,7 +792,7 @@ public class AdminList extends FreedomService
             {
                 if (admin == null || !admin.isValid())
                 {
-                    FLog.warning(String.format("Could not load admin: %s. Missing details!", key));
+                    FLog.warn(String.format("Could not load admin: %s. Missing details!", key));
                     return;
                 }
                 allAdmins.put(key, admin);
@@ -797,7 +800,7 @@ public class AdminList extends FreedomService
         }
         catch (IOException ex)
         {
-            FLog.severe(String.format("Could not read %s: %s", CONFIG_FILENAME, ex.getMessage()));
+            FLog.error(String.format("Could not read %s: %s", CONFIG_FILENAME, ex.getMessage()));
         }
 
         usingSql = false;
@@ -822,13 +825,13 @@ public class AdminList extends FreedomService
             return;
         }
 
-        if (plugin.dm == null || !plugin.dm.isInitialized())
+        if (plugin.database() == null || !plugin.database().isInitialized())
         {
-            FLog.warning(String.format("SQL not available; %d admin change(s) were not saved", batch.size()));
+            FLog.warn(String.format("SQL not available; %d admin change(s) were not saved", batch.size()));
             return;
         }
 
-        final AdminRepository repo = plugin.dm.getAdminRepository();
+        final AdminRepository repo = plugin.database().getAdminRepository();
 
         // Render the snapshot here, while we still own the maps on the calling
         // thread. Serialising inside the queued task would read allAdmins
@@ -840,7 +843,7 @@ public class AdminList extends FreedomService
                         .flatMap(uuid -> repo.save(uuid, pending.snapshot()))
                         .onErrorResume(ex ->
                         {
-                            FLog.warning(String.format("Failed to save admin %s to SQL: %s",
+                            FLog.warn(String.format("Failed to save admin %s to SQL: %s",
                                     pending.snapshot().getName(), ex.getMessage()));
                             return Mono.<Integer>empty();
                         }))
@@ -852,13 +855,13 @@ public class AdminList extends FreedomService
      */
     private void removeAdminFromSql(Admin admin)
     {
-        if (plugin.dm == null || !plugin.dm.isInitialized())
+        if (plugin.database() == null || !plugin.database().isInitialized())
         {
-            FLog.warning(String.format("SQL not available; removal of admin %s was not saved", admin.getName()));
+            FLog.warn(String.format("SQL not available; removal of admin %s was not saved", admin.getName()));
             return;
         }
 
-        final AdminRepository repo = plugin.dm.getAdminRepository();
+        final AdminRepository repo = plugin.database().getAdminRepository();
         final UUID uuid = admin.getUuid();
         final String name = admin.getName();
         final String json = serialiseAdmins();
@@ -880,7 +883,7 @@ public class AdminList extends FreedomService
         enqueue(delete
                 .onErrorResume(ex ->
                 {
-                    FLog.warning(String.format("Failed to remove admin %s from SQL: %s", name, ex.getMessage()));
+                    FLog.warn(String.format("Failed to remove admin %s from SQL: %s", name, ex.getMessage()));
                     return Mono.empty();
                 })
                 .then(writeJsonAsync(json)));
@@ -891,14 +894,14 @@ public class AdminList extends FreedomService
      */
     private void saveToSql()
     {
-        if (plugin.dm == null || !plugin.dm.isInitialized())
+        if (plugin.database() == null || !plugin.database().isInitialized())
         {
-            FLog.warning("SQL not available, falling back to the JSON snapshot");
+            FLog.warn("SQL not available, falling back to the JSON snapshot");
             saveToJson();
             return;
         }
 
-        final AdminRepository repo = plugin.dm.getAdminRepository();
+        final AdminRepository repo = plugin.database().getAdminRepository();
 
         final Long failed = Flux.fromIterable(List.copyOf(allAdmins.values()))
                 .concatMap(admin -> Mono.fromCallable(() -> resolveUuidFor(admin))
@@ -906,7 +909,7 @@ public class AdminList extends FreedomService
                         .thenReturn(Boolean.TRUE)
                         .onErrorResume(ex ->
                         {
-                            FLog.warning(String.format("Failed to save admin %s to SQL: %s",
+                            FLog.warn(String.format("Failed to save admin %s to SQL: %s",
                                     admin.getName(), ex.getMessage()));
                             return Mono.just(Boolean.FALSE);
                         }))
@@ -949,7 +952,7 @@ public class AdminList extends FreedomService
         }
         catch (IOException ex)
         {
-            FLog.severe(String.format("Could not save %s: %s", CONFIG_FILENAME, ex.getMessage()));
+            FLog.error(String.format("Could not save %s: %s", CONFIG_FILENAME, ex.getMessage()));
         }
     }
 
@@ -980,7 +983,7 @@ public class AdminList extends FreedomService
         if (admin.getRankId() != null)
             return admin.getRankId();
 
-        return plugin.rm.getRegistry()
+        return plugin.ranks().getRegistry()
                         .byRole(RankRole.ADMIN_DEFAULT)
                         .map(CustomRank::getId)
                         .orElse(null);
@@ -1055,7 +1058,7 @@ public class AdminList extends FreedomService
 
     private void refreshWorldEditBypassForAdmin(Admin admin)
     {
-        if (plugin.web == null)
+        if (plugin.bridges().require(WorldEditBridge.class) == null)
         {
             return;
         }
@@ -1073,12 +1076,12 @@ public class AdminList extends FreedomService
             }
             if (online != null)
             {
-                plugin.web.refreshBypassNegation(online);
+                plugin.bridges().require(WorldEditBridge.class).refreshBypassNegation(online);
             }
         }
         catch (Throwable t)
         {
-            FLog.warning(String.format("Failed to refresh WorldEdit bypass negation: %s", t.getMessage()));
+            FLog.warn(String.format("Failed to refresh WorldEdit bypass negation: %s", t.getMessage()));
         }
     }
 

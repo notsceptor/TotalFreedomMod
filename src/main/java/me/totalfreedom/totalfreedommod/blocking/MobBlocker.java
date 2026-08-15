@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.blocking;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import java.util.*;
 
 import org.bukkit.Location;
@@ -21,7 +23,6 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
 
@@ -42,7 +43,7 @@ public class MobBlocker extends FreedomService
 
     private boolean handleSpawnEggCooldown(Player player, ItemStack item)
     {
-        if (plugin.al.isAdmin(player))
+        if (plugin.admins().isAdmin(player))
             return false;
 
         if (!isSpawnEgg(item))
@@ -79,13 +80,13 @@ public class MobBlocker extends FreedomService
         return false;
     }
 
-    public MobBlocker(TotalFreedomMod plugin)
+    public MobBlocker(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
         // Load mob type blacklist
         if (ConfigEntry.MOB_LIMITER_ENABLED.getBoolean())
@@ -100,7 +101,7 @@ public class MobBlocker extends FreedomService
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
         // Clear mob type blacklist
         disabledMobs.clear();

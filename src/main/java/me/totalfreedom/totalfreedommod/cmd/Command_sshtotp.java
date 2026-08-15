@@ -8,6 +8,7 @@ import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
+import me.totalfreedom.totalfreedommod.ssh.SshDaemon;
 import me.totalfreedom.totalfreedommod.ssh.SshIdentity;
 import me.totalfreedom.totalfreedommod.ssh.SshQrServer;
 import me.totalfreedom.totalfreedommod.ssh.TotpUtil;
@@ -26,13 +27,13 @@ public class Command_sshtotp extends FCommand
     @Callback
     public void sshtotp(CommandSender sender, String identity)
     {
-        if (plugin().sd == null || plugin().sd.getIdentityStore() == null)
+        if (plugin().services().require(SshDaemon.class) == null || plugin().services().require(SshDaemon.class).getIdentityStore() == null)
         {
             msg(sender, "<gray>SSH daemon is not running.");
             return;
         }
 
-        final SshIdentity sshIdentity = plugin().sd.getIdentityStore().get(identity);
+        final SshIdentity sshIdentity = plugin().services().require(SshDaemon.class).getIdentityStore().get(identity);
         if (sshIdentity == null)
         {
             msg(sender, "<gray>No SSH identity found for: <identity>", Placeholder.unparsed("identity", identity));
@@ -43,7 +44,7 @@ public class Command_sshtotp extends FCommand
         final String uri = TotpUtil.buildUri("TotalFreedomMod", identity, secret);
         final String token = UUID.randomUUID().toString().replace("-", "");
 
-        plugin().sd.getIdentityStore().setTotpSecret(identity, secret);
+        plugin().services().require(SshDaemon.class).getIdentityStore().setTotpSecret(identity, secret);
 
         msg(
             sender,

@@ -117,7 +117,7 @@ public final class AccessController
         if (depth[0] == 0)
         {
             // Releasing here would inflate the semaphore past the pool size.
-            FLog.severe("AccessController.releaseSync() on a thread holding no permit; "
+            FLog.error("AccessController.releaseSync() on a thread holding no permit; "
                     + "acquire and release must be paired on the same thread");
             holdDepth.remove();
             return;

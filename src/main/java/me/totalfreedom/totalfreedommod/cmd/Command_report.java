@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import me.totalfreedom.totalfreedommod.ChatManager;
+
 import java.util.List;
 
 import org.bukkit.OfflinePlayer;
@@ -34,7 +36,7 @@ public class Command_report extends FCommand
             return;
         }
 
-        final Admin reportedAdmin = plugin().al.getAdminByUuid(target.getUniqueId());
+        final Admin reportedAdmin = plugin().admins().getAdminByUuid(target.getUniqueId());
         if (reportedAdmin != null && reportedAdmin.isActive())
         {
             if (sendFeedback)
@@ -45,7 +47,7 @@ public class Command_report extends FCommand
             return;
         }
 
-        plugin().cm.reportAction(player, target, reason);
+        plugin().services().require(ChatManager.class).reportAction(player, target, reason);
 
         if (sendFeedback)
         {

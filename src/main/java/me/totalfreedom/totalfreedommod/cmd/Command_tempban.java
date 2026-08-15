@@ -1,5 +1,9 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import me.totalfreedom.totalfreedommod.discord.DiscordBridge;
+
+import me.totalfreedom.totalfreedommod.bridge.CoreProtectBridge;
+
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -97,7 +101,7 @@ public class Command_tempban extends FCommand
         if (isProtectedAdminByName(sender, canonicalName))
             return;
 
-        if (plugin().bm.getByUsername(canonicalName) != null)
+        if (plugin().bans().getByUsername(canonicalName) != null)
         {
             msg(sender, "<gray><player> is already banned.", Placeholder.unparsed("player", canonicalName));
             return;
@@ -107,7 +111,7 @@ public class Command_tempban extends FCommand
                 ? Ban.forPlayerName(canonicalName, sender, expiry, reason)
                 : BanCommandUtil.createFullBan(canonicalName, BanCommandUtil.getIps(player, data), sender, expiry, reason);
 
-        plugin().bm.addBan(ban);
+        plugin().bans().addBan(ban);
 
         if (!silent)
         {
@@ -119,16 +123,16 @@ public class Command_tempban extends FCommand
                         Placeholder.unparsed("reason", reason != null ? reason : "")
                     );
 
-            plugin().db.sendActionMessage(sender.getName(), canonicalName, reason, ConfigEntry.DISCORD_PLAYER_TBAN_MESSAGE);
+            plugin().services().require(DiscordBridge.class).sendActionMessage(sender.getName(), canonicalName, reason, ConfigEntry.DISCORD_PLAYER_TBAN_MESSAGE);
         }
 
         if (rollback)
-            plugin().cpb.rollback(canonicalName);
+            plugin().bridges().require(CoreProtectBridge.class).rollback(canonicalName);
 
-        if (data != null && plugin().al.getEntryByName(canonicalName) == null)
+        if (data != null && plugin().admins().getEntryByName(canonicalName) == null)
         {
             data.setStrikes(data.getStrikes() + 1);
-            plugin().pl.saveData(data);
+            plugin().players().saveData(data);
         }
 
         final List<String> ips = ban.getIps();

@@ -10,7 +10,7 @@ import java.util.UUID;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.api.FreedomAPI;
 import me.totalfreedom.totalfreedommod.sql.PersistenceQueue;
 import me.totalfreedom.totalfreedommod.sql.adapter.DiscordLinkRepository;
 import me.totalfreedom.totalfreedommod.util.FLog;
@@ -37,7 +37,7 @@ final class DiscordLinkJsonSync
      * Rewrites discord_links.json from the database's current state. Call after any
      * successful link/unlink write.
      */
-    static void writeSnapshot(TotalFreedomMod plugin, DiscordLinkRepository repo)
+    static void writeSnapshot(FreedomAPI plugin, DiscordLinkRepository repo)
     {
         try
         {
@@ -50,7 +50,7 @@ final class DiscordLinkJsonSync
         }
         catch (Exception ex)
         {
-            FLog.severe("Failed to save " + DATA_FILENAME + ": " + ex.getMessage());
+            FLog.error("Failed to save " + DATA_FILENAME + ": " + ex.getMessage());
         }
     }
 
@@ -58,7 +58,7 @@ final class DiscordLinkJsonSync
      * If discord_links.json was written more recently than the database's last update, re-import
      * it into SQL. Runs entirely off the main thread, so this is safe to call from {@code onStart}.
      */
-    static void reconcileFromJsonIfNewer(TotalFreedomMod plugin, DiscordLinkRepository repo)
+    static void reconcileFromJsonIfNewer(FreedomAPI plugin, DiscordLinkRepository repo)
     {
         final File file = new File(plugin.getDataFolder(), DATA_FILENAME);
         if (!file.exists())
@@ -72,7 +72,7 @@ final class DiscordLinkJsonSync
         }
         catch (Exception ex)
         {
-            FLog.warning(String.format("Failed to read %s: %s", DATA_FILENAME, ex.getMessage()));
+            FLog.warn(String.format("Failed to read %s: %s", DATA_FILENAME, ex.getMessage()));
             return;
         }
 
@@ -95,7 +95,7 @@ final class DiscordLinkJsonSync
               })
               .onErrorResume(ex ->
               {
-                  FLog.warning(String.format("Failed to reconcile %s into the database: %s",
+                  FLog.warn(String.format("Failed to reconcile %s into the database: %s",
                                              DATA_FILENAME, ex.getMessage()));
                   return Mono.empty();
               })

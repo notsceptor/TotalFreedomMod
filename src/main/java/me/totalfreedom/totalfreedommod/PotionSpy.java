@@ -1,5 +1,9 @@
 package me.totalfreedom.totalfreedommod;
 
+import me.totalfreedom.totalfreedommod.bridge.EssentialsBridge;
+
+import me.totalfreedom.api.FreedomAPI;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -27,19 +31,19 @@ public class PotionSpy extends FreedomService
 
     private Map<Player, Pair<Integer, Long>> offenders = null;
 
-    public PotionSpy(TotalFreedomMod plugin)
+    public PotionSpy(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
         this.offenders = new HashMap<>();
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
         this.offenders = null;
     }
@@ -63,7 +67,7 @@ public class PotionSpy extends FreedomService
         if (source == null || !(source instanceof final Player thrower))
             return;
         
-        final boolean throwerIsAdmin = plugin.al.isAdmin(thrower);
+        final boolean throwerIsAdmin = plugin.admins().isAdmin(thrower);
 
         // Grab old data about the offender, if it exists
         final Pair<Integer, Long> offenderData = offenders.getOrDefault(thrower, Pair.of(0, System.currentTimeMillis()));
@@ -78,7 +82,7 @@ public class PotionSpy extends FreedomService
         for (final Player player : Bukkit.getOnlinePlayers())
         {
             // Make sure players who receive the message are in potion spy
-            final PlayerData data = plugin.pl.getData(player);
+            final PlayerData data = plugin.players().getData(player);
             if (data == null)
                 continue;
             if (!data.getPotionSpyMode().shows(throwerIsAdmin))
@@ -96,7 +100,7 @@ public class PotionSpy extends FreedomService
                     Component.text(" has thrown ")
                         .append(Component.text(String.valueOf(amount)))
                         .append(Component.text(" potions")))
-                .append(plugin.esb.isEssentialsEnabled() ?
+                .append(plugin.bridges().require(EssentialsBridge.class).isEssentialsEnabled() ?
                     Component.text(" (")
                         .append(Component.text("click to teleport")
                             .clickEvent(ClickEvent.runCommand(String.format("tppos %s %s %s 0 0 %s",

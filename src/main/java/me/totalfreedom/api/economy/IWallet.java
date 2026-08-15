@@ -6,15 +6,11 @@ package me.totalfreedom.api.economy;
  * 
  * @return
  */
-public interface IWallet extends Transactional
+public interface IWallet extends Transactional<IWallet>
 {
     IEcoPlayer getPlayer();
     
     int balance();
-
-    ITransaction<IEcoPlayer, IWallet> deposit(final int amount);
-
-    ITransaction<IWallet, IEcoPlayer> withdraw(final int amount);
 
     ITransaction<IEcoPlayer, IEcoPlayer> pay(final IEcoPlayer recipient, final int amount);
 }

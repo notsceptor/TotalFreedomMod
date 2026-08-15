@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.sql;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -8,7 +10,6 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.sql.SQLProperties.DatabaseType;
 import me.totalfreedom.totalfreedommod.sql.adapter.*;
 import me.totalfreedom.totalfreedommod.util.FLog;
@@ -37,19 +38,19 @@ public class FreedomDatabase extends FreedomService
     private final List<Runnable> readyCallbacks = new ArrayList<>();
     private boolean readyFired = false;
 
-    public FreedomDatabase(TotalFreedomMod plugin)
+    public FreedomDatabase(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
         initializeAsync();
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
         shutdown();
     }
@@ -64,7 +65,7 @@ public class FreedomDatabase extends FreedomService
     {
         if (initialized)
         {
-            FLog.warning("DatabaseManager already initialized");
+            FLog.warn("DatabaseManager already initialized");
             return;
         }
 
@@ -94,7 +95,7 @@ public class FreedomDatabase extends FreedomService
             .then(Mono.defer(() -> new YamlMigrationService(plugin, this).runMigrations()))
             .subscribe(
                     ignored -> {},
-                    ex -> FLog.severe(String.format(
+                    ex -> FLog.error(String.format(
                             "Failed to initialize database, every domain stays on its JSON fallback: %s",
                             ex.getMessage())),
                     () -> sync("FreedomDatabase/ready", this::fireReady));
@@ -130,7 +131,7 @@ public class FreedomDatabase extends FreedomService
                         result -> sync(label, () -> apply.accept(result)),
                         ex ->
                         {
-                            FLog.warning(String.format("%s failed: %s", label, ex.getMessage()));
+                            FLog.warn(String.format("%s failed: %s", label, ex.getMessage()));
                             sync(label, onFailure);
                         });
     }
@@ -317,6 +318,18 @@ public class FreedomDatabase extends FreedomService
             throw new IllegalStateException("Database not initialized");
         }
         return adapter.getMigrationRepository();
+    }
+
+    /**
+     * Get the per-player economy balance repository.
+     */
+    public EconomyRepository getEconomyRepository()
+    {
+        if (adapter == null)
+        {
+            throw new IllegalStateException("Database not initialized");
+        }
+        return adapter.getEconomyRepository();
     }
 
     /**

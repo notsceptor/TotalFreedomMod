@@ -42,7 +42,7 @@ public class Command_tag extends FCommand
 
         for (final Player player : server().getOnlinePlayers())
         {
-            final FPlayer playerdata = plugin().pl.getPlayer(player);
+            final FPlayer playerdata = plugin().players().getPlayer(player);
             if (playerdata.getTag() != null)
             {
                 msg(
@@ -86,14 +86,14 @@ public class Command_tag extends FCommand
             return;
         }
 
-        final FPlayer player = plugin().pl.getPlayer(playerSender);
+        final FPlayer player = plugin().players().getPlayer(playerSender);
         player.setTag(tag);
 
         msg(sender, "<gray>Tag set to '<tag>'.", MessageUtils.component("tag", player.getTag()));
 
         if (shortSave || longSave)
         {
-            if (!plugin().pl.saveCurrentTag(playerSender))
+            if (!plugin().players().saveCurrentTag(playerSender))
             {
                 msg(sender, "<gray>Could not save your tag.");
                 return;
@@ -119,14 +119,14 @@ public class Command_tag extends FCommand
 
         for (final Player player : server().getOnlinePlayers())
         {
-            final FPlayer playerdata = plugin().pl.getPlayer(player);
-            final PlayerData data = plugin().pl.getData(player);
+            final FPlayer playerdata = plugin().players().getPlayer(player);
+            final PlayerData data = plugin().players().getData(player);
 
             if (hasTag(playerdata.getInternalTag()) || hasTag(data.getSavedTag()))
             {
                 count++;
                 playerdata.setTag(clearedTagValue);
-                plugin().pl.clearSavedTag(player);
+                plugin().players().clearSavedTag(player);
             }
         }
 
@@ -181,8 +181,8 @@ public class Command_tag extends FCommand
 
     private void clearPlayerTag(Player player)
     {
-        plugin().pl.getPlayer(player).setTag(getClearedTagValue());
-        plugin().pl.clearSavedTag(player);
+        plugin().players().getPlayer(player).setTag(getClearedTagValue());
+        plugin().players().clearSavedTag(player);
     }
 
     public static boolean containsForbidden(String plainText)
@@ -190,7 +190,7 @@ public class Command_tag extends FCommand
         final List<String> terms = new ArrayList<>(FORBIDDEN_WORDS);
 
         PluginProvider.get()
-                      .rm
+                      .ranks()
                       .getCustomRanksSorted()
                       .stream()
                       .filter(CustomRank::isAdmin)

@@ -1,5 +1,11 @@
 package me.totalfreedom.totalfreedommod;
 
+import me.totalfreedom.totalfreedommod.bridge.EssentialsBridge;
+
+import me.totalfreedom.totalfreedommod.discord.DiscordBridge;
+
+import me.totalfreedom.api.FreedomAPI;
+
 import io.papermc.paper.event.player.AsyncChatEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -38,13 +44,13 @@ public class ChatManager extends FreedomService
     private String cachedRawFormat = null;
     private String cachedTranslatedFormat = null;
 
-    public ChatManager(TotalFreedomMod plugin)
+    public ChatManager(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
         // Check for the EssentialsChat plugin
         Plugin essentialsChat = server.getPluginManager().getPlugin("EssentialsChat");
@@ -85,7 +91,7 @@ public class ChatManager extends FreedomService
     }
 
     @Override
-    protected void onStop() {
+    public void onStop() {
         if (vaultRegistry != null) {
             vaultRegistry.unregister();
             vaultRegistry = null;
@@ -99,14 +105,14 @@ public class ChatManager extends FreedomService
         try {
             handleChatEvent(event);
         } catch (Exception ex) {
-            FLog.severe(ex);
+            FLog.error(ex);
         }
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPlayerChatMentionPing(AsyncChatEvent event)
     {
-        ChatMentionUtil.pingMentions(plugin, event.message(), plugin.al.isAdminSync(event.getPlayer()));
+        ChatMentionUtil.pingMentions(plugin, event.message(), plugin.admins().isAdminSync(event.getPlayer()));
     }
 
     private void handleChatEvent(AsyncChatEvent event) {
@@ -152,7 +158,7 @@ public class ChatManager extends FreedomService
         }
 
         // Check for adminchat
-        final FPlayer fPlayer = plugin.pl.getPlayerSync(player);
+        final FPlayer fPlayer = plugin.players().getPlayerSync(player);
         if (fPlayer.inAdminChat()) {
             FSync.adminChatMessage(player, message);
             event.setCancelled(true);
@@ -160,7 +166,7 @@ public class ChatManager extends FreedomService
         }
         // Finally, set message
         Component messageComponent = AdventureUtil.formatChat(message, allowColors, allowSpecial);
-        messageComponent = ChatMentionUtil.highlight(messageComponent, plugin.al.isAdmin(player));
+        messageComponent = ChatMentionUtil.highlight(messageComponent, plugin.admins().isAdmin(player));
         event.message(messageComponent);
 
         // Prefix and suffix come from the shared builder so chat, the tab list, and
@@ -171,7 +177,7 @@ public class ChatManager extends FreedomService
 
         final String formatTemplate = getTranslatedChatFormat();
 
-        final PlayerData data = player != null ? plugin.pl.getData(player) : null;
+        final PlayerData data = player != null ? plugin.players().getData(player) : null;
 
         final String resolvedTemplate = formatTemplate
                 .replace("{PREFIX}", prefix)
@@ -185,7 +191,7 @@ public class ChatManager extends FreedomService
             final Component displayName = data != null && data.hasCustomNickname() ?
                     data.getDisplayedNickname().hoverEvent(HoverEvent.showText(Component.text(source.getName()))) :
                     sourceDisplayName;
-            if (viewer instanceof final CommandSender sender && plugin.al.isAdmin(sender)) {
+            if (viewer instanceof final CommandSender sender && plugin.admins().isAdmin(sender)) {
                 return buildRenderedMessage(displayName,
                         msg,
                         resolvedAdminTemplate,
@@ -259,7 +265,7 @@ public class ChatManager extends FreedomService
 
     public void adminChat(CommandSender sender, String message) {
         Component tag = sender instanceof Player
-                ? plugin.rm.getDisplay(sender).getColoredTag()
+                ? plugin.ranks().getDisplay(sender).getColoredTag()
                 : Component.text("[", NamedTextColor.DARK_GRAY)
                 .append(Component.text("CONSOLE", NamedTextColor.DARK_PURPLE))
                 .append(Component.text("]", NamedTextColor.DARK_GRAY));
@@ -286,11 +292,11 @@ public class ChatManager extends FreedomService
         String ansiMessage = ANSIComponentSerializer.ansi().serialize(consoleMsg);
         Bukkit.getConsoleSender().sendMessage(ansiMessage);
 
-        for (Player player : plugin.al.getOnlineAdmins()) {
+        for (Player player : plugin.admins().getOnlineAdmins()) {
             player.sendMessage(adminMsg);
         }
 
-        plugin.db.relayAdminchatMessage(sender, tag, formattedMessage);
+        plugin.services().require(DiscordBridge.class).relayAdminchatMessage(sender, tag, formattedMessage);
     }
 
     public void reportAction(Player reporter, OfflinePlayer reported, String report) {
@@ -301,11 +307,11 @@ public class ChatManager extends FreedomService
                 .append(Component.text(" (", NamedTextColor.GOLD))
                 .append(Component.text("click to teleport", NamedTextColor.GOLD)
                         .clickEvent(ClickEvent.runCommand(String.format("%s %s",
-                                plugin.esb.isEssentialsEnabled() ? "tpo" : "tp",
+                                plugin.bridges().require(EssentialsBridge.class).isEssentialsEnabled() ? "tpo" : "tp",
                                 reported.getName()))))
                 .append(Component.text(")", NamedTextColor.GOLD));
 
-        for (Player player : plugin.al.getOnlineAdmins()) {
+        for (Player player : plugin.admins().getOnlineAdmins()) {
             playerMsg(player, reportMsg);
         }
     }
@@ -315,7 +321,7 @@ public class ChatManager extends FreedomService
      */
     private Component getPlayerCustomTag(Player player)
     {
-        FPlayer fPlayer = plugin.pl.getPlayer(player);
+        FPlayer fPlayer = plugin.players().getPlayer(player);
         if (fPlayer == null)
         {
             return Component.empty();
@@ -360,7 +366,7 @@ public class ChatManager extends FreedomService
             return "";
         }
 
-        Displayable display = plugin.rm.getDisplay(player);
+        Displayable display = plugin.ranks().getDisplay(player);
         String rankPrefix = "";
 
         if (display != null)

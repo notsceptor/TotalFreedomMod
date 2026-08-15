@@ -198,7 +198,7 @@ public abstract class NanoHTTPD
                                         // to break the  "keep alive" loop above.
                                         if (!(e instanceof SocketException && "NanoHttpd Shutdown".equals(e.getMessage())))
                                         {
-                                            FLog.severe(e);
+                                            FLog.error(e);
                                         }
                                     }
                                     finally
@@ -234,7 +234,7 @@ public abstract class NanoHTTPD
         }
         catch (Exception e)
         {
-            FLog.severe(e);
+            FLog.error(e);
         }
     }
 
@@ -634,7 +634,7 @@ public abstract class NanoHTTPD
             }
             catch (java.io.UnsupportedEncodingException uee)
             {
-                FLog.severe(uee);
+                FLog.error(uee);
             }
         }
 
@@ -1325,7 +1325,7 @@ public abstract class NanoHTTPD
                 }
                 catch (Exception e)
                 { // Catch exception if any
-                    FLog.severe(e);
+                    FLog.error(e);
                 }
                 finally
                 {
@@ -1344,7 +1344,7 @@ public abstract class NanoHTTPD
             }
             catch (Exception e)
             {
-                FLog.severe(e);
+                FLog.error(e);
             }
             return null;
         }

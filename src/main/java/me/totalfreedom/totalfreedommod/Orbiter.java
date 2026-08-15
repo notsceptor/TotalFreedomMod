@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -11,18 +13,18 @@ import me.totalfreedom.totalfreedommod.player.FPlayer;
 public class Orbiter extends FreedomService
 {
 
-    public Orbiter(TotalFreedomMod plugin)
+    public Orbiter(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
     }
 
@@ -35,7 +37,7 @@ public class Orbiter extends FreedomService
         }
 
         final Player player = event.getPlayer();
-        final FPlayer fPlayer = plugin.pl.getPlayer(player);
+        final FPlayer fPlayer = plugin.players().getPlayer(player);
 
         if (!fPlayer.isOrbiting())
         {

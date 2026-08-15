@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import me.totalfreedom.totalfreedommod.EntityWiper;
+
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 
@@ -16,7 +18,7 @@ public class Command_entitywipe extends FCommand
     public void entitywipeAll(CommandSender sender)
     {
         adminAction(sender, "<red>Removing all server entities");
-        final int removed = plugin().ew.wipeEntities(true);
+        final int removed = plugin().services().require(EntityWiper.class).wipeEntities(true);
         msg(
             sender,
             "<gray><count> <noun> removed.",
@@ -29,7 +31,7 @@ public class Command_entitywipe extends FCommand
     public void entitywipeWorld(CommandSender sender, World world)
     {
         adminAction(sender, "<red>Removing entities in world <world>", Placeholder.unparsed("world", world.getName()));
-        final int removed = plugin().ew.wipeEntities(world, true);
+        final int removed = plugin().services().require(EntityWiper.class).wipeEntities(world, true);
         msg(
             sender,
             "<gray><count> <noun> removed from \"<world>\".",

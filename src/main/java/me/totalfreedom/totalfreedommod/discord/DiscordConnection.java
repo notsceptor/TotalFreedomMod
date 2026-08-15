@@ -131,7 +131,7 @@ public final class DiscordConnection
                         if (attempt >= maxAttempts)
                             return false;
 
-                        FLog.warning(String.format("[Discord] Connection failure %d/%d (%s); retrying in %ds.",
+                        FLog.warn(String.format("[Discord] Connection failure %d/%d (%s); retrying in %ds.",
                                 attempt, maxAttempts, describeFailure(thrown), retrySeconds));
                         return true;
                     });
@@ -142,7 +142,7 @@ public final class DiscordConnection
         if (stopping.get() || !givenUp.compareAndSet(false, true))
             return;
 
-        FLog.severe(String.format(
+        FLog.error(String.format(
                                     """
                                     [Discord] Giving up after %d consecutive failed connection attempts %ds apart. 
                                     Last failure: %s.

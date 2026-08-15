@@ -1,5 +1,9 @@
 package me.totalfreedom.totalfreedommod.banning;
 
+import me.totalfreedom.totalfreedommod.bridge.WorldEditBridge;
+
+import me.totalfreedom.api.FreedomAPI;
+
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -20,7 +24,6 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.sql.PersistenceQueue;
@@ -49,7 +52,7 @@ public class BanManager extends FreedomService
 
     private boolean usingSql = false;
 
-    public BanManager(TotalFreedomMod plugin)
+    public BanManager(FreedomAPI plugin)
     {
         super(plugin);
         this.configFile = new File(plugin.getDataFolder(), "bans.json");
@@ -57,10 +60,10 @@ public class BanManager extends FreedomService
 
     @Override
     @SuppressWarnings("unchecked")
-    protected void onStart()
+    public void onStart()
     {
         load();
-        plugin.dm.whenReady(this::load);
+        plugin.database().whenReady(this::load);
 
         unbannableUsernames.clear();
         unbannableUsernames.addAll((Collection<? extends String>) ConfigEntry.FAMOUS_PLAYERS.getList());
@@ -73,7 +76,7 @@ public class BanManager extends FreedomService
      */
     public void load()
     {
-        if (plugin.dm != null && plugin.dm.isInitialized())
+        if (plugin.database() != null && plugin.database().isInitialized())
         {
             loadFromSqlAsync();
             return;
@@ -84,8 +87,8 @@ public class BanManager extends FreedomService
 
     private void loadFromSqlAsync()
     {
-        final BanRepository repo = plugin.dm.getBanRepository();
-        plugin.dm.readAsync("BanManager/loadFromSql", repo.findAll(),
+        final BanRepository repo = plugin.database().getBanRepository();
+        plugin.database().readAsync("BanManager/loadFromSql", repo.findAll(),
                 loaded -> applyLoadedBans(repo, loaded),
                 this::loadFromJson);
     }
@@ -128,7 +131,7 @@ public class BanManager extends FreedomService
         }
         catch (IOException ex)
         {
-            FLog.warning(String.format("Failed to read bans.json: %s", ex.getMessage()));
+            FLog.warn(String.format("Failed to read bans.json: %s", ex.getMessage()));
             return;
         }
 
@@ -151,12 +154,12 @@ public class BanManager extends FreedomService
                 {
                     FLog.info(String.format("bans.json is newer than the database; rebuilding it from the file's %d ban(s).",
                                             jsonBans.size()));
-                    return syncToSql(repo, jsonBans).then(Mono.<Void>fromRunnable(() -> plugin.dm.sync("BanManager/applyReconciled",
+                    return syncToSql(repo, jsonBans).then(Mono.<Void>fromRunnable(() -> plugin.database().sync("BanManager/applyReconciled",
                                                                                   () -> applyReconciledBans(jsonBans))));
                 })
                 .onErrorResume(ex ->
                 {
-                    FLog.warning(String.format("Failed to reconcile bans.json into the database: %s", ex.getMessage()));
+                    FLog.warn(String.format("Failed to reconcile bans.json into the database: %s", ex.getMessage()));
                     return Mono.empty();
                 })
                 .then());
@@ -242,7 +245,7 @@ public class BanManager extends FreedomService
             }
             catch (IOException ex)
             {
-                FLog.severe("Could not create bans.json");
+                FLog.error("Could not create bans.json");
             }
         }
 
@@ -255,7 +258,7 @@ public class BanManager extends FreedomService
                 {
                     if (!ban.isValid())
                     {
-                        FLog.warning("Not adding username ban: " + ban.getUsername() + ". Missing information.");
+                        FLog.warn("Not adding username ban: " + ban.getUsername() + ". Missing information.");
                         continue;
                     }
                     bans.add(ban);
@@ -263,7 +266,7 @@ public class BanManager extends FreedomService
             }
             catch (IOException ex)
             {
-                FLog.severe("Could not read bans.json: " + ex.getMessage());
+                FLog.error("Could not read bans.json: " + ex.getMessage());
             }
 
             usingSql = false;
@@ -273,7 +276,7 @@ public class BanManager extends FreedomService
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
         awaitPendingWrites(SHUTDOWN_FLUSH_TIMEOUT_MS);
         saveAll();
@@ -353,19 +356,19 @@ public class BanManager extends FreedomService
             return;
         }
 
-        if (plugin.dm == null || !plugin.dm.isInitialized())
+        if (plugin.database() == null || !plugin.database().isInitialized())
         {
-            FLog.warning("SQL not available, falling back to JSON save");
+            FLog.warn("SQL not available, falling back to JSON save");
             enqueue(writeJsonAsync(snapshot));
             return;
         }
 
-        final BanRepository repo = plugin.dm.getBanRepository();
+        final BanRepository repo = plugin.database().getBanRepository();
 
         enqueue(syncToSql(repo, snapshot)
                 .onErrorResume(ex ->
                 {
-                    FLog.warning("Failed to write bans to SQL: " + ex.getMessage());
+                    FLog.warn("Failed to write bans to SQL: " + ex.getMessage());
                     return Mono.empty();
                 })
                 .then(writeJsonAsync(snapshot)));
@@ -377,19 +380,19 @@ public class BanManager extends FreedomService
      */
     private void saveBanToSqlAsync(Ban ban)
     {
-        if (plugin.dm == null || !plugin.dm.isInitialized())
+        if (plugin.database() == null || !plugin.database().isInitialized())
         {
-            FLog.warning("SQL not available; ban change was not saved");
+            FLog.warn("SQL not available; ban change was not saved");
             return;
         }
 
-        final BanRepository repo = plugin.dm.getBanRepository();
+        final BanRepository repo = plugin.database().getBanRepository();
         final List<Ban> snapshot = currentBansSnapshot();
 
         enqueue(repo.save(ban)
                 .onErrorResume(ex ->
                 {
-                    FLog.warning("Failed to save ban to SQL: " + ex.getMessage());
+                    FLog.warn("Failed to save ban to SQL: " + ex.getMessage());
                     return Mono.<Integer>empty();
                 })
                 .then(writeJsonAsync(snapshot)));
@@ -401,13 +404,13 @@ public class BanManager extends FreedomService
      */
     private void removeBanFromSqlAsync(Ban ban)
     {
-        if (plugin.dm == null || !plugin.dm.isInitialized())
+        if (plugin.database() == null || !plugin.database().isInitialized())
         {
-            FLog.warning("SQL not available; ban removal was not saved");
+            FLog.warn("SQL not available; ban removal was not saved");
             return;
         }
 
-        final BanRepository repo = plugin.dm.getBanRepository();
+        final BanRepository repo = plugin.database().getBanRepository();
         final List<Ban> snapshot = currentBansSnapshot();
 
         final Mono<Boolean> delete;
@@ -432,7 +435,7 @@ public class BanManager extends FreedomService
         enqueue(delete
                 .onErrorResume(ex ->
                 {
-                    FLog.warning("Failed to remove ban from SQL: " + ex.getMessage());
+                    FLog.warn("Failed to remove ban from SQL: " + ex.getMessage());
                     return Mono.<Boolean>empty();
                 })
                 .then(writeJsonAsync(snapshot)));
@@ -440,23 +443,23 @@ public class BanManager extends FreedomService
 
     private void writeAllToSql(List<Ban> snapshot)
     {
-        if (plugin.dm == null || !plugin.dm.isInitialized())
+        if (plugin.database() == null || !plugin.database().isInitialized())
         {
-            FLog.warning("SQL not available, falling back to JSON save");
+            FLog.warn("SQL not available, falling back to JSON save");
             writeAllToJson(snapshot);
             return;
         }
 
         try
         {
-            BanRepository repo = plugin.dm.getBanRepository();
+            BanRepository repo = plugin.database().getBanRepository();
             syncToSql(repo, snapshot).block();
             FLog.debug("Saved " + snapshot.size() + " bans to SQL database");
             writeAllToJson(snapshot);
         }
         catch (Exception ex)
         {
-            FLog.warning("Failed to save bans to SQL: " + ex.getMessage());
+            FLog.warn("Failed to save bans to SQL: " + ex.getMessage());
         }
     }
 
@@ -471,7 +474,7 @@ public class BanManager extends FreedomService
         }
         catch (IOException ex)
         {
-            FLog.severe("Could not save bans.json");
+            FLog.error("Could not save bans.json");
         }
     }
 
@@ -636,7 +639,7 @@ public class BanManager extends FreedomService
 
     private void cancelWorldEditFor(Ban ban)
     {
-        if (plugin.web == null)
+        if (plugin.bridges().require(WorldEditBridge.class) == null)
         {
             return;
         }
@@ -651,7 +654,7 @@ public class BanManager extends FreedomService
         }
         if (player != null)
         {
-            plugin.web.cancel(player);
+            plugin.bridges().require(WorldEditBridge.class).cancel(player);
         }
     }
 
@@ -722,9 +725,9 @@ public class BanManager extends FreedomService
     public void onPlayerJoin(PlayerJoinEvent event)
     {
         final Player player = event.getPlayer();
-        final PlayerData data = plugin.pl.getData(player);
+        final PlayerData data = plugin.players().getData(player);
 
-        if (!plugin.al.isAdmin(player))
+        if (!plugin.admins().isAdmin(player))
         {
             return;
         }

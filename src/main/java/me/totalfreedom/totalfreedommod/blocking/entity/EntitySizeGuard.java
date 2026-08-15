@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.blocking.entity;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import com.destroystokyo.paper.event.entity.EntityAddToWorldEvent;
 import org.bukkit.Art;
 import org.bukkit.attribute.Attribute;
@@ -14,7 +16,6 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityTransformEvent;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.blocking.sweep.EntityVisitor;
 import me.totalfreedom.totalfreedommod.blocking.sweep.SweepContext;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
@@ -59,15 +60,15 @@ public class EntitySizeGuard extends FreedomService
                     + " | sample: " + sample,
             DetectionReporter.warnAndBroadcastAdmins(plugin));
 
-    public EntitySizeGuard(TotalFreedomMod plugin)
+    public EntitySizeGuard(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
-        plugin.sweepScheduler.register(sizeVisitor);
+        plugin.sweepScheduler().register(sizeVisitor);
         FLog.info("[EntitySizeGuard] active"
                 + " [max scale=" + describeCap(ConfigEntry.CRASH_ENTITIES_MAX_SCALE.getDouble()) + "]"
                 + " [max slime size=" + describeCap(ConfigEntry.CRASH_ENTITIES_MAX_SLIME_SIZE.getInteger()) + "]"
@@ -76,7 +77,7 @@ public class EntitySizeGuard extends FreedomService
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
     }
 

@@ -23,7 +23,7 @@ public class Command_stfu extends FCommand
     {
         final List<FPlayer> players = server().getOnlinePlayers()
                                               .stream()
-                                              .map(player -> plugin().pl.getPlayer(player))
+                                              .map(player -> plugin().players().getPlayer(player))
                                               .filter(p -> p.isMuted())
                                               .toList();
 
@@ -53,7 +53,7 @@ public class Command_stfu extends FCommand
 
         final List<FPlayer> players = server().getOnlinePlayers()
                                               .stream()
-                                              .map(player -> plugin().pl.getPlayer(player))
+                                              .map(player -> plugin().players().getPlayer(player))
                                               .filter(p -> p.isMuted())
                                               .peek(player -> player.setMuted(false))
                                               .toList();
@@ -70,7 +70,7 @@ public class Command_stfu extends FCommand
         final List<FPlayer> players = server().getOnlinePlayers()
                                               .stream()
                                               .filter(player -> !isAdmin(player))
-                                              .map(player -> plugin().pl.getPlayer(player))
+                                              .map(player -> plugin().players().getPlayer(player))
                                               .peek(player -> player.setMuted(true))
                                               .toList();
 

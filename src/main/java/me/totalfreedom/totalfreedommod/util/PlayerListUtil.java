@@ -9,8 +9,8 @@ import java.util.stream.Collectors;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
+import me.totalfreedom.api.FreedomAPI;
 import me.totalfreedom.totalfreedommod.PluginProvider;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.rank.CustomRank;
 import me.totalfreedom.totalfreedommod.rank.RankRole;
 
@@ -38,7 +38,7 @@ public final class PlayerListUtil
 
     public static String buildRankList()
     {
-        final TotalFreedomMod plugin = PluginProvider.get();
+        final FreedomAPI plugin = PluginProvider.get();
         // If this somehow fails, just send back a list with no additional rank context
         if (plugin == null)
             return buildPlainList();
@@ -49,7 +49,7 @@ public final class PlayerListUtil
 
         // Build a map from ranks to players that have that rank, with OP as a default
         final Map<CustomRank, List<Player>> playerRanks = new HashMap<>();
-        final var defaultRank = plugin.rm.getRegistry().byRole(RankRole.DEFAULT_OP).orElse(null);
+        final var defaultRank = plugin.ranks().getRegistry().byRole(RankRole.DEFAULT_OP).orElse(null);
         // Without an op rank in the registry there is no bucket to default anyone into, so fall
         // back to the plain listing rather than dropping unranked players from the output.
         if (defaultRank == null)
@@ -58,11 +58,11 @@ public final class PlayerListUtil
         playerRanks.put(defaultRank, new ArrayList<>());
         for (final var player : players)
         {
-            final var admin = plugin.al.getAdmin(player);
+            final var admin = plugin.admins().getAdmin(player);
             // If they're an admin, we can pull their rank
             if (admin != null)
             {
-                final var rank = plugin.rm.getCustomRank(admin.getRankId());
+                final var rank = plugin.ranks().getCustomRank(admin.getRankId());
                 if (rank == null)
                 {
                     // Give them OP if somehow they don't have a rank
@@ -84,7 +84,7 @@ public final class PlayerListUtil
 
         final int max = Bukkit.getMaxPlayers();
 
-        final List<String> playerListings = plugin.rm.getCustomRanks()
+        final List<String> playerListings = plugin.ranks().getCustomRanks()
             .values()
             .stream()
             .sorted((r1, r2) -> Integer.compare(r2.getLevel(), r1.getLevel())) // Sort in reverse level order, highest ranks listed first

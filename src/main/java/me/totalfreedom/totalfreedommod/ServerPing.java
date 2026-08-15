@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -15,29 +17,29 @@ import me.totalfreedom.totalfreedommod.util.FUtil;
 public class ServerPing extends FreedomService
 {
 
-    public ServerPing(TotalFreedomMod plugin)
+    public ServerPing(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
     }
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onServerPing(ServerListPingEvent event)
     {
-        plugin.vs.filterServerPing(event);
+        plugin.vanish().filterServerPing(event);
 
         final String ip = event.getAddress().getHostAddress().trim();
 
-        if (plugin.bm.isIpBanned(ip))
+        if (plugin.bans().isIpBanned(ip))
         {
             event.motd(Component.text("You are banned.", NamedTextColor.RED));
             return;

@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.banning;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -20,7 +22,6 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.sql.PersistenceQueue;
 import me.totalfreedom.totalfreedommod.sql.adapter.PermbanRepository;
@@ -48,17 +49,17 @@ public class PermbanList extends FreedomService
 
     private boolean usingSql = false;
 
-    public PermbanList(TotalFreedomMod plugin)
+    public PermbanList(FreedomAPI plugin)
     {
         super(plugin);
         this.configFile = new File(plugin.getDataFolder(), CONFIG_FILENAME);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
         load();
-        plugin.dm.whenReady(this::load);
+        plugin.database().whenReady(this::load);
     }
 
     /**
@@ -67,7 +68,7 @@ public class PermbanList extends FreedomService
      */
     public void load()
     {
-        if (plugin.dm != null && plugin.dm.isInitialized())
+        if (plugin.database() != null && plugin.database().isInitialized())
         {
             loadFromSqlAsync();
             return;
@@ -78,8 +79,8 @@ public class PermbanList extends FreedomService
 
     private void loadFromSqlAsync()
     {
-        final PermbanRepository repo = plugin.dm.getPermbanRepository();
-        plugin.dm.readAsync("PermbanList/loadFromSql", repo.findAll(),
+        final PermbanRepository repo = plugin.database().getPermbanRepository();
+        plugin.database().readAsync("PermbanList/loadFromSql", repo.findAll(),
                 loaded -> applyLoadedPermbans(repo, loaded),
                 this::loadFromJson);
     }
@@ -117,7 +118,7 @@ public class PermbanList extends FreedomService
         }
         catch (IOException ex)
         {
-            FLog.warning(String.format("Failed to read %s: %s", CONFIG_FILENAME, ex.getMessage()));
+            FLog.warn(String.format("Failed to read %s: %s", CONFIG_FILENAME, ex.getMessage()));
             return;
         }
 
@@ -155,12 +156,12 @@ public class PermbanList extends FreedomService
                                    .concatMap(stale -> stale.getUuid() != null
                                                        ? repo.deleteAsync(stale.getUuid())
                                                        : repo.deleteByIpAsync(stale.getIps().get(0)))
-                                   .then(Mono.<Void>fromRunnable(() -> plugin.dm.sync("PermbanList/applyReconciled",
+                                   .then(Mono.<Void>fromRunnable(() -> plugin.database().sync("PermbanList/applyReconciled",
                                                                  () -> applyReconciledPermbans(jsonPermbans.values()))));
                     })
                     .onErrorResume(ex ->
                     {
-                        FLog.warning(String.format("Failed to reconcile %s into the database: %s",
+                        FLog.warn(String.format("Failed to reconcile %s into the database: %s",
                                                    CONFIG_FILENAME, ex.getMessage()));
                         return Mono.empty();
                     })
@@ -236,7 +237,7 @@ public class PermbanList extends FreedomService
             }
             catch (IOException ex)
             {
-                FLog.severe("Could not create " + CONFIG_FILENAME);
+                FLog.error("Could not create " + CONFIG_FILENAME);
             }
         }
 
@@ -258,7 +259,7 @@ public class PermbanList extends FreedomService
             }
             catch (IOException ex)
             {
-                FLog.severe("Could not read " + CONFIG_FILENAME + ": " + ex.getMessage());
+                FLog.error("Could not read " + CONFIG_FILENAME + ": " + ex.getMessage());
             }
 
             usingSql = false;
@@ -280,12 +281,12 @@ public class PermbanList extends FreedomService
         }
         catch (IOException ex)
         {
-            FLog.severe("Could not save " + CONFIG_FILENAME);
+            FLog.error("Could not save " + CONFIG_FILENAME);
         }
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
         awaitPendingWrites(SHUTDOWN_FLUSH_TIMEOUT_MS);
 
@@ -320,7 +321,7 @@ public class PermbanList extends FreedomService
      */
     private void saveAllToSql()
     {
-        if (plugin.dm == null || !plugin.dm.isInitialized())
+        if (plugin.database() == null || !plugin.database().isInitialized())
             return;
 
         final List<PermBan> snapshot;
@@ -331,7 +332,7 @@ public class PermbanList extends FreedomService
 
         try
         {
-            PermbanRepository repo = plugin.dm.getPermbanRepository();
+            PermbanRepository repo = plugin.database().getPermbanRepository();
             for (PermBan permban : snapshot)
                 repo.save(permban).block();
 
@@ -340,7 +341,7 @@ public class PermbanList extends FreedomService
         }
         catch (Exception ex)
         {
-            FLog.warning("Failed to save permbans to SQL: " + ex.getMessage());
+            FLog.warn("Failed to save permbans to SQL: " + ex.getMessage());
         }
     }
 
@@ -359,7 +360,7 @@ public class PermbanList extends FreedomService
      */
     public void saveAsync()
     {
-        if (!usingSql || plugin.dm == null || !plugin.dm.isInitialized())
+        if (!usingSql || plugin.database() == null || !plugin.database().isInitialized())
         {
             enqueue(writeJsonAsync());
             return;
@@ -371,12 +372,12 @@ public class PermbanList extends FreedomService
             snapshot = new ArrayList<>(permbansByName.values());
         }
 
-        final PermbanRepository repo = plugin.dm.getPermbanRepository();
+        final PermbanRepository repo = plugin.database().getPermbanRepository();
         enqueue(Flux.fromIterable(snapshot)
                 .concatMap(permban -> repo.save(permban)
                         .onErrorResume(ex ->
                         {
-                            FLog.warning(String.format("Failed to save permban %s to SQL: %s",
+                            FLog.warn(String.format("Failed to save permban %s to SQL: %s",
                                     permban.getUsername(), ex.getMessage()));
                             return Mono.empty();
                         }))
@@ -519,18 +520,18 @@ public class PermbanList extends FreedomService
      */
     private void savePermbanToSqlAsync(PermBan permban)
     {
-        if (plugin.dm == null || !plugin.dm.isInitialized())
+        if (plugin.database() == null || !plugin.database().isInitialized())
         {
-            FLog.warning("SQL not available; permban change was not saved");
+            FLog.warn("SQL not available; permban change was not saved");
             return;
         }
 
-        final PermbanRepository repo = plugin.dm.getPermbanRepository();
+        final PermbanRepository repo = plugin.database().getPermbanRepository();
 
         enqueue(repo.save(permban)
                 .onErrorResume(ex ->
                 {
-                    FLog.warning("Failed to save permban to SQL: " + ex.getMessage());
+                    FLog.warn("Failed to save permban to SQL: " + ex.getMessage());
                     return Mono.<Integer>empty();
                 })
                 .then(writeJsonAsync()));
@@ -542,19 +543,19 @@ public class PermbanList extends FreedomService
      */
     private void removePermbanFromSqlAsync(String name)
     {
-        if (plugin.dm == null || !plugin.dm.isInitialized())
+        if (plugin.database() == null || !plugin.database().isInitialized())
         {
-            FLog.warning("SQL not available; permban removal was not saved");
+            FLog.warn("SQL not available; permban removal was not saved");
             return;
         }
 
-        final PermbanRepository repo = plugin.dm.getPermbanRepository();
+        final PermbanRepository repo = plugin.database().getPermbanRepository();
 
         enqueue(Mono.fromCallable(() -> repo.deleteByUsername(name))
                 .subscribeOn(Schedulers.boundedElastic())
                 .onErrorResume(ex ->
                 {
-                    FLog.warning("Failed to remove permban from SQL: " + ex.getMessage());
+                    FLog.warn("Failed to remove permban from SQL: " + ex.getMessage());
                     return Mono.<Boolean>empty();
                 })
                 .then(writeJsonAsync()));

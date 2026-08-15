@@ -4,7 +4,7 @@ import java.sql.SQLException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.api.FreedomAPI;
 import me.totalfreedom.totalfreedommod.sql.ConnectionHandler;
 import me.totalfreedom.totalfreedommod.sql.StatementHandler;
 import me.totalfreedom.totalfreedommod.sql.adapter.*;
@@ -34,8 +34,9 @@ public class MySQLAdapter extends DatabaseAdapter
     private SavedFlagRepository savedFlagRepository;
     private PlayerRepository playerRepository;
     private MigrationRepository migrationRepository;
+    private EconomyRepository economyRepository;
 
-    public MySQLAdapter(TotalFreedomMod plugin, ConnectionHandler connectionHandler, StatementHandler statementHandler)
+    public MySQLAdapter(FreedomAPI plugin, ConnectionHandler connectionHandler, StatementHandler statementHandler)
     {
         super(plugin, connectionHandler, statementHandler);
     }
@@ -164,6 +165,8 @@ public class MySQLAdapter extends DatabaseAdapter
         createSavedFlagsTable();
         createPlayersTable();
         createPlayerIpsTable();
+        createEconomyPlayersTable();
+        createEconomyBankTable();
 
         FLog.info("[MySQL] Database migrations complete.");
     }
@@ -465,6 +468,34 @@ public class MySQLAdapter extends DatabaseAdapter
         statementHandler.executeUpdate(sql);
     }
 
+    private void createEconomyPlayersTable() throws SQLException
+    {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS `economy_players` (
+                `username` VARCHAR(16) PRIMARY KEY,
+                `uuid` VARCHAR(36) NOT NULL,
+                `wallet_balance` INT NOT NULL DEFAULT 0,
+                `checking_balance` INT NOT NULL DEFAULT 0,
+                `savings_balance` INT NOT NULL DEFAULT 0,
+                `updated_at` DATETIME NOT NULL DEFAULT NOW()
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """;
+        statementHandler.executeUpdate(sql);
+    }
+
+    private void createEconomyBankTable() throws SQLException
+    {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS `economy_bank` (
+                `id` VARCHAR(16) PRIMARY KEY,
+                `checking_balance` INT NOT NULL DEFAULT 0,
+                `savings_balance` INT NOT NULL DEFAULT 0,
+                `updated_at` DATETIME NOT NULL DEFAULT NOW()
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """;
+        statementHandler.executeUpdate(sql);
+    }
+
     /**
      * Add a column to a table created before that column existed. Ignores the error
      * when the column is already present (MySQL has no ADD COLUMN IF NOT EXISTS
@@ -594,5 +625,15 @@ public class MySQLAdapter extends DatabaseAdapter
             migrationRepository = new GenericMigrationRepository(statementHandler, this);
         }
         return migrationRepository;
+    }
+
+    @Override
+    public EconomyRepository getEconomyRepository()
+    {
+        if (economyRepository == null)
+        {
+            economyRepository = new GenericEconomyRepository(statementHandler, this);
+        }
+        return economyRepository;
     }
 }

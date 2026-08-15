@@ -30,7 +30,7 @@ import discord4j.rest.util.AllowedMentions;
 import discord4j.rest.util.Color;
 import reactor.core.publisher.Mono;
 
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.api.FreedomAPI;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 import me.totalfreedom.totalfreedommod.util.ChatMentionUtil;
 import me.totalfreedom.totalfreedommod.util.FLog;
@@ -79,10 +79,10 @@ public abstract class AbstractDiscordChatRelay
     private final Optional<String> channelFormat;
     private final Optional<String> chatFormat;
     private final Consumer<Component> chatAction;
-    private final TotalFreedomMod plugin;
+    private final FreedomAPI plugin;
     private final DiscordBridge bridge;
 
-    public AbstractDiscordChatRelay(Supplier<Optional<Snowflake>> channelSupplier, String channelFormat, String chatFormat, Consumer<Component> chatAction, TotalFreedomMod plugin, DiscordBridge bridge)
+    public AbstractDiscordChatRelay(Supplier<Optional<Snowflake>> channelSupplier, String channelFormat, String chatFormat, Consumer<Component> chatAction, FreedomAPI plugin, DiscordBridge bridge)
     {
         this.channelSupplier = channelSupplier;
         this.channelFormat = configured(channelFormat);
@@ -110,7 +110,7 @@ public abstract class AbstractDiscordChatRelay
                 .flatMap(event -> handleMessage(event)
                         .onErrorResume(thrown ->
                         {
-                            FLog.warning(String.format("[Discord] Dropped an inbound message: %s",
+                            FLog.warn(String.format("[Discord] Dropped an inbound message: %s",
                                     DiscordConnection.describeFailure(thrown)));
                             return Mono.empty();
                         }))
@@ -156,7 +156,7 @@ public abstract class AbstractDiscordChatRelay
             }
             catch (Exception ex)
             {
-                FLog.warning("[Discord] Failed to send system message to Discord: " + ex.getMessage());
+                FLog.warn("[Discord] Failed to send system message to Discord: " + ex.getMessage());
             }
         });
     }
@@ -423,7 +423,7 @@ public abstract class AbstractDiscordChatRelay
 
     private void failRelayChannelSend(final String failureDescription, final Optional<Throwable> err)
     {
-        FLog.warning(String.format("[Discord] Failed to %s: %s", 
+        FLog.warn(String.format("[Discord] Failed to %s: %s", 
                                    failureDescription,
                                    err.map(thrown -> ": " + thrown.getMessage()).orElse("")));
     }

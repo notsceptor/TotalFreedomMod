@@ -72,12 +72,12 @@ public abstract class CustomWorld extends PluginComponent<TotalFreedomMod>
 
             welcomeSign.update();
 
-            plugin.gr.enforceGameRuleDefaultsForWorld(world);
+            plugin.gameRules().enforceGameRuleDefaultsForWorld(world);
         }
 
         if (world == null)
         {
-            FLog.warning("Could not load world: " + name);
+            FLog.warn("Could not load world: " + name);
         }
 
         return world;

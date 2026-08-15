@@ -10,7 +10,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.minecart.CommandMinecart;
 
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.api.FreedomAPI;
 import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchContext;
@@ -38,7 +38,7 @@ import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchSession;
 public final class RankRegistry
 {
 
-    private final TotalFreedomMod plugin;
+    private final FreedomAPI plugin;
 
     /**
      * The live rank map owned by {@link RankManager}, read but never mutated here.
@@ -55,7 +55,7 @@ public final class RankRegistry
 
     private final RankResolver<Player> playerResolver;
 
-    public RankRegistry(final TotalFreedomMod plugin, final Map<String, CustomRank> ranks)
+    public RankRegistry(final FreedomAPI plugin, final Map<String, CustomRank> ranks)
     {
         this.plugin = plugin;
         this.ranks = ranks;
@@ -214,7 +214,7 @@ public final class RankRegistry
         if (forSender(sender).map(rank -> satisfies(rank, permission)).orElse(false))
             return true;
 
-        return plugin.tm != null && plugin.tm.grants(sender, permission);
+        return plugin.titles() != null && plugin.titles().grants(sender, permission);
     }
 
     /**
@@ -246,7 +246,7 @@ public final class RankRegistry
             && !(dispatch.getChannel() == RemoteDispatchSession.Channel.SSH
                  && !ConfigEntry.SSH_INHERIT_RANK.getBoolean()))
         {
-            final Optional<CustomRank> identity = adminRank(plugin.al.getEntryByName(dispatch.getUsername()));
+            final Optional<CustomRank> identity = adminRank(plugin.admins().getEntryByName(dispatch.getUsername()));
             if (identity.isPresent())
                 return identity;
         }
@@ -260,7 +260,7 @@ public final class RankRegistry
 
     private Optional<CustomRank> resolveAdminByName(final CommandSender sender)
     {
-        return adminRank(plugin.al.getEntryByName(sender.getName()));
+        return adminRank(plugin.admins().getEntryByName(sender.getName()));
     }
 
     private Optional<CustomRank> resolveBoundSender(final CommandSender sender)
@@ -270,10 +270,10 @@ public final class RankRegistry
 
     private Optional<CustomRank> resolvePlayer(final Player player)
     {
-        if (plugin.al.isAdminImpostor(player))
+        if (plugin.admins().isAdminImpostor(player))
             return byRole(RankRole.IMPOSTOR);
 
-        final Optional<CustomRank> assigned = adminRank(plugin.al.getAdmin(player));
+        final Optional<CustomRank> assigned = adminRank(plugin.admins().getAdmin(player));
         if (assigned.isPresent())
             return assigned;
 
@@ -298,9 +298,9 @@ public final class RankRegistry
      */
     private Optional<CustomRank> boundRank(final String senderName)
     {
-        return plugin.csr == null
+        return plugin.consoleSenders() == null
                 ? Optional.empty()
-                : byId(plugin.csr.getRankIdForSender(senderName));
+                : byId(plugin.consoleSenders().getRankIdForSender(senderName));
     }
 
 }

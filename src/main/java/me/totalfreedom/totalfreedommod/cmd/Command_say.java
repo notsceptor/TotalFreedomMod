@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import me.totalfreedom.totalfreedommod.discord.DiscordBridge;
+
 import java.util.List;
 
 import org.bukkit.command.CommandSender;
@@ -30,6 +32,6 @@ public class Command_say extends FCommand
                 .append(ChatMentionUtil.highlightAndPing(plugin(), FUtil.colorizeWithLinks(message, NamedTextColor.LIGHT_PURPLE), true));
 
         FUtil.bcastMsg(broadcast);
-        plugin().db.sendBroadcastMessage(sender.getName(), MessageUtils.toPlainText(broadcast), ConfigEntry.DISCORD_SAY_MESSAGE);
+        plugin().services().require(DiscordBridge.class).sendBroadcastMessage(sender.getName(), MessageUtils.toPlainText(broadcast), ConfigEntry.DISCORD_SAY_MESSAGE);
     }
 }

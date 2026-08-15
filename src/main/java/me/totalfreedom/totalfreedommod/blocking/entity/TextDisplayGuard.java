@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.blocking.entity;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import com.destroystokyo.paper.event.entity.EntityAddToWorldEvent;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
@@ -12,7 +14,6 @@ import org.bukkit.event.entity.EntitySpawnEvent;
 import net.kyori.adventure.text.Component;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.blocking.sweep.EntityVisitor;
 import me.totalfreedom.totalfreedommod.blocking.sweep.SweepContext;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
@@ -60,15 +61,15 @@ public class TextDisplayGuard extends FreedomService
                     + " bad text display(s). Sample: " + sample,
             DetectionReporter.warnOnly());
 
-    public TextDisplayGuard(TotalFreedomMod plugin)
+    public TextDisplayGuard(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
-        plugin.sweepScheduler.register(displayVisitor);
+        plugin.sweepScheduler().register(displayVisitor);
         long ticks = ConfigEntry.CRASH_ENTITIES_SWEEP_TICKS.getInteger();
         FLog.info("[TextDisplayGuard] active"
                 + " [max_text_length=" + MAX_TEXT_LENGTH + "]"
@@ -80,7 +81,7 @@ public class TextDisplayGuard extends FreedomService
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
     }
 

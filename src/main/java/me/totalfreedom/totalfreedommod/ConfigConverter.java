@@ -75,7 +75,7 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
 
         if (convert)
         {
-            FLog.warning("Converting old configs to new format...");
+            FLog.warn("Converting old configs to new format...");
 
             File backup = new File(data, "backup_old_format");
             backup.mkdirs();
@@ -93,8 +93,8 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
                 }
                 catch (IOException ex)
                 {
-                    FLog.severe("Could not backup file: " + file.getName());
-                    FLog.severe(ex);
+                    FLog.error("Could not backup file: " + file.getName());
+                    FLog.error(ex);
                 }
             }
 
@@ -113,8 +113,8 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
             }
             catch (IOException ex)
             {
-                FLog.severe("Could not save version.yml");
-                FLog.severe(ex);
+                FLog.error("Could not save version.yml");
+                FLog.error(ex);
             }
         }
     }
@@ -170,8 +170,8 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
         }
         catch (IOException ex)
         {
-            FLog.severe("Could not save migrated ranks.yml");
-            FLog.severe(ex);
+            FLog.error("Could not save migrated ranks.yml");
+            FLog.error(ex);
         }
     }
 
@@ -185,12 +185,12 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
      */
     public void convertAdminConsoleRanks()
     {
-        if (plugin.al == null)
+        if (plugin.admins() == null)
         {
             return;
         }
 
-        final long migrated = plugin.al.getAllAdmins().values()
+        final long migrated = plugin.admins().getAllAdmins().values()
                 .stream()
                 .filter(admin -> admin.getRankId() != null)
                 .filter(admin -> admin.getRankId().endsWith(CONSOLE_RANK_SUFFIX))
@@ -201,7 +201,7 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
 
         if (migrated > 0)
         {
-            plugin.al.saveAsync();
+            plugin.admins().saveAsync();
             FLog.info(String.format("Remapped %d admin(s) from retired console ranks.", migrated));
         }
     }
@@ -218,7 +218,7 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
      */
     public void convertCosmeticRankHolders()
     {
-        if (plugin.al == null || plugin.rm == null || plugin.tm == null || plugin.pl == null)
+        if (plugin.admins() == null || plugin.ranks() == null || plugin.titles() == null || plugin.players() == null)
         {
             return;
         }
@@ -229,11 +229,11 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
             return;
         }
 
-        final long migrated = plugin.al.getAllAdmins().values()
+        final long migrated = plugin.admins().getAllAdmins().values()
                 .stream()
                 .filter(admin -> admin.getRankId() != null)
-                .filter(admin -> plugin.rm.getCustomRank(admin.getRankId()) == null)
-                .filter(admin -> plugin.tm.hasTitle(admin.getRankId()))
+                .filter(admin -> plugin.ranks().getCustomRank(admin.getRankId()) == null)
+                .filter(admin -> plugin.titles().hasTitle(admin.getRankId()))
                 .peek(admin -> grantTitleOffline(admin.getName(), admin.getRankId()))
                 .peek(admin -> FLog.info(String.format(
                         "Moved admin '%s' from retired rank '%s' to the '%s' title, rank '%s'.",
@@ -243,7 +243,7 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
 
         if (migrated > 0)
         {
-            plugin.al.saveAsync();
+            plugin.admins().saveAsync();
             FLog.info(String.format("Converted %d admin(s) from cosmetic ranks to titles.", migrated));
         }
     }
@@ -254,11 +254,11 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
      */
     private void grantTitleOffline(final String username, final String titleId)
     {
-        final PlayerData data = plugin.pl.getData(username);
+        final PlayerData data = plugin.players().getData(username);
 
         if (data != null && data.addTitle(titleId))
         {
-            plugin.pl.saveData(data);
+            plugin.players().saveData(data);
         }
     }
 
@@ -269,9 +269,9 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
      */
     private String seniorRankId()
     {
-        return plugin.rm == null
+        return plugin.ranks() == null
                 ? null
-                : plugin.rm.getRegistry()
+                : plugin.ranks().getRegistry()
                            .requiredFor(AdminList.SENIOR_STATUS_NODE)
                            .map(CustomRank::getId)
                            .orElseGet(this::adminDefaultRankId);
@@ -282,9 +282,9 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
      */
     private String adminDefaultRankId()
     {
-        return plugin.rm == null
+        return plugin.ranks() == null
                 ? null
-                : plugin.rm.getRegistry()
+                : plugin.ranks().getRegistry()
                            .byRole(RankRole.ADMIN_DEFAULT)
                            .map(CustomRank::getId)
                            .orElse(null);
@@ -294,7 +294,7 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
     {
         if (!oldFile.exists() || !oldFile.isFile())
         {
-            FLog.warning("No old superadmin list found!");
+            FLog.warn("No old superadmin list found!");
             return;
         }
 
@@ -303,7 +303,7 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
         ConfigurationSection admins = oldYaml.getConfigurationSection("admins");
         if (admins == null)
         {
-            FLog.warning("No admin section in superadmin list!");
+            FLog.warn("No admin section in superadmin list!");
             return;
         }
 
@@ -313,7 +313,7 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
             ConfigurationSection asec = admins.getConfigurationSection(uuid);
             if (asec == null)
             {
-                FLog.warning("Invalid superadmin format for admin: " + uuid);
+                FLog.warn("Invalid superadmin format for admin: " + uuid);
                 continue;
             }
 
@@ -347,7 +347,7 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
         }
         catch (IOException ex)
         {
-            FLog.severe("Could not save converted admin list");
+            FLog.error("Could not save converted admin list");
         }
 
         FLog.info("Converted " + conversions.size() + " admins");
@@ -357,7 +357,7 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
     {
         if (!oldFile.exists())
         {
-            FLog.warning("No old permban list found!");
+            FLog.warn("No old permban list found!");
             return;
         }
 
@@ -379,7 +379,7 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
         }
         catch (IOException ex)
         {
-            FLog.warning("Could not save converted permban list!");
+            FLog.warn("Could not save converted permban list!");
         }
     }
 

@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.blocking;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -11,25 +13,24 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 
 public class InteractBlocker extends FreedomService
 {
 
-    public InteractBlocker(TotalFreedomMod plugin)
+    public InteractBlocker(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
     }
 
@@ -62,7 +63,7 @@ public class InteractBlocker extends FreedomService
         {
             case WATER_BUCKET:
             {
-                if (plugin.al.isAdmin(player) || ConfigEntry.ALLOW_WATER_PLACE.getBoolean())
+                if (plugin.admins().isAdmin(player) || ConfigEntry.ALLOW_WATER_PLACE.getBoolean())
                 {
                     break;
                 }
@@ -75,7 +76,7 @@ public class InteractBlocker extends FreedomService
 
             case LAVA_BUCKET:
             {
-                if (plugin.al.isAdmin(player) || ConfigEntry.ALLOW_LAVA_PLACE.getBoolean())
+                if (plugin.admins().isAdmin(player) || ConfigEntry.ALLOW_LAVA_PLACE.getBoolean())
                 {
                     break;
                 }

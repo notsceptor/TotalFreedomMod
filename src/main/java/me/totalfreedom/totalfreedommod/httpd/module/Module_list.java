@@ -23,7 +23,7 @@ public class Module_list extends HTTPDModule
 
         final List<Player> onlinePlayers = Bukkit.getOnlinePlayers()
                                                    .stream()
-                                                   .filter(player -> !plugin.vs.isVanished(player))
+                                                   .filter(player -> !plugin.vanish().isVanished(player))
                                                    .map(player -> (Player) player)
                                                    .toList();
 
@@ -33,7 +33,7 @@ public class Module_list extends HTTPDModule
 
         for (Player player : onlinePlayers)
         {
-            String tag = plugin.rm.getDisplay(player).getTag();
+            String tag = plugin.ranks().getDisplay(player).getTag();
             body.append("<li>").append(tag).append(player.getName()).append("</li>\r\n");
         }
 

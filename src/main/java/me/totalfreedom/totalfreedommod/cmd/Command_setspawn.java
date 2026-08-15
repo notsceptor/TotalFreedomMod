@@ -5,6 +5,7 @@ import org.bukkit.entity.Player;
 
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
+import me.totalfreedom.totalfreedommod.SpawnManager;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 
@@ -16,7 +17,7 @@ public class Command_setspawn extends FCommand
     public void setspawn(Player player)
     {
         final Location location = player.getLocation();
-        plugin().sm.setSpawnLocation(location);
+        plugin().services().require(SpawnManager.class).setSpawnLocation(location);
         msg(player, "<gray>Server spawn set to: <location>", Placeholder.unparsed("location", FUtil.formatLocation(location)));
     }
 }

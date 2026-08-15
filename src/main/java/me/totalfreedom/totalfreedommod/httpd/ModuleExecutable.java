@@ -8,23 +8,26 @@ import java.util.logging.Logger;
 
 import org.bukkit.Bukkit;
 
+import me.totalfreedom.api.FreedomAPI;
 import me.totalfreedom.totalfreedommod.PluginProvider;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.framework.PluginComponent;
 import me.totalfreedom.totalfreedommod.httpd.module.HTTPDModule;
 import me.totalfreedom.totalfreedommod.util.FLog;
 
-import lombok.Getter;
-
 public abstract class ModuleExecutable
 {
 
-    @Getter
     private final boolean async;
 
     public ModuleExecutable(boolean async)
     {
         this.async = async;
+    }
+
+    public boolean isAsync()
+    {
+        return async;
     }
 
     public NanoHTTPD.Response execute(final NanoHTTPD.HTTPSession session)
@@ -49,14 +52,14 @@ public abstract class ModuleExecutable
         }
         catch (Exception ex)
         {
-            FLog.severe(ex);
+            FLog.error(ex);
         }
         return null;
     }
 
     public abstract NanoHTTPD.Response getResponse(NanoHTTPD.HTTPSession session);
 
-    public static ModuleExecutable forClass(final TotalFreedomMod plugin, Class<? extends HTTPDModule> clazz, boolean async)
+    public static ModuleExecutable forClass(final FreedomAPI plugin, Class<? extends HTTPDModule> clazz, boolean async)
     {
         final Constructor<? extends HTTPDModule> cons;
         try
@@ -79,7 +82,7 @@ public abstract class ModuleExecutable
                 }
                 catch (Exception ex)
                 {
-                    FLog.severe(ex);
+                    FLog.error(ex);
                     return null;
                 }
             }

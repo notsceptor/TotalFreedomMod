@@ -29,7 +29,7 @@ public class SshPublicKeyAuthenticator implements PublickeyAuthenticator
         }
         catch (Exception e)
         {
-            FLog.warning("[SSH] Could not compute key fingerprint: " + e.getMessage());
+            FLog.warn("[SSH] Could not compute key fingerprint: " + e.getMessage());
             return false;
         }
 
@@ -52,12 +52,12 @@ public class SshPublicKeyAuthenticator implements PublickeyAuthenticator
                 }
                 catch (Exception e)
                 {
-                    FLog.warning("[SSH] Bad key in identity '" + identity.identifier() + "': " + e.getMessage());
+                    FLog.warn("[SSH] Bad key in identity '" + identity.identifier() + "': " + e.getMessage());
                 }
             }
         }
 
-        FLog.warning("[SSH] No matching key found for SSH user: " + username);
+        FLog.warn("[SSH] No matching key found for SSH user: " + username);
         return false;
     }
 }

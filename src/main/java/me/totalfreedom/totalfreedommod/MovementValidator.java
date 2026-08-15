@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod;
 
+import me.totalfreedom.api.FreedomAPI;
+
 
 import io.papermc.paper.event.player.PlayerClientLoadedWorldEvent;
 import org.bukkit.Location;
@@ -18,19 +20,19 @@ public class MovementValidator extends FreedomService
 
     public static final int MAX_XZ_COORD = 30000000;
 
-    public MovementValidator(TotalFreedomMod plugin)
+    public MovementValidator(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
         applyWorldBorders();
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
     }
 
@@ -83,7 +85,7 @@ public class MovementValidator extends FreedomService
         final World world = loc != null ? loc.getWorld() : event.getPlayer().getWorld();
         event.getPlayer().setRespawnLocation(world.getSpawnLocation(), true);
         event.getPlayer().teleport(world.getSpawnLocation()); // It doesn't actually teleport the player, so we have to do it manually.
-        FLog.warning("[MovementValidator] " + event.getPlayer().getName()
+        FLog.warn("[MovementValidator] " + event.getPlayer().getName()
                 + " joined out of bounds; relocated to " + world.getName() + " spawn.");
     }
 
@@ -116,7 +118,7 @@ public class MovementValidator extends FreedomService
         }
         catch (Throwable t)
         {
-            FLog.warning("[MovementValidator] Failed to apply world border to "
+            FLog.warn("[MovementValidator] Failed to apply world border to "
                     + world.getName() + ": " + t.getMessage());
         }
     }

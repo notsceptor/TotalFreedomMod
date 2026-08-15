@@ -37,7 +37,7 @@ public class Command_title extends FCommand
     @Callback
     public void list(CommandSender sender)
     {
-        final List<Title> titles = plugin().tm.getTitlesSorted();
+        final List<Title> titles = plugin().titles().getTitlesSorted();
 
         if (titles.isEmpty())
         {
@@ -65,7 +65,7 @@ public class Command_title extends FCommand
     @Subcommand("info")
     public void info(CommandSender sender, String titleId)
     {
-        final Title title = plugin().tm.getTitle(titleId);
+        final Title title = plugin().titles().getTitle(titleId);
 
         if (title == null)
         {
@@ -97,7 +97,7 @@ public class Command_title extends FCommand
     @Subcommand("of")
     public void of(CommandSender sender, Player target)
     {
-        final List<Title> held = plugin().tm.getHeldTitles(target);
+        final List<Title> held = plugin().titles().getHeldTitles(target);
 
         if (held.isEmpty())
         {
@@ -124,7 +124,7 @@ public class Command_title extends FCommand
             return;
         }
         
-        final Title title = plugin().tm.getTitle(titleId);
+        final Title title = plugin().titles().getTitle(titleId);
 
         if (title == null)
         {
@@ -132,7 +132,7 @@ public class Command_title extends FCommand
             return;
         }
 
-        if (!plugin().tm.grantTitle(target, title.getId()))
+        if (!plugin().titles().grantTitle(target, title.getId()))
         {
             msg(sender, "<red><player> already holds that title.",
                     Placeholder.unparsed("player", target.getName()));
@@ -152,7 +152,7 @@ public class Command_title extends FCommand
     @Permission(permission = "tfm.manage.titles")
     public void revoke(CommandSender sender, Player target, String titleId)
     {
-        if (!plugin().tm.revokeTitle(target, titleId))
+        if (!plugin().titles().revokeTitle(target, titleId))
         {
             msg(sender, "<red><player> does not hold that title.",
                     Placeholder.unparsed("player", target.getName()));
@@ -170,7 +170,7 @@ public class Command_title extends FCommand
     @Completer(value = "info", position = 0)
     public List<String> completeInfo(CommandSender sender, String partial)
     {
-        return matching(plugin().tm.getTitleIds(), partial);
+        return matching(plugin().titles().getTitleIds(), partial);
     }
 
     @Completer(value = "grant", position = 1)
@@ -181,8 +181,8 @@ public class Command_title extends FCommand
         if (target == null)
             return List.of();
 
-        final Set<String> held = plugin().tm.getHeldTitleIds(target);
-        final List<String> grantable = plugin().tm.getTitleIds()
+        final Set<String> held = plugin().titles().getHeldTitleIds(target);
+        final List<String> grantable = plugin().titles().getTitleIds()
                                                   .stream()
                                                   .filter(id -> !held.contains(id))
                                                   .toList();
@@ -199,7 +199,7 @@ public class Command_title extends FCommand
     {
         final Player target = server().getPlayerExact(priorArgs.get(0));
 
-        return target == null ? List.of() : matching(plugin().tm.getHeldTitleIds(target), partial);
+        return target == null ? List.of() : matching(plugin().titles().getHeldTitleIds(target), partial);
     }
 
     private static List<String> matching(Iterable<String> candidates, String partial)

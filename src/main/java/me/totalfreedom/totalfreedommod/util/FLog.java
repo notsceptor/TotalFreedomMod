@@ -1,12 +1,12 @@
 package me.totalfreedom.totalfreedommod.util;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FLog
 {
 
-    private static final Logger FALLBACK_LOGGER = Logger.getLogger("Minecraft-Server");
+    private static final Logger FALLBACK_LOGGER = LoggerFactory.getLogger("Minecraft-Server");
     private static Logger serverLogger = null;
     private static Logger pluginLogger = null;
 
@@ -14,21 +14,29 @@ public class FLog
     {
     }
 
-    // Level.FINE (debug):
     public static void debug(String message)
     {
-        log(Level.FINE, message, false);
+        log(Level.DEBUG, message, false);
     }
 
-    // Level.INFO:
+    public static void debug(String format, Object... args)
+    {
+        log(Level.DEBUG, String.format(format, args), false);
+    }
+
     public static void info(String message)
     {
-        info(message, false);
+        log(Level.INFO, message, false);
     }
 
-    public static void info(String message, Boolean raw)
+    public static void info(String message, boolean raw)
     {
         log(Level.INFO, message, raw);
+    }
+
+    public static void info(String format, Object... args)
+    {
+        log(Level.INFO, String.format(format, args), false);
     }
 
     public static void info(Throwable ex)
@@ -36,39 +44,66 @@ public class FLog
         log(Level.INFO, ex);
     }
 
-    // Level.WARNING:
-    public static void warning(String message)
+    public static void warn(String message)
     {
-        warning(message, false);
+        log(Level.WARN, message, false);
     }
 
-    public static void warning(String message, Boolean raw)
+    public static void warn(String message, boolean raw)
     {
-        log(Level.WARNING, message, raw);
+        log(Level.WARN, message, raw);
     }
 
-    public static void warning(Throwable ex)
+    public static void warn(String format, Object... args)
     {
-        log(Level.WARNING, ex);
+        log(Level.WARN, String.format(format, args), false);
     }
 
-    // Level.SEVERE:
-    public static void severe(String message)
+    public static void warn(Throwable ex)
     {
-        severe(message, false);
+        log(Level.WARN, ex);
     }
 
-    public static void severe(String message, Boolean raw)
+    public static void error(String message)
     {
-        log(Level.SEVERE, message, raw);
+        log(Level.ERROR, message, false);
     }
 
-    public static void severe(Throwable ex)
+    public static void error(String message, boolean raw)
     {
-        log(Level.SEVERE, ex);
+        log(Level.ERROR, message, raw);
     }
 
-    // Utility
+    public static void error(String format, Object... args)
+    {
+        log(Level.ERROR, String.format(format, args), false);
+    }
+
+    public static void error(Throwable ex)
+    {
+        log(Level.ERROR, ex);
+    }
+
+    public static void setServerLogger(Logger logger)
+    {
+        serverLogger = logger;
+    }
+
+    public static void setPluginLogger(Logger logger)
+    {
+        pluginLogger = logger;
+    }
+
+    public static Logger getPluginLogger()
+    {
+        return (pluginLogger != null ? pluginLogger : FALLBACK_LOGGER);
+    }
+
+    public static Logger getServerLogger()
+    {
+        return (serverLogger != null ? serverLogger : FALLBACK_LOGGER);
+    }
+
     private static void log(Level level, String message, boolean raw)
     {
         if (message != null && !raw)
@@ -80,22 +115,34 @@ public class FLog
                 message = message.replace('&', '§');
             }
         }
-        getLogger(raw).log(level, message);
+        emit(getLogger(raw), level, message);
     }
 
     private static void log(Level level, Throwable throwable)
     {
-        getLogger(false).log(level, null, throwable);
+        emit(getLogger(false), level, throwable);
     }
 
-    public static void setServerLogger(Logger logger)
+    private static void emit(Logger logger, Level level, String message)
     {
-        serverLogger = logger;
+        switch (level)
+        {
+            case DEBUG -> logger.debug(message);
+            case INFO -> logger.info(message);
+            case WARN -> logger.warn(message);
+            case ERROR -> logger.error(message);
+        }
     }
 
-    public static void setPluginLogger(Logger logger)
+    private static void emit(Logger logger, Level level, Throwable throwable)
     {
-        pluginLogger = logger;
+        switch (level)
+        {
+            case DEBUG -> logger.debug("", throwable);
+            case INFO -> logger.info("", throwable);
+            case WARN -> logger.warn("", throwable);
+            case ERROR -> logger.error("", throwable);
+        }
     }
 
     private static Logger getLogger(boolean raw)
@@ -110,13 +157,8 @@ public class FLog
         }
     }
 
-    public static Logger getPluginLogger()
+    private enum Level
     {
-        return (pluginLogger != null ? pluginLogger : FALLBACK_LOGGER);
-    }
-
-    public static Logger getServerLogger()
-    {
-        return (serverLogger != null ? serverLogger : FALLBACK_LOGGER);
+        DEBUG, INFO, WARN, ERROR
     }
 }

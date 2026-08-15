@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.blocking.entity;
 
+import me.totalfreedom.api.FreedomAPI;
+
 import java.util.ArrayList;
 
 import com.destroystokyo.paper.event.entity.EntityAddToWorldEvent;
@@ -13,7 +15,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.blocking.sweep.EntityVisitor;
 import me.totalfreedom.totalfreedommod.blocking.sweep.SweepContext;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
@@ -54,22 +55,22 @@ public class WaypointGuard extends FreedomService
                     + " | sample: " + sample,
             DetectionReporter.warnAndBroadcastAdmins(plugin));
 
-    public WaypointGuard(TotalFreedomMod plugin)
+    public WaypointGuard(FreedomAPI plugin)
     {
         super(plugin);
     }
 
     @Override
-    protected void onStart()
+    public void onStart()
     {
-        plugin.sweepScheduler.register(waypointVisitor);
+        plugin.sweepScheduler().register(waypointVisitor);
         FLog.info("[WaypointGuard] active"
                 + " [remove waypoints=" + enabled() + "]"
                 + " [periodic sweep every " + ConfigEntry.CRASH_ENTITIES_WAYPOINT_SWEEP_TICKS.getInteger() + "t]");
     }
 
     @Override
-    protected void onStop()
+    public void onStop()
     {
     }
 

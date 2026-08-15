@@ -5,7 +5,6 @@ import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.player.PlayerData;
 import me.totalfreedom.totalfreedommod.util.FLog;
@@ -43,11 +42,11 @@ public class FreezeData
             return;
         }
 
-        final PlayerData data = fPlayer.getPlugin().pl.getData(player);
+        final PlayerData data = fPlayer.getPlugin().getPlayerData(player);
         if (data.isFrozen() != freeze)
         {
             data.setFrozen(freeze);
-            fPlayer.getPlugin().pl.saveData(data);
+            fPlayer.getPlugin().savePlayerData(data);
         }
 
         FUtil.cancel(unfreeze);
@@ -67,7 +66,7 @@ public class FreezeData
         location = player.getLocation(); // Blockify location
         FUtil.setFlying(player, true); // Avoid infinite falling
 
-        if (fPlayer.getPlugin().al.isAdminImpostor(player))
+        if (fPlayer.getPlugin().admins().isAdminImpostor(player))
         {
             return; // Don't run unfreeze task for impostors
         }

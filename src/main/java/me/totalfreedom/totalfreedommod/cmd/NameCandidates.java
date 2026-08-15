@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import me.totalfreedom.totalfreedommod.banning.PermbanList;
+
 import java.util.List;
 
 import org.bukkit.Bukkit;
@@ -7,7 +9,7 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.Server;
 import org.bukkit.entity.Player;
 
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.api.FreedomAPI;
 import me.totalfreedom.totalfreedommod.banning.Ban;
 import me.totalfreedom.totalfreedommod.cmd.internal.FuzzyMatch;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
@@ -62,12 +64,12 @@ final class NameCandidates
      * Plain-text nicknames of the online players who have one, for arguments that are matched
      * against nicknames rather than usernames.
      */
-    static List<String> onlineNicknames(TotalFreedomMod plugin, Server server, String partial)
+    static List<String> onlineNicknames(FreedomAPI plugin, Server server, String partial)
     {
         return FuzzyMatch.filter(
                 server.getOnlinePlayers()
                       .stream()
-                      .map(player -> plugin.pl.getData(player).getNickname())
+                      .map(player -> plugin.players().getData(player).getNickname())
                       .filter(nickname -> nickname != null)
                       .map(nickname -> AdventureUtil.componentToPlainText(nickname).trim())
                       .filter(nickname -> !nickname.isEmpty())
@@ -76,10 +78,10 @@ final class NameCandidates
                 partial);
     }
 
-    static List<String> banned(TotalFreedomMod plugin, String partial)
+    static List<String> banned(FreedomAPI plugin, String partial)
     {
         return FuzzyMatch.filter(
-                plugin.bm.getUsernameBans()
+                plugin.bans().getUsernameBans()
                          .stream()
                          .map(Ban::getUsername)
                          .filter(name -> name != null)
@@ -89,10 +91,10 @@ final class NameCandidates
                 partial);
     }
 
-    static List<String> permbanned(TotalFreedomMod plugin, String partial)
+    static List<String> permbanned(FreedomAPI plugin, String partial)
     {
         return FuzzyMatch.filter(
-                plugin.pm.getPermbannedNames()
+                plugin.services().require(PermbanList.class).getPermbannedNames()
                          .stream()
                          .sorted()
                          .toList(),
