@@ -8,13 +8,14 @@ import java.util.function.Function;
 import org.bukkit.event.Listener;
 
 import me.totalfreedom.api.FreedomAPI;
+import me.totalfreedom.api.framework.IServiceManager;
 import me.totalfreedom.totalfreedommod.util.FLog;
 
 /**
  * Owns registration, lookup, and lifecycle for a set of services.
  * Services are registered in dependency order, started in that order, and stopped in reverse.
  */
-public class ServiceManager
+public class ServiceManager implements IServiceManager
 {
 
     private final FreedomAPI plugin;

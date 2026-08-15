@@ -11,6 +11,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.entity.minecart.CommandMinecart;
 
 import me.totalfreedom.api.FreedomAPI;
+import me.totalfreedom.api.rank.IRankRegistry;
+import me.totalfreedom.api.rank.RankRole;
 import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchContext;
@@ -35,7 +37,7 @@ import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchSession;
  * The registry reads the live rank map owned by {@link RankManager} rather than copying it, so a
  * reload is visible here immediately; {@link #reindex()} rebuilds the permission index to match.
  */
-public final class RankRegistry
+public final class RankRegistry implements IRankRegistry
 {
 
     private final FreedomAPI plugin;

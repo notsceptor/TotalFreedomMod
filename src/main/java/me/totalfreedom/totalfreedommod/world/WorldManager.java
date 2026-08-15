@@ -1,39 +1,46 @@
 package me.totalfreedom.totalfreedommod.world;
 
-import me.totalfreedom.api.FreedomAPI;
+import java.io.File;
 
+import me.totalfreedom.api.FreedomAPI;
+import me.totalfreedom.api.world.IWorldManager;
+
+import org.apache.commons.io.FileUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
-import org.bukkit.event.player.PlayerMoveEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.weather.ThunderChangeEvent;
 import org.bukkit.event.weather.WeatherChangeEvent;
 
 import net.kyori.adventure.text.format.NamedTextColor;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
+import me.totalfreedom.totalfreedommod.SavedFlags;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
-import me.totalfreedom.totalfreedommod.player.FPlayer;
+import me.totalfreedom.totalfreedommod.util.FLog;
 
 import static me.totalfreedom.totalfreedommod.util.FUtil.playerMsg;
 
-public class WorldManager extends FreedomService
+/**
+ * Creates and tracks the two worlds TFM manages itself, flatlands and the AdminWorld, both plain
+ * profile-driven {@link GeneratedWorld}s sourced from {@link GenerationService}. The AdminWorld's
+ * access control lives in its own {@link WorldAccessGate}, wired up here rather than owned by this
+ * class, so nothing about "AdminWorld" specifically is hardcoded into world management.
+ */
+public class WorldManager extends FreedomService implements IWorldManager
 {
+    private static final String ADMIN_WORLD_PERMISSION = "tfm.world.adminworld";
 
-    public Flatlands flatlands;
-    public AdminWorld adminworld;
+    private GeneratedWorld flatlands;
+    private GeneratedWorld adminworld;
+    private WorldAccessGate adminGate;
 
     public WorldManager(FreedomAPI plugin)
     {
         super(plugin);
-
-        this.flatlands = new Flatlands((TotalFreedomMod) plugin);
-        this.adminworld = new AdminWorld((TotalFreedomMod) plugin);
     }
 
     @Override
@@ -41,10 +48,22 @@ public class WorldManager extends FreedomService
     {
         Bukkit.getScheduler().runTask(plugin, () ->
         {
-            flatlands.getWorld();
-            adminworld.getWorld();
+            flatlands = buildWorld("flatlands", "Flatlands");
+            adminworld = buildWorld("adminworld", "Admin World");
 
-        // Disable weather
+            if (flatlands != null && ConfigEntry.FLATLANDS_GENERATE.getBoolean())
+            {
+                wipeFlatlandsIfFlagged();
+                flatlands.getWorld();
+            }
+
+            if (adminworld != null)
+            {
+                adminworld.getWorld();
+                adminGate = new WorldAccessGate(plugin, adminworld, ADMIN_WORLD_PERMISSION);
+            }
+
+            // Disable weather
             if (ConfigEntry.DISABLE_WEATHER.getBoolean())
             {
                 for (World world : server.getWorlds())
@@ -61,49 +80,41 @@ public class WorldManager extends FreedomService
     @Override
     public void onStop()
     {
-        World fl = Bukkit.getWorld(flatlands.getName());
-        if (fl != null) fl.save();
-        World aw = Bukkit.getWorld(adminworld.getName());
-        if (aw != null) aw.save();
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onPlayerTeleport(PlayerTeleportEvent event)
-    {
-        final Player player = event.getPlayer();
-        final FPlayer fPlayer = plugin.players().getPlayer(player);
-
-        if (!plugin.admins().isAdmin(player) && fPlayer.getFreezeData().isFrozen())
+        if (flatlands != null)
         {
-            return; // Don't process adminworld validation
+            World fl = Bukkit.getWorld(flatlands.getName());
+            if (fl != null) fl.save();
         }
 
-        adminworld.validateMovement(event);
+        if (adminworld != null)
+        {
+            World aw = Bukkit.getWorld(adminworld.getName());
+            if (aw != null) aw.save();
+        }
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onPlayerMove(PlayerMoveEvent event)
+    public GeneratedWorld flatlands()
     {
-        if (!event.hasChangedPosition())
-        {
-            return;
-        }
+        return flatlands;
+    }
 
-        adminworld.validateMovement(event);
+    public GeneratedWorld adminworld()
+    {
+        return adminworld;
+    }
+
+    /** The AdminWorld's access gate, or null before onStart's deferred setup has run. */
+    public WorldAccessGate adminGate()
+    {
+        return adminGate;
     }
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onThunderChange(ThunderChangeEvent event)
     {
-        try
+        if (adminGate != null && adminGate.owns(event.getWorld()))
         {
-            if (event.getWorld().equals(adminworld.getWorld()) && adminworld.getWeatherMode() != WorldWeather.OFF)
-            {
-                return;
-            }
-        }
-        catch (Exception ex)
-        {
+            return; // The AdminWorld's own gate decides its weather.
         }
 
         if (ConfigEntry.DISABLE_WEATHER.getBoolean() && event.toThunderState())
@@ -112,24 +123,12 @@ public class WorldManager extends FreedomService
         }
     }
 
-    @EventHandler(priority = EventPriority.MONITOR)
-    public void onPlayerQuit(PlayerQuitEvent event)
-    {
-        adminworld.forgetPlayer(event.getPlayer());
-    }
-
     @EventHandler(priority = EventPriority.HIGH)
     public void onWeatherChange(WeatherChangeEvent event)
     {
-        try
+        if (adminGate != null && adminGate.owns(event.getWorld()))
         {
-            if (event.getWorld().equals(adminworld.getWorld()) && adminworld.getWeatherMode() != WorldWeather.OFF)
-            {
-                return;
-            }
-        }
-        catch (Exception ex)
-        {
+            return; // The AdminWorld's own gate decides its weather.
         }
 
         if (ConfigEntry.DISABLE_WEATHER.getBoolean() && event.toWeatherState())
@@ -165,4 +164,41 @@ public class WorldManager extends FreedomService
         playerMsg(player, "World " + targetWorld + " not found.", NamedTextColor.GRAY);
     }
 
+    private GeneratedWorld buildWorld(final String name, final String displayName)
+    {
+        return plugin.generation()
+                     .profile(name)
+                     .map(profile -> new GeneratedWorld((TotalFreedomMod) plugin, profile, displayName))
+                     .orElse(null);
+    }
+
+    /** Consumes the "wipe flatlands on next start" flag {@code /wipeflatlands} sets, if it's up. */
+    private void wipeFlatlandsIfFlagged()
+    {
+        boolean doWipe;
+
+        try
+        {
+            doWipe = plugin.services().require(SavedFlags.class).getSavedFlag("do_wipe_flatlands");
+        }
+        catch (Exception ex)
+        {
+            return;
+        }
+
+        if (!doWipe)
+        {
+            return;
+        }
+
+        if (Bukkit.getServer().getWorld("flatlands") != null)
+        {
+            FLog.error("Can't wipe flatlands, it is already loaded.");
+            return;
+        }
+
+        FLog.info("Wiping flatlands.");
+        plugin.services().require(SavedFlags.class).setSavedFlag("do_wipe_flatlands", false);
+        FileUtils.deleteQuietly(new File("./flatlands"));
+    }
 }

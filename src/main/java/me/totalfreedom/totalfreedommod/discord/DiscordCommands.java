@@ -14,7 +14,7 @@ import reactor.core.scheduler.Schedulers;
 
 import me.totalfreedom.api.FreedomAPI;
 import me.totalfreedom.totalfreedommod.admin.Admin;
-import me.totalfreedom.totalfreedommod.sql.adapter.DiscordLinkRepository;
+import me.totalfreedom.api.sql.adapter.DiscordLinkRepository;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.PlayerListUtil;
 

@@ -32,7 +32,7 @@ import reactor.core.scheduler.Schedulers;
 import me.totalfreedom.totalfreedommod.ProtectArea.ProtectedRegion.CantFindWorldException;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.sql.PersistenceQueue;
-import me.totalfreedom.totalfreedommod.sql.adapter.ProtectedAreaRepository;
+import me.totalfreedom.api.sql.adapter.ProtectedAreaRepository;
 import me.totalfreedom.totalfreedommod.util.*;
 
 import com.google.common.collect.Maps;

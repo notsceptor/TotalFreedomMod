@@ -1,0 +1,97 @@
+package me.totalfreedom.api.sql;
+
+import java.util.function.Consumer;
+
+import reactor.core.publisher.Mono;
+
+import me.totalfreedom.api.sql.adapter.AdminRepository;
+import me.totalfreedom.api.sql.adapter.BanRepository;
+import me.totalfreedom.api.sql.adapter.DiscordLinkRepository;
+import me.totalfreedom.api.sql.adapter.EconomyRepository;
+import me.totalfreedom.api.sql.adapter.MigrationRepository;
+import me.totalfreedom.api.sql.adapter.PermbanRepository;
+import me.totalfreedom.api.sql.adapter.PlayerRepository;
+import me.totalfreedom.api.sql.adapter.ProtectedAreaRepository;
+import me.totalfreedom.api.sql.adapter.RankRepository;
+import me.totalfreedom.api.sql.adapter.SavedFlagRepository;
+import me.totalfreedom.api.sql.adapter.StrikeRepository;
+import me.totalfreedom.api.sql.adapter.TitleRepository;
+import me.totalfreedom.totalfreedommod.sql.ConnectionHandler;
+
+public interface IFreedomDatabase
+{
+    /**
+     * Build the connection pool, run schema migrations, then fold any legacy YAML data in,
+     * entirely on a background thread.
+     */
+    void initializeAsync();
+
+    /**
+     * Register {@code callback} to run on the main thread once the database is up and its YAML
+     * migrations have finished, or immediately if that has already happened. Callbacks run in
+     * registration order and are skipped entirely if the database never comes up.
+     * <p>
+     * Main thread only.
+     */
+    void whenReady(Runnable callback);
+
+    /**
+     * Run {@code query} off the main thread and hand its result to {@code apply} back on it.
+     * A failed or empty query logs against {@code label} and runs {@code onFailure} instead,
+     * also on the main thread.
+     */
+    <T> void readAsync(String label, Mono<T> query, Consumer<T> apply, Runnable onFailure);
+
+    /**
+     * Run {@code body} on the main thread, or inline if the plugin is already disabled.
+     */
+    void sync(String label, Runnable body);
+
+    /**
+     * Shutdown the database connection.
+     */
+    void shutdown();
+
+    /**
+     * Check if the database is initialized.
+     */
+    boolean isInitialized();
+
+    AdminRepository getAdminRepository();
+
+    BanRepository getBanRepository();
+
+    PermbanRepository getPermbanRepository();
+
+    StrikeRepository getStrikeRepository();
+
+    DiscordLinkRepository getDiscordLinkRepository();
+
+    RankRepository getRankRepository();
+
+    TitleRepository getTitleRepository();
+
+    ProtectedAreaRepository getProtectedAreaRepository();
+
+    SavedFlagRepository getSavedFlagRepository();
+
+    PlayerRepository getPlayerRepository();
+
+    MigrationRepository getMigrationRepository();
+
+    /**
+     * Get the per-player economy balance repository.
+     */
+    EconomyRepository getEconomyRepository();
+
+    /**
+     * Snapshot of live connection pool and fairness-queue health, or {@code null} if the
+     * database isn't initialized.
+     */
+    ConnectionHandler.PoolStats getPoolStats();
+
+    /**
+     * Get the database type.
+     */
+    DatabaseType getDatabaseType();
+}

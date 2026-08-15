@@ -20,7 +20,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 
-import me.totalfreedom.totalfreedommod.player.PlayerData;
+import me.totalfreedom.api.player.PlayerData;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 
 import org.apache.commons.lang3.tuple.Pair;

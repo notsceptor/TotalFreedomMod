@@ -6,7 +6,7 @@ import java.util.UUID;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 
-import me.totalfreedom.totalfreedommod.rank.RankRole;
+import me.totalfreedom.api.rank.RankRole;
 
 import com.google.gson.*;
 

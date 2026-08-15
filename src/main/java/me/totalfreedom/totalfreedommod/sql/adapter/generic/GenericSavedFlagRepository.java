@@ -10,7 +10,7 @@ import reactor.core.publisher.Mono;
 
 import me.totalfreedom.totalfreedommod.sql.StatementHandler;
 import me.totalfreedom.totalfreedommod.sql.adapter.DatabaseAdapter;
-import me.totalfreedom.totalfreedommod.sql.adapter.SavedFlagRepository;
+import me.totalfreedom.api.sql.adapter.SavedFlagRepository;
 
 /**
  * All dialect differences are resolved through the {@link DatabaseAdapter} passed in.

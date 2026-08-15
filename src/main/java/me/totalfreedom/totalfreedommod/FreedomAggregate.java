@@ -4,7 +4,23 @@ import java.io.InputStream;
 import java.util.Properties;
 
 import me.totalfreedom.api.BuildInfo;
+import me.totalfreedom.api.IAutoEject;
+import me.totalfreedom.api.IGameRuleHandler;
+import me.totalfreedom.api.admin.IAdminList;
+import me.totalfreedom.api.banning.IBanManager;
+import me.totalfreedom.api.blocking.sweep.ISweepScheduler;
+import me.totalfreedom.api.config.IMainConfig;
 import me.totalfreedom.api.economy.IBank;
+import me.totalfreedom.api.economy.IEcoManager;
+import me.totalfreedom.api.framework.IServiceManager;
+import me.totalfreedom.api.player.IPlayerList;
+import me.totalfreedom.api.rank.IConsoleSenderRegistry;
+import me.totalfreedom.api.rank.IRankManager;
+import me.totalfreedom.api.sql.IFreedomDatabase;
+import me.totalfreedom.api.title.ITitleManager;
+import me.totalfreedom.api.vanish.IVanishService;
+import me.totalfreedom.api.world.IGenerationService;
+import me.totalfreedom.api.world.IWorldManager;
 import me.totalfreedom.totalfreedommod.admin.AdminList;
 import me.totalfreedom.totalfreedommod.banning.BanManager;
 import me.totalfreedom.totalfreedommod.banning.PermbanList;
@@ -202,17 +218,17 @@ public class FreedomAggregate
         services.stop();
     }
 
-    public ServiceManager services()
+    public IServiceManager services()
     {
         return services;
     }
 
-    public ServiceManager bridges()
+    public IServiceManager bridges()
     {
         return bridges;
     }
 
-    public MainConfig config()
+    public IMainConfig config()
     {
         return config;
     }
@@ -222,22 +238,22 @@ public class FreedomAggregate
         return buildInfo;
     }
 
-    public ConsoleSenderRegistry consoleSenders()
+    public IConsoleSenderRegistry consoleSenders()
     {
         return consoleSenderRegistry;
     }
 
-    public FreedomDatabase database()
+    public IFreedomDatabase database()
     {
         return services.require(FreedomDatabase.class);
     }
 
-    public AdminList admins()
+    public IAdminList admins()
     {
         return services.require(AdminList.class);
     }
 
-    public PlayerList players()
+    public IPlayerList players()
     {
         return services.require(PlayerList.class);
     }
@@ -247,52 +263,52 @@ public class FreedomAggregate
         return economy().bank();
     }
 
-    public EcoManager economy()
+    public IEcoManager economy()
     {
         return services.require(EcoManager.class);
     }
 
-    public RankManager ranks()
+    public IRankManager ranks()
     {
         return services.require(RankManager.class);
     }
 
-    public TitleManager titles()
+    public ITitleManager titles()
     {
         return services.require(TitleManager.class);
     }
 
-    public WorldManager worlds()
+    public IWorldManager worlds()
     {
         return services.require(WorldManager.class);
     }
 
-    public GenerationService generation()
+    public IGenerationService generation()
     {
         return services.require(GenerationService.class);
     }
 
-    public VanishService vanish()
+    public IVanishService vanish()
     {
         return services.require(VanishService.class);
     }
 
-    public BanManager bans()
+    public IBanManager bans()
     {
         return services.require(BanManager.class);
     }
 
-    public AutoEject autoEject()
+    public IAutoEject autoEject()
     {
         return services.require(AutoEject.class);
     }
 
-    public SweepScheduler sweepScheduler()
+    public ISweepScheduler sweepScheduler()
     {
         return services.require(SweepScheduler.class);
     }
 
-    public GameRuleHandler gameRules()
+    public IGameRuleHandler gameRules()
     {
         return services.require(GameRuleHandler.class);
     }

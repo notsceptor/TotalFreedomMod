@@ -3,6 +3,7 @@ package me.totalfreedom.totalfreedommod.banning;
 import me.totalfreedom.totalfreedommod.bridge.WorldEditBridge;
 
 import me.totalfreedom.api.FreedomAPI;
+import me.totalfreedom.api.banning.IBanManager;
 
 import java.io.File;
 import java.io.FileReader;
@@ -25,9 +26,9 @@ import reactor.core.scheduler.Schedulers;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
-import me.totalfreedom.totalfreedommod.player.PlayerData;
+import me.totalfreedom.api.player.PlayerData;
 import me.totalfreedom.totalfreedommod.sql.PersistenceQueue;
-import me.totalfreedom.totalfreedommod.sql.adapter.BanRepository;
+import me.totalfreedom.api.sql.adapter.BanRepository;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import me.totalfreedom.totalfreedommod.util.JsonUtil;
@@ -37,7 +38,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.gson.reflect.TypeToken;
 
-public class BanManager extends FreedomService
+public class BanManager extends FreedomService implements IBanManager
 {
     private static final Type BAN_LIST_TYPE = new TypeToken<List<Ban>>() {}.getType();
     private static final long SHUTDOWN_FLUSH_TIMEOUT_MS = 10L * 1000L;

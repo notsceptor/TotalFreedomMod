@@ -9,7 +9,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 
-import me.totalfreedom.totalfreedommod.display.Displayable;
+import me.totalfreedom.api.display.Displayable;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 
 /**

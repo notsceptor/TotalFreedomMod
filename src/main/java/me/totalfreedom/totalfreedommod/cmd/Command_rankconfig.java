@@ -15,7 +15,7 @@ import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.cmd.internal.FuzzyMatch;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.rank.CustomRank;
-import me.totalfreedom.totalfreedommod.rank.RankRole;
+import me.totalfreedom.api.rank.RankRole;
 
 @Command(
         name = "rankconfig",

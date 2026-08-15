@@ -15,7 +15,7 @@ import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchContext;
-import me.totalfreedom.totalfreedommod.display.Displayable;
+import me.totalfreedom.api.display.Displayable;
 import me.totalfreedom.totalfreedommod.util.PlayerListUtil;
 
 @Command(name = "list", description = "Lists the real names of all online players.", usage = "/list [-a | -i | -f]", aliases = {"who"})

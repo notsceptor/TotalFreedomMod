@@ -1,6 +1,7 @@
 package me.totalfreedom.totalfreedommod.sql.adapter;
 
 import me.totalfreedom.api.FreedomAPI;
+import me.totalfreedom.api.sql.DatabaseType;
 import me.totalfreedom.totalfreedommod.sql.ConnectionHandler;
 import me.totalfreedom.totalfreedommod.sql.SQLProperties;
 import me.totalfreedom.totalfreedommod.sql.StatementHandler;
@@ -42,7 +43,7 @@ public final class AdapterFactory
             ConnectionHandler connectionHandler,
             StatementHandler statementHandler)
     {
-        SQLProperties.DatabaseType type = properties.getDatabaseType();
+        DatabaseType type = properties.getDatabaseType();
 
         FLog.info("Creating database adapter for type: " + type.name());
 
@@ -61,7 +62,7 @@ public final class AdapterFactory
      * @param type The database type to check
      * @return true if the database type is SQL, false if NoSQL
      */
-    public static boolean isSqlDatabase(SQLProperties.DatabaseType type)
+    public static boolean isSqlDatabase(DatabaseType type)
     {
         return switch (type)
         {
@@ -77,7 +78,7 @@ public final class AdapterFactory
      * @param type The database type
      * @return The class of the adapter that will be used
      */
-    public static Class<? extends DatabaseAdapter> getAdapterClass(SQLProperties.DatabaseType type)
+    public static Class<? extends DatabaseAdapter> getAdapterClass(DatabaseType type)
     {
         return switch (type)
         {

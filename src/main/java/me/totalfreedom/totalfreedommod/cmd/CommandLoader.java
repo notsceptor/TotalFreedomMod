@@ -35,8 +35,8 @@ import me.totalfreedom.totalfreedommod.ProtectArea.ProtectedRegion;
 import me.totalfreedom.totalfreedommod.cmd.internal.*;
 import me.totalfreedom.totalfreedommod.cmd.resolver.*;
 import me.totalfreedom.totalfreedommod.util.FLog;
-import me.totalfreedom.totalfreedommod.world.WorldTime;
-import me.totalfreedom.totalfreedommod.world.WorldWeather;
+import me.totalfreedom.api.world.WorldTime;
+import me.totalfreedom.api.world.WorldWeather;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 

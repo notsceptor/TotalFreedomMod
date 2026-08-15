@@ -19,7 +19,7 @@ import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.cmd.CommandRegistry;
 import me.totalfreedom.totalfreedommod.cmd.FCommand;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Permission;
-import me.totalfreedom.totalfreedommod.display.Displayable;
+import me.totalfreedom.api.display.Displayable;
 import me.totalfreedom.totalfreedommod.httpd.NanoHTTPD;
 import me.totalfreedom.totalfreedommod.rank.CustomRank;
 

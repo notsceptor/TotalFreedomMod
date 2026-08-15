@@ -46,7 +46,7 @@ import com.sk89q.worldedit.world.registry.BlockMaterial;
 import com.sk89q.worldedit.world.registry.LegacyMapper;
 
 import me.totalfreedom.api.FreedomAPI;
-import me.totalfreedom.totalfreedommod.blocking.sweep.SweepContext;
+import me.totalfreedom.api.blocking.sweep.SweepContext;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FTask;

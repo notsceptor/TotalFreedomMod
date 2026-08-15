@@ -15,7 +15,7 @@ import reactor.core.publisher.Mono;
 
 import me.totalfreedom.totalfreedommod.sql.StatementHandler;
 import me.totalfreedom.totalfreedommod.sql.adapter.DatabaseAdapter;
-import me.totalfreedom.totalfreedommod.sql.adapter.TitleRepository;
+import me.totalfreedom.api.sql.adapter.TitleRepository;
 import me.totalfreedom.totalfreedommod.title.Title;
 
 /**

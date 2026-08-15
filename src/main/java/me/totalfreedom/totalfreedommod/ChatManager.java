@@ -25,9 +25,9 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
-import me.totalfreedom.totalfreedommod.display.Displayable;
+import me.totalfreedom.api.display.Displayable;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
-import me.totalfreedom.totalfreedommod.player.PlayerData;
+import me.totalfreedom.api.player.PlayerData;
 import me.totalfreedom.totalfreedommod.util.*;
 import me.totalfreedom.totalfreedommod.vault.VaultProviderRegistry;
 

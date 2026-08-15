@@ -16,6 +16,7 @@ import reactor.core.publisher.Mono;
 
 import me.totalfreedom.api.FreedomAPI;
 import me.totalfreedom.api.economy.IBank;
+import me.totalfreedom.api.economy.IEcoManager;
 import me.totalfreedom.api.economy.IEcoPlayer;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.sql.PersistenceQueue;
@@ -26,7 +27,7 @@ import me.totalfreedom.totalfreedommod.util.FLog;
  * database is available. There is no JSON fallback here: with no database, balances live for
  * the current session only.
  */
-public class EcoManager extends FreedomService
+public class EcoManager extends FreedomService implements IEcoManager
 {
 
     private static final long SHUTDOWN_FLUSH_TIMEOUT_MS = 10L * 1000L;

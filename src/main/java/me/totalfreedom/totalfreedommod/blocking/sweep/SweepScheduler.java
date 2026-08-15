@@ -1,6 +1,10 @@
 package me.totalfreedom.totalfreedommod.blocking.sweep;
 
 import me.totalfreedom.api.FreedomAPI;
+import me.totalfreedom.api.blocking.sweep.EntityVisitor;
+import me.totalfreedom.api.blocking.sweep.ISweepScheduler;
+import me.totalfreedom.api.blocking.sweep.SweepContext;
+import me.totalfreedom.api.blocking.sweep.TileEntityVisitor;
 
 import java.util.ArrayDeque;
 import java.util.Collection;
@@ -24,7 +28,7 @@ import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FTask;
 
-public class SweepScheduler extends FreedomService
+public class SweepScheduler extends FreedomService implements ISweepScheduler
 {
 
     private static final long DRAIN_BUDGET_NANOS = 5_000_000L;

@@ -10,7 +10,7 @@ import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 
-import me.totalfreedom.totalfreedommod.display.Displayable;
+import me.totalfreedom.api.display.Displayable;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.player.SpyMode;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;

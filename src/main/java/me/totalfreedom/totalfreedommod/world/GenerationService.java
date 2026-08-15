@@ -12,6 +12,7 @@ import org.bukkit.generator.ChunkGenerator;
 import com.google.gson.JsonObject;
 
 import me.totalfreedom.api.FreedomAPI;
+import me.totalfreedom.api.world.IGenerationService;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.world.adapter.ProfileChunkGenerator;
@@ -30,11 +31,8 @@ import me.totalfreedom.totalfreedommod.world.profile.ProfileParser;
  * Sits behind the plugin's getDefaultWorldGenerator hook, which is what lets a profile drive a
  * world created through bukkit.yml or a world manager instead of only ones we create ourselves.
  */
-public final class GenerationService extends FreedomService
+public final class GenerationService extends FreedomService implements IGenerationService
 {
-    /** World names TFM already manages itself, outside the profile system; see {@link Flatlands} and {@link AdminWorld}. */
-    private static final Set<String> RESERVED_WORLD_NAMES = Set.of("flatlands", "adminworld");
-
     private final ProfileLoader loader;
     private final ProfileParser parser;
     private final Map<String, GenerationProfile> profiles;
@@ -51,9 +49,11 @@ public final class GenerationService extends FreedomService
     @Override
     public void onStart()
     {
+        this.provisionBuiltinWorlds();
+
         final Map<String, JsonObject> biomeLibrary;
 
-        try 
+        try
         {
             biomeLibrary = this.loader.biomeLibrary();
         }
@@ -68,6 +68,17 @@ public final class GenerationService extends FreedomService
             .available()
             .forEach(name -> this.loadProfile(name, biomeLibrary));
 
+    }
+
+    /**
+     * Seeds TFM's own always-present worlds, flatlands and the AdminWorld, with a profile on first
+     * run. Both start from the same flat template flatlands has always used; {@link ProfileLoader#copyTemplate}
+     * refuses to overwrite either file once an admin has edited it, so this is a no-op after that.
+     */
+    private void provisionBuiltinWorlds()
+    {
+        this.loader.copyTemplate("flatlands-template", "flatlands");
+        this.loader.copyTemplate("flatlands-template", "adminworld");
     }
 
     @Override
@@ -121,12 +132,6 @@ public final class GenerationService extends FreedomService
 
     private void loadProfile(final String worldName, final Map<String, JsonObject> biomeLibrary)
     {
-        if (RESERVED_WORLD_NAMES.contains(worldName))
-        {
-            FLog.warning("Skipping profile \"" + worldName + "\": that name is reserved for TFM's own " + worldName + " world and can never be generated from a profile.");
-            return;
-        }
-
         try
         {
             final Optional<JsonObject> jsonRoot = this.loader.read(worldName);

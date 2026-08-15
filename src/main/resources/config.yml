@@ -491,20 +491,10 @@ moblimiter:
     - "minecraft:bat"
 
 # Flatlands
+# Its terrain is a profile at worlds/flatlands.json (seeded from the bundled flat template on first
+# run), editable the same way as any other generated world.
 flatlands:
   generate: true
-
-  # Flatlands generation parameters - Uses CleanroomGenerator v1.2.1 syntax
-  # Format: [prefix]height|block|height|block|...
-  # Prefixes: . = no bedrock, ^ = start at y=-64 (1.18+ deep worlds)
-  # Examples:
-  #   "64|stone" - 1 bedrock + 64 stone
-  #   ".64|stone" - 64 stone, no bedrock  
-  #   "^64|stone" - starts at y=-64
-  #   "." - void world
-  # Block names support modern format like "minecraft:grass_block[snowy=true]"
-  # Legacy comma-separated format is still supported for backward compatibility
-  generate_params: 16|stone|32|dirt|1|grass_block
 
 # Admin-Only Mode
 admin_only_mode: false

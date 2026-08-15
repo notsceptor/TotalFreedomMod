@@ -22,8 +22,8 @@ import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
-import me.totalfreedom.totalfreedommod.display.Displayable;
-import me.totalfreedom.totalfreedommod.player.PlayerData;
+import me.totalfreedom.api.display.Displayable;
+import me.totalfreedom.api.player.PlayerData;
 import me.totalfreedom.totalfreedommod.util.*;
 
 public class BookSpy extends FreedomService

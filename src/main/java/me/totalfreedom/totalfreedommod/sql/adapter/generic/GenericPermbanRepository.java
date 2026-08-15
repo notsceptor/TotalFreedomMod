@@ -11,7 +11,7 @@ import reactor.core.publisher.Mono;
 import me.totalfreedom.totalfreedommod.banning.PermBan;
 import me.totalfreedom.totalfreedommod.sql.StatementHandler;
 import me.totalfreedom.totalfreedommod.sql.adapter.DatabaseAdapter;
-import me.totalfreedom.totalfreedommod.sql.adapter.PermbanRepository;
+import me.totalfreedom.api.sql.adapter.PermbanRepository;
 
 /**
  * All dialect differences are resolved through the {@link DatabaseAdapter} passed in.

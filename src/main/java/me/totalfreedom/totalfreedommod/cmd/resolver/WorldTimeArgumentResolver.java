@@ -6,7 +6,7 @@ import java.util.List;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
 import me.totalfreedom.totalfreedommod.cmd.MessageUtils;
-import me.totalfreedom.totalfreedommod.world.WorldTime;
+import me.totalfreedom.api.world.WorldTime;
 
 public class WorldTimeArgumentResolver implements AbstractArgumentResolver<WorldTime> 
 {

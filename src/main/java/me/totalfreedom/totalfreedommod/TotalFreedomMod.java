@@ -11,16 +11,31 @@ import org.slf4j.LoggerFactory;
 
 import me.totalfreedom.api.BuildInfo;
 import me.totalfreedom.api.FreedomAPI;
+import me.totalfreedom.api.IAutoEject;
+import me.totalfreedom.api.IGameRuleHandler;
+import me.totalfreedom.api.admin.IAdminList;
+import me.totalfreedom.api.banning.IBanManager;
+import me.totalfreedom.api.blocking.sweep.ISweepScheduler;
+import me.totalfreedom.api.config.IMainConfig;
 import me.totalfreedom.api.economy.IBank;
+import me.totalfreedom.api.economy.IEcoManager;
+import me.totalfreedom.api.framework.IServiceManager;
+import me.totalfreedom.api.player.IPlayerList;
+import me.totalfreedom.api.rank.IConsoleSenderRegistry;
+import me.totalfreedom.api.rank.IRankManager;
+import me.totalfreedom.api.sql.IFreedomDatabase;
+import me.totalfreedom.api.title.ITitleManager;
+import me.totalfreedom.api.vanish.IVanishService;
+import me.totalfreedom.api.world.IGenerationService;
+import me.totalfreedom.api.world.IWorldManager;
 import me.totalfreedom.totalfreedommod.admin.AdminList;
 import me.totalfreedom.totalfreedommod.banning.BanManager;
 import me.totalfreedom.totalfreedommod.banning.PermbanList;
 import me.totalfreedom.totalfreedommod.blocking.sweep.SweepScheduler;
-import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.config.MainConfig;
 import me.totalfreedom.totalfreedommod.eco.EcoManager;
 import me.totalfreedom.totalfreedommod.framework.ServiceManager;
-import me.totalfreedom.totalfreedommod.player.PlayerData;
+import me.totalfreedom.api.player.PlayerData;
 import me.totalfreedom.totalfreedommod.player.PlayerList;
 import me.totalfreedom.totalfreedommod.rank.ConsoleSenderRegistry;
 import me.totalfreedom.totalfreedommod.rank.RankManager;
@@ -30,7 +45,6 @@ import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import me.totalfreedom.totalfreedommod.util.MethodTimer;
 import me.totalfreedom.totalfreedommod.vanish.VanishService;
-import me.totalfreedom.totalfreedommod.world.CleanroomChunkGenerator;
 import me.totalfreedom.totalfreedommod.world.GenerationService;
 import me.totalfreedom.totalfreedommod.world.WorldManager;
 
@@ -86,22 +100,7 @@ public class TotalFreedomMod extends JavaPlugin implements FreedomAPI
     @Override
     public ChunkGenerator getDefaultWorldGenerator(String worldName, String id)
     {
-        if ("flatlands".equals(worldName))
-        {
-            String params;
-            if (aggregate != null && aggregate.config() != null)
-            {
-                params = ConfigEntry.FLATLANDS_GENERATE_PARAMS.getString();
-            }
-            else
-            {
-                saveDefaultConfig();
-                params = getConfig().getString("flatlands.generate_params", "16|stone|32|dirt|1|grass_block");
-            }
-            return new CleanroomChunkGenerator(params);
-        }
-
-        if (aggregate.generation() != null)
+        if (aggregate != null && aggregate.generation() != null)
         {
             final Optional<ChunkGenerator> generator = aggregate.generation().generatorFor(worldName);
 
@@ -127,19 +126,19 @@ public class TotalFreedomMod extends JavaPlugin implements FreedomAPI
     }
 
     @Override
-    public ServiceManager services()
+    public IServiceManager services()
     {
         return aggregate.services();
     }
 
     @Override
-    public ServiceManager bridges()
+    public IServiceManager bridges()
     {
         return aggregate.bridges();
     }
 
     @Override
-    public MainConfig config()
+    public IMainConfig config()
     {
         return aggregate.config();
     }
@@ -151,19 +150,19 @@ public class TotalFreedomMod extends JavaPlugin implements FreedomAPI
     }
 
     @Override
-    public FreedomDatabase database()
+    public IFreedomDatabase database()
     {
         return aggregate.database();
     }
 
     @Override
-    public AdminList admins()
+    public IAdminList admins()
     {
         return aggregate.admins();
     }
 
     @Override
-    public PlayerList players()
+    public IPlayerList players()
     {
         return aggregate.players();
     }
@@ -175,67 +174,67 @@ public class TotalFreedomMod extends JavaPlugin implements FreedomAPI
     }
 
     @Override
-    public EcoManager economy()
+    public IEcoManager economy()
     {
         return aggregate.economy();
     }
 
     @Override
-    public RankManager ranks()
+    public IRankManager ranks()
     {
         return aggregate.ranks();
     }
 
     @Override
-    public TitleManager titles()
+    public ITitleManager titles()
     {
         return aggregate.titles();
     }
 
     @Override
-    public WorldManager worlds()
+    public IWorldManager worlds()
     {
         return aggregate.worlds();
     }
 
     @Override
-    public GenerationService generation()
+    public IGenerationService generation()
     {
         return aggregate.generation();
     }
 
     @Override
-    public VanishService vanish()
+    public IVanishService vanish()
     {
         return aggregate.vanish();
     }
 
     @Override
-    public ConsoleSenderRegistry consoleSenders()
+    public IConsoleSenderRegistry consoleSenders()
     {
         return aggregate.consoleSenders();
     }
 
     @Override
-    public BanManager bans()
+    public IBanManager bans()
     {
         return aggregate.bans();
     }
 
     @Override
-    public AutoEject autoEject()
+    public IAutoEject autoEject()
     {
         return aggregate.autoEject();
     }
 
     @Override
-    public SweepScheduler sweepScheduler()
+    public ISweepScheduler sweepScheduler()
     {
         return aggregate.sweepScheduler();
     }
 
     @Override
-    public GameRuleHandler gameRules()
+    public IGameRuleHandler gameRules()
     {
         return aggregate.gameRules();
     }

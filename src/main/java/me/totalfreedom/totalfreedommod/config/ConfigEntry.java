@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.bukkit.configuration.ConfigurationSection;
 
+import me.totalfreedom.api.config.IMainConfig;
 import me.totalfreedom.totalfreedommod.PluginProvider;
 
 public enum ConfigEntry
@@ -234,7 +235,6 @@ public enum ConfigEntry
     SPAWN_SEND_ON_RESPAWN(Boolean.class, "spawn.send_player.on_respawn"),
     //
     FLATLANDS_GENERATE(Boolean.class, "flatlands.generate"),
-    FLATLANDS_GENERATE_PARAMS(String.class, "flatlands.generate_params"),
     //
     ANNOUNCER_ENABLED(Boolean.class, "announcer.enabled"),
     ANNOUNCER_INTERVAL(Integer.class, "announcer.interval"),
@@ -408,7 +408,7 @@ public enum ConfigEntry
         return getConfig().get(this, ConfigurationSection.class);
     }
 
-    private MainConfig getConfig()
+    private IMainConfig getConfig()
     {
         return PluginProvider.get().config();
     }

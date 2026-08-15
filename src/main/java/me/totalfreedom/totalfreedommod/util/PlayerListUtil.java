@@ -12,7 +12,7 @@ import org.bukkit.entity.Player;
 import me.totalfreedom.api.FreedomAPI;
 import me.totalfreedom.totalfreedommod.PluginProvider;
 import me.totalfreedom.totalfreedommod.rank.CustomRank;
-import me.totalfreedom.totalfreedommod.rank.RankRole;
+import me.totalfreedom.api.rank.RankRole;
 
 /**
  * Plaintext online player list shared by automated console contexts.

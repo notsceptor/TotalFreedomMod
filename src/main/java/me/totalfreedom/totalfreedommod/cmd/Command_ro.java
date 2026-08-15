@@ -28,8 +28,10 @@ public class Command_ro extends FCommand
     @Callback
     public void allPlayersWithRadius(CommandSender sender, @Resolve(value = "MaterialQuery", strategy = "mode=blocks,limit=24L,nonEmpty") List<Material> blocks, int radius)
     {
+        final String adminWorldName = plugin().worlds().adminworld() == null ? null : plugin().worlds().adminworld().getName();
+
         removeNear(sender, blocks, radius, server().getOnlinePlayers().stream()
-                .filter(player -> !player.getWorld().getName().equalsIgnoreCase(plugin().worlds().adminworld.getName()))
+                .filter(player -> !player.getWorld().getName().equalsIgnoreCase(adminWorldName))
                 .map(player -> (Player) player)
                 .toList());
     }

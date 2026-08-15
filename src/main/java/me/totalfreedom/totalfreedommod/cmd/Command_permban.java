@@ -19,7 +19,7 @@ import me.totalfreedom.totalfreedommod.banning.PermBan;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchContext;
-import me.totalfreedom.totalfreedommod.player.PlayerData;
+import me.totalfreedom.api.player.PlayerData;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 
 @Command(name = "permban", description = "Manage permanently banned players and IPs.", usage = "/permban <add <name> [ip...] | remove <name|ip> | reload>")

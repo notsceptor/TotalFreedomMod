@@ -7,7 +7,7 @@ import java.util.stream.Stream;
 import org.bukkit.entity.Player;
 
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
-import me.totalfreedom.totalfreedommod.player.PlayerData;
+import me.totalfreedom.api.player.PlayerData;
 import me.totalfreedom.totalfreedommod.player.SpyMode;
 
 @Command(name = "potionspy", description = "Spy on potion usage", usage = "/potionspy [ops | admins | all | off]", aliases = {"potspy"})

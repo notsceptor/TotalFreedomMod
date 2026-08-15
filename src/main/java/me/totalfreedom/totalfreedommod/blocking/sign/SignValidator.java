@@ -27,8 +27,8 @@ import org.bukkit.scheduler.BukkitTask;
 import net.kyori.adventure.text.format.NamedTextColor;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.blocking.sweep.SweepContext;
-import me.totalfreedom.totalfreedommod.blocking.sweep.TileEntityVisitor;
+import me.totalfreedom.api.blocking.sweep.SweepContext;
+import me.totalfreedom.api.blocking.sweep.TileEntityVisitor;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.ComponentScanner;
 import me.totalfreedom.totalfreedommod.util.FLog;

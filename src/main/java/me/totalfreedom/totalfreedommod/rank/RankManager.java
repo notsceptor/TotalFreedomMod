@@ -3,6 +3,8 @@ package me.totalfreedom.totalfreedommod.rank;
 import me.totalfreedom.totalfreedommod.discord.DiscordBridge;
 
 import me.totalfreedom.api.FreedomAPI;
+import me.totalfreedom.api.rank.IRankManager;
+import me.totalfreedom.api.rank.RankRole;
 
 import java.io.File;
 import java.io.FileReader;
@@ -57,16 +59,16 @@ import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchContext;
 import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchSession;
-import me.totalfreedom.totalfreedommod.display.Displayable;
+import me.totalfreedom.api.display.Displayable;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.sql.PersistenceQueue;
-import me.totalfreedom.totalfreedommod.sql.adapter.RankRepository;
+import me.totalfreedom.api.sql.adapter.RankRepository;
 import me.totalfreedom.totalfreedommod.util.*;
 
 import com.google.common.collect.Maps;
 import com.google.gson.reflect.TypeToken;
 
-public class RankManager extends FreedomService
+public class RankManager extends FreedomService implements IRankManager
 {
     public static final String RANKS_FILENAME = "ranks.json";
 

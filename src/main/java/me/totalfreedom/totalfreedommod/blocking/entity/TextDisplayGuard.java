@@ -14,8 +14,8 @@ import org.bukkit.event.entity.EntitySpawnEvent;
 import net.kyori.adventure.text.Component;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.blocking.sweep.EntityVisitor;
-import me.totalfreedom.totalfreedommod.blocking.sweep.SweepContext;
+import me.totalfreedom.api.blocking.sweep.EntityVisitor;
+import me.totalfreedom.api.blocking.sweep.SweepContext;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.ComponentScanner;
 import me.totalfreedom.totalfreedommod.util.DetectionReporter;

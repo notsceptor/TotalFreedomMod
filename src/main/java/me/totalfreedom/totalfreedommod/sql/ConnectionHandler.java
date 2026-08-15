@@ -7,7 +7,7 @@ import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
 import me.totalfreedom.api.FreedomAPI;
-import me.totalfreedom.totalfreedommod.sql.SQLProperties.DatabaseType;
+import me.totalfreedom.api.sql.DatabaseType;
 import me.totalfreedom.totalfreedommod.util.FLog;
 
 import com.zaxxer.hikari.HikariConfig;

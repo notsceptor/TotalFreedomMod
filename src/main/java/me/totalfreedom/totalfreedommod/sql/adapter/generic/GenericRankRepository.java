@@ -12,10 +12,10 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import reactor.core.publisher.Mono;
 
 import me.totalfreedom.totalfreedommod.rank.CustomRank;
-import me.totalfreedom.totalfreedommod.rank.RankRole;
+import me.totalfreedom.api.rank.RankRole;
 import me.totalfreedom.totalfreedommod.sql.StatementHandler;
 import me.totalfreedom.totalfreedommod.sql.adapter.DatabaseAdapter;
-import me.totalfreedom.totalfreedommod.sql.adapter.RankRepository;
+import me.totalfreedom.api.sql.adapter.RankRepository;
 
 /**
  * All dialect differences are resolved through the {@link DatabaseAdapter} passed in.

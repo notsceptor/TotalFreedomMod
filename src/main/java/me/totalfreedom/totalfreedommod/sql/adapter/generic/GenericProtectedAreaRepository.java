@@ -14,7 +14,7 @@ import me.totalfreedom.totalfreedommod.ProtectArea.ProtectedRegion;
 import me.totalfreedom.totalfreedommod.ProtectArea.ProtectedRegion.CantFindWorldException;
 import me.totalfreedom.totalfreedommod.sql.StatementHandler;
 import me.totalfreedom.totalfreedommod.sql.adapter.DatabaseAdapter;
-import me.totalfreedom.totalfreedommod.sql.adapter.ProtectedAreaRepository;
+import me.totalfreedom.api.sql.adapter.ProtectedAreaRepository;
 import me.totalfreedom.totalfreedommod.util.FLog;
 
 /**

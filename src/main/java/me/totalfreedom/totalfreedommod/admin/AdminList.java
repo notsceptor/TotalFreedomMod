@@ -3,6 +3,7 @@ package me.totalfreedom.totalfreedommod.admin;
 import me.totalfreedom.totalfreedommod.bridge.WorldEditBridge;
 
 import me.totalfreedom.api.FreedomAPI;
+import me.totalfreedom.api.admin.IAdminList;
 
 import java.io.File;
 import java.io.FileReader;
@@ -36,9 +37,9 @@ import reactor.core.scheduler.Schedulers;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.rank.CustomRank;
-import me.totalfreedom.totalfreedommod.rank.RankRole;
+import me.totalfreedom.api.rank.RankRole;
 import me.totalfreedom.totalfreedommod.sql.PersistenceQueue;
-import me.totalfreedom.totalfreedommod.sql.adapter.AdminRepository;
+import me.totalfreedom.api.sql.adapter.AdminRepository;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import me.totalfreedom.totalfreedommod.util.JsonUtil;
@@ -48,7 +49,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.gson.reflect.TypeToken;
 
-public class AdminList extends FreedomService
+public class AdminList extends FreedomService implements IAdminList
 {
 
     public static final String CONFIG_FILENAME = "admins.json";
@@ -503,9 +504,9 @@ public class AdminList extends FreedomService
                 .filter(this::isAdmin)
                 .forEach(onlineAdminPlayers::add);
 
-        if (plugin.worlds() != null && plugin.worlds().adminworld != null)
+        if (plugin.worlds() != null && plugin.worlds().adminGate() != null)
         {
-            plugin.worlds().adminworld.wipeAccessCache();
+            plugin.worlds().adminGate().wipeAccessCache();
         }
     }
 

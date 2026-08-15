@@ -4,7 +4,7 @@ import org.bukkit.entity.Player;
 
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
-import me.totalfreedom.totalfreedommod.player.PlayerData;
+import me.totalfreedom.api.player.PlayerData;
 
 @Command(name = "joinmessages", description = "Toggle visibility of other players' join/leave messages.", usage = "/joinmessages", aliases = {"jlm", "togglejoinmessages"})
 @Permission(permission = "tfm.player.joinmessages", source = SourceType.ONLY_IN_GAME)

@@ -1,6 +1,7 @@
 package me.totalfreedom.totalfreedommod.vanish;
 
 import me.totalfreedom.api.FreedomAPI;
+import me.totalfreedom.api.vanish.IVanishService;
 
 import java.util.HashSet;
 import java.util.List;
@@ -33,7 +34,7 @@ import me.totalfreedom.totalfreedommod.FreedomService;
  * messages, ping sample/count, and read-only enforcement, is derived from that set through
  * {@link #isVanished} and {@link #canSee}, so callers should never track their own vanish flag.
  */
-public class VanishService extends FreedomService
+public class VanishService extends FreedomService implements IVanishService
 {
     public static final String SEE_PERMISSION = "tfm.vanish.see";
     public static final String BYPASS_PERMISSION = "tfm.vanish.bypass";

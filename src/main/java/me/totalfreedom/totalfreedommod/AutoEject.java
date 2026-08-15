@@ -3,6 +3,7 @@ package me.totalfreedom.totalfreedommod;
 import me.totalfreedom.totalfreedommod.banning.StrikeList;
 
 import me.totalfreedom.api.FreedomAPI;
+import me.totalfreedom.api.IAutoEject;
 
 import java.util.Calendar;
 import java.util.Date;
@@ -19,7 +20,7 @@ import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 
-public class AutoEject extends FreedomService
+public class AutoEject extends FreedomService implements IAutoEject
 {
 
     public AutoEject(FreedomAPI plugin)

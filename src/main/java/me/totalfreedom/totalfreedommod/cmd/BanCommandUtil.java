@@ -10,7 +10,7 @@ import org.bukkit.entity.Player;
 import me.totalfreedom.api.FreedomAPI;
 import me.totalfreedom.totalfreedommod.banning.Ban;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
-import me.totalfreedom.totalfreedommod.player.PlayerData;
+import me.totalfreedom.api.player.PlayerData;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 
 final class BanCommandUtil

@@ -4,6 +4,7 @@ import org.bukkit.entity.Player;
 
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
+import me.totalfreedom.totalfreedommod.world.GeneratedWorld;
 
 @Command(name = "flatlands", description = "Goto the flatlands.", usage = "/flatlands")
 @Permission(permission = "tfm.world.flatlands", source = SourceType.ONLY_IN_GAME)
@@ -18,6 +19,14 @@ public class Command_flatlands extends FCommand
             return;
         }
 
-        plugin().worlds().flatlands.sendToWorld(player);
+        final GeneratedWorld flatlands = plugin().worlds().flatlands();
+
+        if (flatlands == null)
+        {
+            msg(player, "<red>Flatlands is not available right now.");
+            return;
+        }
+
+        flatlands.sendToWorld(player);
     }
 }

@@ -6,7 +6,7 @@ import java.util.List;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
 import me.totalfreedom.totalfreedommod.cmd.MessageUtils;
-import me.totalfreedom.totalfreedommod.world.WorldWeather;
+import me.totalfreedom.api.world.WorldWeather;
 
 public class WeatherArgumentResolver implements AbstractArgumentResolver<WorldWeather> 
 {

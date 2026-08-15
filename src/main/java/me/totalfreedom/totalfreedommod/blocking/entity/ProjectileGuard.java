@@ -16,8 +16,8 @@ import org.bukkit.util.Vector;
 import net.kyori.adventure.text.format.NamedTextColor;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.blocking.sweep.EntityVisitor;
-import me.totalfreedom.totalfreedommod.blocking.sweep.SweepContext;
+import me.totalfreedom.api.blocking.sweep.EntityVisitor;
+import me.totalfreedom.api.blocking.sweep.SweepContext;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.DetectionReporter;
 import me.totalfreedom.totalfreedommod.util.FLog;

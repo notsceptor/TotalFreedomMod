@@ -1,6 +1,7 @@
 package me.totalfreedom.totalfreedommod.sql;
 
 import me.totalfreedom.api.FreedomAPI;
+import me.totalfreedom.api.sql.IFreedomDatabase;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,7 +11,8 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.sql.SQLProperties.DatabaseType;
+import me.totalfreedom.api.sql.DatabaseType;
+import me.totalfreedom.api.sql.adapter.*;
 import me.totalfreedom.totalfreedommod.sql.adapter.*;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FTask;
@@ -23,7 +25,7 @@ import me.totalfreedom.totalfreedommod.util.FTask;
  * It initializes the appropriate database adapter based on configuration and
  * provides repository access for Admin, Ban, and Permban data.
  */
-public class FreedomDatabase extends FreedomService
+public class FreedomDatabase extends FreedomService implements IFreedomDatabase
 {
     private ConnectionHandler connectionHandler;
     private StatementHandler statementHandler;

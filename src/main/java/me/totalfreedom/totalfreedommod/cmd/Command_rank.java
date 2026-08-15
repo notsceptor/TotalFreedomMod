@@ -9,7 +9,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Callback;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Command;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Permission;
-import me.totalfreedom.totalfreedommod.display.Displayable;
+import me.totalfreedom.api.display.Displayable;
 import me.totalfreedom.totalfreedommod.rank.CustomRank;
 
 @Command(name = "rank", description = "Shows ranks", usage = "/<command> [player]")

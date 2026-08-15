@@ -20,8 +20,8 @@ import org.bukkit.event.entity.SpawnerSpawnEvent;
 import org.bukkit.event.entity.TrialSpawnerSpawnEvent;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.blocking.sweep.SweepContext;
-import me.totalfreedom.totalfreedommod.blocking.sweep.TileEntityVisitor;
+import me.totalfreedom.api.blocking.sweep.SweepContext;
+import me.totalfreedom.api.blocking.sweep.TileEntityVisitor;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.DetectionReporter;
 import me.totalfreedom.totalfreedommod.util.FLog;

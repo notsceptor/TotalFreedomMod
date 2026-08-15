@@ -6,6 +6,8 @@ import java.util.Map;
 import java.util.Set;
 
 import me.totalfreedom.api.FreedomAPI;
+import me.totalfreedom.api.rank.IConsoleSenderRegistry;
+import me.totalfreedom.api.rank.RankRole;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
 
@@ -15,7 +17,7 @@ import me.totalfreedom.totalfreedommod.util.FLog;
  * <p>
  * Reload by calling {@link #load()}.
  */
-public class ConsoleSenderRegistry
+public class ConsoleSenderRegistry implements IConsoleSenderRegistry
 {
 
     /**

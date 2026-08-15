@@ -1,6 +1,8 @@
 package me.totalfreedom.totalfreedommod.player;
 
 import me.totalfreedom.api.FreedomAPI;
+import me.totalfreedom.api.player.IPlayerList;
+import me.totalfreedom.api.player.PlayerData;
 
 import java.io.File;
 import java.io.FileReader;
@@ -29,14 +31,14 @@ import reactor.core.scheduler.Schedulers;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.sql.PersistenceQueue;
-import me.totalfreedom.totalfreedommod.sql.adapter.PlayerRepository;
+import me.totalfreedom.api.sql.adapter.PlayerRepository;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import me.totalfreedom.totalfreedommod.util.JsonUtil;
 
 import com.google.common.collect.Maps;
 
-public class PlayerList extends FreedomService
+public class PlayerList extends FreedomService implements IPlayerList
 {
 
     public static final long AUTO_PURGE_TICKS = 20L * 60L * 5L;

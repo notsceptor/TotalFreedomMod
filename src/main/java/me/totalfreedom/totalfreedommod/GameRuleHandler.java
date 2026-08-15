@@ -1,6 +1,7 @@
 package me.totalfreedom.totalfreedommod;
 
 import me.totalfreedom.api.FreedomAPI;
+import me.totalfreedom.api.IGameRuleHandler;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -29,7 +30,7 @@ import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FTask;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 
-public class GameRuleHandler extends FreedomService
+public class GameRuleHandler extends FreedomService implements IGameRuleHandler
 {
     private final Map<GameRule<?>, Object> defaultGameRuleValues = new HashMap<>();
     private final List<Key> maliciousGameRules = new ArrayList<>();

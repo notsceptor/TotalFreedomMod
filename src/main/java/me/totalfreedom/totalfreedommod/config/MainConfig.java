@@ -11,13 +11,14 @@ import java.util.List;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.YamlConfiguration;
 
+import me.totalfreedom.api.config.IMainConfig;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.framework.PluginComponent;
 import me.totalfreedom.totalfreedommod.util.FLog;
 
 import org.apache.commons.io.FileUtils;
 
-public class MainConfig extends PluginComponent<TotalFreedomMod>
+public class MainConfig extends PluginComponent<TotalFreedomMod> implements IMainConfig
 {
 
     public static final String CONFIG_FILENAME = "config.yml";

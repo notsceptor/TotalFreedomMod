@@ -9,7 +9,7 @@ import org.bukkit.entity.Player;
 
 import me.totalfreedom.totalfreedommod.PluginProvider;
 import me.totalfreedom.totalfreedommod.cmd.internal.ResolverRegistry;
-import me.totalfreedom.totalfreedommod.player.PlayerData;
+import me.totalfreedom.api.player.PlayerData;
 
 import com.google.common.net.InetAddresses;
 

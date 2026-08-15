@@ -8,11 +8,11 @@ import java.util.*;
 
 import reactor.core.publisher.Mono;
 
-import me.totalfreedom.totalfreedommod.player.PlayerData;
+import me.totalfreedom.api.player.PlayerData;
 import me.totalfreedom.totalfreedommod.player.SpyMode;
 import me.totalfreedom.totalfreedommod.sql.StatementHandler;
 import me.totalfreedom.totalfreedommod.sql.adapter.DatabaseAdapter;
-import me.totalfreedom.totalfreedommod.sql.adapter.PlayerRepository;
+import me.totalfreedom.api.sql.adapter.PlayerRepository;
 import me.totalfreedom.totalfreedommod.util.AdventureUtil;
 
 /**

@@ -1,6 +1,7 @@
 package me.totalfreedom.totalfreedommod.title;
 
 import me.totalfreedom.api.FreedomAPI;
+import me.totalfreedom.api.title.ITitleManager;
 
 import java.io.File;
 import java.io.FileReader;
@@ -25,10 +26,10 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
-import me.totalfreedom.totalfreedommod.display.Displayable;
-import me.totalfreedom.totalfreedommod.player.PlayerData;
+import me.totalfreedom.api.display.Displayable;
+import me.totalfreedom.api.player.PlayerData;
 import me.totalfreedom.totalfreedommod.sql.PersistenceQueue;
-import me.totalfreedom.totalfreedommod.sql.adapter.TitleRepository;
+import me.totalfreedom.api.sql.adapter.TitleRepository;
 import me.totalfreedom.totalfreedommod.util.*;
 
 import com.google.common.collect.Maps;
@@ -45,7 +46,7 @@ import com.google.gson.reflect.TypeToken;
  * Storage mirrors ranks: SQL is authoritative when available, with {@code titles.json} kept as a
  * readable snapshot and used as the source when there is no database.
  */
-public class TitleManager extends FreedomService
+public class TitleManager extends FreedomService implements ITitleManager
 {
 
     public static final String TITLES_FILENAME = "titles.json";
@@ -242,9 +243,9 @@ public class TitleManager extends FreedomService
 
         // A title can open the admin world, and that check is cached per player for 30s. Drop the
         // cache now so a grant or revoke takes effect immediately rather than on the next sweep.
-        if (plugin.worlds() != null && plugin.worlds().adminworld != null)
+        if (plugin.worlds() != null && plugin.worlds().adminGate() != null)
         {
-            plugin.worlds().adminworld.wipeAccessCache();
+            plugin.worlds().adminGate().wipeAccessCache();
         }
 
         final PlayerData data = plugin.players().getData(player);

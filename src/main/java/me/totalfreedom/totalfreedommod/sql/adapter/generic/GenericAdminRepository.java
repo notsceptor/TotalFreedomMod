@@ -10,7 +10,7 @@ import reactor.core.publisher.Mono;
 
 import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.sql.StatementHandler;
-import me.totalfreedom.totalfreedommod.sql.adapter.AdminRepository;
+import me.totalfreedom.api.sql.adapter.AdminRepository;
 import me.totalfreedom.totalfreedommod.sql.adapter.DatabaseAdapter;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 
