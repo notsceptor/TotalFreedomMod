@@ -22,11 +22,13 @@ import me.totalfreedom.totalfreedommod.world.profile.Materials;
  * those shapes.
  * <p>
  * Raw noise has no notion of "up" on its own, so a block is solid where {@code noise - falloff(y) >
- * 0}. falloff climbs from -1 well below the world's centre height to +1 well above it, over
- * {@link #TRANSITION_HEIGHT} blocks either side, which is what keeps the ground roughly where the
- * profile expects instead of scattering solid blocks across the world's full height. That falloff is
- * a property of the world's own bounds, not of any one region, so it is applied once after blending
- * rather than per region.
+ * 0}. falloff climbs from -1 at the world's own floor to +1 at its own ceiling, centred on sea level
+ * (or the bounds' vertical midpoint where there is none), which is what keeps the ground roughly
+ * where the profile expects instead of scattering solid blocks across the world's full height. Scaled
+ * to the bounds themselves rather than a fixed number of blocks, so a shallow nether and a tall
+ * overworld each get a transition that actually reaches their own floor and ceiling instead of
+ * saturating partway through. That falloff is a property of the world's own bounds, not of any one
+ * region, so it is applied once after blending rather than per region.
  * <p>
  * {@link #regions}, when present, lets different parts of the world sample a different {@link NoiseField}
  * instead of one density field everywhere. Every column samples {@code regions.selector()} once,
@@ -48,7 +50,6 @@ public final class DensityGenerator implements Generator
     private static final int HORIZONTAL_STEP = 4;
     private static final int HORIZONTAL_NODES = 16 / HORIZONTAL_STEP + 1;
     private static final int VERTICAL_STEP = 8;
-    private static final double TRANSITION_HEIGHT = 32.0D;
 
     /** How far away, on each axis, warp's offset probes sample the same field they're displacing. */
     private static final int WARP_PROBE_OFFSET = 1013;
@@ -89,7 +90,7 @@ public final class DensityGenerator implements Generator
     {
         final List<Contribution> contributions = this.contributions(worldX, worldZ);
 
-        return IntStream.iterate(this.bounds.maxY(), y -> y >= this.bounds.minY(), y -> y - 1)
+        return IntStream.iterate(this.bounds.maxY() - 1, y -> y >= this.bounds.minY(), y -> y - 1)
                         .filter(y -> this.isSolid(blend(contributions, worldX, y, worldZ), y))
                         .findFirst()
                         .orElse(this.bounds.minY());
@@ -240,7 +241,7 @@ public final class DensityGenerator implements Generator
                              final int localZ,
                              final Optional<Integer> seaLevel)
     {
-        IntStream.rangeClosed(this.bounds.minY(), this.bounds.maxY())
+        IntStream.range(this.bounds.minY(), this.bounds.maxY())
                  .forEach(y -> this.writeBlock(data,
                                                grid,
                                                nodeY,
@@ -307,13 +308,23 @@ public final class DensityGenerator implements Generator
         return noise - this.falloff(y) > 0.0D;
     }
 
+    /**
+     * The transition spans from centre down to {@link Bounds#minY()} on the low side and from centre
+     * up to {@link Bounds#maxY()} on the high side, each scaled independently, so falloff only
+     * actually saturates to -1/+1 at the world's own floor and ceiling rather than a fixed number of
+     * blocks away from centre regardless of how tall the world is. A world whose centre sits far off
+     * to one side (a shallow nether with sea level near its floor, say) gets a short transition on
+     * that side and a long one on the other, instead of the short side clipping solid ground off
+     * early and the long side leaving most of its height permanently void.
+     */
     private double falloff(final int y)
     {
         final double centre = this.bounds.seaLevel()
                                          .map(Integer::doubleValue)
                                          .orElse((this.bounds.minY() + this.bounds.maxY()) / 2.0D);
 
-        final double slope = (y - centre) / TRANSITION_HEIGHT;
+        final double span = Math.max(1.0D, y < centre ? centre - this.bounds.minY() : this.bounds.maxY() - centre);
+        final double slope = (y - centre) / span;
 
         return Math.max(-1.0D, Math.min(1.0D, slope));
     }

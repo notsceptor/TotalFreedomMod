@@ -12,6 +12,7 @@ import org.bukkit.generator.*;
 import me.totalfreedom.totalfreedommod.world.GenerationProfile;
 import me.totalfreedom.totalfreedommod.world.base.*;
 import me.totalfreedom.totalfreedommod.world.noise.NoiseField;
+import me.totalfreedom.totalfreedommod.world.profile.BedrockMode;
 import me.totalfreedom.totalfreedommod.world.profile.Materials;
 import me.totalfreedom.totalfreedommod.world.profile.Shape;
 import me.totalfreedom.totalfreedommod.world.stage.*;
@@ -113,26 +114,46 @@ public final class ProfileChunkGenerator extends ChunkGenerator
         if (carver.isEmpty())
             return;
 
-        final ChunkContext context = ChunkContext.of(this.profile, 
-                                                     this.stages, 
-                                                     worldInfo, 
-                                                     random, 
-                                                     chunkX, 
+        final ChunkContext context = ChunkContext.of(this.profile,
+                                                     this.stages,
+                                                     worldInfo,
+                                                     random,
+                                                     chunkX,
                                                      chunkZ);
 
         final BlockData air = Material.CAVE_AIR.createBlockData();
         final BlockData fluid = this.profile.palette().materials().fluidBlock();
         final int floodLevel = this.caveFloodLevel.orElse(Integer.MIN_VALUE);
+        final int carveMinY = Math.max(carver.get().minY(), this.bedrockFloorGuard());
+        final int carveMaxY = Math.min(carver.get().maxY(), this.bedrockRoofGuard());
 
         IntStream.range(0, 256)
-                 .forEach(index -> this.carveColumn(context, 
-                                                    chunkData, 
-                                                    carver.get(), 
-                                                    index & 0xF, 
-                                                    index >> 4, 
-                                                    air, 
-                                                    fluid, 
+                 .forEach(index -> this.carveColumn(context,
+                                                    chunkData,
+                                                    carver.get(),
+                                                    carveMinY,
+                                                    carveMaxY,
+                                                    index & 0xF,
+                                                    index >> 4,
+                                                    air,
+                                                    fluid,
                                                     floodLevel));
+    }
+
+    /** One past the bedrock floor {@link RuleDesigner}/{@link LayerDesigner} write at bounds.minY(), or no guard at all if there is none. */
+    private int bedrockFloorGuard()
+    {
+        return this.profile.palette().materials().bedrock() == BedrockMode.NONE
+                                                            ? Integer.MIN_VALUE
+                                                            : this.profile.bounds().minY() + 1;
+    }
+
+    /** One below the bedrock roof a FLOOR_AND_ROOF profile writes at bounds.maxY() - 1, or no guard for any other mode. */
+    private int bedrockRoofGuard()
+    {
+        return this.profile.palette().materials().bedrock() == BedrockMode.FLOOR_AND_ROOF
+                                                            ? this.profile.bounds().maxY() - 2
+                                                            : Integer.MAX_VALUE;
     }
 
     @Override
@@ -198,6 +219,8 @@ public final class ProfileChunkGenerator extends ChunkGenerator
     private void carveColumn(final ChunkContext context,
                              final ChunkData data,
                              final Carver carver,
+                             final int carveMinY,
+                             final int carveMaxY,
                              final int localX,
                              final int localZ,
                              final BlockData air,
@@ -207,7 +230,7 @@ public final class ProfileChunkGenerator extends ChunkGenerator
         final int worldX = context.worldX(localX);
         final int worldZ = context.worldZ(localZ);
 
-        IntStream.rangeClosed(carver.minY(), carver.maxY())
+        IntStream.rangeClosed(carveMinY, carveMaxY)
                  .filter(y -> carver.isCarved(context, worldX, y, worldZ))
                  .forEach(y -> data.setBlock(localX, y, localZ, y < floodLevel ? fluid : air));
     }

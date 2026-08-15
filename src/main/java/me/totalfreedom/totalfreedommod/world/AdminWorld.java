@@ -64,6 +64,9 @@ public final class AdminWorld extends CustomWorld
 
         final World world = Bukkit.getServer().createWorld(worldCreator);
 
+        if (world == null)
+            return null;
+
         world.setSpawnFlags(false, false);
         world.setSpawnLocation(0, 50, 0);
 
@@ -178,6 +181,13 @@ public final class AdminWorld extends CustomWorld
     {
         cacheLastCleared = System.currentTimeMillis();
         accessCache.clear();
+    }
+
+    /** Drops a departed player's cooldown and access-cache entries, so those maps don't grow forever. */
+    public void forgetPlayer(final Player player)
+    {
+        teleportCooldown.remove(player);
+        accessCache.remove(player);
     }
 
     public boolean canAccessWorld(final Player player)

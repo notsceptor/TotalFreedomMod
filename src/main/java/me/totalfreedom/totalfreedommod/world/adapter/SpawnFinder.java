@@ -62,8 +62,8 @@ public final class SpawnFinder
     /**
      * Walks the edge of one square ring at this radius.
      * <p>
-     * Squares rather than circles because the point is to spread outward evenly, and a square ring
-     * is a single loop with no trigonometry. Ring zero is the origin itself.
+     * Squares rather than circles because a square ring is a single loop with no trigonometry. 
+     * Ring zero is the origin itself.
      */
     private Optional<Location> searchRing(final World world, final int ring, final int floor)
     {
@@ -98,12 +98,19 @@ public final class SpawnFinder
         return Optional.empty();
     }
 
-    /** A column qualifies if its pre-carving ground sits above the water line and below the world's ceiling. */
+    /**
+     * A column qualifies if its pre-carving ground sits above the water line and leaves a standing
+     * player clear of the world's ceiling, with a two-block margin below it. 
+     * <p>
+     * A {@code FLOOR_AND_ROOF} profile caps its world with bedrock at {@code bounds.maxY() - 1}, 
+     * so without that margin a column whose ground crested right under the roof 
+     * would spawn a player with their head inside it.
+     */
     private Optional<Location> candidate(final World world, final int x, final int z, final int floor)
     {
         final int height = this.generator.surfaceHeight(x, z);
 
-        if (height <= floor || height >= this.profile.bounds().maxY())
+        if (height <= floor || height >= this.profile.bounds().maxY() - 3)
             return Optional.empty();
 
         // Centred in the block and one above the ground, so the player is not standing inside it.

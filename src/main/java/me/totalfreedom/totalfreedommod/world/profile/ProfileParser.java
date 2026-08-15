@@ -84,10 +84,11 @@ public final class ProfileParser
     }
 
     /**
-     * A pinned seed if world.seed is a valid number, else one derived from the world's own name, so
-     * re-parsing an unseeded profile after a restart still produces the same terrain. Resolved before
-     * anything else, since palette.climate needs a seed to build its NoiseFields. Never records an
-     * error itself; a malformed world.seed is reported properly later, by parseWorldSettings.
+     * A pinned seed if world.seed is a valid number (or a quoted number; Gson happily coerces either),
+     * else one derived from the world's own name, so re-parsing an unseeded profile after a restart
+     * still produces the same terrain. Resolved before anything else, since palette.climate needs a
+     * seed to build its NoiseFields. Never records an error itself; a malformed world.seed is reported
+     * properly later, by parseWorldSettings.
      */
     private static long resolveSeed(final String worldName, final JsonObject root)
     {
@@ -97,7 +98,7 @@ public final class ProfileParser
         {
             final JsonElement seedElement = worldNode.getAsJsonObject().get("seed");
 
-            if (seedElement != null && seedElement.isJsonPrimitive() && seedElement.getAsJsonPrimitive().isNumber())
+            if (seedElement != null && seedElement.isJsonPrimitive() && !seedElement.getAsJsonPrimitive().isBoolean())
             {
                 try
                 {

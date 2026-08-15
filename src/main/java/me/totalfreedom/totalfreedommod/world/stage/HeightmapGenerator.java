@@ -282,8 +282,9 @@ public final class HeightmapGenerator implements Generator
                            this.materials.fluidBlock());
     }
 
+    /** {@link Bounds#maxY()} is one past the world's own top row, so the tallest column clamps to maxY - 1. */
     private int clamp(final int height)
     {
-        return Math.max(this.bounds.minY(), Math.min(this.bounds.maxY(), height));
+        return Math.max(this.bounds.minY(), Math.min(this.bounds.maxY() - 1, height));
     }
 }

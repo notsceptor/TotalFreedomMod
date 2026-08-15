@@ -23,20 +23,20 @@
           [ 1.00, 180]
         ]
       },
-      "river": {
-        "noise": {
-          "type": "simplex",
-          "octaves": 2,
-          "frequency": 0.0016,
-          "persistence": 0.5,
-          "lacunarity": 2.0,
-          "ridged": false
-        },
-        "threshold": 0.03,
-        "depth": 5,
-        "bedBlock": "gravel"
-      },
       "warp": 0.015
+    },
+    "river": {
+      "noise": {
+        "type": "simplex",
+        "octaves": 2,
+        "frequency": 0.0016,
+        "persistence": 0.5,
+        "lacunarity": 2.0,
+        "ridged": false
+      },
+      "threshold": 0.03,
+      "depth": 5,
+      "bedBlock": "gravel"
     },
     "caves": {
       "noise": {

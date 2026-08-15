@@ -32,6 +32,9 @@ import me.totalfreedom.totalfreedommod.world.profile.ProfileParser;
  */
 public final class GenerationService extends FreedomService
 {
+    /** World names TFM already manages itself, outside the profile system; see {@link Flatlands} and {@link AdminWorld}. */
+    private static final Set<String> RESERVED_WORLD_NAMES = Set.of("flatlands", "adminworld");
+
     private final ProfileLoader loader;
     private final ProfileParser parser;
     private final Map<String, GenerationProfile> profiles;
@@ -118,6 +121,12 @@ public final class GenerationService extends FreedomService
 
     private void loadProfile(final String worldName, final Map<String, JsonObject> biomeLibrary)
     {
+        if (RESERVED_WORLD_NAMES.contains(worldName))
+        {
+            FLog.warning("Skipping profile \"" + worldName + "\": that name is reserved for TFM's own " + worldName + " world and can never be generated from a profile.");
+            return;
+        }
+
         try
         {
             final Optional<JsonObject> jsonRoot = this.loader.read(worldName);

@@ -40,7 +40,7 @@ public final class LayerDesigner implements Designer
         data.setRegion(0, minY, 0, 16, minY + 1, 16, this.materials.bedrockBlock());
 
         if (this.materials.bedrock() == BedrockMode.FLOOR_AND_ROOF)
-            data.setRegion(0, maxY, 0, 16, maxY + 1, 16, this.materials.bedrockBlock());
+            data.setRegion(0, maxY - 1, 0, 16, maxY, 16, this.materials.bedrockBlock());
     }
 
 }

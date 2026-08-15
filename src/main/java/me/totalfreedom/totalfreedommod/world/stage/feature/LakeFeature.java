@@ -17,6 +17,10 @@ import me.totalfreedom.totalfreedommod.world.profile.FeatureDetail;
  * Shaped as a squashed sphere, wider than it is deep, because a round hole reads as a crater. Only
  * the lower half is filled; the upper half is cleared to air, which is what gives the water a bank
  * instead of a lid.
+ * <p>
+ * Skips the world's own bedrock block wherever it finds it, floor or roof, rather than clearing
+ * straight through it. A lake spec placed near either edge of the world's bounds still carves its
+ * bowl; it just cannot open a hole into the void the way an unguarded clear would.
  */
 public final class LakeFeature implements Feature<FeatureDetail.Lake>
 {
@@ -33,6 +37,7 @@ public final class LakeFeature implements Feature<FeatureDetail.Lake>
     {
         final int radius = detail.radius();
         final int depth = Math.max(1, (int) Math.round(radius / SQUASH));
+        final Material bedrock = context.getProfile().palette().materials().bedrockBlock().getMaterial();
 
         for (int offsetX = -radius; offsetX <= radius; offsetX++)
         {
@@ -52,6 +57,9 @@ public final class LakeFeature implements Feature<FeatureDetail.Lake>
                     final int blockZ = z + offsetZ;
 
                     if (!region.isInRegion(blockX, blockY, blockZ))
+                        continue;
+
+                    if (region.getType(blockX, blockY, blockZ) == bedrock)
                         continue;
 
                     // Fluid in the bottom half, air above it. Filling the whole bowl would seal the

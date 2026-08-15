@@ -229,6 +229,21 @@ public class CleanroomChunkGenerator extends ChunkGenerator
             return new Location(world, 0, 64, 0);
         }
 
-        return new Location(world, 0, highestBlock, 0);
+        // One above the highest solid block, so the player stands on it instead of inside it.
+        return new Location(world, 0, highestBlock + 1, 0);
+    }
+
+    /** A cleanroom world is exactly what generateChunkData wrote; no vanilla-biome decorations on top. */
+    @Override
+    public boolean shouldGenerateDecorations()
+    {
+        return false;
+    }
+
+    /** No vanilla-biome mob spawning in a flat/void world that never asked for any. */
+    @Override
+    public boolean shouldGenerateMobs()
+    {
+        return false;
     }
 }
