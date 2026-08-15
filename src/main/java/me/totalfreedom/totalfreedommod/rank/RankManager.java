@@ -56,6 +56,7 @@ import reactor.core.scheduler.Schedulers;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.admin.Admin;
+import me.totalfreedom.totalfreedommod.admin.AdminList;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchContext;
 import me.totalfreedom.totalfreedommod.dispatch.RemoteDispatchSession;
@@ -71,6 +72,13 @@ import com.google.gson.reflect.TypeToken;
 public class RankManager extends FreedomService implements IRankManager
 {
     public static final String RANKS_FILENAME = "ranks.json";
+
+    /**
+     * The value {@link AdminList#SENIOR_STATUS_NODE} held before it was renamed to
+     * {@code tfm.internal.senior}, kept only so {@link #migrateSeniorMarker(CustomRank)} can
+     * recognise a rank that already qualified as senior under it.
+     */
+    private static final String LEGACY_SENIOR_STATUS_NODE = "tfm.admin.senior.status";
 
     private static final Type RANK_MAP_TYPE = new TypeToken<Map<String, CustomRank>>() {}.getType();
     private static final long SHUTDOWN_FLUSH_TIMEOUT_MS = 10L * 1000L;
@@ -200,6 +208,7 @@ public class RankManager extends FreedomService implements IRankManager
 
         customRanks.clear();
         customRanks.putAll(loaded);
+        selfHealLegacyMarkers();
         resolveInheritance();
         updateAllPlayerTeams();
         refreshConsoleBindings();
@@ -277,6 +286,7 @@ public class RankManager extends FreedomService implements IRankManager
             FLog.error("Could not read " + RANKS_FILENAME + ": " + ex.getMessage());
         }
 
+        selfHealLegacyMarkers();
         resolveInheritance();
         updateAllPlayerTeams();
         FLog.info("Loaded " + customRanks.size() + " custom ranks.");
@@ -381,6 +391,7 @@ public class RankManager extends FreedomService implements IRankManager
     {
         customRanks.clear();
         customRanks.putAll(jsonRanks);
+        selfHealLegacyMarkers();
         resolveInheritance();
         updateAllPlayerTeams();
         refreshConsoleBindings();
@@ -443,15 +454,65 @@ public class RankManager extends FreedomService implements IRankManager
     }
 
     /**
-     * Flattens each rank's inherited permissions, then rebuilds the registry's permission index so
-     * that the tier a node requires is recomputed from what the ranks now grant.
+     * Flattens each rank's inherited permissions, rebuilds the registry's permission index, and
+     * re-derives {@link CustomRank#isAdmin()} from what the ranks now grant. Called after every load
+     * and every edit, so the derived flag never lags behind the permissions that back it.
      */
     private void resolveInheritance()
     {
         customRanks.values()
                    .forEach(rank -> rank.setResolvedPermissions(collectPermissions(rank, new HashSet<>())));
-
         registry.reindex();
+
+        customRanks.values()
+                   .forEach(rank -> rank.setAdmin(rank.hasPermission(AdminList.ADMIN_STATUS_NODE)));
+    }
+
+    /**
+     * One-time self-heal for a server upgrading from before {@code tfm.internal.admin} /
+     * {@code tfm.internal.senior} existed, run only right after ranks are populated from storage and
+     * before the first {@link #resolveInheritance()} of that load. A rank that already qualified as
+     * admin (its stored {@code admin} flag was {@code true}, as just deserialised) or senior (it
+     * already granted the old, wildcarded {@link #LEGACY_SENIOR_STATUS_NODE}) is granted the node it
+     * now takes the place of, so staff do not lose standing the moment this ships.
+     * <p>
+     * Deliberately not folded into {@link #resolveInheritance()}: that method also runs after live
+     * edits such as {@code /rankconfig remperm}, where {@link CustomRank#isAdmin()} would already
+     * hold this run's derived value rather than data freshly read from storage, and re-granting the
+     * node a staff member just removed would defeat the edit.
+     */
+    private void selfHealLegacyMarkers()
+    {
+        customRanks.values()
+                   .forEach(rank -> rank.setResolvedPermissions(collectPermissions(rank, new HashSet<>())));
+        registry.reindex();
+
+        customRanks.values().forEach(rank ->
+        {
+            migrateAdminMarker(rank);
+            migrateSeniorMarker(rank);
+        });
+    }
+
+    private void migrateAdminMarker(CustomRank rank)
+    {
+        if (!rank.isAdmin() || rank.hasPermission(AdminList.ADMIN_STATUS_NODE))
+            return;
+
+        FLog.info("Rank '" + rank.getId() + "' was flagged admin without the " + AdminList.ADMIN_STATUS_NODE
+                + " node; granting it automatically.");
+        rank.addPermission(AdminList.ADMIN_STATUS_NODE);
+    }
+
+    private void migrateSeniorMarker(CustomRank rank)
+    {
+        if (rank.hasPermission(AdminList.SENIOR_STATUS_NODE)
+            || !registry.getTrie().grants(rank.getId(), LEGACY_SENIOR_STATUS_NODE))
+            return;
+
+        FLog.info("Rank '" + rank.getId() + "' already qualified as senior without the "
+                + AdminList.SENIOR_STATUS_NODE + " node; granting it automatically.");
+        rank.addPermission(AdminList.SENIOR_STATUS_NODE);
     }
 
     private Set<String> collectPermissions(CustomRank rank, Set<String> visited)

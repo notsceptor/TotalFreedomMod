@@ -57,6 +57,10 @@ public class CustomRank implements Displayable, Comparable<CustomRank>
     
     /**
      * Whether this rank has admin privileges.
+     * <p>
+     * Derived, not authoritative: {@code RankManager.resolveInheritance()} recomputes this on every
+     * load and edit from whether the rank grants {@code tfm.internal.admin}, so it should not be set
+     * directly outside that path (see {@link #setAdmin(boolean)}).
      */
     private boolean admin = false;
     
@@ -397,6 +401,12 @@ public class CustomRank implements Displayable, Comparable<CustomRank>
         return admin;
     }
 
+    /**
+     * Called by {@code RankManager.resolveInheritance()} to keep this in sync with whether the rank
+     * grants {@code tfm.internal.admin}. Callers that want to grant or revoke admin standing should
+     * add or remove that permission instead of calling this directly, since a later reload or edit
+     * overwrites whatever is set here.
+     */
     public void setAdmin(boolean admin)
     {
         this.admin = admin;

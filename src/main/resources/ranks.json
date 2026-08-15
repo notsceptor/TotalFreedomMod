@@ -72,6 +72,7 @@
     ],
     "inherit": "op",
     "permissions": [
+      "tfm.internal.admin",
       "tfm.fun.*",
       "tfm.world.*",
       "tfm.server.*",
@@ -133,6 +134,7 @@
     ],
     "inherit": "super_admin",
     "permissions": [
+      "tfm.internal.senior",
       "tfm.admin.senior.*",
       "tfm.manage.*",
       "tfm.admin.ban.perm",

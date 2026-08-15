@@ -12,6 +12,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
 import me.totalfreedom.totalfreedommod.admin.Admin;
+import me.totalfreedom.totalfreedommod.admin.AdminList;
 import me.totalfreedom.totalfreedommod.cmd.internal.FuzzyMatch;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.rank.CustomRank;
@@ -134,7 +135,13 @@ public class Command_rankconfig extends FCommand
             case PREFIX -> target.setPrefix(value);
             case DETERMINER -> target.setDeterminer(value);
             case COLOR -> target.setColor(parseColor(value));
-            case ADMIN -> target.setAdmin(isTruthy(value));
+            case ADMIN ->
+            {
+                if (isTruthy(value))
+                    target.addPermission(AdminList.ADMIN_STATUS_NODE);
+                else
+                    target.removePermission(AdminList.ADMIN_STATUS_NODE);
+            }
             case ADDPERM -> target.addPermission(value);
             case REMPERM -> target.removePermission(value);
             case LEVEL ->

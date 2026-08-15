@@ -6,12 +6,12 @@ import java.util.function.Consumer;
 
 import org.bukkit.GameRules;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
 import me.totalfreedom.totalfreedommod.PluginProvider;
+import me.totalfreedom.totalfreedommod.cmd.internal.PermissionGate;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 
@@ -292,15 +292,12 @@ public class Command_settings extends FCommand
          */
         void checkSource(final CommandSender sender)
         {
-            if (requiredSource == SourceType.ONLY_CONSOLE && sender instanceof Player)
-            {
-                throw new CommandFailException(displayable + " can only be changed from the console.");
-            }
+            if (PermissionGate.matchesSource(sender, requiredSource))
+                return;
 
-            if (requiredSource == SourceType.ONLY_IN_GAME && !(sender instanceof Player))
-            {
-                throw new CommandFailException(displayable + " can only be changed in-game.");
-            }
+            throw new CommandFailException(requiredSource == SourceType.ONLY_CONSOLE
+                    ? displayable + " can only be changed from the console."
+                    : displayable + " can only be changed in-game.");
         }
 
         String getFlag()

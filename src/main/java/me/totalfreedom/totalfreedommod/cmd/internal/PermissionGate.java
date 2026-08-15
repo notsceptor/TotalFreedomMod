@@ -118,25 +118,31 @@ public final class PermissionGate
     private static boolean passesSourceGate(final CommandSender sender, final Permission perm,
                                             final boolean sendMsg)
     {
+        if (matchesSource(sender, perm.source()))
+            return true;
+
+        if (sendMsg)
+        {
+            sender.sendMessage(perm.source() == SourceType.ONLY_CONSOLE ? ONLY_CONSOLE_MESSAGE : ONLY_PLAYER_MESSAGE);
+        }
+
+        return false;
+    }
+
+    /**
+     * Whether {@code sender}'s type satisfies {@code source}. Shared with call sites outside the
+     * {@link Permission} annotation framework, such as {@code Command_settings}, so a source-only
+     * restriction is checked the same way everywhere rather than each site re-deriving it from
+     * {@code instanceof Player}.
+     */
+    public static boolean matchesSource(final CommandSender sender, final SourceType source)
+    {
         final boolean isPlayer = sender instanceof Player;
 
-        if (perm.source() == SourceType.ONLY_CONSOLE && isPlayer)
-        {
-            if (sendMsg)
-                sender.sendMessage(ONLY_CONSOLE_MESSAGE);
-
+        if (source == SourceType.ONLY_CONSOLE && isPlayer)
             return false;
-        }
 
-        if (perm.source() == SourceType.ONLY_IN_GAME && !isPlayer)
-        {
-            if (sendMsg)
-                sender.sendMessage(ONLY_PLAYER_MESSAGE);
-
-            return false;
-        }
-
-        return true;
+        return source != SourceType.ONLY_IN_GAME || isPlayer;
     }
 
 }

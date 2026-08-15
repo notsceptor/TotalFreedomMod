@@ -55,11 +55,18 @@ public class AdminList extends FreedomService implements IAdminList
     public static final String CONFIG_FILENAME = "admins.json";
 
     /**
+     * The node that marks a rank as admin-tier. Admin standing is a capability granted by
+     * {@code ranks.json} rather than a fixed tier, so a defined rank can hold it and a
+     * rename or re-tier of the shipped ranks does not strand this check.
+     */
+    public static final String ADMIN_STATUS_NODE = "tfm.internal.admin";
+
+    /**
      * The node that marks a rank as senior. Senior standing is a capability granted by
      * {@code ranks.json} rather than a fixed tier, so a defined rank can hold it and a
      * rename or re-tier of the shipped ranks does not strand this check.
      */
-    public static final String SENIOR_STATUS_NODE = "tfm.admin.senior.status";
+    public static final String SENIOR_STATUS_NODE = "tfm.internal.senior";
 
     private static final Type ADMIN_MAP_TYPE = new TypeToken<Map<String, Admin>>() {}.getType();
 
@@ -223,16 +230,17 @@ public class AdminList extends FreedomService implements IAdminList
         return isAdmin(sender);
     }
 
+    /**
+     * Whether {@code sender} counts as admin.
+     * <p>
+     * Asked as a capability rather than as a sender-type or rank comparison, because no rank is
+     * named in code any more: whichever ranks {@code ranks.json} grants {@link #ADMIN_STATUS_NODE}
+     * to are the admin ones, including any custom definitions. Console resolves through the rank
+     * system the same way (see {@code RankRole#CONSOLE_FLOOR}), so it needs no special case here.
+     */
     public boolean isAdmin(CommandSender sender)
     {
-        if (!(sender instanceof Player))
-        {
-            return true;
-        }
-
-        Admin admin = getAdmin((Player) sender);
-
-        return admin != null && admin.isActive();
+        return plugin.ranks().hasPermission(sender, ADMIN_STATUS_NODE);
     }
 
     /**
@@ -244,7 +252,7 @@ public class AdminList extends FreedomService implements IAdminList
      */
     public boolean isSeniorAdmin(CommandSender sender)
     {
-        return isAdmin(sender) && plugin.ranks().hasPermission(sender, SENIOR_STATUS_NODE);
+        return plugin.ranks().hasPermission(sender, SENIOR_STATUS_NODE);
     }
 
     /**

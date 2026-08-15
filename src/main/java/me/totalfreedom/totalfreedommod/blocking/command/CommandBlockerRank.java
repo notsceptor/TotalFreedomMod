@@ -4,7 +4,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import me.totalfreedom.totalfreedommod.PluginProvider;
-import me.totalfreedom.totalfreedommod.admin.Admin;
 
 public enum CommandBlockerRank
 {
@@ -40,8 +39,7 @@ public enum CommandBlockerRank
             return TELNET;
         }
 
-        Admin admin = PluginProvider.get().admins().getAdmin(sender);
-        if (admin != null)
+        if (PluginProvider.get().admins().isAdmin(sender))
         {
             if (PluginProvider.get().admins().isSeniorAdmin(sender))
             {

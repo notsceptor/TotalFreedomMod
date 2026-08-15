@@ -62,30 +62,6 @@ public abstract class FCommand
         return plugin().getServer();
     }
 
-    @Deprecated
-    protected boolean isConsole(CommandSender sender)
-    {
-        return !(sender instanceof Player);
-    }
-
-    @Deprecated
-    protected void checkConsole(CommandSender sender)
-    {
-        if (!isConsole(sender))
-        {
-            throw new CommandFailException("This command can only be used from the console.");
-        }
-    }
-
-    @Deprecated
-    protected void checkPlayer(CommandSender sender)
-    {
-        if (isConsole(sender))
-        {
-            throw new CommandFailException("This command can only be used by players.");
-        }
-    }
-
     protected void adminAction(CommandSender sender, String action, Object... refs)
     {
         FUtil.adminAction(sender, MessageUtils.parse(String.format(action, refs)));
