@@ -4,12 +4,9 @@ plugins {
     id 'org.openrewrite.rewrite' version '7.38.0'
 }
 
-group = 'me.totalfreedom'
-version = '26.9'
-
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(25)
+        languageVersion = JavaLanguageVersion.of(project.property('javaVersion') as int)
     }
 }
 
@@ -93,7 +90,7 @@ configurations.all {
 
 tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
-    options.release = 25
+    options.release = project.property('javaVersion') as int
     options.compilerArgs.add('-parameters')
     options.compilerArgs.add('-Xlint:unchecked')
     options.deprecation = true
@@ -163,7 +160,7 @@ processResources {
 }
 
 jar {
-    archiveBaseName = 'TotalFreedomMod'
+    archiveBaseName = project.name
     archiveVersion = project.version
     destinationDirectory = file('build/libs')
 }
