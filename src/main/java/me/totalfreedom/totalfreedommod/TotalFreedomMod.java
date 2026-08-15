@@ -1,6 +1,9 @@
 package me.totalfreedom.totalfreedommod;
 
 import java.io.File;
+import java.io.InputStream;
+import java.util.Optional;
+import java.util.Properties;
 
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -30,6 +33,7 @@ import me.totalfreedom.totalfreedommod.util.FUtil;
 import me.totalfreedom.totalfreedommod.util.MethodTimer;
 import me.totalfreedom.totalfreedommod.vanish.VanishService;
 import me.totalfreedom.totalfreedommod.world.CleanroomChunkGenerator;
+import me.totalfreedom.totalfreedommod.world.GenerationService;
 import me.totalfreedom.totalfreedommod.world.WorldManager;
 
 /**
@@ -98,6 +102,15 @@ public class TotalFreedomMod extends JavaPlugin implements FreedomAPI
             }
             return new CleanroomChunkGenerator(params);
         }
+
+        if (gs != null)
+        {
+            final Optional<ChunkGenerator> generator = gs.generatorFor(worldName);
+
+            if (generator.isPresent())
+                return generator.get();
+        }
+
         return super.getDefaultWorldGenerator(worldName, id);
     }
 
