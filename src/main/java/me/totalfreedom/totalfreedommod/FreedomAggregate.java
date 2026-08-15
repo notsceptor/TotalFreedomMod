@@ -42,6 +42,7 @@ import me.totalfreedom.totalfreedommod.tablist.TabList;
 import me.totalfreedom.totalfreedommod.title.TitleManager;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.vanish.VanishService;
+import me.totalfreedom.totalfreedommod.world.GenerationService;
 import me.totalfreedom.totalfreedommod.world.WorldManager;
 
 /**
@@ -93,6 +94,7 @@ public class FreedomAggregate
         services.register(FreedomDatabase.class, FreedomDatabase::new);
         services.register(SavedFlags.class, SavedFlags::new);
         services.register(WorldManager.class, WorldManager::new);
+        services.register(GenerationService.class, GenerationService::new);
         services.register(AdminList.class, AdminList::new);
 
         configConverter.convertAdminConsoleRanks();
@@ -263,6 +265,11 @@ public class FreedomAggregate
     public WorldManager worlds()
     {
         return services.require(WorldManager.class);
+    }
+
+    public GenerationService generation()
+    {
+        return services.require(GenerationService.class);
     }
 
     public VanishService vanish()

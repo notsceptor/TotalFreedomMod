@@ -22,6 +22,7 @@ import me.totalfreedom.totalfreedommod.rank.RankManager;
 import me.totalfreedom.totalfreedommod.sql.FreedomDatabase;
 import me.totalfreedom.totalfreedommod.title.TitleManager;
 import me.totalfreedom.totalfreedommod.vanish.VanishService;
+import me.totalfreedom.totalfreedommod.world.GenerationService;
 import me.totalfreedom.totalfreedommod.world.WorldManager;
 
 /**
@@ -67,6 +68,8 @@ public interface FreedomAPI extends Plugin
     TitleManager titles();
 
     WorldManager worlds();
+
+    GenerationService generation();
 
     VanishService vanish();
 

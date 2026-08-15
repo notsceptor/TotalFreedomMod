@@ -20,12 +20,14 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
+
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 
-import me.totalfreedom.totalfreedommod.TotalFreedomMod;
+import me.totalfreedom.api.FreedomAPI;
 import me.totalfreedom.totalfreedommod.util.FLog;
 
 /**
@@ -51,11 +53,11 @@ public final class ProfileLoader
     /** No path separators or "..", so a world name can never resolve outside {@link #directory}. */
     private static final Pattern VALID_WORLD_NAME = Pattern.compile("[A-Za-z0-9_-]+");
 
-    private final TotalFreedomMod plugin;
+    private final FreedomAPI plugin;
     private final File directory;
     private final File biomeDirectory;
 
-    public ProfileLoader(final TotalFreedomMod plugin)
+    public ProfileLoader(final FreedomAPI plugin)
     {
         this.plugin = plugin;
         this.directory = new File(plugin.getDataFolder(), WORLDS_DIRECTORY);
@@ -150,7 +152,10 @@ public final class ProfileLoader
         }
         catch (final IOException ex)
         {
-            FLog.warning("Failed to copy template '" + templateName + "' to world '" + worldName + "': " + ex.getMessage());
+            FLog.warn("Failed to copy template '%s' to world '%s': \n%s",
+                      templateName, 
+                      worldName, 
+                      ex.getMessage());
             return false;
         }
     }
@@ -217,13 +222,17 @@ public final class ProfileLoader
                     }
                     catch (final IOException | JsonSyntaxException | IllegalStateException ex)
                     {
-                        FLog.warning("Failed to read bundled resource " + path + ": " + ex.getMessage());
+                        FLog.warn("Failed to read bundled resource %s: \n%s", 
+                                  path, 
+                                  ExceptionUtils.getRootCauseMessage(ex));
                     }
                 });
         }
         catch (final IOException | URISyntaxException ex)
         {
-            FLog.warning("Failed to walk bundled " + jarPath + " resources: " + ex.getMessage());
+            FLog.warn("Failed to walk bundled %s resources: \n%s", 
+                      jarPath, 
+                      ex.getMessage());
         }
 
         return result;
