@@ -1,6 +1,5 @@
 package me.totalfreedom.totalfreedommod.world;
 
-\
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
