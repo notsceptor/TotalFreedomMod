@@ -1,23 +1,16 @@
 package me.totalfreedom.totalfreedommod.world;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.Reader;
-import java.util.Arrays;
+\
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Stream;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.generator.ChunkGenerator;
 
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.google.gson.stream.JsonReader;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
@@ -40,8 +33,6 @@ import me.totalfreedom.totalfreedommod.world.profile.ProfileParser;
  */
 public final class GenerationService extends FreedomService
 {
-    private static final String JSON_ENDING = ".json";
-
     private final ProfileLoader loader;
     private final ProfileParser parser;
     private final Map<String, GenerationProfile> profiles;
