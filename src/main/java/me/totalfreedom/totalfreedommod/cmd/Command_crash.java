@@ -1,5 +1,6 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import net.kyori.adventure.inventory.Book;
 import org.bukkit.Particle;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -35,7 +36,7 @@ public class Command_crash extends FCommand
         for (int i = 0; i < 50; ++i)
             c = Component.translatable("%1$s%1$s%1$s", "%1$s%1$s%1$s", c);
 
-        player.sendMessage(c);
+        player.openBook(Book.book(c, c, c));
 
         msg(sender, "<gray>Crashed <player>.",
                 Placeholder.unparsed("player", player.getName())
