@@ -6,7 +6,9 @@ import org.bukkit.entity.Player;
 
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
+import me.totalfreedom.api.cmd.FCommand;
+import me.totalfreedom.api.cmd.SourceType;
+import me.totalfreedom.api.cmd.annotation.*;
 
 @Permission(source = SourceType.ONLY_IN_GAME, permission = "tfm.admin.senior.fuckoff")
 @Command(name = "fuckoff", description = "You'll never even see it coming.", usage = "/fuckoff <on [radius (default=25)] | off>")

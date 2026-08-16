@@ -11,7 +11,8 @@ import org.bukkit.scheduler.BukkitRunnable;
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
+import me.totalfreedom.api.cmd.FCommand;
+import me.totalfreedom.api.cmd.annotation.*;
 
 @Command(name = "mobpurge", description = "Purge all mobs in all worlds.", usage = "/mobpurge [world] [chunkX chunkZ | batchSize]", aliases = {"mp"})
 @Permission(permission = "tfm.server.mobpurge")

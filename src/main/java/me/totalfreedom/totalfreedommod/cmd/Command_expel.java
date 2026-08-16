@@ -12,9 +12,11 @@ import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Callback;
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Command;
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Permission;
+import me.totalfreedom.api.cmd.FCommand;
+import me.totalfreedom.api.cmd.SourceType;
+import me.totalfreedom.api.cmd.annotation.Callback;
+import me.totalfreedom.api.cmd.annotation.Command;
+import me.totalfreedom.api.cmd.annotation.Permission;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 
 @Command(name = "expel", description = "Push people away from you.", usage = "/expel [radius] [strength]")

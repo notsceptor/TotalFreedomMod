@@ -3,9 +3,10 @@ package me.totalfreedom.totalfreedommod.cmd;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Callback;
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Command;
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Permission;
+import me.totalfreedom.api.cmd.FCommand;
+import me.totalfreedom.api.cmd.annotation.Callback;
+import me.totalfreedom.api.cmd.annotation.Command;
+import me.totalfreedom.api.cmd.annotation.Permission;
 
 @Command(name = "vanish", aliases = {"v"}, description = "Toggles vanish, hiding you from other players.", usage = "/vanish")
 @Permission(permission = "tfm.admin.vanish")

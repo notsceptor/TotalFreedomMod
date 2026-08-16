@@ -1,4 +1,4 @@
-package me.totalfreedom.totalfreedommod.cmd;
+package me.totalfreedom.api.cmd;
 
 public enum SourceType
 {

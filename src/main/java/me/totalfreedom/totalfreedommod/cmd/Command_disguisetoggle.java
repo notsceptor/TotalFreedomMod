@@ -6,7 +6,8 @@ import org.bukkit.command.CommandSender;
 
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
+import me.totalfreedom.api.cmd.FCommand;
+import me.totalfreedom.api.cmd.annotation.*;
 
 @Command(name = "disguisetoggle", description = "Toggle the disguise plugin", usage = "/disguisetoggle", aliases = {"dtoggle"})
 @Permission(permission = "tfm.admin.disguisetoggle")

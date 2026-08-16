@@ -11,7 +11,8 @@ import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
 import me.totalfreedom.totalfreedommod.banning.Ban;
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
+import me.totalfreedom.api.cmd.FCommand;
+import me.totalfreedom.api.cmd.annotation.*;
 
 @Command(name = "banip", description = "Bans an IP address or all known IP addresses for a player.", usage = "/banip <player|ip> [reason]")
 @Permission(permission = "tfm.admin.ban")

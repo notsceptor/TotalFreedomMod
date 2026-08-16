@@ -12,7 +12,8 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import net.kyori.adventure.text.Component;
 
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
+import me.totalfreedom.api.cmd.FCommand;
+import me.totalfreedom.api.cmd.annotation.*;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 
 @Command(name = "cookie", description = "For those who have no friends.", usage = "/cookie")

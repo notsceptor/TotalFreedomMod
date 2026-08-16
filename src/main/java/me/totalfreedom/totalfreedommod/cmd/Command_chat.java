@@ -4,7 +4,9 @@ import java.util.List;
 
 import org.bukkit.entity.Player;
 
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
+import me.totalfreedom.api.cmd.FCommand;
+import me.totalfreedom.api.cmd.SourceType;
+import me.totalfreedom.api.cmd.annotation.*;
 
 @Command(
     name = "chat", 

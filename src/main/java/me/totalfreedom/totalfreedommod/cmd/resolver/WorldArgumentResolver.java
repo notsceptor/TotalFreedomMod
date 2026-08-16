@@ -3,6 +3,9 @@ package me.totalfreedom.totalfreedommod.cmd.resolver;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 
+import me.totalfreedom.api.cmd.resolver.AbstractArgumentResolver;
+import me.totalfreedom.api.cmd.resolver.ArgumentResolutionException;
+
 public class WorldArgumentResolver implements AbstractArgumentResolver<World>
 {
     @Override

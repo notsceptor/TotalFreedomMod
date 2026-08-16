@@ -10,11 +10,13 @@ import org.bukkit.scheduler.BukkitTask;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
 import me.totalfreedom.totalfreedommod.cmd.internal.FuzzyMatch;
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Callback;
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Command;
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Completer;
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Permission;
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Subcommand;
+import me.totalfreedom.api.cmd.FCommand;
+import me.totalfreedom.api.cmd.SourceType;
+import me.totalfreedom.api.cmd.annotation.Callback;
+import me.totalfreedom.api.cmd.annotation.Command;
+import me.totalfreedom.api.cmd.annotation.Completer;
+import me.totalfreedom.api.cmd.annotation.Permission;
+import me.totalfreedom.api.cmd.annotation.Subcommand;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.util.FTask;
 

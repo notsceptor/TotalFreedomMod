@@ -5,7 +5,7 @@ import java.util.List;
 import me.totalfreedom.totalfreedommod.PluginProvider;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.cmd.CommandRegistry;
-import me.totalfreedom.totalfreedommod.cmd.FCommand;
+import me.totalfreedom.api.cmd.FCommand;
 
 public final class CommandHolder
 {
@@ -23,7 +23,7 @@ public final class CommandHolder
 
     /**
      * Returns the aliases declared on the
-     * {@link me.totalfreedom.totalfreedommod.cmd.internal.annotation.Command @Command}
+     * {@link me.totalfreedom.api.cmd.annotation.Command @Command}
      * annotation for the given root command name, or an empty list if no match is found.
      */
     public static List<String> listAliases(String commandName)
@@ -33,7 +33,7 @@ public final class CommandHolder
 
     /**
      * Returns the subcommand literal values declared via
-     * {@link me.totalfreedom.totalfreedommod.cmd.internal.annotation.Subcommand @Subcommand}
+     * {@link me.totalfreedom.api.cmd.annotation.Subcommand @Subcommand}
      * on the registered command, or an empty list if no match is found.
      */
     public static List<String> listSubcommands(String commandName)

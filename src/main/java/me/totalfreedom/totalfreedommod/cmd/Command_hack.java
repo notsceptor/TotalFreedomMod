@@ -2,7 +2,9 @@ package me.totalfreedom.totalfreedommod.cmd;
 
 import org.bukkit.entity.Player;
 
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
+import me.totalfreedom.api.cmd.FCommand;
+import me.totalfreedom.api.cmd.SourceType;
+import me.totalfreedom.api.cmd.annotation.*;
 
 @Command(name = "hack", description = "Easter egg command - pretends to hack the server", usage = "/hack")
 @Permission(permission = "tfm.fun.hack", source = SourceType.ONLY_IN_GAME)

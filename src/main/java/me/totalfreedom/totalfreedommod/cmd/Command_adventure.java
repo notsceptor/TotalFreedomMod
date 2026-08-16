@@ -7,7 +7,9 @@ import org.bukkit.entity.Player;
 
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
+import me.totalfreedom.api.cmd.FCommand;
+import me.totalfreedom.api.cmd.SourceType;
+import me.totalfreedom.api.cmd.annotation.*;
 
 @Command(name = "adventure", description = "Quickly change your own gamemode to adventure, or define someone's username to change theirs.", usage = "/adventure [-a | name]", aliases = {"gma"})
 @Permission(permission = "tfm.admin.gamemode")

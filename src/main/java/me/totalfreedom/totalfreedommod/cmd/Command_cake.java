@@ -9,7 +9,9 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
+import me.totalfreedom.api.cmd.FCommand;
+import me.totalfreedom.api.cmd.SourceType;
+import me.totalfreedom.api.cmd.annotation.*;
 
 @Command(name = "cake", description = "For the people that are still alive.", usage = "/cake")
 @Permission(source = SourceType.BOTH, permission = "tfm.fun.cake")

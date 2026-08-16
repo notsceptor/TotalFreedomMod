@@ -12,7 +12,9 @@ import org.bukkit.inventory.ItemStack;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
+import me.totalfreedom.api.cmd.FCommand;
+import me.totalfreedom.api.cmd.SourceType;
+import me.totalfreedom.api.cmd.annotation.*;
 
 @Permission(source = SourceType.ONLY_IN_GAME, permission = "tfm.player.enchant")
 @Command(name = "enchant", description = "Enchant items.", usage = "/<command> <list | addall | reset | add <enchantment> [level] | remove <enchantment>>")

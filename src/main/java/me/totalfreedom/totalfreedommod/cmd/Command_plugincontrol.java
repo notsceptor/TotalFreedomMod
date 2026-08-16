@@ -9,7 +9,9 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
+import me.totalfreedom.api.cmd.FCommand;
+import me.totalfreedom.api.cmd.SourceType;
+import me.totalfreedom.api.cmd.annotation.*;
 
 @Permission(source = SourceType.ONLY_CONSOLE, permission = "tfm.admin.senior.plugincontrol")
 @Command(name = "plugincontrol", aliases = "plc", description = "Manage plugins", usage = "/<command> <<enable | disable | reload> <pluginname>> | list>")

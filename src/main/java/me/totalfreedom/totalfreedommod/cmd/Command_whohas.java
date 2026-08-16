@@ -13,7 +13,8 @@ import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
+import me.totalfreedom.api.cmd.FCommand;
+import me.totalfreedom.api.cmd.annotation.*;
 
 @Permission(permission = "tfm.admin.whohas")
 @Command(name = "whohas", aliases = "wh", description = "See who has a block and optionally clears the item.", usage = "/<command> [-clear] <item>")

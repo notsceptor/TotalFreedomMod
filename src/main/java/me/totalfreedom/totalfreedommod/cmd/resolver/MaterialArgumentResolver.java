@@ -7,6 +7,9 @@ import org.bukkit.Registry;
 import net.kyori.adventure.key.InvalidKeyException;
 import net.kyori.adventure.key.Key;
 
+import me.totalfreedom.api.cmd.resolver.AbstractArgumentResolver;
+import me.totalfreedom.api.cmd.resolver.ArgumentResolutionException;
+
 public class MaterialArgumentResolver implements AbstractArgumentResolver<Material>
 {
     @Override

@@ -5,7 +5,8 @@ import org.bukkit.command.CommandSender;
 
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
+import me.totalfreedom.api.cmd.FCommand;
+import me.totalfreedom.api.cmd.annotation.*;
 
 @Command(name = "deop", description = "Deop a player.", usage = "/deop <player>")
 @Permission(permission = "tfm.admin.deop")

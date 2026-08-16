@@ -4,6 +4,9 @@ import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
 
+import me.totalfreedom.api.cmd.resolver.AbstractArgumentResolver;
+import me.totalfreedom.api.cmd.resolver.ArgumentResolutionException;
+
 public class PluginArgumentResolver implements AbstractArgumentResolver<Plugin>
 {
     private final PluginManager pluginManager = Bukkit.getPluginManager();

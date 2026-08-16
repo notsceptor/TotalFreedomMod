@@ -5,7 +5,9 @@ import org.bukkit.entity.Player;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
 import me.totalfreedom.totalfreedommod.SpawnManager;
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
+import me.totalfreedom.api.cmd.FCommand;
+import me.totalfreedom.api.cmd.SourceType;
+import me.totalfreedom.api.cmd.annotation.*;
 
 @Command(name = "spawn", description = "Teleport to the server spawn.", usage = "/spawn [player]")
 @Permission(permission = "tfm.player.spawn", source = SourceType.ONLY_IN_GAME)

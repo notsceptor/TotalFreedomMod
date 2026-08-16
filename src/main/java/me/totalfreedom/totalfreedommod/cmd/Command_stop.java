@@ -2,7 +2,9 @@ package me.totalfreedom.totalfreedommod.cmd;
 
 import org.bukkit.command.CommandSender;
 
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
+import me.totalfreedom.api.cmd.FCommand;
+import me.totalfreedom.api.cmd.SourceType;
+import me.totalfreedom.api.cmd.annotation.*;
 
 @Command(name = "stop", description = "Kicks everyone and stops the server.", usage = "/stop")
 @Permission(permission = "tfm.server.stop", source = SourceType.ONLY_CONSOLE)

@@ -7,9 +7,10 @@ import me.totalfreedom.totalfreedommod.EntityWiper;
 import org.bukkit.command.CommandSender;
 import org.bukkit.potion.PotionEffect;
 
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Callback;
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Command;
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Permission;
+import me.totalfreedom.api.cmd.FCommand;
+import me.totalfreedom.api.cmd.annotation.Callback;
+import me.totalfreedom.api.cmd.annotation.Command;
+import me.totalfreedom.api.cmd.annotation.Permission;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 
 @Command(name = "purgeall", description = "Superadmin command - Purge everything! (except for bans).", usage = "/<command>")

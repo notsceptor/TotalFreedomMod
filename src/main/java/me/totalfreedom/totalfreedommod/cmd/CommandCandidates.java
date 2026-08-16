@@ -27,7 +27,7 @@ final class CommandCandidates
      * before the cursor are what tells the command map whether a command name or one of that
      * command's arguments is being typed. The completions come back covering the final word only,
      * which pairs with
-     * {@link me.totalfreedom.totalfreedommod.cmd.internal.annotation.Completer.Scope#ARGUMENT_TO_WORD}.
+     * {@link me.totalfreedom.api.cmd.annotation.Completer.Scope#ARGUMENT_TO_WORD}.
      *
      * @param sender the sender the suggestions are filtered for, not the player the command would
      *               eventually run as

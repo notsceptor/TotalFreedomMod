@@ -1,11 +1,11 @@
-package me.totalfreedom.totalfreedommod.cmd.internal.annotation;
+package me.totalfreedom.api.cmd.annotation;
 
 import java.lang.annotation.*;
 
 /**
  * Overrides tab-completion for a specific argument position on a subcommand.
  * <p>
- * {@link #value()} must match the {@link me.totalfreedom.totalfreedommod.cmd.internal.annotation.Subcommand#value() Subcommand#value()} path of the handler this
+ * {@link #value()} must match the {@link me.totalfreedom.api.cmd.annotation.Subcommand#value() Subcommand#value()} path of the handler this
  * completer applies to (a Completer is always a separate method from the handler, so it needs an explicit link). 
  * {@link #position()} is zero-based and counts only the handler's positional (Brigadier argument)
  * parameters: the sender and any {@link Switch}-annotated parameters are excluded, since switches

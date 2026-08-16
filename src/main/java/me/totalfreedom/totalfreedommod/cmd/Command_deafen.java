@@ -9,7 +9,8 @@ import org.bukkit.Sound;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
+import me.totalfreedom.api.cmd.FCommand;
+import me.totalfreedom.api.cmd.annotation.*;
 
 @Permission(permission = "tfm.admin.senior.deafen")
 @Command(name = "deafen", description = "Make some noise.", usage = "/<command>")

@@ -1,4 +1,4 @@
-package me.totalfreedom.totalfreedommod.cmd.internal.annotation;
+package me.totalfreedom.api.cmd.annotation;
 
 import java.lang.annotation.*;
 

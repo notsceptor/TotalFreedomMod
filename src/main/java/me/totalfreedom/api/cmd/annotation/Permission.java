@@ -1,8 +1,8 @@
-package me.totalfreedom.totalfreedommod.cmd.internal.annotation;
+package me.totalfreedom.api.cmd.annotation;
 
 import java.lang.annotation.*;
 
-import me.totalfreedom.totalfreedommod.cmd.SourceType;
+import me.totalfreedom.api.cmd.SourceType;
 
 /**
  * Declares who may run a command (or a single subcommand handler) and from where.

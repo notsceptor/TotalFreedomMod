@@ -7,6 +7,7 @@ import java.util.Objects;
 
 import org.bukkit.entity.Player;
 
+import me.totalfreedom.api.cmd.resolver.ArgumentResolutionException;
 import me.totalfreedom.totalfreedommod.PluginProvider;
 import me.totalfreedom.totalfreedommod.cmd.internal.ResolverRegistry;
 import me.totalfreedom.api.player.PlayerData;

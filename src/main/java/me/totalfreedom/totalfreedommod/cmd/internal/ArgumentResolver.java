@@ -22,7 +22,7 @@ import org.bukkit.entity.Player;
  *
  * <p>Types not listed above are handled through the custom resolvers in
  * {@link ResolverRegistry} either automatically by parameter type or explicitly via
- * {@link me.totalfreedom.totalfreedommod.cmd.internal.annotation.Resolve @Resolve}.
+ * {@link me.totalfreedom.api.cmd.annotation.Resolve @Resolve}.
  */
 public final class ArgumentResolver
 {

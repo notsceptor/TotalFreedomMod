@@ -10,7 +10,9 @@ import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 
 import me.totalfreedom.totalfreedommod.admin.Admin;
 import me.totalfreedom.totalfreedommod.banning.Ban;
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
+import me.totalfreedom.api.cmd.FCommand;
+import me.totalfreedom.api.cmd.SourceType;
+import me.totalfreedom.api.cmd.annotation.*;
 
 /**
  * Every other disciplinary or destructive command refuses an admin target through

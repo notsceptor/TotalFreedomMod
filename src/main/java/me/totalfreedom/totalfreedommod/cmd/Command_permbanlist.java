@@ -9,9 +9,10 @@ import org.bukkit.command.CommandSender;
 
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Callback;
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Command;
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Permission;
+import me.totalfreedom.api.cmd.FCommand;
+import me.totalfreedom.api.cmd.annotation.Callback;
+import me.totalfreedom.api.cmd.annotation.Command;
+import me.totalfreedom.api.cmd.annotation.Permission;
 
 @Command(name = "permbanlist", aliases = "pbanlist", description = "Shows all permanently banned players and IP addresses.", usage = "/<command> [page]")
 @Permission(permission = "tfm.admin.banlist")

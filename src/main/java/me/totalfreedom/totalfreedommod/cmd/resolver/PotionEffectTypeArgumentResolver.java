@@ -7,6 +7,9 @@ import org.bukkit.potion.PotionEffectType;
 import net.kyori.adventure.key.InvalidKeyException;
 import net.kyori.adventure.key.Key;
 
+import me.totalfreedom.api.cmd.resolver.AbstractArgumentResolver;
+import me.totalfreedom.api.cmd.resolver.ArgumentResolutionException;
+
 public class PotionEffectTypeArgumentResolver implements AbstractArgumentResolver<PotionEffectType>
 {
     @Override

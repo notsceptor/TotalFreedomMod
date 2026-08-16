@@ -4,7 +4,9 @@ import org.bukkit.entity.Player;
 
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
+import me.totalfreedom.api.cmd.FCommand;
+import me.totalfreedom.api.cmd.SourceType;
+import me.totalfreedom.api.cmd.annotation.*;
 
 @Command(name = "localspawn", description = "Teleport to the spawn point for the current world.", usage = "/localspawn", aliases = {"worldspawn", "gotospawn"})
 @Permission(permission = "tfm.player.localspawn", source = SourceType.ONLY_IN_GAME)

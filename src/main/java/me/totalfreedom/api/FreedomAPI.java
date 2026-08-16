@@ -7,6 +7,7 @@ import org.bukkit.plugin.Plugin;
 import me.totalfreedom.api.admin.IAdminList;
 import me.totalfreedom.api.banning.IBanManager;
 import me.totalfreedom.api.blocking.sweep.ISweepScheduler;
+import me.totalfreedom.api.cmd.CommandLoader;
 import me.totalfreedom.api.config.IMainConfig;
 import me.totalfreedom.api.economy.IBank;
 import me.totalfreedom.api.economy.IEcoManager;
@@ -42,6 +43,12 @@ public interface FreedomAPI extends Plugin
      * Essentials, WorldEdit, LibsDisguises).
      */
     IServiceManager bridges();
+
+    /**
+     * @return The loader plugins depending on TFM can use to register their own commands. See
+     * {@link CommandLoader#load(Class)}.
+     */
+    CommandLoader commands();
 
     IBank bank();
 

@@ -7,7 +7,9 @@ import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 
-import me.totalfreedom.totalfreedommod.cmd.FCommand;
+import me.totalfreedom.api.cmd.resolver.AbstractArgumentResolver;
+import me.totalfreedom.api.cmd.resolver.ArgumentResolutionException;
+import me.totalfreedom.api.cmd.FCommand;
 
 public class OfflinePlayerArgumentResolver implements AbstractArgumentResolver<OfflinePlayer>
 {

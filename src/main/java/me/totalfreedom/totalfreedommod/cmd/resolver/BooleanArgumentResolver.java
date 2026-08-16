@@ -2,6 +2,9 @@ package me.totalfreedom.totalfreedommod.cmd.resolver;
 
 import java.util.List;
 
+import me.totalfreedom.api.cmd.resolver.AbstractArgumentResolver;
+import me.totalfreedom.api.cmd.resolver.ArgumentResolutionException;
+
 public class BooleanArgumentResolver implements AbstractArgumentResolver<Boolean>
 {
 

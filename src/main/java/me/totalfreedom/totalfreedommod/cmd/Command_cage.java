@@ -8,7 +8,8 @@ import org.bukkit.entity.Player;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
 import me.totalfreedom.totalfreedommod.caging.CageData;
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
+import me.totalfreedom.api.cmd.FCommand;
+import me.totalfreedom.api.cmd.annotation.*;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 
 @Command(name = "cage", description = "Place a cage around someone.", usage = "/cage (-s) <player> [<outer_mat> <inner_mat>] | purge")

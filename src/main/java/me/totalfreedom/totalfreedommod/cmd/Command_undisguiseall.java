@@ -4,7 +4,8 @@ import me.totalfreedom.totalfreedommod.bridge.LibsDisguisesBridge;
 
 import org.bukkit.command.CommandSender;
 
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
+import me.totalfreedom.api.cmd.FCommand;
+import me.totalfreedom.api.cmd.annotation.*;
 
 @Command(name = "undisguiseall", description = "Undisguise all players on the server", usage = "/undisguiseall", aliases = {"uall"})
 @Permission(permission = "tfm.admin.undisguiseall")

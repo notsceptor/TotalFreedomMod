@@ -4,6 +4,9 @@ import java.net.InetAddress;
 
 import com.google.common.net.InetAddresses;
 
+import me.totalfreedom.api.cmd.resolver.AbstractArgumentResolver;
+import me.totalfreedom.api.cmd.resolver.ArgumentResolutionException;
+
 public class InetAddressResolver implements AbstractArgumentResolver<InetAddress>
 {
     @Override

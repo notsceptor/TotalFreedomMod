@@ -8,6 +8,8 @@ import java.util.regex.PatternSyntaxException;
 import org.bukkit.Material;
 import org.bukkit.Registry;
 
+import me.totalfreedom.api.cmd.resolver.ArgumentResolutionException;
+
 public class MaterialQueryArgumentProvider implements AbstractParameterizedArgumentResolver<List<Material>>
 {
     @Override

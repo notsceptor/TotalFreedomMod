@@ -1,5 +1,8 @@
 package me.totalfreedom.totalfreedommod.cmd.resolver;
 
+import me.totalfreedom.api.cmd.resolver.AbstractArgumentResolver;
+import me.totalfreedom.api.cmd.resolver.ArgumentResolutionException;
+
 public class FloatArgumentResolver implements AbstractArgumentResolver<Float>
 {
     @Override

@@ -8,7 +8,8 @@ import org.bukkit.entity.Entity;
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
+import me.totalfreedom.api.cmd.FCommand;
+import me.totalfreedom.api.cmd.annotation.*;
 
 @Command(name = "aeclear", description = "Removes all area-of-effect clouds on the server.", usage = "/aeclear", aliases = {"aec"})
 @Permission(permission = "tfm.admin.aeclear")

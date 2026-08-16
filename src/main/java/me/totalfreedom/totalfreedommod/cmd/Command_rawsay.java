@@ -4,7 +4,8 @@ import java.util.List;
 
 import org.bukkit.command.CommandSender;
 
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
+import me.totalfreedom.api.cmd.FCommand;
+import me.totalfreedom.api.cmd.annotation.*;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 
 @Command(name = "rawsay", description = "Broadcasts the given message. Supports colors.", usage = "/rawsay <message>")

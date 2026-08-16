@@ -4,7 +4,9 @@ import java.io.File;
 
 import org.bukkit.command.CommandSender;
 
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
+import me.totalfreedom.api.cmd.FCommand;
+import me.totalfreedom.api.cmd.SourceType;
+import me.totalfreedom.api.cmd.annotation.*;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 
 @Command(name = "wipeuserdata", description = "Removes essentials playerdata", usage = "/wipeuserdata")

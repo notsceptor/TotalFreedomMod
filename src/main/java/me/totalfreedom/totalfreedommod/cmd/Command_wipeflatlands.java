@@ -4,7 +4,9 @@ import me.totalfreedom.totalfreedommod.SavedFlags;
 
 import org.bukkit.command.CommandSender;
 
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
+import me.totalfreedom.api.cmd.FCommand;
+import me.totalfreedom.api.cmd.SourceType;
+import me.totalfreedom.api.cmd.annotation.*;
 
 @Command(name = "wipeflatlands", description = "Wipe the flatlands map. Requires manual restart after command is used.", usage = "/wipeflatlands")
 @Permission(permission = "tfm.admin.senior.wipeflatlands", source = SourceType.ONLY_CONSOLE)

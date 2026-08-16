@@ -8,6 +8,8 @@ import java.util.function.Function;
 import com.google.common.base.Enums;
 import com.google.common.base.Optional;
 
+import me.totalfreedom.api.cmd.resolver.ArgumentResolutionException;
+
 public class EnumArgumentResolver implements AbstractParameterizedArgumentResolver<Enum<?>>
 {
 

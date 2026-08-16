@@ -105,9 +105,9 @@ public class ServiceManager implements IServiceManager
     public <S extends AbstractService> Optional<S> get(Class<S> serviceClass)
     {
         return services.stream()
-                .filter(serviceClass::isInstance)
-                .map(serviceClass::cast)
-                .findFirst();
+                       .filter(serviceClass::isInstance)
+                       .map(serviceClass::cast)
+                       .findFirst();
     }
 
     /**

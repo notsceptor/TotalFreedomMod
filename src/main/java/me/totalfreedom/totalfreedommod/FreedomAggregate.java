@@ -39,7 +39,7 @@ import me.totalfreedom.totalfreedommod.bridge.EssentialsBridge;
 import me.totalfreedom.totalfreedommod.bridge.LibsDisguisesBridge;
 import me.totalfreedom.totalfreedommod.bridge.WorldEditBridge;
 import me.totalfreedom.totalfreedommod.caging.Cager;
-import me.totalfreedom.totalfreedommod.cmd.CommandLoader;
+import me.totalfreedom.api.cmd.CommandLoader;
 import me.totalfreedom.totalfreedommod.config.MainConfig;
 import me.totalfreedom.totalfreedommod.discord.DiscordBridge;
 import me.totalfreedom.totalfreedommod.disguise.DisallowedDisguises;
@@ -226,6 +226,11 @@ public class FreedomAggregate
     public IServiceManager bridges()
     {
         return bridges;
+    }
+
+    public CommandLoader commands()
+    {
+        return services.require(CommandLoader.class);
     }
 
     public IMainConfig config()

@@ -5,7 +5,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
-import me.totalfreedom.totalfreedommod.cmd.resolver.AbstractArgumentResolver;
+import me.totalfreedom.api.cmd.resolver.AbstractArgumentResolver;
 import me.totalfreedom.totalfreedommod.util.FLog;
 
 /**

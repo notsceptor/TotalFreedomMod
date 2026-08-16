@@ -6,7 +6,9 @@ import java.util.stream.Stream;
 
 import org.bukkit.entity.Player;
 
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
+import me.totalfreedom.api.cmd.FCommand;
+import me.totalfreedom.api.cmd.SourceType;
+import me.totalfreedom.api.cmd.annotation.*;
 import me.totalfreedom.api.player.PlayerData;
 import me.totalfreedom.totalfreedommod.player.SpyMode;
 

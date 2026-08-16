@@ -8,7 +8,9 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 
 import me.totalfreedom.totalfreedommod.admin.Admin;
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
+import me.totalfreedom.api.cmd.FCommand;
+import me.totalfreedom.api.cmd.SourceType;
+import me.totalfreedom.api.cmd.annotation.*;
 
 @Permission(source = SourceType.ONLY_IN_GAME, permission = "tfm.player.report")
 @Command(name = "report", description = "Report a player for admins to see.", usage = "/report <player> <reason>")

@@ -1,4 +1,4 @@
-package me.totalfreedom.totalfreedommod.cmd.resolver;
+package me.totalfreedom.api.cmd.resolver;
 
 import java.util.List;
 

@@ -6,7 +6,8 @@ import org.bukkit.entity.Player;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
+import me.totalfreedom.api.cmd.FCommand;
+import me.totalfreedom.api.cmd.annotation.*;
 
 @Command(name = "findip", description = "Shows all IPs registered to a player.", usage = "/findip [player]", aliases = {"ips", "ip"})
 @Permission(permission = "tfm.admin.findip")

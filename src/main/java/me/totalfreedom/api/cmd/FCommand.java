@@ -1,4 +1,4 @@
-package me.totalfreedom.totalfreedommod.cmd;
+package me.totalfreedom.api.cmd;
 
 import java.security.InvalidParameterException;
 import java.util.ArrayList;
@@ -22,6 +22,8 @@ import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import me.totalfreedom.api.FreedomAPI;
 import me.totalfreedom.totalfreedommod.PluginProvider;
 import me.totalfreedom.totalfreedommod.admin.Admin;
+import me.totalfreedom.totalfreedommod.cmd.CommandFailException;
+import me.totalfreedom.totalfreedommod.cmd.MessageUtils;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.api.player.PlayerData;
@@ -32,11 +34,11 @@ import me.totalfreedom.totalfreedommod.util.FUtil;
  * Base class for command declarations in the new command framework.
  * <p>
  * Subclasses declare their metadata with
- * {@link me.totalfreedom.totalfreedommod.cmd.internal.annotation.Command @Command} /
- * {@link me.totalfreedom.totalfreedommod.cmd.internal.annotation.Permission @Permission}
+ * {@link me.totalfreedom.api.cmd.annotation.Command @Command} /
+ * {@link me.totalfreedom.api.cmd.annotation.Permission @Permission}
  * and their handlers with
- * {@link me.totalfreedom.totalfreedommod.cmd.internal.annotation.Callback @Callback} +
- * {@link me.totalfreedom.totalfreedommod.cmd.internal.annotation.Subcommand @Subcommand}.
+ * {@link me.totalfreedom.api.cmd.annotation.Callback @Callback} +
+ * {@link me.totalfreedom.api.cmd.annotation.Subcommand @Subcommand}.
  * <p>
  * Unlike FreedomCommand, there is no per-invocation mutable state. Handlers receive the sender as
  * their first parameter, so every helper takes the sender explicitly.

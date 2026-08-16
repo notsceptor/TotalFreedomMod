@@ -16,6 +16,7 @@ import me.totalfreedom.api.IGameRuleHandler;
 import me.totalfreedom.api.admin.IAdminList;
 import me.totalfreedom.api.banning.IBanManager;
 import me.totalfreedom.api.blocking.sweep.ISweepScheduler;
+import me.totalfreedom.api.cmd.CommandLoader;
 import me.totalfreedom.api.config.IMainConfig;
 import me.totalfreedom.api.economy.IBank;
 import me.totalfreedom.api.economy.IEcoManager;
@@ -29,24 +30,11 @@ import me.totalfreedom.api.vanish.IVanishService;
 import me.totalfreedom.api.world.IGenerationService;
 import me.totalfreedom.api.world.IWorldManager;
 import me.totalfreedom.totalfreedommod.admin.AdminList;
-import me.totalfreedom.totalfreedommod.banning.BanManager;
 import me.totalfreedom.totalfreedommod.banning.PermbanList;
-import me.totalfreedom.totalfreedommod.blocking.sweep.SweepScheduler;
-import me.totalfreedom.totalfreedommod.config.MainConfig;
-import me.totalfreedom.totalfreedommod.eco.EcoManager;
-import me.totalfreedom.totalfreedommod.framework.ServiceManager;
 import me.totalfreedom.api.player.PlayerData;
-import me.totalfreedom.totalfreedommod.player.PlayerList;
-import me.totalfreedom.totalfreedommod.rank.ConsoleSenderRegistry;
-import me.totalfreedom.totalfreedommod.rank.RankManager;
-import me.totalfreedom.totalfreedommod.sql.FreedomDatabase;
-import me.totalfreedom.totalfreedommod.title.TitleManager;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import me.totalfreedom.totalfreedommod.util.MethodTimer;
-import me.totalfreedom.totalfreedommod.vanish.VanishService;
-import me.totalfreedom.totalfreedommod.world.GenerationService;
-import me.totalfreedom.totalfreedommod.world.WorldManager;
 
 /**
  * Connects {@link FreedomAggregate}, the composition root that owns every service and its
@@ -135,6 +123,12 @@ public class TotalFreedomMod extends JavaPlugin implements FreedomAPI
     public IServiceManager bridges()
     {
         return aggregate.bridges();
+    }
+
+    @Override
+    public CommandLoader commands()
+    {
+        return aggregate.commands();
     }
 
     @Override

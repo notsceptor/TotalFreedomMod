@@ -1,4 +1,4 @@
-package me.totalfreedom.totalfreedommod.cmd;
+package me.totalfreedom.api.cmd;
 
 import me.totalfreedom.totalfreedommod.ProtectArea;
 
@@ -32,6 +32,8 @@ import net.kyori.adventure.key.Key;
 
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.ProtectArea.ProtectedRegion;
+import me.totalfreedom.totalfreedommod.cmd.Command_totalfreedommod;
+import me.totalfreedom.totalfreedommod.cmd.CommandRegistry;
 import me.totalfreedom.totalfreedommod.cmd.internal.*;
 import me.totalfreedom.totalfreedommod.cmd.resolver.*;
 import me.totalfreedom.totalfreedommod.util.FLog;
@@ -43,10 +45,8 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 /**
  * Registers the custom argument resolvers into the {@link ResolverRegistry} and auto-discovers {@link FCommand} declarations.
  */
-public class CommandLoader extends FreedomService 
+public class CommandLoader extends FreedomService
 {
-
-    private static final String COMMANDS_PACKAGE = "me.totalfreedom.totalfreedommod.cmd";
 
     private boolean started = false;
 
@@ -66,7 +66,7 @@ public class CommandLoader extends FreedomService
 
         registerResolvers();
 
-        int loaded = discoverCommands();
+        int loaded = load(Command_totalfreedommod.class);
         FLog.info("Loaded " + loaded + " commands.");
     }
 
@@ -142,27 +142,57 @@ public class CommandLoader extends FreedomService
         };
     }
 
-    private int discoverCommands() 
+    /**
+     * Discovers and registers every {@code Command_*} class living alongside {@code anchor}'s own
+     * package, using {@code anchor}'s own defining classloader and code source rather than TFM's.
+     * Pass one of TFM's own command classes to load its built-ins, or a command class from a
+     * plugin that depends on TFM to register that plugin's commands the same way: the rest of its
+     * package is discovered from that one class. Command classes must still follow the
+     * {@code Command_<identifier>} naming convention to be picked up.
+     *
+     * @param anchor A representative command class from the package to scan.
+     * @return The number of commands registered.
+     */
+    public int load(Class<? extends FCommand> anchor)
     {
-        ClassLoader classLoader = plugin.getClass().getClassLoader();
+        ClassLoader classLoader = anchor.getClassLoader();
+        String packageName = anchor.getPackageName();
 
-        try (final FileSystem zipFs = FileSystems.newFileSystem(Path.of(plugin.getClass().getProtectionDomain().getCodeSource().getLocation().toURI()));
-             final Stream<Path> walk = Files.walk(zipFs.getPath("/" + getClass().getPackageName().replaceAll("\\.", "/"))))
+        try
         {
-            return (int) walk
-                    .map(path -> path.getFileName().toString())
-                    .filter(name -> name.startsWith("Command_") && name.endsWith(".class"))
-                    .map(name -> COMMANDS_PACKAGE + "." + name.substring(0, name.length() - ".class".length()))
-                    .filter(className -> loadCommandClass(className, classLoader))
-                    .count();
+            Path codeSource = Path.of(anchor.getProtectionDomain().getCodeSource().getLocation().toURI());
+
+            if (Files.isDirectory(codeSource))
+            {
+                try (final Stream<Path> walk = Files.walk(codeSource.resolve(packageName.replace('.', '/'))))
+                {
+                    return countLoaded(walk, packageName, classLoader);
+                }
+            }
+
+            try (final FileSystem zipFs = FileSystems.newFileSystem(codeSource);
+                 final Stream<Path> walk = Files.walk(zipFs.getPath("/" + packageName.replace('.', '/'))))
+            {
+                return countLoaded(walk, packageName, classLoader);
+            }
         }
-        catch (Exception ex) 
+        catch (Exception ex)
         {
             FLog.warn(String.format("Error walking commands: \n%s", ExceptionUtils.getRootCauseMessage(ex)));
             FLog.warn(ex);
         }
 
         return 0;
+    }
+
+    private int countLoaded(Stream<Path> walk, String packageName, ClassLoader classLoader)
+    {
+        return (int) walk
+                .map(path -> path.getFileName().toString())
+                .filter(name -> name.startsWith("Command_") && name.endsWith(".class"))
+                .map(name -> packageName + "." + name.substring(0, name.length() - ".class".length()))
+                .filter(className -> loadCommandClass(className, classLoader))
+                .count();
     }
 
     private boolean loadCommandClass(String className, ClassLoader classLoader) 

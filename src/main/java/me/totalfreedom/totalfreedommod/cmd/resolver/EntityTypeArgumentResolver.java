@@ -9,6 +9,9 @@ import org.bukkit.entity.Player;
 import net.kyori.adventure.key.InvalidKeyException;
 import net.kyori.adventure.key.Key;
 
+import me.totalfreedom.api.cmd.resolver.AbstractArgumentResolver;
+import me.totalfreedom.api.cmd.resolver.ArgumentResolutionException;
+
 public class EntityTypeArgumentResolver implements AbstractArgumentResolver<EntityType>
 {
     @Override

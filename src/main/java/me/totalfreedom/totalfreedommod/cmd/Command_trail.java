@@ -4,7 +4,9 @@ import me.totalfreedom.totalfreedommod.fun.Trailer;
 
 import org.bukkit.entity.Player;
 
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
+import me.totalfreedom.api.cmd.FCommand;
+import me.totalfreedom.api.cmd.SourceType;
+import me.totalfreedom.api.cmd.annotation.*;
 
 @Command(name = "trail", description = "Pretty rainbow trails.", usage = "/trail [on | off]")
 @Permission(permission = "tfm.fun.trail", source = SourceType.ONLY_IN_GAME)

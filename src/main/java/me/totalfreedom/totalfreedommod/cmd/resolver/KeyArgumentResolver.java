@@ -5,6 +5,9 @@ import org.bukkit.NamespacedKey;
 import net.kyori.adventure.key.InvalidKeyException;
 import net.kyori.adventure.key.Key;
 
+import me.totalfreedom.api.cmd.resolver.AbstractArgumentResolver;
+import me.totalfreedom.api.cmd.resolver.ArgumentResolutionException;
+
 public class KeyArgumentResolver implements AbstractArgumentResolver<Key>
 {
     @Override

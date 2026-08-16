@@ -7,6 +7,9 @@ import java.util.UUID;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
+import me.totalfreedom.api.cmd.resolver.AbstractArgumentResolver;
+import me.totalfreedom.api.cmd.resolver.ArgumentResolutionException;
+
 public class PlayerListArgumentResolver implements AbstractArgumentResolver<List<Player>>
 {
     private List<Player> resolveDefault(String arg)

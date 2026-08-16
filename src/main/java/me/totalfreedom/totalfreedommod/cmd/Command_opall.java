@@ -5,7 +5,8 @@ import org.bukkit.command.CommandSender;
 
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
+import me.totalfreedom.api.cmd.FCommand;
+import me.totalfreedom.api.cmd.annotation.*;
 
 @Command(name = "opall", description = "Op everyone on the server, optionally changing everyone's gamemode at the same time.", usage = "/opall [-c | -s]")
 @Permission(permission = "tfm.player.opall")

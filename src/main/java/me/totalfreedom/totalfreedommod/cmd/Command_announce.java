@@ -6,7 +6,8 @@ import java.util.List;
 
 import org.bukkit.command.CommandSender;
 
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
+import me.totalfreedom.api.cmd.FCommand;
+import me.totalfreedom.api.cmd.annotation.*;
 
 @Command(name = "announce", description = "Make an announcement", usage = "/announce <message>")
 @Permission(permission = "tfm.admin.announce")

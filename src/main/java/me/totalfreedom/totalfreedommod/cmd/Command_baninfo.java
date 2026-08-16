@@ -13,7 +13,8 @@ import org.bukkit.command.CommandSender;
 
 import me.totalfreedom.totalfreedommod.banning.Ban;
 import me.totalfreedom.totalfreedommod.banning.PermBan;
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
+import me.totalfreedom.api.cmd.FCommand;
+import me.totalfreedom.api.cmd.annotation.*;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 
 @Command(name = "baninfo", description = "Show info about a ban by username or the first match to a (partial) IP.", usage = "/baninfo <name|ip>", aliases = {"checkban"})

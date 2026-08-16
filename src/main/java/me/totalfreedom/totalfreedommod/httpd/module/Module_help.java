@@ -17,8 +17,8 @@ import me.totalfreedom.api.FreedomAPI;
 import me.totalfreedom.totalfreedommod.PluginProvider;
 import me.totalfreedom.totalfreedommod.TotalFreedomMod;
 import me.totalfreedom.totalfreedommod.cmd.CommandRegistry;
-import me.totalfreedom.totalfreedommod.cmd.FCommand;
-import me.totalfreedom.totalfreedommod.cmd.internal.annotation.Permission;
+import me.totalfreedom.api.cmd.FCommand;
+import me.totalfreedom.api.cmd.annotation.Permission;
 import me.totalfreedom.api.display.Displayable;
 import me.totalfreedom.totalfreedommod.httpd.NanoHTTPD;
 import me.totalfreedom.totalfreedommod.rank.CustomRank;
@@ -136,7 +136,7 @@ public class Module_help extends HTTPDModule
         FCommand fc = CommandRegistry.getByName(command.getName());
         var meta = fc == null
                 ? null
-                : fc.getClass().getAnnotation(me.totalfreedom.totalfreedommod.cmd.internal.annotation.Command.class);
+                : fc.getClass().getAnnotation(me.totalfreedom.api.cmd.annotation.Command.class);
         if (meta != null)
         {
             if (usage == null || usage.isBlank())
