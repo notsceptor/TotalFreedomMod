@@ -33,7 +33,7 @@ public class JoinLeaveMessages extends FreedomService
     {
         final Player player = event.getPlayer();
         event.joinMessage(null);
-        broadcast(player, "<gray><italic><player> has joined the game.</italic></gray>");
+        broadcast(player, "<dark_gray>[<green>+<dark_gray>] <yellow><italic><player> has joined the game.");
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -41,7 +41,7 @@ public class JoinLeaveMessages extends FreedomService
     {
         final Player player = event.getPlayer();
         event.quitMessage(null);
-        broadcast(player, "<gray><italic><player> has left the game.</italic></gray>");
+        broadcast(player, "<dark_gray>[<red>-<dark_gray>] <yellow><italic><player> has left the game.");
     }
 
     private boolean isAdminOrDeveloper(final Player player)
