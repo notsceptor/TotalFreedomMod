@@ -4,28 +4,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import lombok.Getter;
-import lombok.Setter;
-
 /**
  * Model class representing a permanent ban.
  * Used for SQL database storage.
  */
 public class PermBan
 {
-    @Getter
-    @Setter
     private UUID uuid;
-
-    @Getter
-    @Setter
     private String username;
-
-    @Getter
-    @Setter
     private String reason;
 
-    @Getter
     private final List<String> ips = new ArrayList<>();
 
     public PermBan()
@@ -91,6 +79,34 @@ public class PermBan
     public boolean hasUsername()
     {
         return username != null && !username.isEmpty();
+    }
+
+    public UUID getUuid() {
+        return uuid;
+    }
+
+    public void setUuid(UUID uuid) {
+        this.uuid = uuid;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getReason() {
+        return reason;
+    }
+
+    public void setReason(String reason) {
+        this.reason = reason;
+    }
+
+    public List<String> getIps() {
+        return ips;
     }
 
     @Override

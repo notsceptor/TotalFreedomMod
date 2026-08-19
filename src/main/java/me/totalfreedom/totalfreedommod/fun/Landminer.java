@@ -19,12 +19,9 @@ import org.bukkit.util.Vector;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 
-import lombok.Getter;
-
 public class Landminer extends FreedomService
 {
 
-    @Getter
     private final List<Landmine> landmines = new ArrayList<>();
 
     public Landminer(FreedomAPI plugin)
@@ -53,18 +50,19 @@ public class Landminer extends FreedomService
         landmines.remove(landmine);
     }
 
+    public List<Landmine> getLandmines()
+    {
+        return landmines;
+    }
+
     @EventHandler(priority = EventPriority.NORMAL)
     public void onPlayerMove(PlayerMoveEvent event)
     {
         if (landmines.isEmpty() || !event.hasChangedPosition())
-        {
             return;
-        }
 
         if (!(ConfigEntry.LANDMINES_ENABLED.getBoolean() && ConfigEntry.ALLOW_EXPLOSIONS.getBoolean()))
-        {
             return;
-        }
 
         final Player player = event.getPlayer();
 
@@ -74,26 +72,14 @@ public class Landminer extends FreedomService
             final Landmine landmine = lit.next();
 
             final Location location = landmine.location;
-            if (location.getBlock().getType() != Material.TNT)
+            if (location.getBlock().getType() != Material.TNT || !player.getWorld().equals(location.getWorld()))
             {
                 lit.remove();
                 continue;
             }
 
-            if (landmine.planter.equals(player))
-            {
+            if (player.getLocation().distanceSquared(location) >= (landmine.radius * landmine.radius) || landmine.planter.equals(player))
                 break;
-            }
-
-            if (!player.getWorld().equals(location.getWorld()))
-            {
-                continue;
-            }
-
-            if (!(player.getLocation().distanceSquared(location) <= (landmine.radius * landmine.radius)))
-            {
-                break;
-            }
 
             landmine.location.getBlock().setType(Material.AIR);
 
@@ -110,23 +96,8 @@ public class Landminer extends FreedomService
         }
     }
 
-    public static class Landmine
+    public static final record Landmine(Location location, Player planter, double radius)
     {
-
-        @Getter
-        private final Location location;
-        @Getter
-        private final Player planter;
-        @Getter
-        private final double radius;
-
-        public Landmine(Location location, Player player, double radius)
-        {
-            this.location = location;
-            this.planter = player;
-            this.radius = radius;
-        }
-
         @Override
         public String toString()
         {

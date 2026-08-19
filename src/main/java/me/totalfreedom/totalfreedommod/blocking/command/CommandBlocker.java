@@ -231,7 +231,7 @@ public class CommandBlocker extends FreedomService
         final boolean isCommandBlockHolder = sender instanceof BlockCommandSender || sender instanceof CommandMinecart;
 
         final String rawCommand = event.getCommand();
-        if (rawCommand == null || rawCommand.isEmpty())
+        if (rawCommand.isEmpty())
         {
             return;
         }

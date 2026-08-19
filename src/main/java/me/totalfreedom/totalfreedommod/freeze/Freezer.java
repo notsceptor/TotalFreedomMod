@@ -11,12 +11,9 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import me.totalfreedom.totalfreedommod.FreedomService;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 
-import lombok.Getter;
-
 public class Freezer extends FreedomService
 {
 
-    @Getter
     private boolean globalFreeze = false;
 
     public Freezer(FreedomAPI plugin)
@@ -33,6 +30,12 @@ public class Freezer extends FreedomService
     @Override
     public void onStop()
     {
+        // unused
+    }
+
+    public boolean isGlobalFreeze()
+    {
+        return globalFreeze;
     }
 
     public void setGlobalFreeze(boolean frozen)
@@ -45,39 +48,29 @@ public class Freezer extends FreedomService
         this.globalFreeze = false;
 
         for (Player player : server.getOnlinePlayers())
-        {
             plugin.players().getPlayer(player).getFreezeData().setFrozen(false);
-        }
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onPlayerMove(PlayerMoveEvent event)
     {
         if (!event.hasChangedPosition())
-        {
             return;
-        }
 
         final Player player = event.getPlayer();
 
         if (plugin.admins().isAdmin(player))
-        {
             return;
-        }
 
         final FreezeData fd = plugin.players().getPlayer(player).getFreezeData();
         if (!fd.isFrozen() && !globalFreeze)
-        {
             return;
-        }
 
         FUtil.setFlying(player, true);
 
         Location loc = fd.getLocation();
         if (loc == null)
-        {
             loc = event.getFrom();
-        }
 
         event.setTo(loc);
     }

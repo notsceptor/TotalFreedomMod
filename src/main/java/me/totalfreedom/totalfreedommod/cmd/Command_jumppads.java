@@ -79,9 +79,9 @@ public class Command_jumppads extends FCommand
         msg(
             sender,
             """
-                <blue>Jumppads: <jump:Enabled:Disabled>
-                <blue>Sideways: <sideways:Enabled:Disabled>
-                <blue>Strength: <strength>
+            <blue>Jumppads: <jump:Enabled:Disabled>
+            <blue>Sideways: <sideways:Enabled:Disabled>
+            <blue>Strength: <strength>
             """,
             Formatter.booleanChoice("jump", mode.isOn()),
             Formatter.booleanChoice("sideways", mode == Jumppads.JumpPadMode.NORMAL_AND_SIDEWAYS),

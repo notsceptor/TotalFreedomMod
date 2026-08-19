@@ -10,22 +10,23 @@ import me.totalfreedom.api.player.PlayerData;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 
-import lombok.Getter;
-
 import static me.totalfreedom.totalfreedommod.player.FPlayer.AUTO_PURGE_TICKS;
 
 public class FreezeData
 {
 
     private final FPlayer fPlayer;
-    //
-    @Getter
     private Location location = null;
     private BukkitTask unfreeze = null;
 
     public FreezeData(FPlayer fPlayer)
     {
         this.fPlayer = fPlayer;
+    }
+
+    public Location getLocation()
+    {
+        return location;
     }
 
     public boolean isFrozen()

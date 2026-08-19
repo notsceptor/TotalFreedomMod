@@ -34,9 +34,7 @@ public class FPlayer
     {
         final Integer window = ConfigEntry.ANTISPAM_TIME_WINDOW.getInteger();
         if (window != null && window > 0)
-        {
             msgCounterWindowMs = window;
-        }
     }
 
     private final FreedomAPI plugin;
@@ -145,14 +143,10 @@ public class FPlayer
     public Player getPlayer()
     {
         if (player != null && !player.isOnline())
-        {
             player = null;
-        }
 
         if (player == null)
-        {
             player = Bukkit.getPlayerExact(name);
-        }
 
         return player;
     }
@@ -334,9 +328,7 @@ public class FPlayer
         {
             LivingEntity oldmob = mobThrowerQueue.remove(0);
             if (oldmob != null)
-            {
                 oldmob.damage(500.0);
-            }
         }
     }
 
@@ -393,15 +385,13 @@ public class FPlayer
         if (muted)
         {
             if (getPlayer() == null)
-            {
                 return;
-            }
             unmuteTask = plugin.getServer().getScheduler().runTaskLater(plugin,
-                FTask.guard("FPlayer/autoUnmute", () ->
-                {
-                    FUtil.adminAction("TotalFreedom", "Unmuting " + getPlayer().getName(), false);
-                    setMuted(false);
-                }), AUTO_PURGE_TICKS);
+                    FTask.guard("FPlayer/autoUnmute", () ->
+                    {
+                        FUtil.adminAction("TotalFreedom", "Unmuting " + getPlayer().getName(), false);
+                        setMuted(false);
+                    }), AUTO_PURGE_TICKS);
         }
 
         persistMuted(muted);
@@ -411,9 +401,7 @@ public class FPlayer
     {
         final Player p = getPlayer();
         if (p == null)
-        {
             return;
-        }
         final PlayerData data = plugin.players().getData(p);
         if (data.isMuted() != muted)
         {
@@ -463,9 +451,7 @@ public class FPlayer
 
         final Player p = getPlayer();
         if (p == null)
-        {
             return;
-        }
         final PlayerData data = plugin.players().getData(p);
         if (data.isCommandsBlocked() != commandsBlocked)
         {
@@ -533,7 +519,8 @@ public class FPlayer
         {
             Player p = getPlayer();
             p.getWorld().strikeLightning(p.getLocation());
-            FUtil.playerMsg(p, "You have been warned at least twice now, make sure to read the rules at " + ConfigEntry.SERVER_BAN_URL.getString(), NamedTextColor.RED);
+            FUtil.playerMsg(p, "You have been warned at least twice now, make sure to read the rules at " + ConfigEntry.SERVER_BAN_URL.getString(),
+                    NamedTextColor.RED);
         }
     }
 
@@ -565,232 +552,254 @@ public class FPlayer
             });
         }
     }
-    
-    public static long getMsgCounterWindowMs() {
+
+    public static long getMsgCounterWindowMs()
+    {
         return msgCounterWindowMs;
     }
 
-    public static void setMsgCounterWindowMs(long msgCounterWindowMs) {
+    public static void setMsgCounterWindowMs(long msgCounterWindowMs)
+    {
         FPlayer.msgCounterWindowMs = msgCounterWindowMs;
     }
 
-    public BukkitTask getUnmuteTask() {
+    public BukkitTask getUnmuteTask()
+    {
         return unmuteTask;
     }
 
-    public void setUnmuteTask(BukkitTask unmuteTask) {
+    public void setUnmuteTask(BukkitTask unmuteTask)
+    {
         this.unmuteTask = unmuteTask;
     }
 
-    public double getFuckoffRadius() {
-        return fuckoffRadius;
-    }
-
-    public void setFuckoffRadius(double fuckoffRadius) {
+    public void setFuckoffRadius(double fuckoffRadius)
+    {
         this.fuckoffRadius = fuckoffRadius;
     }
 
-    public int getMessageCount() {
+    public int getMessageCount()
+    {
         return messageCount;
     }
 
-    public void setMessageCount(int messageCount) {
+    public void setMessageCount(int messageCount)
+    {
         this.messageCount = messageCount;
     }
 
-    public long getMessageCountWindowStart() {
+    public long getMessageCountWindowStart()
+    {
         return messageCountWindowStart;
     }
 
-    public void setMessageCountWindowStart(long messageCountWindowStart) {
+    public void setMessageCountWindowStart(long messageCountWindowStart)
+    {
         this.messageCountWindowStart = messageCountWindowStart;
     }
-    
-    public String getIp() {
-        return ip;
-    }
 
-    public FreezeData getFreezeData() {
-        return freezeData;
-    }
-
-    public CageData getCageData() {
-        return cageData;
-    }
-
-    public ChatSpamData getChatSpamData() {
-        return chatSpamData;
-    }
-
-    public int getDropCount() {
+    public int getDropCount()
+    {
         return dropCount;
     }
 
-    public void setDropCount(int dropCount) {
+    public void setDropCount(int dropCount)
+    {
         this.dropCount = dropCount;
     }
 
-    public long getDropCountWindowStart() {
+    public long getDropCountWindowStart()
+    {
         return dropCountWindowStart;
     }
 
-    public void setDropCountWindowStart(long dropCountWindowStart) {
+    public void setDropCountWindowStart(long dropCountWindowStart)
+    {
         this.dropCountWindowStart = dropCountWindowStart;
     }
 
-    public int getDropItemCount() {
+    public int getDropItemCount()
+    {
         return dropItemCount;
     }
 
-    public void setDropItemCount(int dropItemCount) {
+    public void setDropItemCount(int dropItemCount)
+    {
         this.dropItemCount = dropItemCount;
     }
 
-    public long getDropItemCountWindowStart() {
+    public long getDropItemCountWindowStart()
+    {
         return dropItemCountWindowStart;
     }
 
-    public void setDropItemCountWindowStart(long dropItemCountWindowStart) {
+    public void setDropItemCountWindowStart(long dropItemCountWindowStart)
+    {
         this.dropItemCountWindowStart = dropItemCountWindowStart;
     }
 
-    public int getTotalBlockDestroy() {
+    public int getTotalBlockDestroy()
+    {
         return totalBlockDestroy;
     }
 
-    public void setTotalBlockDestroy(int totalBlockDestroy) {
+    public void setTotalBlockDestroy(int totalBlockDestroy)
+    {
         this.totalBlockDestroy = totalBlockDestroy;
     }
 
-    public long getTotalBlockDestroyWindowStart() {
+    public long getTotalBlockDestroyWindowStart()
+    {
         return totalBlockDestroyWindowStart;
     }
 
-    public void setTotalBlockDestroyWindowStart(long totalBlockDestroyWindowStart) {
+    public void setTotalBlockDestroyWindowStart(long totalBlockDestroyWindowStart)
+    {
         this.totalBlockDestroyWindowStart = totalBlockDestroyWindowStart;
     }
 
-    public int getTotalBlockPlace() {
+    public int getTotalBlockPlace()
+    {
         return totalBlockPlace;
     }
 
-    public void setTotalBlockPlace(int totalBlockPlace) {
+    public void setTotalBlockPlace(int totalBlockPlace)
+    {
         this.totalBlockPlace = totalBlockPlace;
     }
 
-    public long getTotalBlockPlaceWindowStart() {
+    public long getTotalBlockPlaceWindowStart()
+    {
         return totalBlockPlaceWindowStart;
     }
 
-    public void setTotalBlockPlaceWindowStart(long totalBlockPlaceWindowStart) {
+    public void setTotalBlockPlaceWindowStart(long totalBlockPlaceWindowStart)
+    {
         this.totalBlockPlaceWindowStart = totalBlockPlaceWindowStart;
     }
 
-    public int getFreecamDestroyCount() {
+    public int getFreecamDestroyCount()
+    {
         return freecamDestroyCount;
     }
 
-    public void setFreecamDestroyCount(int freecamDestroyCount) {
+    public void setFreecamDestroyCount(int freecamDestroyCount)
+    {
         this.freecamDestroyCount = freecamDestroyCount;
     }
 
-    public int getFreecamPlaceCount() {
+    public int getFreecamPlaceCount()
+    {
         return freecamPlaceCount;
     }
 
-    public void setFreecamPlaceCount(int freecamPlaceCount) {
+    public void setFreecamPlaceCount(int freecamPlaceCount)
+    {
         this.freecamPlaceCount = freecamPlaceCount;
     }
 
-    public void setIsOrbiting(boolean isOrbiting) {
+    public void setIsOrbiting(boolean isOrbiting)
+    {
         this.isOrbiting = isOrbiting;
     }
 
-    public double getOrbitStrength() {
+    public double getOrbitStrength()
+    {
         return orbitStrength;
     }
 
-    public void setOrbitStrength(double orbitStrength) {
+    public void setOrbitStrength(double orbitStrength)
+    {
         this.orbitStrength = orbitStrength;
     }
 
-    public boolean isMobThrowerEnabled() {
+    public boolean isMobThrowerEnabled()
+    {
         return mobThrowerEnabled;
     }
 
-    public void setMobThrowerEnabled(boolean mobThrowerEnabled) {
+    public void setMobThrowerEnabled(boolean mobThrowerEnabled)
+    {
         this.mobThrowerEnabled = mobThrowerEnabled;
     }
 
-    public EntityType getMobThrowerEntity() {
+    public EntityType getMobThrowerEntity()
+    {
         return mobThrowerEntity;
     }
 
-    public void setMobThrowerEntity(EntityType mobThrowerEntity) {
+    public void setMobThrowerEntity(EntityType mobThrowerEntity)
+    {
         this.mobThrowerEntity = mobThrowerEntity;
     }
 
-    public double getMobThrowerSpeed() {
+    public double getMobThrowerSpeed()
+    {
         return mobThrowerSpeed;
     }
 
-    public void setMobThrowerSpeed(double mobThrowerSpeed) {
+    public void setMobThrowerSpeed(double mobThrowerSpeed)
+    {
         this.mobThrowerSpeed = mobThrowerSpeed;
     }
 
-    public BukkitTask getMp44ScheduleTask() {
+    public BukkitTask getMp44ScheduleTask()
+    {
         return mp44ScheduleTask;
     }
 
-    public void setMp44ScheduleTask(BukkitTask mp44ScheduleTask) {
+    public void setMp44ScheduleTask(BukkitTask mp44ScheduleTask)
+    {
         this.mp44ScheduleTask = mp44ScheduleTask;
     }
 
-    public void setMp44Armed(boolean mp44Armed) {
+    public void setMp44Armed(boolean mp44Armed)
+    {
         this.mp44Armed = mp44Armed;
     }
 
-    public boolean isMp44Firing() {
+    public boolean isMp44Firing()
+    {
         return mp44Firing;
     }
 
-    public void setMp44Firing(boolean mp44Firing) {
+    public void setMp44Firing(boolean mp44Firing)
+    {
         this.mp44Firing = mp44Firing;
     }
 
-    public BukkitTask getLockupScheduleTask() {
+    public BukkitTask getLockupScheduleTask()
+    {
         return lockupScheduleTask;
     }
 
-    public void setLockupScheduleTask(BukkitTask lockupScheduleTask) {
+    public void setLockupScheduleTask(BukkitTask lockupScheduleTask)
+    {
         this.lockupScheduleTask = lockupScheduleTask;
     }
 
-    public boolean isInAdminchat() {
+    public boolean isInAdminchat()
+    {
         return inAdminchat;
     }
 
-    public boolean isAllCommandsBlocked() {
+    public boolean isAllCommandsBlocked()
+    {
         return allCommandsBlocked;
     }
 
-    public void setAllCommandsBlocked(boolean allCommandsBlocked) {
+    public void setAllCommandsBlocked(boolean allCommandsBlocked)
+    {
         this.allCommandsBlocked = allCommandsBlocked;
     }
 
-    public boolean isSuperadminIdVerified() {
-        return superadminIdVerified;
-    }
-
-    public void setSuperadminIdVerified(boolean superadminIdVerified) {
-        this.superadminIdVerified = superadminIdVerified;
-    }
-
-    public String getTagInternal() {
+    public String getTagInternal()
+    {
         return tagInternal;
     }
 
-    public void setTagInternal(String tagInternal) {
+    public void setTagInternal(String tagInternal)
+    {
         this.tagInternal = tagInternal;
     }
 }

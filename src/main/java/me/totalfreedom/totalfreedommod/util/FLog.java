@@ -1,5 +1,7 @@
 package me.totalfreedom.totalfreedommod.util;
 
+import me.totalfreedom.totalfreedommod.PluginProvider;
+import org.bukkit.Bukkit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -83,6 +85,24 @@ public class FLog
     {
         log(Level.ERROR, ex);
     }
+    
+    public static void fatal(String message)
+    {
+        log(Level.ERROR, message, true);
+        Bukkit.getPluginManager().disablePlugin(PluginProvider.get());
+    }
+    
+    public static void fatal(String format, Object... args)
+    {
+        log(Level.ERROR, String.format(format, args), true);
+        Bukkit.getPluginManager().disablePlugin(PluginProvider.get());
+    }
+    
+    public static void fatal(Throwable ex)
+    {
+        log(Level.ERROR, ex);
+        Bukkit.getPluginManager().disablePlugin(PluginProvider.get());
+    }
 
     public static void setServerLogger(Logger logger)
     {
@@ -106,14 +126,9 @@ public class FLog
 
     private static void log(Level level, String message, boolean raw)
     {
-        if (message != null && !raw)
+        if (message != null && !raw && message.contains("&") && !message.contains("§"))
         {
-            // Convert & codes to § codes for console (console expects § codes)
-            // Only convert if message contains & codes but not § codes (to avoid double conversion)
-            if (message.contains("&") && !message.contains("§"))
-            {
-                message = message.replace('&', '§');
-            }
+            message = message.replace('&', '§');
         }
         emit(getLogger(raw), level, message);
     }

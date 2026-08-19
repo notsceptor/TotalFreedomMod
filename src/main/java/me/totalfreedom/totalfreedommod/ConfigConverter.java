@@ -28,7 +28,7 @@ import com.google.gson.reflect.TypeToken;
 
 public class ConfigConverter extends PluginComponent<TotalFreedomMod>
 {
-
+    
     public static final int CURRENT_CONFIG_VERSION = 1;
 
     /**
@@ -36,57 +36,54 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
      * {@code telnet_console}), matched so that any of them is remapped without naming each.
      */
     private static final String CONSOLE_RANK_SUFFIX = "_console";
-
+    
     public ConfigConverter(TotalFreedomMod plugin)
     {
         super(plugin);
     }
-
+    
     public void convert()
     {
         File data = plugin.getDataFolder();
         data.mkdirs();
         File versionFile = new File(data, "version.yml");
-
+        
         boolean convert = false;
         if (!versionFile.exists() && data.listFiles().length > 0)
-        {
             convert = true;
-        }
-
-        YamlConfiguration config = YamlConfiguration.loadConfiguration(versionFile);
+        
+        YamlConfiguration config = YamlConfiguration.loadConfiguration(
+                versionFile);
         if (!versionFile.exists())
-        {
             try
             {
                 versionFile.getParentFile().mkdirs();
-                versionFile.createNewFile();
+                if (!versionFile.createNewFile())
+                    throw new IOException("Could not create file " + versionFile.getName());
             }
             catch (IOException ex)
             {
-                // Ignore
+                FLog.error(
+                        "File error. %s could not be created, so this config conversion is aborted. \n%s",
+                        versionFile.getName(), ex.getMessage());
+                return;
             }
-        }
-
+        
         if (config.getInt("version", -1) < CURRENT_CONFIG_VERSION)
-        {
             convert = true;
-        }
-
+        
         if (convert)
         {
             FLog.warn("Converting old configs to new format...");
-
+            
             File backup = new File(data, "backup_old_format");
             backup.mkdirs();
-
+            
             for (File file : data.listFiles())
             {
                 if (file.equals(backup) || file.equals(versionFile))
-                {
                     continue;
-                }
-
+                
                 try
                 {
                     Files.move(file, new File(backup, file.getName()));
@@ -97,13 +94,13 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
                     FLog.error(ex);
                 }
             }
-
+            
             convertSuperadmins(new File(backup, "superadmin.yml"));
             convertPermbans(new File(backup, "permban.yml"));
-
+            
             FLog.info("Conversion complete!");
         }
-
+        
         if (config.getInt("version", -1) != CURRENT_CONFIG_VERSION)
         {
             config.set("version", CURRENT_CONFIG_VERSION);
@@ -126,20 +123,16 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
     {
         File ranksFile = new File(plugin.getDataFolder(), "ranks.yml");
         if (!ranksFile.exists())
-        {
             return;
-        }
-
+        
         YamlConfiguration yaml = YamlConfiguration.loadConfiguration(ranksFile);
         boolean changed = false;
-
+        
         for (String key : yaml.getKeys(false))
         {
             ConfigurationSection section = yaml.getConfigurationSection(key);
             if (section == null)
-            {
                 continue;
-            }
             if (section.contains("console_variant"))
             {
                 section.set("console_variant", null);
@@ -151,22 +144,21 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
                 changed = true;
             }
         }
-
+        
         if (yaml.contains("senior_console"))
         {
             yaml.set("senior_console", null);
             changed = true;
         }
-
+        
         if (!changed)
-        {
             return;
-        }
-
+        
         try
         {
             yaml.save(ranksFile);
-            FLog.info("Stripped deprecated console variant fields from ranks.yml.");
+            FLog.info(
+                    "Stripped deprecated console variant fields from ranks.yml.");
         }
         catch (IOException ex)
         {
@@ -186,23 +178,24 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
     public void convertAdminConsoleRanks()
     {
         if (plugin.admins() == null)
-        {
             return;
-        }
-
+        
         final long migrated = plugin.admins().getAllAdmins().values()
                 .stream()
                 .filter(admin -> admin.getRankId() != null)
-                .filter(admin -> admin.getRankId().endsWith(CONSOLE_RANK_SUFFIX))
-                .peek(admin -> FLog.info(String.format("Remapped admin '%s' from retired rank '%s' to '%s'.",
+                .filter(admin -> admin.getRankId().endsWith(
+                        CONSOLE_RANK_SUFFIX))
+                .peek(admin -> FLog.info(String.format(
+                        "Remapped admin '%s' from retired rank '%s' to '%s'.",
                         admin.getName(), admin.getRankId(), seniorRankId())))
                 .peek(admin -> admin.setRankId(seniorRankId()))
                 .count();
-
+        
         if (migrated > 0)
         {
             plugin.admins().saveAsync();
-            FLog.info(String.format("Remapped %d admin(s) from retired console ranks.", migrated));
+            FLog.info(String.format(
+                    "Remapped %d admin(s) from retired console ranks.", migrated));
         }
     }
 
@@ -218,33 +211,35 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
      */
     public void convertCosmeticRankHolders()
     {
-        if (plugin.admins() == null || plugin.ranks() == null || plugin.titles() == null || plugin.players() == null)
-        {
+        if (plugin.admins() == null || plugin.ranks() == null || plugin.titles()
+                == null || plugin.players() == null)
             return;
-        }
-
+        
         final String senior = seniorRankId();
         if (senior == null)
-        {
             return;
-        }
-
+        
         final long migrated = plugin.admins().getAllAdmins().values()
                 .stream()
                 .filter(admin -> admin.getRankId() != null)
-                .filter(admin -> plugin.ranks().getCustomRank(admin.getRankId()) == null)
+                .filter(admin -> plugin.ranks().getCustomRank(admin
+                        .getRankId()) == null)
                 .filter(admin -> plugin.titles().hasTitle(admin.getRankId()))
-                .peek(admin -> grantTitleOffline(admin.getName(), admin.getRankId()))
+                .peek(admin -> grantTitleOffline(admin.getName(), admin
+                        .getRankId()))
                 .peek(admin -> FLog.info(String.format(
                         "Moved admin '%s' from retired rank '%s' to the '%s' title, rank '%s'.",
-                        admin.getName(), admin.getRankId(), admin.getRankId(), senior)))
+                        admin.getName(), admin.getRankId(), admin.getRankId(),
+                        senior)))
                 .peek(admin -> admin.setRankId(senior))
                 .count();
-
+        
         if (migrated > 0)
         {
             plugin.admins().saveAsync();
-            FLog.info(String.format("Converted %d admin(s) from cosmetic ranks to titles.", migrated));
+            FLog.info(String.format(
+                    "Converted %d admin(s) from cosmetic ranks to titles.",
+                    migrated));
         }
     }
 
@@ -255,11 +250,9 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
     private void grantTitleOffline(final String username, final String titleId)
     {
         final PlayerData data = plugin.players().getData(username);
-
+        
         if (data != null && data.addTitle(titleId))
-        {
             plugin.players().saveData(data);
-        }
     }
 
     /**
@@ -272,9 +265,9 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
         return plugin.ranks() == null
                 ? null
                 : plugin.ranks().getRegistry()
-                           .requiredFor(AdminList.SENIOR_STATUS_NODE)
-                           .map(CustomRank::getId)
-                           .orElseGet(this::adminDefaultRankId);
+                        .requiredFor(AdminList.SENIOR_STATUS_NODE)
+                        .map(CustomRank::getId)
+                        .orElseGet(this::adminDefaultRankId);
     }
 
     /**
@@ -285,11 +278,11 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
         return plugin.ranks() == null
                 ? null
                 : plugin.ranks().getRegistry()
-                           .byRole(RankRole.ADMIN_DEFAULT)
-                           .map(CustomRank::getId)
-                           .orElse(null);
+                        .byRole(RankRole.ADMIN_DEFAULT)
+                        .map(CustomRank::getId)
+                        .orElse(null);
     }
-
+    
     private void convertSuperadmins(File oldFile)
     {
         if (!oldFile.exists() || !oldFile.isFile())
@@ -297,16 +290,16 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
             FLog.warn("No old superadmin list found!");
             return;
         }
-
+        
         YamlConfiguration oldYaml = YamlConfiguration.loadConfiguration(oldFile);
-
+        
         ConfigurationSection admins = oldYaml.getConfigurationSection("admins");
         if (admins == null)
         {
             FLog.warn("No admin section in superadmin list!");
             return;
         }
-
+        
         List<Admin> conversions = Lists.newArrayList();
         for (String uuid : admins.getKeys(false))
         {
@@ -316,7 +309,7 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
                 FLog.warn("Invalid superadmin format for admin: " + uuid);
                 continue;
             }
-
+            
             String username = asec.getString("last_login_name");
             final String rankId = asec.getBoolean("is_senior_admin")
                     ? seniorRankId()
@@ -324,7 +317,7 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
             List<String> ips = asec.getStringList("ips");
             String loginMessage = asec.getString("custom_login_message");
             boolean active = asec.getBoolean("is_activated");
-
+            
             Admin admin = new Admin(username);
             admin.setName(username);
             admin.setRankId(rankId);
@@ -334,25 +327,26 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
             admin.setLastLogin(new Date());
             conversions.add(admin);
         }
-
-        File newJsonFile = new File(plugin.getDataFolder(), AdminList.CONFIG_FILENAME);
+        
+        File newJsonFile = new File(plugin.getDataFolder(),
+                AdminList.CONFIG_FILENAME);
         Map<String, Admin> converted = new HashMap<>();
         for (Admin admin : conversions)
-        {
             converted.put(admin.getName().toLowerCase(), admin);
-        }
         try (FileWriter writer = new FileWriter(newJsonFile))
         {
-            JsonUtil.GSON.toJson(converted, new TypeToken<Map<String, Admin>>() {}.getType(), writer);
+            JsonUtil.GSON.toJson(converted, new TypeToken<Map<String, Admin>>()
+            {
+            }.getType(), writer);
         }
         catch (IOException ex)
         {
             FLog.error("Could not save converted admin list");
         }
-
+        
         FLog.info("Converted " + conversions.size() + " admins");
     }
-
+    
     private void convertPermbans(File oldFile)
     {
         if (!oldFile.exists())
@@ -360,8 +354,9 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
             FLog.warn("No old permban list found!");
             return;
         }
-
-        final YamlConfiguration oldYaml = YamlConfiguration.loadConfiguration(oldFile);
+        
+        final YamlConfiguration oldYaml = YamlConfiguration.loadConfiguration(
+                oldFile);
         final Map<String, PermBan> converted = new HashMap<>();
         for (String name : oldYaml.getKeys(false))
         {
@@ -371,10 +366,14 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
             permban.setIps(oldYaml.getStringList(name));
             converted.put(lowerName, permban);
         }
-
-        try (FileWriter writer = new FileWriter(new File(plugin.getDataFolder(), PermbanList.CONFIG_FILENAME)))
+        
+        try (FileWriter writer = new FileWriter(new File(plugin.getDataFolder(),
+                PermbanList.CONFIG_FILENAME)))
         {
-            JsonUtil.GSON.toJson(converted, new TypeToken<Map<String, PermBan>>() {}.getType(), writer);
+            JsonUtil.GSON.toJson(converted,
+                    new TypeToken<Map<String, PermBan>>()
+                    {
+                    }.getType(), writer);
             FLog.info("Converted " + converted.size() + " permbans");
         }
         catch (IOException ex)
@@ -382,5 +381,5 @@ public class ConfigConverter extends PluginComponent<TotalFreedomMod>
             FLog.warn("Could not save converted permban list!");
         }
     }
-
+    
 }

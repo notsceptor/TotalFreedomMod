@@ -5,7 +5,6 @@ import me.totalfreedom.api.FreedomAPI;
 import java.util.Map;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Collections;
 
 import org.bukkit.GameMode;
 import org.bukkit.Tag;
@@ -25,9 +24,7 @@ public class Jumppads extends FreedomService
 {
 
     public static final double DAMPING_COEFFICIENT = 0.8;
-    //
     private final Map<Player, Boolean> pushMap = Maps.newHashMap();
-    //
     private JumpPadMode mode;
     private double strength = 0.4;
 
@@ -41,9 +38,9 @@ public class Jumppads extends FreedomService
     {
         String configuredMode = ConfigEntry.JUMPPAD_MODE.getString();
         JumpPadMode foundMode = Arrays.stream(JumpPadMode.values())
-                                      .filter(jumpPadMode -> jumpPadMode.name().equalsIgnoreCase(configuredMode))
-                                      .findFirst()
-                                      .orElse(null);
+                .filter(jumpPadMode -> jumpPadMode.name().equalsIgnoreCase(configuredMode))
+                .findFirst()
+                .orElse(null);
 
         if (foundMode == null)
         {
@@ -63,11 +60,26 @@ public class Jumppads extends FreedomService
         // unneeded
     }
 
+    public JumpPadMode getMode()
+    {
+        return mode;
+    }
+
     public void setMode(JumpPadMode mode)
     {
         this.mode = mode;
         ConfigEntry.JUMPPAD_MODE.setString(this.mode.name().toLowerCase());
         plugin.config().save();
+    }
+    
+    public double getStrength()
+    {
+        return strength;
+    }
+
+    public void setStrength(double strength)
+    {
+        this.strength = strength;
     }
 
     @EventHandler
@@ -89,17 +101,17 @@ public class Jumppads extends FreedomService
             Boolean canPush = pushMap.get(player);
             if (canPush == null)
                 canPush = true;
-            
+
             if (Tag.WOOL.isTagged(block.getRelative(0, -1, 0).getType()))
             {
                 if (canPush)
                     velocity.multiply(strength + 0.85).multiply(-1.0);
-                
+
                 canPush = false;
             }
             else
                 canPush = true;
-            
+
             pushMap.put(player, canPush);
         }
         else
@@ -153,18 +165,20 @@ public class Jumppads extends FreedomService
         public static JumpPadMode fromString(String input)
         {
             return Arrays.stream(values())
-                         .filter(value -> value.getLabel().equalsIgnoreCase(input)
-                                          || value.getAlternateNames().stream().anyMatch(name -> name.equalsIgnoreCase(input))
-                                          || value.name().equalsIgnoreCase(input))
-                         .findAny()
-                        . orElseThrow(() -> new IllegalArgumentException("Invalid mode: " + input));
+                    .filter(value -> value.getLabel().equalsIgnoreCase(input)
+                            || value.getAlternateNames().stream().anyMatch(name -> name.equalsIgnoreCase(input))
+                            || value.name().equalsIgnoreCase(input))
+                    .findAny()
+                    .orElseThrow(() -> new IllegalArgumentException("Invalid mode: " + input));
         }
 
-        public String getLabel() {
+        public String getLabel()
+        {
             return label;
         }
 
-        public List<String> getAlternateNames() {
+        public List<String> getAlternateNames()
+        {
             return alternateNames;
         }
     }
