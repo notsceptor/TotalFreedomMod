@@ -1,5 +1,6 @@
 package me.totalfreedom.totalfreedommod.cmd;
 
+import com.destroystokyo.paper.ClientOption;
 import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.PacketEventsAPI;
 import com.github.retrooper.packetevents.protocol.player.GameMode;
@@ -79,11 +80,13 @@ public class Command_crash extends FCommand
                 if (!player.isOnline() || user == null)
                 {
                     task.cancel();
+                    return;
                 }
 
                 // Generate a random dimension name
                 final String randomName = RANDOM.ints(97, 122)
-                        .limit(32).collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
+                        .limit(RANDOM.nextInt(1, 16))
+                        .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
                         .toString();
 
                 // Avoid spamming the logs with "moved too quickly" messages
