@@ -13,19 +13,15 @@ import me.totalfreedom.totalfreedommod.util.FTask;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 
 import com.google.common.collect.Lists;
-import lombok.Getter;
 
 public class Announcer extends FreedomService
 {
 
     private final List<String> announcements = Lists.newArrayList();
-    @Getter
     private boolean enabled;
-    @Getter
     private long interval;
-    @Getter
     private String prefix;
-    private BukkitTask announcer;
+    private BukkitTask announcerTask;
 
     public Announcer(FreedomAPI plugin)
     {
@@ -41,16 +37,12 @@ public class Announcer extends FreedomService
 
         announcements.clear();
         for (Object announcement : ConfigEntry.ANNOUNCER_ANNOUNCEMENTS.getList())
-        {
             announcements.add((String) announcement);
-        }
 
         if (!enabled)
-        {
             return;
-        }
 
-        announcer = new BukkitRunnable()
+        announcerTask = new BukkitRunnable()
         {
             private int current = 0;
 
@@ -62,9 +54,7 @@ public class Announcer extends FreedomService
                     current++;
 
                     if (current >= announcements.size())
-                    {
                         current = 0;
-                    }
 
                     announce(announcements.get(current));
                 });
@@ -75,18 +65,31 @@ public class Announcer extends FreedomService
     @Override
     public void onStop()
     {
-        if (announcer == null)
-        {
+        if (announcerTask == null)
             return;
-        }
 
-        FUtil.cancel(announcer);
-        announcer = null;
+        FUtil.cancel(announcerTask);
+        announcerTask = null;
     }
 
     public List<String> getAnnouncements()
     {
         return Collections.unmodifiableList(announcements);
+    }
+
+    public long getInterval()
+    {
+        return interval;
+    }
+
+    public String getPrefix()
+    {
+        return prefix;
+    }
+
+    public boolean isEnabled()
+    {
+        return enabled;
     }
 
     public void announce(String message)

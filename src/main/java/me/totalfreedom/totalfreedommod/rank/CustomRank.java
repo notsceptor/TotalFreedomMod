@@ -347,10 +347,6 @@ public class CustomRank implements Displayable, Comparable<CustomRank>
         return "CustomRank{id=" + id + ", name=" + name + ", level=" + level + "}";
     }
     
-    // ========================================================================
-    // Getters that Lombok might miss
-    // ========================================================================
-    
     public String getId()
     {
         return id;

@@ -134,7 +134,6 @@ public class Admin implements ConfigLoadable, Validatable
         ips.clear();
     }
 
-    // Manual getters - Lombok @Getter not processing
     public UUID getUuid()
     {
         return uuid;
