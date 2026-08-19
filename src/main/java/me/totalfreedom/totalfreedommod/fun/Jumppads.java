@@ -2,7 +2,10 @@ package me.totalfreedom.totalfreedommod.fun;
 
 import me.totalfreedom.api.FreedomAPI;
 
-import java.util.*;
+import java.util.Map;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Collections;
 
 import org.bukkit.GameMode;
 import org.bukkit.Tag;
@@ -17,8 +20,6 @@ import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
 
 import com.google.common.collect.Maps;
-import lombok.Getter;
-import lombok.Setter;
 
 public class Jumppads extends FreedomService
 {
@@ -27,10 +28,7 @@ public class Jumppads extends FreedomService
     //
     private final Map<Player, Boolean> pushMap = Maps.newHashMap();
     //
-    @Getter
     private JumpPadMode mode;
-    @Getter
-    @Setter
     private double strength = 0.4;
 
     public Jumppads(FreedomAPI plugin)
@@ -43,9 +41,9 @@ public class Jumppads extends FreedomService
     {
         String configuredMode = ConfigEntry.JUMPPAD_MODE.getString();
         JumpPadMode foundMode = Arrays.stream(JumpPadMode.values())
-                .filter(jumpPadMode -> jumpPadMode.name().equalsIgnoreCase(configuredMode))
-                .findFirst()
-                .orElse(null);
+                                      .filter(jumpPadMode -> jumpPadMode.name().equalsIgnoreCase(configuredMode))
+                                      .findFirst()
+                                      .orElse(null);
 
         if (foundMode == null)
         {
@@ -62,7 +60,7 @@ public class Jumppads extends FreedomService
     @Override
     public void onStop()
     {
-
+        // unneeded
     }
 
     public void setMode(JumpPadMode mode)
@@ -76,16 +74,12 @@ public class Jumppads extends FreedomService
     public void onPlayerMove(PlayerMoveEvent event)
     {
         if (mode == JumpPadMode.OFF || !event.hasExplicitlyChangedBlock())
-        {
             return;
-        }
 
         final Player player = event.getPlayer();
 
         if (player.getGameMode() == GameMode.SPECTATOR)
-        {
             return;
-        }
 
         final Block block = event.getTo().getBlock();
         final Vector velocity = player.getVelocity().clone();
@@ -94,51 +88,38 @@ public class Jumppads extends FreedomService
         {
             Boolean canPush = pushMap.get(player);
             if (canPush == null)
-            {
                 canPush = true;
-            }
+            
             if (Tag.WOOL.isTagged(block.getRelative(0, -1, 0).getType()))
             {
                 if (canPush)
-                {
                     velocity.multiply(strength + 0.85).multiply(-1.0);
-                }
+                
                 canPush = false;
             }
             else
-            {
                 canPush = true;
-            }
+            
             pushMap.put(player, canPush);
         }
         else
         {
             if (Tag.WOOL.isTagged(block.getRelative(0, -1, 0).getType()))
-            {
                 velocity.add(new Vector(0.0, strength, 0.0));
-            }
 
             if (mode == JumpPadMode.NORMAL_AND_SIDEWAYS)
             {
                 if (Tag.WOOL.isTagged(block.getRelative(1, 0, 0).getType()))
-                {
                     velocity.add(new Vector(-DAMPING_COEFFICIENT * strength, 0.0, 0.0));
-                }
 
                 if (Tag.WOOL.isTagged(block.getRelative(-1, 0, 0).getType()))
-                {
                     velocity.add(new Vector(DAMPING_COEFFICIENT * strength, 0.0, 0.0));
-                }
 
                 if (Tag.WOOL.isTagged(block.getRelative(0, 0, 1).getType()))
-                {
                     velocity.add(new Vector(0.0, 0.0, -DAMPING_COEFFICIENT * strength));
-                }
 
                 if (Tag.WOOL.isTagged(block.getRelative(0, 0, -1).getType()))
-                {
                     velocity.add(new Vector(0.0, 0.0, DAMPING_COEFFICIENT * strength));
-                }
             }
         }
 
@@ -155,16 +136,8 @@ public class Jumppads extends FreedomService
         NORMAL("Madgeek", "normal", "adhd", "coffee", "on"),
         NORMAL_AND_SIDEWAYS("Normal and Sideways", "both");
 
-        @Getter
         private final String label;
-        @Getter
         private final List<String> alternateNames;
-
-        JumpPadMode(String label)
-        {
-            this.label = label;
-            this.alternateNames = Collections.emptyList();
-        }
 
         JumpPadMode(String label, String... alternativeNames)
         {
@@ -180,11 +153,19 @@ public class Jumppads extends FreedomService
         public static JumpPadMode fromString(String input)
         {
             return Arrays.stream(values())
-                    .filter(value -> value.getLabel().equalsIgnoreCase(input)
-                            || value.getAlternateNames().stream().anyMatch(name -> name.equalsIgnoreCase(input))
-                            || value.name().equalsIgnoreCase(input))
-                    .findAny()
-                    .orElseThrow(() -> new IllegalArgumentException("Invalid mode: " + input));
+                         .filter(value -> value.getLabel().equalsIgnoreCase(input)
+                                          || value.getAlternateNames().stream().anyMatch(name -> name.equalsIgnoreCase(input))
+                                          || value.name().equalsIgnoreCase(input))
+                         .findAny()
+                        . orElseThrow(() -> new IllegalArgumentException("Invalid mode: " + input));
+        }
+
+        public String getLabel() {
+            return label;
+        }
+
+        public List<String> getAlternateNames() {
+            return alternateNames;
         }
     }
 }

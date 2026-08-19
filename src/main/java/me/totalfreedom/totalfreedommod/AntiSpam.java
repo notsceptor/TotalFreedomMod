@@ -39,11 +39,13 @@ public class AntiSpam extends FreedomService
     @Override
     public void onStart()
     {
+        // unneeded
     }
 
     @Override
     public void onStop()
     {
+        // unneeded
     }
 
     private static boolean enabled()

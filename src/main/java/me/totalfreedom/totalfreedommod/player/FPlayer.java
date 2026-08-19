@@ -42,9 +42,7 @@ public class FPlayer
     private final FreedomAPI plugin;
     private final String name;
     private final String ip;
-    //
     private Player player;
-    //
     private BukkitTask unmuteTask;
     private final FreezeData freezeData = new FreezeData(this);
     private double fuckoffRadius = 0;
@@ -566,5 +564,233 @@ public class FPlayer
                 shot.setVelocity(shot.getVelocity().multiply(2.0));
             });
         }
+    }
+    
+    public static long getMsgCounterWindowMs() {
+        return msgCounterWindowMs;
+    }
+
+    public static void setMsgCounterWindowMs(long msgCounterWindowMs) {
+        FPlayer.msgCounterWindowMs = msgCounterWindowMs;
+    }
+
+    public BukkitTask getUnmuteTask() {
+        return unmuteTask;
+    }
+
+    public void setUnmuteTask(BukkitTask unmuteTask) {
+        this.unmuteTask = unmuteTask;
+    }
+
+    public double getFuckoffRadius() {
+        return fuckoffRadius;
+    }
+
+    public void setFuckoffRadius(double fuckoffRadius) {
+        this.fuckoffRadius = fuckoffRadius;
+    }
+
+    public int getMessageCount() {
+        return messageCount;
+    }
+
+    public void setMessageCount(int messageCount) {
+        this.messageCount = messageCount;
+    }
+
+    public long getMessageCountWindowStart() {
+        return messageCountWindowStart;
+    }
+
+    public void setMessageCountWindowStart(long messageCountWindowStart) {
+        this.messageCountWindowStart = messageCountWindowStart;
+    }
+    
+    public String getIp() {
+        return ip;
+    }
+
+    public FreezeData getFreezeData() {
+        return freezeData;
+    }
+
+    public CageData getCageData() {
+        return cageData;
+    }
+
+    public ChatSpamData getChatSpamData() {
+        return chatSpamData;
+    }
+
+    public int getDropCount() {
+        return dropCount;
+    }
+
+    public void setDropCount(int dropCount) {
+        this.dropCount = dropCount;
+    }
+
+    public long getDropCountWindowStart() {
+        return dropCountWindowStart;
+    }
+
+    public void setDropCountWindowStart(long dropCountWindowStart) {
+        this.dropCountWindowStart = dropCountWindowStart;
+    }
+
+    public int getDropItemCount() {
+        return dropItemCount;
+    }
+
+    public void setDropItemCount(int dropItemCount) {
+        this.dropItemCount = dropItemCount;
+    }
+
+    public long getDropItemCountWindowStart() {
+        return dropItemCountWindowStart;
+    }
+
+    public void setDropItemCountWindowStart(long dropItemCountWindowStart) {
+        this.dropItemCountWindowStart = dropItemCountWindowStart;
+    }
+
+    public int getTotalBlockDestroy() {
+        return totalBlockDestroy;
+    }
+
+    public void setTotalBlockDestroy(int totalBlockDestroy) {
+        this.totalBlockDestroy = totalBlockDestroy;
+    }
+
+    public long getTotalBlockDestroyWindowStart() {
+        return totalBlockDestroyWindowStart;
+    }
+
+    public void setTotalBlockDestroyWindowStart(long totalBlockDestroyWindowStart) {
+        this.totalBlockDestroyWindowStart = totalBlockDestroyWindowStart;
+    }
+
+    public int getTotalBlockPlace() {
+        return totalBlockPlace;
+    }
+
+    public void setTotalBlockPlace(int totalBlockPlace) {
+        this.totalBlockPlace = totalBlockPlace;
+    }
+
+    public long getTotalBlockPlaceWindowStart() {
+        return totalBlockPlaceWindowStart;
+    }
+
+    public void setTotalBlockPlaceWindowStart(long totalBlockPlaceWindowStart) {
+        this.totalBlockPlaceWindowStart = totalBlockPlaceWindowStart;
+    }
+
+    public int getFreecamDestroyCount() {
+        return freecamDestroyCount;
+    }
+
+    public void setFreecamDestroyCount(int freecamDestroyCount) {
+        this.freecamDestroyCount = freecamDestroyCount;
+    }
+
+    public int getFreecamPlaceCount() {
+        return freecamPlaceCount;
+    }
+
+    public void setFreecamPlaceCount(int freecamPlaceCount) {
+        this.freecamPlaceCount = freecamPlaceCount;
+    }
+
+    public void setIsOrbiting(boolean isOrbiting) {
+        this.isOrbiting = isOrbiting;
+    }
+
+    public double getOrbitStrength() {
+        return orbitStrength;
+    }
+
+    public void setOrbitStrength(double orbitStrength) {
+        this.orbitStrength = orbitStrength;
+    }
+
+    public boolean isMobThrowerEnabled() {
+        return mobThrowerEnabled;
+    }
+
+    public void setMobThrowerEnabled(boolean mobThrowerEnabled) {
+        this.mobThrowerEnabled = mobThrowerEnabled;
+    }
+
+    public EntityType getMobThrowerEntity() {
+        return mobThrowerEntity;
+    }
+
+    public void setMobThrowerEntity(EntityType mobThrowerEntity) {
+        this.mobThrowerEntity = mobThrowerEntity;
+    }
+
+    public double getMobThrowerSpeed() {
+        return mobThrowerSpeed;
+    }
+
+    public void setMobThrowerSpeed(double mobThrowerSpeed) {
+        this.mobThrowerSpeed = mobThrowerSpeed;
+    }
+
+    public BukkitTask getMp44ScheduleTask() {
+        return mp44ScheduleTask;
+    }
+
+    public void setMp44ScheduleTask(BukkitTask mp44ScheduleTask) {
+        this.mp44ScheduleTask = mp44ScheduleTask;
+    }
+
+    public void setMp44Armed(boolean mp44Armed) {
+        this.mp44Armed = mp44Armed;
+    }
+
+    public boolean isMp44Firing() {
+        return mp44Firing;
+    }
+
+    public void setMp44Firing(boolean mp44Firing) {
+        this.mp44Firing = mp44Firing;
+    }
+
+    public BukkitTask getLockupScheduleTask() {
+        return lockupScheduleTask;
+    }
+
+    public void setLockupScheduleTask(BukkitTask lockupScheduleTask) {
+        this.lockupScheduleTask = lockupScheduleTask;
+    }
+
+    public boolean isInAdminchat() {
+        return inAdminchat;
+    }
+
+    public boolean isAllCommandsBlocked() {
+        return allCommandsBlocked;
+    }
+
+    public void setAllCommandsBlocked(boolean allCommandsBlocked) {
+        this.allCommandsBlocked = allCommandsBlocked;
+    }
+
+    public boolean isSuperadminIdVerified() {
+        return superadminIdVerified;
+    }
+
+    public void setSuperadminIdVerified(boolean superadminIdVerified) {
+        this.superadminIdVerified = superadminIdVerified;
+    }
+
+    public String getTagInternal() {
+        return tagInternal;
+    }
+
+    public void setTagInternal(String tagInternal) {
+        this.tagInternal = tagInternal;
     }
 }
