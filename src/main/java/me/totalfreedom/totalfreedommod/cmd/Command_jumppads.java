@@ -11,7 +11,7 @@ import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import me.totalfreedom.totalfreedommod.fun.Jumppads;
 
-@Permission(source = SourceType.BOTH, permission = "tfm.fun.jumppads")
+@Permission(level = Rank.SUPER_ADMIN, source = SourceType.BOTH, permission = "tfm.fun.jumppads")
 @Command(name = "jumppads", description = "Manage jumppads", usage = "/<command> <<on | off> | info | mode <mode> | strength <strength>>", aliases = {"launchpads", "jp"})
 public class Command_jumppads extends FCommand
 {
@@ -39,8 +39,8 @@ public class Command_jumppads extends FCommand
         msg(
             sender, 
             """
-                <gray>The current Jumppads mode is <white><mode><gray>.
-                <gray>Possible modes: <modes>
+            <gray>The current Jumppads mode is <white><mode><gray>.
+            <gray>Possible modes: <modes>
             """,
             Placeholder.unparsed("mode", plugin().jp.getMode().name()),
             MessageUtils.joinedList("modes", Stream.of(Jumppads.JumpPadMode.values())
@@ -77,9 +77,9 @@ public class Command_jumppads extends FCommand
         msg(
             sender,
             """
-                <blue>Jumppads: <jump:Enabled:Disabled>
-                <blue>Sideways: <sideways:Enabled:Disabled>
-                <blue>Strength: <strength>
+            <blue>Jumppads: <jump:Enabled:Disabled>
+            <blue>Sideways: <sideways:Enabled:Disabled>
+            <blue>Strength: <strength>
             """,
             Formatter.booleanChoice("jump", mode.isOn()),
             Formatter.booleanChoice("sideways", mode == Jumppads.JumpPadMode.NORMAL_AND_SIDEWAYS),

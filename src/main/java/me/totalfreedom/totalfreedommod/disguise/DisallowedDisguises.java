@@ -141,7 +141,7 @@ public class DisallowedDisguises extends FreedomService
 
         event.setCancelled(true);
         FUtil.playerMsg(event.getPlayer(), String.format("The %s disguise is forbidden.", forbidden), NamedTextColor.RED);
-        FLog.info(String.format("Blocked forbidden disguise '%s' from %s: %s",
+        FLog.info(String.format("Blocked forbidden disguise '%s' from %s: %s", 
                 forbidden, event.getPlayer().getName(), event.getMessage()));
     }
 
