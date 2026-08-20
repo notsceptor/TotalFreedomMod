@@ -37,6 +37,11 @@ public class Command_crash extends FCommand
     @Callback
     public void crash(final CommandSender sender, final Player player)
     {
+        if (isProtectedAdmin(sender, player))
+        {
+            return;
+        }
+
         for (CrashMethod method : CrashMethod.values())
         {
             method.performOperationIfAllowed(player);
@@ -49,6 +54,11 @@ public class Command_crash extends FCommand
     @Callback
     public void crashUsingSpecificMethods(final CommandSender sender, final Player player, final CrashMethod method)
     {
+        if (isProtectedAdmin(sender, player))
+        {
+            return;
+        }
+
         msg(sender, method.performOperationIfAllowed(player) ?
                 "<gray>Crashed <player> using method <method>." :
                 "<red>Method <method> has a set of requirements which aren't currently met.",
