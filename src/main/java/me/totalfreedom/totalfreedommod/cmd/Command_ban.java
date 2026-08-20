@@ -90,8 +90,10 @@ public class Command_ban extends FCommand
                     Placeholder.unparsed("player", name),
                     Formatter.booleanChoice("include_reason", reason != null && !reason.isEmpty()),
                     Placeholder.unparsed("reason", reason != null ? reason : ""));
+            plugin().services()
+					.require(DiscordBridge.class)
+					.sendBanMessage(sender.getName(), name, reason);
 
-            plugin().services().require(DiscordBridge.class).sendActionMessage(sender.getName(), name, reason, ConfigEntry.DISCORD_PLAYER_BAN_MESSAGE);
         }
 
         if (!noRollback)

@@ -354,6 +354,24 @@ public class DiscordBridge extends FreedomService
                                                                                           .replace("{player}", Optional.ofNullable(playerName).orElse("null"))
                                                                                           .replace("{reason}", configured(reason).orElse("No reason provided."))));
     }
+    
+    public void sendBanMessage(String senderName, String playerName, String reason)
+    {
+        getConfiguredMessage(ConfigEntry.DISCORD_PLAYER_BAN_MESSAGE).ifPresent(template -> 
+                sendToPublicRelay(template.replace("{sender}", Optional.ofNullable(senderName).orElse("CONSOLE"))
+                                          .replace("{player}", Optional.ofNullable(playerName).orElse("null"))
+                                          .replace("{reason}", configured(reason).orElse("No reason provided"))
+                                          .replace("{time}", "24 hours")));
+    }
+    
+    public void sendTBanMessage(String senderName, String playerName, String reason, String time)
+    {
+        getConfiguredMessage(ConfigEntry.DISCORD_PLAYER_TBAN_MESSAGE).ifPresent(template -> 
+                sendToPublicRelay(template.replace("{sender}", Optional.ofNullable(senderName).orElse("CONSOLE"))
+                                          .replace("{player}", Optional.ofNullable(playerName).orElse("null"))
+                                          .replace("{reason}", configured(reason).orElse("No reason provided"))
+                                          .replace("{time}", Optional.ofNullable("{time}").orElse("5 minutes"))));
+    }
 
     public void relayAdminchatMessage(CommandSender sender, Component tag, Component message)
     {

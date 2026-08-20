@@ -41,8 +41,8 @@ public class Command_jumppads extends FCommand
         msg(
             sender, 
             """
-                <gray>The current Jumppads mode is <white><mode><gray>.
-                <gray>Possible modes: <modes>
+            <gray>The current Jumppads mode is <white><mode><gray>.
+            <gray>Possible modes: <modes>
             """,
             Placeholder.unparsed("mode", plugin().services().require(Jumppads.class).getMode().name()),
             MessageUtils.joinedList("modes", Stream.of(Jumppads.JumpPadMode.values())
