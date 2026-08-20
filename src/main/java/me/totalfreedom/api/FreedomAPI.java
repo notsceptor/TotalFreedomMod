@@ -88,16 +88,19 @@ public interface FreedomAPI extends Plugin
     IGameRuleHandler gameRules();
 
     /**
+     * @param target The target player
      * @return {@code target}'s stored player data, loading it if necessary.
      */
     PlayerData getPlayerData(Player target);
 
     /**
      * Persists {@code data} back to storage.
+     * @param data The playerdata object to save on this player
      */
     void savePlayerData(PlayerData data);
 
     /**
+     * @param sender The command sender, could be either a player or console sender.
      * @return Whether {@code sender} is a currently active admin.
      */
     boolean isAdmin(CommandSender sender);

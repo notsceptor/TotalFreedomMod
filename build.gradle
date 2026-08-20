@@ -46,8 +46,6 @@ repositories {
 
 dependencies {
     // deprecated
-    compileOnly 'org.projectlombok:lombok:1.18.42'
-    annotationProcessor 'org.projectlombok:lombok:1.18.42'
     compileOnly 'commons-io:commons-io:2.16.1'
     compileOnly 'net.milkbowl.vault:VaultUnlockedAPI:2.16'
     
