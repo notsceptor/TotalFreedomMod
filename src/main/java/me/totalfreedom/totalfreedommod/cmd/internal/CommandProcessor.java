@@ -207,15 +207,15 @@ public final class CommandProcessor
             List<String> lost = aliases.stream().filter(alias -> !registered.contains(alias)).toList();
             if (!lost.isEmpty())
             {
-                FLog.warning(String.format("/%s registered, but these aliases are owned by other plugins: %s",
-                    commandName, String.join(", ", lost)));
+                FLog.warn("/%s registered, but these aliases are owned by other plugins: %s",
+                    commandName, String.join(", ", lost));
             }
 
-            FLog.info(String.format("Registered /%s (aliases: %s)", commandName, String.join(", ", aliases)));
+            FLog.info("Registered /%s (aliases: %s)", commandName, String.join(", ", aliases));
         }
         catch (Exception e)
         {
-            FLog.error(String.format("Failed to register /%s: \n%s", commandName, ExceptionUtils.getRootCauseMessage(e)));
+            FLog.error("Failed to register /%s: \n%s", commandName, ExceptionUtils.getRootCauseMessage(e));
         }
     }
 
@@ -236,11 +236,11 @@ public final class CommandProcessor
 
         if (RootNodeEvictor.evict(registrar, label))
         {
-            FLog.debug(String.format("Evicted /%s from the dispatcher root (was %s)", label, owner));
+            FLog.debug("Evicted /%s from the dispatcher root (was %s)", label, owner);
         }
         else
         {
-            FLog.warning(String.format("Could not evict /%s from the dispatcher root (owned by %s)", label, owner));
+            FLog.warn("Could not evict /%s from the dispatcher root (owned by %s)", label, owner);
         }
     }
 
@@ -529,10 +529,9 @@ public final class CommandProcessor
                 : (List<String>) completerMethod.invoke(command, sender, typed);
                 suggestions.forEach(target::suggest);
             }
-            catch (Exception e)
+            catch (IllegalAccessException | InvocationTargetException e)
             {
-                Throwable cause = e.getCause() != null ? e.getCause() : e;
-                FLog.error(String.format("Error in completer %s: \n%s", completerMethod.getName(), ExceptionUtils.getRootCauseMessage(cause)));
+                FLog.error("Error in completer %s: \n%s", completerMethod.getName(), ExceptionUtils.getRootCauseMessage(e));
             }
             return target.buildFuture();
         };
@@ -913,15 +912,7 @@ public final class CommandProcessor
                     else if (type.isEnum())
                     {
                         String raw = ctx.getArgument(paramName, String.class);
-                        try
-                        {
-                            invokeArgs[i] = resolveEnum(type, raw);
-                        }
-                        catch (ArgumentResolutionException | IllegalArgumentException e)
-                        {
-                            sender.sendMessage(Component.text("Invalid value '" + raw + "' for argument: " + paramName, NamedTextColor.RED));
-                            return 0;
-                        }
+                        invokeArgs[i] = resolveEnum(type, raw, paramName);
                     }
                     else
                     {
@@ -968,15 +959,22 @@ public final class CommandProcessor
 
 
     /**
-     * Resolves a non-{@link Resolve @Resolve} enum parameter through the 
-     * {@link me.totalfreedom.totalfreedommod.cmd.resolver.EnumArgumentResolver EnumArgumentResolver}, 
-     * forcing {@code mode=uppercase} so the raw token is always uppercased 
+     * Resolves a non-{@link Resolve @Resolve} enum parameter through the
+     * {@link me.totalfreedom.totalfreedommod.cmd.resolver.EnumArgumentResolver EnumArgumentResolver},
+     * forcing {@code mode=uppercase} so the raw token is always uppercased
      * before either the enum's {@code fromString} or {@code Enum::valueOf} lookup runs.
      */
-    private static Object resolveEnum(Class<?> enumType, String raw)
+    private static Object resolveEnum(Class<?> enumType, String raw, String paramName)
     {
         AbstractArgumentResolver<?> resolver = ResolverRegistry.byName("Enum");
-        return resolver.resolve(raw, "class=" + enumType.getName() + ",mode=uppercase");
+        try
+        {
+            return resolver.resolve(raw, "class=" + enumType.getName() + ",mode=uppercase");
+        }
+        catch (ArgumentResolutionException | IllegalArgumentException e)
+        {
+            throw new ArgumentResolutionException("Invalid value '" + raw + "' for argument: " + paramName);
+        }
     }
 
     public static String cooldownKey(String commandName, String subcommandValue)

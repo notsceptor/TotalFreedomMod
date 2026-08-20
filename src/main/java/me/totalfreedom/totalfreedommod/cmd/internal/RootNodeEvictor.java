@@ -6,7 +6,9 @@ import com.mojang.brigadier.tree.CommandNode;
 import com.mojang.brigadier.tree.RootCommandNode;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
+import java.util.Objects;
 import me.totalfreedom.totalfreedommod.util.FLog;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Frees a root literal on the server command dispatcher so a TFM command can claim the label.
@@ -62,7 +64,7 @@ public final class RootNodeEvictor
         }
         catch (Exception ex)
         {
-            FLog.warning(String.format("Could not remove /%s from the dispatcher root: %s", label, ex.getMessage()));
+            FLog.warn("Could not remove /%s from the dispatcher root: %s", label, ex.getMessage());
             return false;
         }
 
@@ -71,7 +73,7 @@ public final class RootNodeEvictor
 
     private static Method removeCommandMethod(Object root)
     {
-        final Class<?> type = root.getClass();
+        final Class<?> type = Objects.requireNonNull(root.getClass());
         if (type == resolvedFor)
             return removeCommand;
 
@@ -92,9 +94,9 @@ public final class RootNodeEvictor
 
         if (found == null)
         {
-            FLog.warning(String.format(
+            FLog.warn(
                 "%s has no accessible removeCommand(String); TFM commands cannot take labels held by other plugins.",
-                type.getName()));
+                type.getName());
         }
 
         removeCommand = found;
