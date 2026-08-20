@@ -225,11 +225,11 @@ public class Command_saconfig extends FCommand
     public List<String> completeSetrankRank(CommandSender sender, String partial) 
     {
         final List<String> candidates = plugin().ranks().getCustomRanks()
-                                                   .values()
-                                                   .stream()
-                                                   .filter(CustomRank::isAdmin)
-                                                   .map(CustomRank::getId)
-                                                   .toList();
+                                                        .values()
+                                                        .stream()
+                                                        .filter(CustomRank::isAdmin)
+                                                        .map(CustomRank::getId)
+                                                        .toList();
 
         return FuzzyMatch.filter(candidates, partial);
     }
