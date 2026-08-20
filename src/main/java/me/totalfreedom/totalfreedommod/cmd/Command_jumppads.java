@@ -13,12 +13,12 @@ import me.totalfreedom.api.cmd.SourceType;
 import me.totalfreedom.api.cmd.annotation.*;
 import me.totalfreedom.totalfreedommod.fun.Jumppads;
 
-@Permission(source = SourceType.BOTH, permission = "tfm.fun.jumppads")
-@Command(name = "jumppads", description = "Manage jumppads", usage = "/<command> <<on | off> | info | mode <mode> | strength <strength>>", aliases = "launchpads,jp")
+@Permission(level = Rank.SUPER_ADMIN, source = SourceType.BOTH, permission = "tfm.fun.jumppads")
+@Command(name = "jumppads", description = "Manage jumppads", usage = "/<command> <<on | off> | info | mode <mode> | strength <strength>>", aliases = {"launchpads", "jp"})
 public class Command_jumppads extends FCommand
 {
     @Callback
-    public void setEnabled(CommandSender sender, Boolean status)
+    public void setEnabled(CommandSender sender, @Resolve("Boolean") boolean status)
     {
         adminAction(sender, "<aqua><choice:Enabling:Disabling> Jumppads", Formatter.booleanChoice("choice", status));
         plugin().services().require(Jumppads.class).setMode(status ? Jumppads.JumpPadMode.NORMAL : Jumppads.JumpPadMode.OFF);

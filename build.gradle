@@ -82,7 +82,7 @@ dependencies {
 // ... is this really necessary???
 configurations.all {
     resolutionStrategy {
-        force 'io.papermc.paper:paper-api:26.1.2.build.61-stable'
+        force 'io.papermc.paper:paper-api:26.2.build.111-stable'
     }
 }
 

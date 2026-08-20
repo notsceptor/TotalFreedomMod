@@ -46,12 +46,9 @@ public class Command_whohas extends FCommand
                                                             player.displayName()
                                                                   .colorIfAbsent(NamedTextColor.WHITE)
                                                                   .hoverEvent(HoverEvent.showText(Component.text(player.getName())))
-                                                                  .clickEvent(ClickEvent.clickEvent(ClickEvent.Action.SUGGEST_COMMAND,
-                                                                                                    ClickEvent.Payload.string(plugin().bridges().require(EssentialsBridge.class).isEssentialsEnabled() ?
-                                                                                                                              "/invsee " + player.getName() :
-                                                                                                                              "/data get entity " + player.getUniqueId() + " Inventory")
-                                                                                                 )
-                                                                  )
+                                                                  .clickEvent(ClickEvent.suggestCommand(plugin().esb.isEssentialsEnabled() ?
+                                                                                                           "/invsee " + player.getName() :
+                                                                                                           "/data get entity " + player.getUniqueId() + " Inventory"))
                                                         )
                                                         .toList();
 
