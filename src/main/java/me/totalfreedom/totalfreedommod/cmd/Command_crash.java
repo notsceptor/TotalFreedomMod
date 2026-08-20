@@ -4,11 +4,9 @@ import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.PacketEventsAPI;
 import com.github.retrooper.packetevents.protocol.player.GameMode;
 import com.github.retrooper.packetevents.protocol.player.User;
-import com.github.retrooper.packetevents.protocol.player.UserProfile;
 import com.github.retrooper.packetevents.protocol.world.Difficulty;
 import com.github.retrooper.packetevents.protocol.world.dimension.DimensionType;
 import com.github.retrooper.packetevents.protocol.world.dimension.DimensionTypes;
-import com.github.retrooper.packetevents.util.Vector3d;
 import com.github.retrooper.packetevents.wrapper.play.server.*;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import me.totalfreedom.totalfreedommod.PluginProvider;
@@ -28,7 +26,7 @@ import me.totalfreedom.totalfreedommod.cmd.internal.annotation.*;
 import java.util.*;
 import java.util.function.Consumer;
 
-@Command(name = "crash", description = "Crashes the specified player", usage = "/crash <player>", aliases = {"fuckup"})
+@Command(name = "crash", description = "Crashes the specified player", usage = "/crash <player> [method]", aliases = {"fuckup"})
 @Permission(permission = "tfm.admin.fuckup")
 public class Command_crash extends FCommand
 {
