@@ -1,7 +1,9 @@
 package me.totalfreedom.totalfreedommod;
 
 import java.security.SecureRandom;
+import java.util.LinkedHashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.bukkit.Bukkit;
@@ -16,6 +18,7 @@ import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
@@ -29,6 +32,8 @@ public class ChatReaction extends FreedomService
 
     private static final Sound APPEAR_SOUND = Sound.ENTITY_EXPERIENCE_ORB_PICKUP;
     private static final Sound WIN_SOUND = Sound.UI_TOAST_CHALLENGE_COMPLETE;
+
+    private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacyAmpersand();
 
     private boolean enabled;
     private long intervalTicks;
@@ -93,20 +98,14 @@ public class ChatReaction extends FreedomService
         activePhrase.set(phrase);
         roundStartNanos = System.nanoTime();
 
-        final Component announcement = Component.text()
-                .append(Component.text("Chat Reaction!", NamedTextColor.GOLD))
-                .appendNewline()
-                .append(Component.text("Type ", NamedTextColor.GOLD))
-                .append(Component.text(phrase, NamedTextColor.AQUA))
-                .append(Component.text(" to win!", NamedTextColor.GOLD))
-                .build();
+        final Map<String, Component> placeholders = new LinkedHashMap<>();
+        placeholders.put("%phrase%", Component.text(phrase, NamedTextColor.AQUA));
+
+        final Component announcement = renderTemplate(ConfigEntry.CHATREACTION_MESSAGE.getString(), placeholders);
         Bukkit.getServer().sendMessage(announcement);
 
-        bossBar = BossBar.bossBar(
-                barTitle(phrase),
-                1.0f,
-                BossBar.Color.YELLOW,
-                BossBar.Overlay.PROGRESS);
+        final Component barTitle = renderTemplate(ConfigEntry.CHATREACTION_BAR_MESSAGE.getString(), placeholders);
+        bossBar = BossBar.bossBar(barTitle, 1.0f, BossBar.Color.YELLOW, BossBar.Overlay.PROGRESS);
 
         for (final Player online : Bukkit.getOnlinePlayers())
         {
@@ -138,13 +137,6 @@ public class ChatReaction extends FreedomService
             clearRoundVisuals();
             activePhrase.set(null);
         }
-    }
-
-    private static Component barTitle(String phrase)
-    {
-        return Component.text("Type ", NamedTextColor.GOLD)
-                .append(Component.text(phrase, NamedTextColor.AQUA))
-                .append(Component.text(" to win!", NamedTextColor.GOLD));
     }
 
     private void clearRoundVisuals()
@@ -203,13 +195,63 @@ public class ChatReaction extends FreedomService
             online.playSound(online.getLocation(), WIN_SOUND, 1f, 1f);
 
         final String time = String.format(Locale.ROOT, "%.2f", elapsedSeconds);
-        final Component winMessage = Component.text()
-                .append(Component.text(winner.getName(), NamedTextColor.AQUA))
-                .append(Component.text(" won the chat reaction in ", NamedTextColor.GOLD))
-                .append(Component.text(time + "s", NamedTextColor.AQUA))
-                .append(Component.text("!", NamedTextColor.GOLD))
-                .build();
+        final Map<String, Component> placeholders = new LinkedHashMap<>();
+        placeholders.put("%player%", Component.text(winner.getName(), NamedTextColor.AQUA));
+        placeholders.put("%time%", Component.text(time, NamedTextColor.AQUA));
+
+        final Component winMessage = renderTemplate(ConfigEntry.CHATREACTION_WIN_MESSAGE.getString(), placeholders);
         Bukkit.getServer().sendMessage(winMessage);
+    }
+
+    private static Component renderTemplate(String template, Map<String, Component> placeholders)
+    {
+        if (template == null || template.isEmpty())
+            return Component.empty();
+
+        final String[] lines = template.split("\n", -1);
+        Component result = null;
+        for (final String line : lines)
+        {
+            final Component lineComponent = renderLine(line, placeholders);
+            result = (result == null) ? lineComponent : result.appendNewline().append(lineComponent);
+        }
+        return result == null ? Component.empty() : result;
+    }
+
+    private static Component renderLine(String line, Map<String, Component> placeholders)
+    {
+        Component result = Component.empty();
+        int cursor = 0;
+
+        while (cursor < line.length())
+        {
+            int earliestIdx = -1;
+            String earliestToken = null;
+
+            for (final String token : placeholders.keySet())
+            {
+                final int idx = line.indexOf(token, cursor);
+                if (idx >= 0 && (earliestIdx == -1 || idx < earliestIdx))
+                {
+                    earliestIdx = idx;
+                    earliestToken = token;
+                }
+            }
+
+            if (earliestIdx == -1)
+            {
+                result = result.append(LEGACY.deserialize(line.substring(cursor)));
+                break;
+            }
+
+            if (earliestIdx > cursor)
+                result = result.append(LEGACY.deserialize(line.substring(cursor, earliestIdx)));
+
+            result = result.append(placeholders.get(earliestToken));
+            cursor = earliestIdx + earliestToken.length();
+        }
+
+        return result;
     }
 
 }
