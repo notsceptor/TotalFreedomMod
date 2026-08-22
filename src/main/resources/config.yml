@@ -741,9 +741,9 @@ chatreaction:
   duration: 10
   length: 8
   reward: 100
-  message: "&6Chat Reaction!\n&6Type %phrase%&6 to win!"
-  bar_message: "&6Type %phrase%&6 to win!" # important to note that you shouldnt use /n here !!!
-  win_message: "%player%&6 won the chat reaction in %time%s&6!"
+  message: "<gold>Chat Reaction!\nType <phrase> to win!"
+  bar_message: "<gold>Type <phrase> to win!" # important to note that you shouldnt use /n here !!!
+  win_message: "<player><gold> won the chat reaction in <time>s and earned <reward> coins!"
 
 # Famous players - cannot be banned by username
 famous_players:
