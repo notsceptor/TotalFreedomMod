@@ -745,6 +745,12 @@ admininfo:
   - ' &2- And apply on our forums at the link:'
   - '&9https://tfreedom.boards.net/thread/4/application-super-admin-status-june'
 
+chatreaction:
+  enabled: true
+  interval: 120
+  duration: 10
+  length: 8
+
 # Famous players - cannot be banned by username
 famous_players:
   - honeydew

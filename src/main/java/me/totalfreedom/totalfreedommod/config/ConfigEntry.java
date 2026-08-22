@@ -241,6 +241,11 @@ public enum ConfigEntry
     ANNOUNCER_PREFIX(String.class, "announcer.prefix"),
     ANNOUNCER_ANNOUNCEMENTS(List.class, "announcer.announcements"),
     //
+    CHATREACTION_ENABLED(Boolean.class, "chatreaction.enabled"),
+    CHATREACTION_INTERVAL(Integer.class, "chatreaction.interval"),
+    CHATREACTION_LENGTH(Integer.class, "chatreaction.length"),
+    CHATREACTION_DURATION(Integer.class, "chatreaction.duration"),
+    //
     EXPLOSIVE_RADIUS(Double.class, "explosive_radius"),
     FREECAM_TRIGGER_COUNT(Integer.class, "freecam_trigger_count"),
     BLOCKED_COMMANDS(List.class, "blocked_commands"),

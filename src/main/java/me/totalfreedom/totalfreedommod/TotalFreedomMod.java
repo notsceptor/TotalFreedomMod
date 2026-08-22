@@ -85,6 +85,7 @@ public class TotalFreedomMod extends JavaPlugin
     public AntiNuke nu; // AntiNuke - Prevents rapid command execution (nuking)
     public AntiDrop adr; // AntiDrop - Throttles item drop flooding
     public AntiSpam as; // AntiSpam - Prevents chat spam
+    public ChatReaction cr; // ChatReaction - Periodic chat reaction minigame
     public PlayerList pl; // PlayerList - Manages player data and lists
     public JoinLeaveMessages jlm; // JoinLeaveMessages - Personal join/leave message filtering
     public Announcer an; // Announcer - Handles server announcements
@@ -224,6 +225,7 @@ public class TotalFreedomMod extends JavaPlugin
         pl = services.registerService(PlayerList.class);
         jlm = services.registerService(JoinLeaveMessages.class);
         an = services.registerService(Announcer.class);
+        cr = services.registerService(ChatReaction.class);
         cm = services.registerService(ChatManager.class);
         services.registerService(TextFilterService.class);
         bm = services.registerService(BanManager.class);
