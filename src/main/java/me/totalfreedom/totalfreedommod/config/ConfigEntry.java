@@ -249,6 +249,7 @@ public enum ConfigEntry
     CHATREACTION_MESSAGE(String.class, "chatreaction.message"),
     CHATREACTION_BAR_MESSAGE(String.class, "chatreaction.bar_message"),
     CHATREACTION_WIN_MESSAGE(String.class, "chatreaction.win_message"),
+    CHATREACTION_NO_WIN_MESSAGE(String.class, "chatreaction.no_win_message"),
     //
     EXPLOSIVE_RADIUS(Double.class, "explosive_radius"),
     FREECAM_TRIGGER_COUNT(Integer.class, "freecam_trigger_count"),

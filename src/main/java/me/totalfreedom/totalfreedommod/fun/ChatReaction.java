@@ -3,6 +3,8 @@ package me.totalfreedom.totalfreedommod.fun;
 import java.security.SecureRandom;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Sound;
@@ -107,11 +109,11 @@ public class ChatReaction extends FreedomService
             MessageUtils.component("phrase", phraseComponent));
         bossBar = BossBar.bossBar(barTitle, 1.0f, BossBar.Color.YELLOW, BossBar.Overlay.PROGRESS);
 
-        for (final Player online : Bukkit.getOnlinePlayers())
+        server.getOnlinePlayers().forEach(online ->
         {
             online.showBossBar(bossBar);
             online.playSound(online.getLocation(), APPEAR_SOUND, 1f, 1f);
-        }
+        });
 
         barTask = new BukkitRunnable()
         {
@@ -134,8 +136,10 @@ public class ChatReaction extends FreedomService
 
         if (progress <= 0f)
         {
+            final boolean roundExpired = activePhrase.getAndSet(null) != null;
             clearRoundVisuals();
-            activePhrase.set(null);
+            if (roundExpired)
+                server.sendMessage(MessageUtils.parse(ConfigEntry.CHATREACTION_NO_WIN_MESSAGE.getString()));
         }
     }
 
@@ -148,21 +152,19 @@ public class ChatReaction extends FreedomService
         }
         if (bossBar != null)
         {
-            for (final Player online : Bukkit.getOnlinePlayers())
-                online.hideBossBar(bossBar);
+            server.getOnlinePlayers().forEach(online -> online.hideBossBar(bossBar));
             bossBar = null;
         }
     }
 
     private static String generatePhrase(int length)
     {
-        final StringBuilder sb = new StringBuilder(length);
-        for (int i = 0; i < length; i++)
-            sb.append(CHAR_POOL.charAt(RANDOM.nextInt(CHAR_POOL.length())));
-        return sb.toString();
+        return IntStream.range(0, length)
+                .mapToObj(index -> String.valueOf(CHAR_POOL.charAt(RANDOM.nextInt(CHAR_POOL.length()))))
+                .collect(Collectors.joining());
     }
 
-    @EventHandler(priority = EventPriority.MONITOR)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onAsyncPlayerChat(AsyncChatEvent event)
     {
         final String phrase = activePhrase.get();
@@ -190,8 +192,7 @@ public class ChatReaction extends FreedomService
     {
         clearRoundVisuals();
 
-        for (final Player online : Bukkit.getOnlinePlayers())
-            online.playSound(online.getLocation(), WIN_SOUND, 1f, 1f);
+        server.getOnlinePlayers().forEach(online -> online.playSound(online.getLocation(), WIN_SOUND, 1f, 1f));
 
         if (rewardAmount > 0)
         {

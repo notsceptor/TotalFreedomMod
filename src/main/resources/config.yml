@@ -736,7 +736,7 @@ admininfo:
   - '&9https://tfreedom.boards.net/thread/4/application-super-admin-status-june'
 
 chatreaction:
-  enabled: true
+  enabled: false
   interval: 120
   duration: 10
   length: 8
@@ -744,6 +744,7 @@ chatreaction:
   message: "<gold>Chat Reaction!\nType <phrase> to win!"
   bar_message: "<gold>Type <phrase> to win!" # important to note that you shouldnt use /n here !!!
   win_message: "<player><gold> won the chat reaction in <time>s and earned <reward> coins!"
+  no_win_message: "<gold>Nobody won the chat reaction."
 
 # Famous players - cannot be banned by username
 famous_players:
