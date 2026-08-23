@@ -403,11 +403,13 @@ public class PostgreSQLAdapter extends DatabaseAdapter
                 "max_y" INTEGER NOT NULL,
                 "max_z" INTEGER NOT NULL,
                 "world_uuid" VARCHAR(36) NOT NULL,
+                "flags" TEXT,
                 "updated_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
             """;
         statementHandler.executeUpdate(sql);
         statementHandler.executeUpdate("ALTER TABLE \"protected_areas\" ADD COLUMN IF NOT EXISTS \"updated_at\" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP");
+        statementHandler.executeUpdate("ALTER TABLE \"protected_areas\" ADD COLUMN IF NOT EXISTS \"flags\" TEXT");
         statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_protected_areas_name ON \"protected_areas\"(\"name\")");
     }
 

@@ -5,6 +5,7 @@ import me.totalfreedom.totalfreedommod.ProtectArea;
 import java.util.List;
 
 import org.bukkit.command.CommandSender;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
@@ -17,12 +18,13 @@ import me.totalfreedom.api.cmd.SourceType;
 import me.totalfreedom.api.cmd.annotation.Callback;
 import me.totalfreedom.api.cmd.annotation.Command;
 import me.totalfreedom.api.cmd.annotation.Permission;
+import me.totalfreedom.api.cmd.annotation.Resolve;
 import me.totalfreedom.api.cmd.annotation.Subcommand;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 
 @Command(name = "protectarea",
         description = "Manage protected regions so that only superadmins can directly modify blocks within them. WorldEdit and other such plugins might bypass this.",
-        usage = "/<command> <list | clear | create <name> | info <region> | update <region> | delete <region>>",
+        usage = "/<command> <list | clear | create <name> | info <region> | update <region> | flag <region> <flag> <value> | player <region> <player> <flag> <value> | delete <region>>",
         aliases = {"protectregion", "protect"})
 @Permission(permission = "tfm.admin.protectregion")
 public class Command_protectarea extends FCommand
@@ -99,6 +101,62 @@ public class Command_protectarea extends FCommand
         checkEnabled();
 
         msg(sender, region.toString());
+    }
+
+    @Callback
+    @Subcommand("flag")
+    public void flag(final CommandSender sender, final ProtectedRegion region, final ProtectedRegion.Flag flag, final boolean value)
+    {
+        checkEnabled();
+
+        try
+        {
+            region.setFlag(flag.name(), value);
+        }
+        catch (IllegalArgumentException ex)
+        {
+            throw new CommandFailException(ex.getMessage());
+        }
+
+        plugin().services().require(ProtectArea.class).save();
+        adminAction(sender, "<red>Setting protected region '<name>' flag '<flag>' to <status:enabled:disabled>",
+            Placeholder.unparsed("name", region.getName()),
+            Placeholder.unparsed("flag", flag.name()),
+            Formatter.booleanChoice("status", value));
+        msg(sender, "<gray>Protected region '<name>' flag '<flag>' changed to <status:enabled:disabled>.",
+            Placeholder.unparsed("name", region.getName()),
+            Placeholder.unparsed("flag", flag.name()),
+            Formatter.booleanChoice("status", value));
+    }
+
+    @Callback
+    @Subcommand("player")
+    public void playerFlag(final CommandSender sender, final ProtectedRegion region,
+                           @Resolve("OfflinePlayer") final OfflinePlayer player,
+                           final ProtectedRegion.Flag flag, final boolean value)
+    {
+        checkEnabled();
+
+        try
+        {
+            region.setPlayerFlag(player.getUniqueId(), flag.name(), value);
+        }
+        catch (IllegalArgumentException ex)
+        {
+            throw new CommandFailException(ex.getMessage());
+        }
+
+        plugin().services().require(ProtectArea.class).save();
+        adminAction(sender, "<red>Setting protected region '<name>' player '<player>' flag '<flag>' to <status:enabled:disabled>",
+            Placeholder.unparsed("name", region.getName()),
+            Placeholder.unparsed("player", player.getName() == null ? player.getUniqueId().toString() : player.getName()),
+            Placeholder.unparsed("flag", flag.name()),
+            Formatter.booleanChoice("status", value));
+        msg(sender, "<gray>Protected region '<name>' player '<player>' flag '<flag>' changed to <status:enabled:disabled>.",
+            Placeholder.unparsed("name", region.getName()),
+            Placeholder.unparsed("player", player.getName() == null ? player.getUniqueId().toString() : player.getName()),
+            Placeholder.unparsed("flag", flag.name()),
+            Formatter.booleanChoice("status", value));
     }
 
     @Callback

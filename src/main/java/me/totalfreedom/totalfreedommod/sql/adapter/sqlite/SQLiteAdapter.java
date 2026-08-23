@@ -437,11 +437,13 @@ public class SQLiteAdapter extends DatabaseAdapter
                 max_y INTEGER NOT NULL,
                 max_z INTEGER NOT NULL,
                 world_uuid TEXT NOT NULL,
+                flags TEXT,
                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
             """;
         statementHandler.executeUpdate(sql);
         addTimestampColumnIfMissing("protected_areas", "updated_at");
+        addColumnIfMissing("protected_areas", "flags", "TEXT");
         statementHandler.executeUpdate("CREATE INDEX IF NOT EXISTS idx_protected_areas_name ON protected_areas(name)");
     }
 

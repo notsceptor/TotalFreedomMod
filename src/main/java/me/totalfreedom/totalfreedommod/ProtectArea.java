@@ -407,7 +407,7 @@ public class ProtectArea extends FreedomService
 
         final Location location = event.getBlock().getLocation();
 
-        if (isInProtectedArea(location))
+        if (isFlagEnabled(location, "building_blocked", null, player.getUniqueId()))
             event.setCancelled(true);
     }
 
@@ -423,7 +423,7 @@ public class ProtectArea extends FreedomService
 
         final Location location = event.getBlock().getLocation();
 
-        if (isInProtectedArea(location))
+        if (isFlagEnabled(location, "building_blocked", null, player.getUniqueId()))
             event.setCancelled(true);
     }
 
@@ -648,6 +648,11 @@ public class ProtectArea extends FreedomService
         if (!shouldBlockInteraction(player, location))
             return;
 
+        if (event.getAction() == org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK
+                && event.getItem() != null
+                && !isFlagEnabled(location, "building_blocked", null, player.getUniqueId()))
+            return;
+
         if (event.getAction() == org.bukkit.event.block.Action.PHYSICAL)
         {
             event.setCancelled(true);
@@ -674,71 +679,72 @@ public class ProtectArea extends FreedomService
     public void onPlayerDamage(EntityDamageEvent event)
     {
         if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean()
-                || !ConfigEntry.PROTECTAREA_PROTECT_PLAYERS.getBoolean()
-                || !(event.getEntity() instanceof Player))
+            || !(event.getEntity() instanceof Player))
             return;
 
-        if (isInProtectedArea(event.getEntity().getLocation()))
+        if (isFlagEnabled(event.getEntity().getLocation(), "protect_players", ConfigEntry.PROTECTAREA_PROTECT_PLAYERS,
+            event.getEntity().getUniqueId()))
             event.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onPotionSplash(PotionSplashEvent event)
     {
-        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean()
-                || !ConfigEntry.PROTECTAREA_BLOCK_POTIONS.getBoolean())
+        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
                     return;
 
         for (LivingEntity affected : event.getAffectedEntities())
-            if (affected instanceof Player && isInProtectedArea(affected.getLocation()))
+                if (affected instanceof Player && isFlagEnabled(affected.getLocation(), "block_potions", ConfigEntry.PROTECTAREA_BLOCK_POTIONS,
+                    affected.getUniqueId()))
                 event.setIntensity(affected, 0.0D);
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onLingeringPotionSplash(LingeringPotionSplashEvent event)
     {
-        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean() 
-                || !ConfigEntry.PROTECTAREA_BLOCK_POTIONS.getBoolean())
+        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
                     return;
 
-        if (isInProtectedArea(event.getEntity().getLocation()))
+        if (isFlagEnabled(event.getEntity().getLocation(), "block_potions", ConfigEntry.PROTECTAREA_BLOCK_POTIONS))
             event.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onAreaEffectCloudApply(AreaEffectCloudApplyEvent event)
     {
-        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean() 
-                || !ConfigEntry.PROTECTAREA_BLOCK_POTIONS.getBoolean())
+        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
                     return;
 
         event.getAffectedEntities()
              .removeIf(entity -> 
-                       entity instanceof Player && isInProtectedArea(entity.getLocation())
+                       entity instanceof Player && isFlagEnabled(entity.getLocation(), "block_potions", ConfigEntry.PROTECTAREA_BLOCK_POTIONS,
+                           entity.getUniqueId())
                     );
     }
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onItemPickup(EntityPickupItemEvent event)
     {
-        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean() 
-                || !ConfigEntry.PROTECTAREA_BLOCK_ITEMS.getBoolean()
-                || (event.getEntity() instanceof Player player 
+        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean()
+            || (event.getEntity() instanceof Player player
                         && plugin.admins().isAdmin(player)))
                     return;
 
-        if (isInProtectedArea(event.getItem().getLocation()))
+        final boolean blockItems = event.getEntity() instanceof Player player
+            ? isFlagEnabled(event.getItem().getLocation(), "block_items", ConfigEntry.PROTECTAREA_BLOCK_ITEMS,
+                player.getUniqueId())
+            : isFlagEnabled(event.getItem().getLocation(), "block_items", ConfigEntry.PROTECTAREA_BLOCK_ITEMS);
+        if (blockItems)
             event.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onInventoryPickupItem(InventoryPickupItemEvent event)
     {
-        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean() 
-                || !ConfigEntry.PROTECTAREA_BLOCK_ITEMS.getBoolean())
+        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
                     return;
 
-        if (isInProtectedArea(event.getItem().getLocation()))
+        if (isFlagEnabled(event.getItem().getLocation(), "block_items", ConfigEntry.PROTECTAREA_BLOCK_ITEMS))
             event.setCancelled(true);
     }
 
@@ -759,6 +765,21 @@ public class ProtectArea extends FreedomService
             .values()
             .stream()
             .anyMatch(area -> area.within(modifyLocation));
+    }
+
+    private boolean isFlagEnabled(final Location location, final String flag, final ConfigEntry configEntry)
+    {
+        return isFlagEnabled(location, flag, configEntry, null);
+    }
+
+    private boolean isFlagEnabled(final Location location, final String flag, final ConfigEntry configEntry,
+                                  final UUID playerUuid)
+    {
+        return areas
+            .values()
+            .stream()
+            .filter(area -> area.within(location))
+            .anyMatch(area -> area.getFlag(flag, configEntry, playerUuid));
     }
 
     public boolean doesRegionOverlapWithProtectedArea(final Location min, final Location max, final World world)
@@ -826,7 +847,7 @@ public class ProtectArea extends FreedomService
 
     private void sweepItems()
     {
-        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean() || !ConfigEntry.PROTECTAREA_BLOCK_ITEMS.getBoolean())
+        if (!ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
             return;
 
         // Remove all items inside protected areas
@@ -840,7 +861,8 @@ public class ProtectArea extends FreedomService
                         .getWorld()
                         .getEntities()
                         .stream()
-                        .filter(entity -> entity != null && entity instanceof Item && area.within(entity.getLocation()))
+                        .filter(entity -> entity != null && entity instanceof Item && area.within(entity.getLocation())
+                            && area.getFlag("block_items", ConfigEntry.PROTECTAREA_BLOCK_ITEMS))
                         .forEach(Entity::remove);
                 }
                 catch (CantFindWorldException _) {}
@@ -854,6 +876,7 @@ public class ProtectArea extends FreedomService
         private Vector min;
         private Vector max;
         private UUID worldUUID;
+        private Map<String, Boolean> flags = new HashMap<>();
         private transient World world;
 
         public ProtectedRegion(final UUID uuid, final String name, final Location min, final Location max, final World world)
@@ -895,6 +918,65 @@ public class ProtectArea extends FreedomService
         public UUID getUuid()
         {
             return uuid;
+        }
+
+        public void setFlag(final String flag, final boolean value)
+        {
+            if (!Set.of("building_blocked", "protect_players", "block_potions", "block_items").contains(flag))
+                throw new IllegalArgumentException("Unknown protected region flag: " + flag);
+
+            if (flags == null)
+                flags = new HashMap<>();
+            flags.put(flag, value);
+        }
+
+        public void setPlayerFlag(final UUID playerUuid, final String flag, final boolean value)
+        {
+            if (!Set.of("building_blocked", "protect_players", "block_potions", "block_items").contains(flag))
+                throw new IllegalArgumentException("Unknown protected region flag: " + flag);
+
+            if (flags == null)
+                flags = new HashMap<>();
+            flags.put(playerUuid + ":" + flag, value);
+        }
+
+        public boolean getFlag(final String flag, final ConfigEntry configEntry)
+        {
+            return getFlag(flag, configEntry, null);
+        }
+
+        public boolean getFlag(final String flag, final ConfigEntry configEntry, final UUID playerUuid)
+        {
+            if (playerUuid != null && flags != null && flags.containsKey(playerUuid + ":" + flag))
+                return flags.get(playerUuid + ":" + flag);
+            if (flags != null && flags.containsKey(flag))
+                return flags.get(flag);
+            if (flag.equals("building_blocked"))
+                return true;
+            return configEntry.getBoolean();
+        }
+
+        public enum Flag
+        {
+            building_blocked,
+            protect_players,
+            block_potions,
+            block_items;
+
+            public static Flag fromString(final String value)
+            {
+                return valueOf(value.toLowerCase(Locale.ROOT));
+            }
+        }
+
+        public Map<String, Boolean> getFlags()
+        {
+            return flags == null ? new HashMap<>() : new HashMap<>(flags);
+        }
+
+        public void setFlags(final Map<String, Boolean> flags)
+        {
+            this.flags = flags == null ? new HashMap<>() : new HashMap<>(flags);
         }
 
         public String getName()

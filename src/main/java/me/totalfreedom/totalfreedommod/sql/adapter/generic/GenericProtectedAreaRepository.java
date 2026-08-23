@@ -6,9 +6,11 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import reactor.core.publisher.Mono;
+import com.google.gson.reflect.TypeToken;
 
 import me.totalfreedom.totalfreedommod.ProtectArea.ProtectedRegion;
 import me.totalfreedom.totalfreedommod.ProtectArea.ProtectedRegion.CantFindWorldException;
@@ -16,6 +18,7 @@ import me.totalfreedom.totalfreedommod.sql.StatementHandler;
 import me.totalfreedom.totalfreedommod.sql.adapter.DatabaseAdapter;
 import me.totalfreedom.api.sql.adapter.ProtectedAreaRepository;
 import me.totalfreedom.totalfreedommod.util.FLog;
+import me.totalfreedom.totalfreedommod.util.JsonUtil;
 
 /**
  * All dialect differences are resolved through the {@link DatabaseAdapter} passed in.
@@ -54,14 +57,15 @@ public class GenericProtectedAreaRepository implements ProtectedAreaRepository
         this.colMaxZ = adapter.quoteIdentifier("max_z");
         this.colWorldUuid = adapter.quoteIdentifier("world_uuid");
         this.colUpdatedAt = adapter.quoteIdentifier("updated_at");
-        this.selectColumns = String.format("%s, %s, %s, %s, %s, %s, %s, %s, %s",
-                colUuid, colName, colMinX, colMinY, colMinZ, colMaxX, colMaxY, colMaxZ, colWorldUuid);
+        this.selectColumns = String.format("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s",
+            colUuid, colName, colMinX, colMinY, colMinZ, colMaxX, colMaxY, colMaxZ, colWorldUuid,
+            adapter.quoteIdentifier("flags"));
     }
 
     @Override
     public void insert(ProtectedRegion region) throws SQLException
     {
-        String sql = String.format("INSERT INTO %s (%s, %s) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, %s)",
+        String sql = String.format("INSERT INTO %s (%s, %s) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, %s)",
                 tblProtectedAreas, selectColumns, colUpdatedAt, adapter.currentTimestamp());
         statementHandler.executeUpdate(sql,
                 region.getUuid().toString(),
@@ -72,7 +76,8 @@ public class GenericProtectedAreaRepository implements ProtectedAreaRepository
                 region.getMaxVector().getBlockX(),
                 region.getMaxVector().getBlockY(),
                 region.getMaxVector().getBlockZ(),
-                region.getWorldUUID().toString());
+                region.getWorldUUID().toString(),
+                JsonUtil.GSON.toJson(region.getFlags()));
     }
 
     @Override
@@ -138,9 +143,9 @@ public class GenericProtectedAreaRepository implements ProtectedAreaRepository
     @Override
     public boolean update(ProtectedRegion region) throws SQLException
     {
-        String sql = String.format("UPDATE %s SET %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = %s WHERE %s = ?",
+        String sql = String.format("UPDATE %s SET %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = ?, %s = %s WHERE %s = ?",
                 tblProtectedAreas, colName, colMinX, colMinY, colMinZ, colMaxX, colMaxY, colMaxZ, colWorldUuid,
-                colUpdatedAt, adapter.currentTimestamp(), colUuid);
+            adapter.quoteIdentifier("flags"), colUpdatedAt, adapter.currentTimestamp(), colUuid);
 
         int rows = statementHandler.executeUpdate(sql,
                 region.getName(),
@@ -151,6 +156,7 @@ public class GenericProtectedAreaRepository implements ProtectedAreaRepository
                 region.getMaxVector().getBlockY(),
                 region.getMaxVector().getBlockZ(),
                 region.getWorldUUID().toString(),
+                JsonUtil.GSON.toJson(region.getFlags()),
                 region.getUuid().toString());
 
         return rows > 0;
@@ -231,10 +237,18 @@ public class GenericProtectedAreaRepository implements ProtectedAreaRepository
         int maxY = rs.getInt("max_y");
         int maxZ = rs.getInt("max_z");
         String worldUuid = rs.getString("world_uuid");
+        String flagsJson = rs.getString("flags");
 
         try
         {
-            return new ProtectedRegion(uuid, name, minX, minY, minZ, maxX, maxY, maxZ, worldUuid);
+            ProtectedRegion region = new ProtectedRegion(uuid, name, minX, minY, minZ, maxX, maxY, maxZ, worldUuid);
+            if (flagsJson != null && !flagsJson.isBlank())
+            {
+                Map<String, Boolean> flags = JsonUtil.GSON.fromJson(flagsJson,
+                    new TypeToken<Map<String, Boolean>>() {}.getType());
+                region.setFlags(flags);
+            }
+            return region;
         }
         catch (CantFindWorldException ex)
         {

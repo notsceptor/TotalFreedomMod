@@ -404,12 +404,14 @@ public class MySQLAdapter extends DatabaseAdapter
                 `max_y` INT NOT NULL,
                 `max_z` INT NOT NULL,
                 `world_uuid` VARCHAR(36) NOT NULL,
+                `flags` TEXT,
                 `updated_at` DATETIME NOT NULL DEFAULT NOW(),
                 INDEX `idx_protected_areas_name` (`name`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """;
         statementHandler.executeUpdate(sql);
         addColumnIfMissing("protected_areas", "updated_at", "DATETIME NOT NULL DEFAULT NOW()");
+        addColumnIfMissing("protected_areas", "flags", "TEXT");
     }
 
     private void createSavedFlagsTable() throws SQLException
