@@ -11,17 +11,17 @@ import me.totalfreedom.totalfreedommod.util.FLog;
 import org.bukkit.Art;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
+import org.bukkit.entity.AbstractCubeMob;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Painting;
-import org.bukkit.entity.Slime;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityTransformEvent;
 
 /**
- * Hard cap on Slime#setSize and the SCALE attribute.
+ * Hard cap on AbstractCubeMob#setSize and the SCALE attribute.
  * Prevents tick stalls in Entity#checkInsideBlocks.
  */
 public class EntitySizeGuard extends FreedomService
@@ -98,14 +98,16 @@ public class EntitySizeGuard extends FreedomService
         boolean changed = false;
 
         int maxSize = ConfigEntry.CRASH_ENTITIES_MAX_SLIME_SIZE.getInteger();
-        if (maxSize > 0 && entity instanceof Slime slime)
+        // AbstractCubeMob, not Slime: paper-api 26.2 moved get/setSize up a level,
+        // dropping MagmaCube and the new SulfurCube out of the Slime hierarchy.
+        if (maxSize > 0 && entity instanceof AbstractCubeMob cube)
         {
             try
             {
-                int size = slime.getSize();
+                int size = cube.getSize();
                 if (size > maxSize)
                 {
-                    slime.setSize(maxSize);
+                    cube.setSize(maxSize);
                     recordDetection(size, "slime-size", context + " on " + entity.getType() + "@" + locShort(entity));
                     changed = true;
                 }
