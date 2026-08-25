@@ -1012,10 +1012,24 @@ public class ProtectArea extends FreedomService
             final int thatMinX = min.getBlockX();
             final int thatMaxX = max.getBlockX();
 
-            return (thisMinX <= thatMinX && thatMinX <= thisMaxX) ||
-                (thisMinX <= thatMaxX && thatMaxX <= thisMaxX) ||
-                (thatMinX <= thisMinX && thisMinX <= thatMaxX) ||
-                (thatMinX <= thisMaxX && thisMaxX <= thatMaxX);
+            final int thisMinY = this.min.getBlockY();
+            final int thisMaxY = this.max.getBlockY();
+            final int thatMinY = min.getBlockY();
+            final int thatMaxY = max.getBlockY();
+            final int thisMinZ = this.min.getBlockZ();
+            final int thisMaxZ = this.max.getBlockZ();
+            final int thatMinZ = min.getBlockZ();
+            final int thatMaxZ = max.getBlockZ();
+
+            return overlaps(thisMinX, thisMaxX, thatMinX, thatMaxX)
+                && overlaps(thisMinY, thisMaxY, thatMinY, thatMaxY)
+                && overlaps(thisMinZ, thisMaxZ, thatMinZ, thatMaxZ);
+        }
+
+        private boolean overlaps(final int firstMin, final int firstMax,
+                                 final int secondMin, final int secondMax)
+        {
+            return firstMin <= secondMax && secondMin <= firstMax;
         }
 
         public static class CantFindWorldException extends Exception

@@ -952,13 +952,6 @@ public final class WorldEditHook implements Listener
 
     private boolean checkRadiusCommand(PlayerCommandPreprocessEvent event)
     {
-        final Integer maxObj = ConfigEntry.WORLDEDIT_RADIUS_MAX.getInteger();
-        if (maxObj == null || maxObj < 0)
-        {
-            return false;
-        }
-        final int max = maxObj;
-
         final Player player = event.getPlayer();
         if (plugin.admins().isAdmin(player))
         {
@@ -997,7 +990,34 @@ public final class WorldEditHook implements Listener
         }
 
         final int radius = parseRadius(positional.get(argIdxObj));
-        if (radius < 0 || radius <= max)
+        if (radius < 0)
+        {
+            return false;
+        }
+
+        if (ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
+        {
+            final org.bukkit.Location playerLocation = player.getLocation();
+            final ProtectArea protectArea = plugin.services().require(ProtectArea.class);
+            final org.bukkit.Location min = playerLocation.clone().subtract(radius, radius, radius);
+            final org.bukkit.Location max = playerLocation.clone().add(radius, radius, radius);
+            if (protectArea.doesRegionOverlapWithProtectedArea(min, max, player.getWorld()))
+            {
+                event.setCancelled(true);
+                player.sendMessage(Component.text(
+                    "You cannot use a WorldEdit radius command that overlaps a protected area.",
+                    NamedTextColor.RED));
+                return true;
+            }
+        }
+
+        final Integer maxObj = ConfigEntry.WORLDEDIT_RADIUS_MAX.getInteger();
+        if (maxObj == null || maxObj < 0)
+        {
+            return false;
+        }
+        final int max = maxObj;
+        if (radius <= max)
         {
             return false;
         }
