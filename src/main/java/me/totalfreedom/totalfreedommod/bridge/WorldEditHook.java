@@ -94,6 +94,7 @@ public final class WorldEditHook implements Listener
         // Radius is the second arg (after a pattern/type).
         RADIUS_COMMANDS.put("sphere", 1);
         RADIUS_COMMANDS.put("hsphere", 1);
+        RADIUS_COMMANDS.put("cone", 1);
         RADIUS_COMMANDS.put("cyl", 1);
         RADIUS_COMMANDS.put("hcyl", 1);
         RADIUS_COMMANDS.put("pyramid", 1);
