@@ -998,10 +998,10 @@ public final class WorldEditHook implements Listener
 
         if (ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
         {
-            final org.bukkit.Location playerLocation = player.getLocation();
+            final var playerLocation = player.getLocation();
             final ProtectArea protectArea = plugin.services().require(ProtectArea.class);
-            final org.bukkit.Location min = playerLocation.clone().subtract(radius, radius, radius);
-            final org.bukkit.Location max = playerLocation.clone().add(radius, radius, radius);
+            final var min = playerLocation.clone().subtract(radius, radius, radius);
+            final var max = playerLocation.clone().add(radius, radius, radius);
             if (protectArea.doesRegionOverlapWithProtectedArea(min, max, player.getWorld()))
             {
                 event.setCancelled(true);

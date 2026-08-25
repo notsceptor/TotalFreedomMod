@@ -1007,29 +1007,12 @@ public class ProtectArea extends FreedomService
             // This logic is really hairy, but it's derived from here:
             // https://math.stackexchange.com/a/2651718
 
-            final int thisMinX = this.min.getBlockX();
-            final int thisMaxX = this.max.getBlockX();
-            final int thatMinX = min.getBlockX();
-            final int thatMaxX = max.getBlockX();
-
-            final int thisMinY = this.min.getBlockY();
-            final int thisMaxY = this.max.getBlockY();
-            final int thatMinY = min.getBlockY();
-            final int thatMaxY = max.getBlockY();
-            final int thisMinZ = this.min.getBlockZ();
-            final int thisMaxZ = this.max.getBlockZ();
-            final int thatMinZ = min.getBlockZ();
-            final int thatMaxZ = max.getBlockZ();
-
-            return overlaps(thisMinX, thisMaxX, thatMinX, thatMaxX)
-                && overlaps(thisMinY, thisMaxY, thatMinY, thatMaxY)
-                && overlaps(thisMinZ, thisMaxZ, thatMinZ, thatMaxZ);
-        }
-
-        private boolean overlaps(final int firstMin, final int firstMax,
-                                 final int secondMin, final int secondMax)
-        {
-            return firstMin <= secondMax && secondMin <= firstMax;
+            return this.min.getBlockX() <= max.getBlockX()
+                && min.getBlockX() <= this.max.getBlockX()
+                && this.min.getBlockY() <= max.getBlockY()
+                && min.getBlockY() <= this.max.getBlockY()
+                && this.min.getBlockZ() <= max.getBlockZ()
+                && min.getBlockZ() <= this.max.getBlockZ();
         }
 
         public static class CantFindWorldException extends Exception
