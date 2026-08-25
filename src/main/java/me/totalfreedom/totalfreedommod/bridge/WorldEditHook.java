@@ -13,6 +13,7 @@ import java.util.regex.Pattern;
 
 import org.bukkit.Bukkit;
 import org.bukkit.World;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -998,10 +999,10 @@ public final class WorldEditHook implements Listener
 
         if (ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
         {
-            final var playerLocation = player.getLocation();
+            final Location playerLocation = player.getLocation();
             final ProtectArea protectArea = plugin.services().require(ProtectArea.class);
-            final var min = playerLocation.clone().subtract(radius, radius, radius);
-            final var max = playerLocation.clone().add(radius, radius, radius);
+            final Location min = playerLocation.clone().subtract(radius, radius, radius);
+            final Location max = playerLocation.clone().add(radius, radius, radius);
             if (protectArea.doesRegionOverlapWithProtectedArea(min, max, player.getWorld()))
             {
                 event.setCancelled(true);
