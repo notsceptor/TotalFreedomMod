@@ -234,6 +234,7 @@ public enum ConfigEntry
     SPAWN_PITCH(Double.class, "spawn.pitch"),
     SPAWN_SEND_ON_JOIN(String.class, "spawn.send_player.on_join"),
     SPAWN_SEND_ON_RESPAWN(Boolean.class, "spawn.send_player.on_respawn"),
+    SPAWN_REQUIRE_MOVEMENT(Boolean.class, "spawn.require_movement"),
     //
     FLATLANDS_GENERATE(Boolean.class, "flatlands.generate"),
     FLATLANDS_GENERATE_PARAMS(String.class, "flatlands.generate_params"),
