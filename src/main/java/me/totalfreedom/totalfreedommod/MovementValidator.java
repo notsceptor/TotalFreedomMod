@@ -99,6 +99,11 @@ public class MovementValidator extends FreedomService
     @EventHandler(priority = EventPriority.LOWEST)
     public void onPlayerJoin(PlayerJoinEvent event)
     {
+        if (!ConfigEntry.SPAWN_REQUIRE_MOVEMENT.getBoolean(true))
+        {
+            return;
+        }
+
         server.getScheduler().runTask(plugin, () ->
         {
             if (event.getPlayer().isOnline())
