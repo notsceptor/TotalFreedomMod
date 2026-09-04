@@ -2,14 +2,22 @@ package me.totalfreedom.totalfreedommod.cmd;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
+import org.bukkit.NamespacedKey;
+import org.bukkit.Registry;
+import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
 
 import me.totalfreedom.api.cmd.FCommand;
 import me.totalfreedom.api.cmd.SourceType;
 import me.totalfreedom.api.cmd.annotation.*;
+import me.totalfreedom.api.player.PlayerData;
+import me.totalfreedom.totalfreedommod.player.FPlayer;
 import me.totalfreedom.totalfreedommod.player.SpyMode;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
 @Command(name = "cmdspy", description = "Spy on commands", usage = "/cmdspy [ops | admins | all | off]", aliases = {"commandspy", "cspy"})
 @Permission(permission = "tfm.admin.cmdspy", source = SourceType.ONLY_IN_GAME)
@@ -42,6 +50,48 @@ public class Command_cmdspy extends FCommand
         }
     }
 
+    @Callback
+    @Subcommand("sound")
+    public void sound(final Player player, @Greedy final String soundName)
+    {
+        final Sound sound = Registry.SOUNDS.get(NamespacedKey.fromString(soundName.toLowerCase(Locale.ROOT)));
+        if (sound == null)
+        {
+            msg(player, "<red>Unknown sound: <sound>", Placeholder.unparsed("sound", soundName));
+            return;
+        }
+
+        final PlayerData data = plugin().players().getData(player);
+        data.setCommandSpyAlertSound(sound);
+        plugin().players().saveData(data);
+        player.playSound(player.getLocation(), sound, SoundCategory.MASTER, 1.0F, 1.0F);
+
+        msg(player, "<gray>CommandSpy alert sound set to <green><sound></green>.",
+            Placeholder.unparsed("sound", Registry.SOUNDS.getKeyOrThrow(sound).asString()));
+    }
+
+    @Callback
+    @Subcommand("regex")
+    public void regex(final Player player, @Greedy final String pattern)
+    {
+        try
+        {
+            Pattern.compile(pattern);
+        }
+        catch (IllegalArgumentException ex)
+        {
+            msg(player, "<red>Invalid regex: <pattern>", Placeholder.unparsed("pattern", pattern));
+            return;
+        }
+
+        final PlayerData data = plugin().players().getData(player);
+        data.setCommandSpyAlertRegex(pattern);
+        plugin().players().saveData(data);
+
+        msg(player, "<gray>CommandSpy alert regex set to <green><pattern></green>.",
+                Placeholder.unparsed("pattern", pattern));
+    }
+
     @Completer(value = "", position = 0)
     public List<String> completeMode(final Player player, final String partial)
     {
@@ -50,5 +100,16 @@ public class Command_cmdspy extends FCommand
         return Stream.of("ops", "admins", "all", "off")
                      .filter(mode -> mode.startsWith(lower))
                      .toList();
+    }
+
+    @Completer(value = "sound", position = 0)
+    public List<String> completeSound(final Player player, final String partial)
+    {
+        final String lower = partial.toLowerCase(Locale.ROOT);
+
+        return Registry.SOUNDS.stream()
+                              .map(sound -> Registry.SOUNDS.getKeyOrThrow(sound).asString())
+                              .filter(sound -> sound.startsWith(lower))
+                              .toList();
     }
 }
