@@ -89,7 +89,7 @@ public class GenericPlayerRepository implements PlayerRepository
     @Override
     public void insert(PlayerData data) throws SQLException
     {
-        String sql = String.format("INSERT INTO %s (%s, %s) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, %s)",
+        String sql = String.format("INSERT INTO %s (%s, %s) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, %s)",
                 tblPlayers, selectColumns, colUpdatedAt, adapter.currentTimestamp());
 
         statementHandler.executeUpdate(sql,
