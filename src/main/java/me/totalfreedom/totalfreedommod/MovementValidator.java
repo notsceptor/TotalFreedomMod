@@ -109,13 +109,12 @@ public class MovementValidator extends FreedomService
             return;
         }
 
-        server.getScheduler().runTask(plugin, () ->
+        if (event.getPlayer() == null || plugin.al.isAdmin(event.getPlayer()))
         {
-            if (event.getPlayer().isOnline())
-            {
-                spawnLocations.put(event.getPlayer().getUniqueId(), event.getPlayer().getLocation().clone());
-            }
-        });
+            return;
+        }
+
+        spawnLocations.put(event.getPlayer().getUniqueId(), event.getPlayer().getLocation().clone());
     }
 
     @EventHandler
@@ -138,7 +137,7 @@ public class MovementValidator extends FreedomService
 
     private void cancelIfMovementRequired(Player player, java.util.function.Consumer<Boolean> cancel)
     {
-        if (!spawnLocations.containsKey(player.getUniqueId()))
+        if (player == null || plugin.al.isAdmin(player) || !spawnLocations.containsKey(player.getUniqueId()))
         {
             return;
         }
