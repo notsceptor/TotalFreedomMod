@@ -7,6 +7,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+
+import org.bukkit.Material;
+import org.bukkit.entity.Mob;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryCreativeEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.event.player.PlayerEditBookEvent;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.event.player.PlayerDropItemEvent;
+import org.bukkit.event.player.PlayerItemHeldEvent;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.BookMeta;
+import org.bukkit.inventory.meta.ItemMeta;
+
+import com.destroystokyo.paper.event.entity.EntityAddToWorldEvent;
+
 import me.totalfreedom.totalfreedommod.banning.Ban;
 import me.totalfreedom.totalfreedommod.cmd.MessageUtils;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
@@ -83,6 +99,151 @@ public class TextFilterService extends FreedomService
         temporarilyBan(event.getPlayer());
     }
 
+    @SuppressWarnings("removal")
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onPlayerEditBook(PlayerEditBookEvent event)
+    {
+        if (!shouldFilter(event.getPlayer()))
+        {
+            return;
+        }
+
+        final BookMeta book = event.getNewBookMeta();
+        if (!matchesFilter(book.getTitle())
+                && !matchesFilter(book.getAuthor())
+                && !book.getPages().stream().anyMatch(this::matchesFilter))
+        {
+            return;
+        }
+
+        event.setCancelled(true);
+        event.getPlayer().getInventory().setItem(event.getSlot(), new ItemStack(Material.AIR));
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onInventoryClick(InventoryClickEvent event)
+    {
+        if (!(event.getWhoClicked() instanceof Player player) || !shouldFilter(player))
+        {
+            return;
+        }
+
+        final boolean currentMatches = matchesFilteredItem(event.getCurrentItem());
+        final boolean cursorMatches = matchesFilteredItem(event.getCursor());
+        if (!currentMatches && !cursorMatches)
+        {
+            return;
+        }
+
+        event.setCancelled(true);
+        if (currentMatches)
+        {
+            event.setCurrentItem(null);
+        }
+        if (cursorMatches)
+        {
+            event.getView().setCursor(null);
+        }
+        player.updateInventory();
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onInventoryCreative(InventoryCreativeEvent event)
+    {
+        if (!(event.getWhoClicked() instanceof Player player)
+                || !shouldFilter(player)
+                || !matchesFilteredItem(event.getCursor()))
+        {
+            return;
+        }
+
+        event.setCancelled(true);
+        event.getView().setCursor(null);
+        player.updateInventory();
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onInventoryDrag(InventoryDragEvent event)
+    {
+        if (!(event.getWhoClicked() instanceof Player player) || !shouldFilter(player))
+        {
+            return;
+        }
+
+        if (!matchesFilteredItem(event.getOldCursor())
+            && !event.getNewItems().values().stream().anyMatch(this::matchesFilteredItem))
+        {
+            return;
+        }
+
+        event.setCancelled(true);
+        event.getView().setCursor(null);
+        player.updateInventory();
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onItemHeld(PlayerItemHeldEvent event)
+    {
+        if (!shouldFilter(event.getPlayer()))
+        {
+            return;
+        }
+
+        final Player player = event.getPlayer();
+        if (matchesFilteredItem(player.getInventory().getItem(event.getNewSlot())))
+        {
+            player.getInventory().setItem(event.getNewSlot(), null);
+            player.updateInventory();
+        }
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onPlayerDropItem(PlayerDropItemEvent event)
+    {
+        if (!shouldFilter(event.getPlayer()) || !matchesFilteredItem(event.getItemDrop().getItemStack()))
+        {
+            return;
+        }
+
+        event.setCancelled(true);
+        event.getItemDrop().remove();
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onPlayerInteractEntity(PlayerInteractEntityEvent event)
+    {
+        if (!shouldFilter(event.getPlayer()) || !(event.getRightClicked() instanceof Mob))
+        {
+            return;
+        }
+
+        final ItemStack item = event.getPlayer().getInventory().getItem(event.getHand());
+        if (item.getType() != Material.NAME_TAG)
+        {
+            return;
+        }
+
+        final ItemMeta meta = item.getItemMeta();
+        if (meta == null || !meta.hasDisplayName() || !matchesFilter(meta.displayName()))
+        {
+            return;
+        }
+
+        event.setCancelled(true);
+        event.getRightClicked().remove();
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onEntityAddToWorld(EntityAddToWorldEvent event)
+    {
+        if (!(event.getEntity() instanceof Mob mob) || !filterEnabled() || !matchesFilter(mob.customName()))
+        {
+            return;
+        }
+
+        mob.remove();
+    }
+
     private void reloadFilters()
     {
         filters = compile(ConfigEntry.TEXT_FILTER_REGEX_FILTERS.getStringList());
@@ -118,12 +279,47 @@ public class TextFilterService extends FreedomService
 
     private boolean shouldFilter(Player player)
     {
-        return ConfigEntry.TEXT_FILTER_ENABLED.getBoolean(true) && !filters.isEmpty() && !plugin.al.isAdmin(player);
+        return filterEnabled() && !plugin.al.isAdmin(player);
+    }
+
+    private boolean filterEnabled()
+    {
+        return ConfigEntry.TEXT_FILTER_ENABLED.getBoolean(true) && !filters.isEmpty();
     }
 
     private boolean matchesFilter(String text)
     {
         return matchesAny(filters, text);
+    }
+
+    private boolean matchesFilter(Component text)
+    {
+        return text != null && matchesFilter(MessageUtils.toPlainText(text));
+    }
+
+    private boolean matchesFilteredItem(ItemStack item)
+    {
+        if (item == null || !(item.getItemMeta() instanceof ItemMeta meta))
+        {
+            return false;
+        }
+
+        if (meta.hasDisplayName() && matchesFilter(meta.displayName()))
+        {
+            return true;
+        }
+        if (meta.hasItemName() && matchesFilter(meta.itemName()))
+        {
+            return true;
+        }
+        if (!(meta instanceof BookMeta book))
+        {
+            return false;
+        }
+
+        return matchesFilter(book.getTitle())
+                || matchesFilter(book.getAuthor())
+                || book.getPages().stream().anyMatch(this::matchesFilter);
     }
 
     public boolean matchesUsername(String username)
