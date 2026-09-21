@@ -4,7 +4,11 @@ import io.papermc.paper.event.player.AsyncChatEvent;
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -29,6 +33,9 @@ import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -79,7 +86,12 @@ public class TextFilterService extends FreedomService
         }
 
         event.setCancelled(true);
-        Bukkit.getScheduler().runTask(plugin, () -> temporarilyBan(event.getPlayer()));
+        final Player player = event.getPlayer();
+        Bukkit.getScheduler().runTask(plugin, () ->
+        {
+            notifyAdmins(player, message);
+            temporarilyBan(player);
+        });
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
@@ -96,6 +108,7 @@ public class TextFilterService extends FreedomService
         }
 
         event.setCancelled(true);
+        notifyAdmins(event.getPlayer(), event.getMessage());
         temporarilyBan(event.getPlayer());
     }
 
@@ -109,15 +122,23 @@ public class TextFilterService extends FreedomService
         }
 
         final BookMeta book = event.getNewBookMeta();
-        if (!matchesFilter(book.getTitle())
-                && !matchesFilter(book.getAuthor())
-                && !book.getPages().stream().anyMatch(this::matchesFilter))
+        final Optional<String> filteredText = findFilteredText(book.getTitle())
+            .or(() -> findFilteredText(book.getAuthor()))
+            .or(() -> book.getPages().stream()
+                .map(MessageUtils::toPlainText)
+                .filter(this::matchesFilter)
+                .findFirst());
+        if (filteredText.isEmpty())
         {
             return;
         }
 
         event.setCancelled(true);
-        event.getPlayer().getInventory().setItem(event.getSlot(), new ItemStack(Material.AIR));
+        final int slot = event.getSlot();
+        final ItemStack item = slot >= 0
+            ? event.getPlayer().getInventory().getItem(slot)
+            : event.getPlayer().getInventory().getItemInOffHand();
+        notifyAdmins(event.getPlayer(), item, String.format("contains prohibited text: %s", filteredText.get()));
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
@@ -128,19 +149,25 @@ public class TextFilterService extends FreedomService
             return;
         }
 
-        final boolean currentMatches = matchesFilteredItem(event.getCurrentItem());
-        final boolean cursorMatches = matchesFilteredItem(event.getCursor());
-        if (!currentMatches && !cursorMatches)
+        final Optional<String> currentText = findFilteredItemText(event.getCurrentItem());
+        final Optional<String> cursorText = findFilteredItemText(event.getCursor());
+        if (currentText.isEmpty() && cursorText.isEmpty())
         {
             return;
         }
 
         event.setCancelled(true);
-        if (currentMatches)
+        final String filteredText = Stream.of(currentText, cursorText)
+            .flatMap(Optional::stream)
+            .distinct()
+            .collect(Collectors.joining(", "));
+        final ItemStack item = currentText.isPresent() ? event.getCurrentItem() : event.getCursor();
+        notifyAdmins(player, item, String.format("contains prohibited text: %s", filteredText));
+        if (currentText.isPresent())
         {
             event.setCurrentItem(null);
         }
-        if (cursorMatches)
+        if (cursorText.isPresent())
         {
             event.getView().setCursor(null);
         }
@@ -150,14 +177,19 @@ public class TextFilterService extends FreedomService
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onInventoryCreative(InventoryCreativeEvent event)
     {
-        if (!(event.getWhoClicked() instanceof Player player)
-                || !shouldFilter(player)
-                || !matchesFilteredItem(event.getCursor()))
+        if (!(event.getWhoClicked() instanceof Player player) || !shouldFilter(player))
+        {
+            return;
+        }
+
+        final Optional<String> filteredText = findFilteredItemText(event.getCursor());
+        if (filteredText.isEmpty())
         {
             return;
         }
 
         event.setCancelled(true);
+        notifyAdmins(player, event.getCursor(), String.format("contains prohibited text: %s", filteredText.get()));
         event.getView().setCursor(null);
         player.updateInventory();
     }
@@ -170,13 +202,28 @@ public class TextFilterService extends FreedomService
             return;
         }
 
-        if (!matchesFilteredItem(event.getOldCursor())
-            && !event.getNewItems().values().stream().anyMatch(this::matchesFilteredItem))
+        ItemStack matchedItem = event.getOldCursor();
+        Optional<String> filteredText = findFilteredItemText(matchedItem);
+        if (filteredText.isEmpty())
+        {
+            for (ItemStack candidate : event.getNewItems().values())
+            {
+                final Optional<String> candidateText = findFilteredItemText(candidate);
+                if (candidateText.isPresent())
+                {
+                    matchedItem = candidate;
+                    filteredText = candidateText;
+                    break;
+                }
+            }
+        }
+        if (filteredText.isEmpty())
         {
             return;
         }
 
         event.setCancelled(true);
+        notifyAdmins(player, matchedItem, String.format("contains prohibited text: %s", filteredText.get()));
         event.getView().setCursor(null);
         player.updateInventory();
     }
@@ -190,8 +237,12 @@ public class TextFilterService extends FreedomService
         }
 
         final Player player = event.getPlayer();
-        if (matchesFilteredItem(player.getInventory().getItem(event.getNewSlot())))
+        final ItemStack item = player.getInventory().getItem(event.getNewSlot());
+        final Optional<String> filteredText = findFilteredItemText(item);
+        if (filteredText.isPresent())
         {
+            notifyAdmins(player, item,
+                String.format("contains prohibited text: %s", filteredText.get()));
             player.getInventory().setItem(event.getNewSlot(), null);
             player.updateInventory();
         }
@@ -200,12 +251,21 @@ public class TextFilterService extends FreedomService
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onPlayerDropItem(PlayerDropItemEvent event)
     {
-        if (!shouldFilter(event.getPlayer()) || !matchesFilteredItem(event.getItemDrop().getItemStack()))
+        if (!shouldFilter(event.getPlayer()))
+        {
+            return;
+        }
+
+        final ItemStack item = event.getItemDrop().getItemStack();
+        final Optional<String> filteredText = findFilteredItemText(item);
+        if (filteredText.isEmpty())
         {
             return;
         }
 
         event.setCancelled(true);
+        notifyAdmins(event.getPlayer(), item,
+            String.format("contains prohibited text: %s", filteredText.get()));
         event.getItemDrop().remove();
     }
 
@@ -224,23 +284,36 @@ public class TextFilterService extends FreedomService
         }
 
         final ItemMeta meta = item.getItemMeta();
-        if (meta == null || !meta.hasDisplayName() || !matchesFilter(meta.displayName()))
+        final Optional<String> filteredText = meta == null || !meta.hasDisplayName()
+            ? Optional.empty()
+            : findFilteredText(meta.displayName());
+        if (filteredText.isEmpty())
         {
             return;
         }
 
         event.setCancelled(true);
+        notifyAdmins(event.getPlayer(), item, String.format("contains prohibited text: %s", filteredText.get()));
         event.getRightClicked().remove();
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onEntityAddToWorld(EntityAddToWorldEvent event)
     {
-        if (!(event.getEntity() instanceof Mob mob) || !filterEnabled() || !matchesFilter(mob.customName()))
+        if (!(event.getEntity() instanceof Mob mob) || !filterEnabled())
         {
             return;
         }
 
+        final Optional<String> filteredText = findFilteredText(mob.customName());
+        if (filteredText.isEmpty())
+        {
+            return;
+        }
+
+        final Component label = Component.text("[Mob]", NamedTextColor.YELLOW)
+            .hoverEvent(HoverEvent.showText(mob.customName()));
+        notifyAdmins(String.format("[Mob] contains prohibited text: %s", filteredText.get()), label);
         mob.remove();
     }
 
@@ -292,34 +365,40 @@ public class TextFilterService extends FreedomService
         return matchesAny(filters, text);
     }
 
-    private boolean matchesFilter(Component text)
-    {
-        return text != null && matchesFilter(MessageUtils.toPlainText(text));
-    }
-
-    private boolean matchesFilteredItem(ItemStack item)
+    private Optional<String> findFilteredItemText(ItemStack item)
     {
         if (item == null || !(item.getItemMeta() instanceof ItemMeta meta))
         {
-            return false;
+            return Optional.empty();
         }
 
-        if (meta.hasDisplayName() && matchesFilter(meta.displayName()))
+        Optional<String> filteredText = meta.hasDisplayName()
+            ? findFilteredText(meta.displayName())
+            : Optional.empty();
+        if (filteredText.isEmpty() && meta.hasItemName())
         {
-            return true;
+            filteredText = findFilteredText(meta.itemName());
         }
-        if (meta.hasItemName() && matchesFilter(meta.itemName()))
+        if (filteredText.isEmpty() && meta instanceof BookMeta book)
         {
-            return true;
+            filteredText = findFilteredText(book.getTitle())
+                .or(() -> findFilteredText(book.getAuthor()))
+                .or(() -> book.getPages().stream()
+                    .map(this::findFilteredText)
+                    .flatMap(Optional::stream)
+                    .findFirst());
         }
-        if (!(meta instanceof BookMeta book))
-        {
-            return false;
-        }
+        return filteredText;
+    }
 
-        return matchesFilter(book.getTitle())
-                || matchesFilter(book.getAuthor())
-                || book.getPages().stream().anyMatch(this::matchesFilter);
+    private Optional<String> findFilteredText(String text)
+    {
+        return matchesFilter(text) ? Optional.of(text) : Optional.empty();
+    }
+
+    private Optional<String> findFilteredText(Component text)
+    {
+        return text == null ? Optional.empty() : findFilteredText(MessageUtils.toPlainText(text));
     }
 
     public boolean matchesUsername(String username)
@@ -355,6 +434,55 @@ public class TextFilterService extends FreedomService
         text.chars().forEach(c -> out.append(LEET.getOrDefault((char) c, (char) c)));
 
         return out.toString();
+    }
+
+    private void notifyAdmins(Player player, String message)
+    {
+        notifyAdmins(String.format("%s: %s", player.getName(), message));
+    }
+
+    private void notifyAdmins(Player player, ItemStack item, String message)
+    {
+        final String itemName = itemName(item);
+        final String consoleMessage = String.format("%s: [%s] %s", player.getName(), itemName, message);
+        final String itemData = item == null ? "{}" : item.serialize().toString();
+        final Component label = Component.text("[" + itemName + "]", NamedTextColor.YELLOW)
+            .hoverEvent(HoverEvent.showText(Component.text("NBT: " + itemData)))
+            .clickEvent(ClickEvent.copyToClipboard(itemData));
+        final Component feedback = Component.text(player.getName(), NamedTextColor.GRAY)
+            .append(Component.text(": "))
+            .append(label)
+            .append(Component.text(" " + message, NamedTextColor.GRAY));
+
+        notifyAdmins(consoleMessage, feedback);
+    }
+
+    private static String itemName(ItemStack item)
+    {
+        if (item == null)
+        {
+            return "Item";
+        }
+
+        final String name = item.getType().name().toLowerCase(Locale.ROOT).replace('_', ' ');
+        return Character.toUpperCase(name.charAt(0)) + name.substring(1);
+    }
+
+    private void notifyAdmins(String message, Component feedback)
+    {
+        FLog.warning("[Text Filter] " + message, true);
+        final Component notification = Component.text("[Text Filter] ", NamedTextColor.RED)
+            .append(feedback);
+
+        plugin.al.getOnlineAdmins().forEach(admin -> admin.sendMessage(notification));
+    }
+
+    private void notifyAdmins(String message)
+    {
+        final Component feedback = MessageUtils.parse(
+            "<red>[Text Filter]</red> <gray><message></gray>",
+            Placeholder.unparsed("message", message));
+        notifyAdmins(message, feedback);
     }
 
     private void temporarilyBan(Player player)
