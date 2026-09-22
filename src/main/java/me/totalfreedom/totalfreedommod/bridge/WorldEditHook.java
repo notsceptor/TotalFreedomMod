@@ -47,6 +47,7 @@ import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -1075,6 +1076,21 @@ public final class WorldEditHook implements Listener
         if (radius < 0)
         {
             return false;
+        }
+
+        if (ConfigEntry.PROTECTAREA_ENABLED.getBoolean())
+        {
+            final Location playerLocation = player.getLocation();
+            final Location min = playerLocation.clone().subtract(radius, radius, radius);
+            final Location max = playerLocation.clone().add(radius, radius, radius);
+            if (plugin.pa.doesRegionOverlapWithProtectedArea(min, max, player.getWorld()))
+            {
+                event.setCancelled(true);
+                player.sendMessage(Component.text(
+                    "You cannot use a WorldEdit radius command that overlaps a protected area.",
+                    NamedTextColor.RED));
+                return true;
+            }
         }
 
         final Integer maxObj = ConfigEntry.WORLDEDIT_RADIUS_MAX.getInteger();
