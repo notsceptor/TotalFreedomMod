@@ -7,7 +7,6 @@ import org.bukkit.plugin.Plugin;
 
 public class SpyglassBridge extends FreedomService
 {
-    private static final String SPYGLASS_PLUGIN = "Spyglass";
     private static final String ROLLBACK_TIME = "30d";
 
     public SpyglassBridge(TotalFreedomMod plugin)
@@ -31,7 +30,7 @@ public class SpyglassBridge extends FreedomService
 
     public boolean isEnabled()
     {
-        final Plugin spyglass = server.getPluginManager().getPlugin(SPYGLASS_PLUGIN);
+        final Plugin spyglass = server.getPluginManager().getPlugin("Spyglass");
         return spyglass != null && spyglass.isEnabled();
     }
 
