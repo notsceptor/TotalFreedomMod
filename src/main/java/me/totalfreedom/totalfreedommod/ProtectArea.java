@@ -11,7 +11,9 @@ import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import me.totalfreedom.totalfreedommod.ProtectArea.ProtectedRegion.CantFindWorldException;
@@ -44,6 +46,7 @@ import org.bukkit.event.block.BlockPistonRetractEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.BlockSpreadEvent;
 import org.bukkit.event.block.SignChangeEvent;
+import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.world.StructureGrowEvent;
 import org.bukkit.event.entity.AreaEffectCloudApplyEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
@@ -72,6 +75,8 @@ public class ProtectArea extends FreedomService
     // How often (in ticks) to sweep loose items out of protected areas.
     private static final long ITEM_SWEEP_RATE = 40L;
     //
+    private static final Set<String> ITEMIZER_LABELS = Set.of("itemizer", "ii", "it");
+    private static final int ITEMIZER_SIGN_REACH = 20;
     private final Map<UUID, ProtectedRegion> areas = Maps.newConcurrentMap();
     private BukkitTask itemSweepTask;
 
@@ -621,6 +626,26 @@ public class ProtectArea extends FreedomService
         {
             event.setCancelled(true);
         }
+    }
+
+    // Itemizer's /ii sign doesn't fire a SignChangeEvent
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onItemizerSignCommand(PlayerCommandPreprocessEvent event)
+    {
+        final String[] args = event.getMessage().substring(1).split(" +");
+        if (args.length < 2 || !args[1].equalsIgnoreCase("sign"))
+            return;
+
+        final String label = args[0].toLowerCase(Locale.ROOT);
+        if (!ITEMIZER_LABELS.contains(label))
+            return;
+
+        final Player player = event.getPlayer();
+        final Block target = player.getTargetBlockExact(ITEMIZER_SIGN_REACH);
+        if (target == null || !shouldBlockInteraction(player, target.getLocation()))
+            return;
+
+        event.setCancelled(true);
     }
 
     // Player interact (crop trampling, etc.)
