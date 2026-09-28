@@ -7,11 +7,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
-import me.totalfreedom.totalfreedommod.banning.Ban;
 import me.totalfreedom.totalfreedommod.cmd.MessageUtils;
 import me.totalfreedom.totalfreedommod.config.ConfigEntry;
 import me.totalfreedom.totalfreedommod.util.FLog;
-import me.totalfreedom.totalfreedommod.util.FUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Bukkit;
@@ -64,11 +62,7 @@ public class TextFilterService extends FreedomService
 
         event.setCancelled(true);
         final Player player = event.getPlayer();
-        Bukkit.getScheduler().runTask(plugin, () ->
-        {
-            notifyAdmins(player, message);
-            temporarilyBan(player);
-        });
+        Bukkit.getScheduler().runTask(plugin, () -> notifyAdmins(player, message));
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
@@ -85,7 +79,7 @@ public class TextFilterService extends FreedomService
         }
 
         event.setCancelled(true);
-        temporarilyBan(event.getPlayer());
+        notifyAdmins(event.getPlayer(), event.getMessage());
     }
 
     private void reloadFilters()
@@ -166,33 +160,6 @@ public class TextFilterService extends FreedomService
         return out.toString();
     }
 
-    private void temporarilyBan(Player player)
-    {
-        if (!player.isOnline())
-        {
-            return;
-        }
-
-        if (plugin.bm.getByUsername(player.getName()) != null)
-        {
-            player.kick(tempbanKickMessage());
-            return;
-        }
-
-        final Ban ban = Ban.forPlayer(player, Bukkit.getConsoleSender(), FUtil.parseDateOffset("1d"), "Use of prohibited language");
-        
-        ban.addIp(player.getAddress().getAddress().getHostAddress());
-        plugin.pl.getData(player).getIps().forEach(ban::addIp);
-
-        plugin.bm.addBan(ban);
-
-        MessageUtils.broadcast("<red><player> has been temporarily banned for prohibited language.",
-            Placeholder.unparsed("player", player.getName()));
-        FLog.warning("[TextFilter] Temporarily banned " + player.getName() + " for prohibited language.", true);
-
-        player.kick(tempbanKickMessage());
-    }
-
     private void notifyAdmins(Player player, String message)
     {
         final Component feedback = MessageUtils.parse(
@@ -201,15 +168,6 @@ public class TextFilterService extends FreedomService
                 Placeholder.unparsed("message", message));
 
         plugin.al.getOnlineAdmins().forEach(admin -> admin.sendMessage(feedback));
-    }
-
-    private Component tempbanKickMessage()
-    {
-        final String message = """
-            <red>Your username is temporarily banned from this server.
-            Release procedures are available at
-            </red><gold><url></gold>""";
-
-        return MessageUtils.parse(message, MessageUtils.unparsed("url", ConfigEntry.SERVER_BAN_URL.getString()));
+        FLog.warning(String.format("[TextFilter] Blocked message from %s: %s", player.getName(), message), true);
     }
 }
