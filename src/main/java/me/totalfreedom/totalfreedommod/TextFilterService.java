@@ -62,7 +62,7 @@ public class TextFilterService extends FreedomService
 
         event.setCancelled(true);
         final Player player = event.getPlayer();
-        Bukkit.getScheduler().runTask(plugin, () -> notifyAdmins(player, message));
+        Bukkit.getScheduler().runTask(plugin, () -> handleBlockedMessage(player, message));
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
@@ -79,7 +79,7 @@ public class TextFilterService extends FreedomService
         }
 
         event.setCancelled(true);
-        notifyAdmins(event.getPlayer(), event.getMessage());
+        handleBlockedMessage(event.getPlayer(), event.getMessage());
     }
 
     private void reloadFilters()
@@ -160,13 +160,14 @@ public class TextFilterService extends FreedomService
         return out.toString();
     }
 
-    private void notifyAdmins(Player player, String message)
+    private void handleBlockedMessage(Player player, String message)
     {
         final Component feedback = MessageUtils.parse(
                 "<red>[Text Filter]</red> <yellow><player></yellow>: <gray><message></gray>",
                 Placeholder.unparsed("player", player.getName()),
                 Placeholder.unparsed("message", message));
 
+        player.sendMessage(MessageUtils.parse("<red>Your message was blocked by the text filter."));
         plugin.al.getOnlineAdmins().forEach(admin -> admin.sendMessage(feedback));
         FLog.warning(String.format("[TextFilter] Blocked message from %s: %s", player.getName(), message), true);
     }
