@@ -43,6 +43,8 @@ import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 
 public class TextFilterService extends FreedomService
 {
+    private static final int ITEM_DATA_PREVIEW_LIMIT = 512;
+
     private static final Map<Character, Character> LEET = Map.ofEntries(
         Map.entry('0', 'O'), Map.entry('1', 'I'), Map.entry('3', 'E'),
         Map.entry('4', 'A'), Map.entry('5', 'S'), Map.entry('7', 'T'),
@@ -450,7 +452,7 @@ public class TextFilterService extends FreedomService
     {
         final String itemName = itemName(item);
         final String consoleMessage = String.format("%s: [%s] %s", player.getName(), itemName, message);
-        final String itemData = item == null ? "{}" : item.serialize().toString();
+        final String itemData = truncateItemData(item);
         final Component label = Component.text("[" + itemName + "]", NamedTextColor.YELLOW)
             .hoverEvent(HoverEvent.showText(Component.text("NBT: " + itemData)))
             .clickEvent(ClickEvent.copyToClipboard(itemData));
@@ -460,6 +462,17 @@ public class TextFilterService extends FreedomService
             .append(Component.text(" " + message, NamedTextColor.GRAY));
 
         notifyAdmins(consoleMessage, feedback);
+    }
+
+    private static String truncateItemData(ItemStack item)
+    {
+        final String itemData = item == null ? "{}" : item.serialize().toString();
+        if (itemData.length() <= ITEM_DATA_PREVIEW_LIMIT)
+        {
+            return itemData;
+        }
+
+        return itemData.substring(0, ITEM_DATA_PREVIEW_LIMIT - 3) + "...";
     }
 
     private static String itemName(ItemStack item)
