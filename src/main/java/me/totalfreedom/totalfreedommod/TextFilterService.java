@@ -197,28 +197,19 @@ public class TextFilterService extends FreedomService
             return;
         }
 
-        ItemStack matchedItem = event.getOldCursor();
-        Optional<String> filteredText = findFilteredItemText(matchedItem);
-        if (filteredText.isEmpty())
-        {
-            for (ItemStack candidate : event.getNewItems().values())
-            {
-                final Optional<String> candidateText = findFilteredItemText(candidate);
-                if (candidateText.isPresent())
-                {
-                    matchedItem = candidate;
-                    filteredText = candidateText;
-                    break;
-                }
-            }
-        }
-        if (filteredText.isEmpty())
+        final Optional<Map.Entry<ItemStack, String>> match = Stream.concat(
+                Stream.of(event.getOldCursor()), event.getNewItems().values().stream())
+            .map(item -> findFilteredItemText(item).map(text -> Map.entry(item, text)))
+            .flatMap(Optional::stream)
+            .findFirst();
+        if (match.isEmpty())
         {
             return;
         }
 
         event.setCancelled(true);
-        notifyAdmins(player, matchedItem, String.format("contains prohibited text: %s", filteredText.get()));
+        notifyAdmins(player, match.get().getKey(),
+            String.format("contains prohibited text: %s", match.get().getValue()));
         event.getView().setCursor(null);
         player.updateInventory();
     }
@@ -289,7 +280,7 @@ public class TextFilterService extends FreedomService
 
         event.setCancelled(true);
         notifyAdmins(event.getPlayer(), item, String.format("contains prohibited text: %s", filteredText.get()));
-        event.getRightClicked().remove();
+        event.getPlayer().getInventory().setItem(event.getHand(), null);
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
@@ -442,11 +433,6 @@ public class TextFilterService extends FreedomService
         plugin.al.getOnlineAdmins().forEach(admin -> admin.sendMessage(feedback));
         FLog.warning(String.format("[TextFilter] Blocked message from %s: %s", player.getName(), message), true);
     }
-    
-    private void notifyAdmins(Player player, String message)
-    {
-        notifyAdmins(String.format("%s: %s", player.getName(), message));
-    }
 
     private void notifyAdmins(Player player, ItemStack item, String message)
     {
@@ -493,13 +479,5 @@ public class TextFilterService extends FreedomService
             .append(feedback);
 
         plugin.al.getOnlineAdmins().forEach(admin -> admin.sendMessage(notification));
-    }
-
-    private void notifyAdmins(String message)
-    {
-        final Component feedback = MessageUtils.parse(
-            "<red>[Text Filter]</red> <gray><message></gray>",
-            Placeholder.unparsed("message", message));
-        notifyAdmins(message, feedback);
     }
 }
