@@ -59,6 +59,7 @@ import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.vanish.VanishService;
 import me.totalfreedom.totalfreedommod.world.GenerationService;
 import me.totalfreedom.totalfreedommod.world.WorldManager;
+import me.totalfreedom.totalfreedommod.wordle.WordleManager;
 
 /**
  * Composition root for the plugin. Loads configuration, registers every service and bridge in
@@ -145,6 +146,7 @@ public class FreedomAggregate
         services.register(AntiSpam.class, AntiSpam::new);
 
         services.register(EcoManager.class, EcoManager::new);
+        services.register(WordleManager.class, WordleManager::new);
         services.register(JoinLeaveMessages.class, JoinLeaveMessages::new);
         services.register(Announcer.class, Announcer::new);
         services.register(ChatReaction.class, ChatReaction::new);

@@ -48,6 +48,7 @@ import me.totalfreedom.totalfreedommod.util.DetectionReporter;
 import me.totalfreedom.totalfreedommod.util.FLog;
 import me.totalfreedom.totalfreedommod.util.FTask;
 import me.totalfreedom.totalfreedommod.util.FUtil;
+import me.totalfreedom.totalfreedommod.wordle.WordleInventoryHolder;
 
 public class ItemValidator extends FreedomService
 {
@@ -1063,6 +1064,11 @@ public class ItemValidator extends FreedomService
             return;
         }
         Inventory top = event.getInventory();
+        if (top.getHolder(false) instanceof WordleInventoryHolder
+                || WordleInventoryHolder.hasAnvilOpen(event.getPlayer().getUniqueId()))
+        {
+            return;
+        }
         if (isWorldContainerView(top))
         {
             String context = event.getPlayer().getName() + " opened " + describeLocation(top);
@@ -1151,6 +1157,11 @@ public class ItemValidator extends FreedomService
         }
         String actor = event.getWhoClicked().getName();
         Inventory top = event.getView().getTopInventory();
+        if (top.getHolder(false) instanceof WordleInventoryHolder
+                || WordleInventoryHolder.hasAnvilOpen(event.getWhoClicked().getUniqueId()))
+        {
+            return;
+        }
         if (probeOpenContainer(top, "click by " + actor))
         {
             event.setCancelled(true);
@@ -1227,6 +1238,11 @@ public class ItemValidator extends FreedomService
         }
         String actor = event.getWhoClicked().getName();
         Inventory top = event.getView().getTopInventory();
+        if (top.getHolder(false) instanceof WordleInventoryHolder
+                || WordleInventoryHolder.hasAnvilOpen(event.getWhoClicked().getUniqueId()))
+        {
+            return;
+        }
         if (probeOpenContainer(top, "drag by " + actor))
         {
             event.setCancelled(true);
@@ -1642,6 +1658,10 @@ public class ItemValidator extends FreedomService
     public void onPrepareAnvil(PrepareAnvilEvent event)
     {
         if (!enabled())
+        {
+            return;
+        }
+        if (WordleInventoryHolder.hasAnvilOpen(event.getView().getPlayer().getUniqueId()))
         {
             return;
         }
